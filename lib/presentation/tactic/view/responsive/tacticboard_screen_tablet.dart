@@ -4,15 +4,16 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/leftto
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
 
-class TacticboardScreenTabletV2 extends StatefulWidget {
-  const TacticboardScreenTabletV2({super.key});
+class TacticboardScreenTablet extends StatefulWidget {
+  const TacticboardScreenTablet({super.key});
 
   @override
-  State<TacticboardScreenTabletV2> createState() =>
-      _TacticboardScreenTabletV2State();
+  State<TacticboardScreenTablet> createState() =>
+      _TacticboardScreenTabletState();
 }
 
-class _TacticboardScreenTabletV2State extends State<TacticboardScreenTabletV2> {
+class _TacticboardScreenTabletState extends State<TacticboardScreenTablet> {
+  final GlobalKey _gameScreenKey = GlobalKey(); // Add a GlobalKey
   @override
   Widget build(BuildContext context) {
     return MultiSplitView(
@@ -33,7 +34,7 @@ class _TacticboardScreenTabletV2State extends State<TacticboardScreenTabletV2> {
               child: Column(
                 spacing: 20,
                 children: [
-                  Flexible(flex: 7, child: GameScreen()),
+                  Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
 
                   Flexible(flex: 1, child: Container(color: Colors.red)),
                 ],

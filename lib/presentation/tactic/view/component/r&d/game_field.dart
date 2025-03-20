@@ -166,26 +166,4 @@ class GameField extends PositionComponent
       _borderPaint,
     );
   }
-
-  /// Draws the corner arcs
-  // void _drawCornerArcs(Canvas canvas) {
-  //   final double cornerRadius = 10;
-  //
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(0, 0), radius: cornerRadius),
-  //     1.5*1.57, -3.14, false, _borderPaint,
-  //   );
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(size.x, 0), radius: cornerRadius),
-  //     3.14, 1.57, false, _borderPaint,
-  //   );
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(0, size.y), radius: cornerRadius),
-  //     0, 1.57, false, _borderPaint,
-  //   );
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(size.x, size.y), radius: cornerRadius),
-  //     4.71, 1.57, false, _borderPaint,
-  //   );
-  // }
 }

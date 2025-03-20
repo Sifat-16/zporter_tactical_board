@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen_v2.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen.dart';
 
 class TacticApp extends StatelessWidget {
   const TacticApp({super.key});
@@ -18,7 +18,7 @@ class TacticApp extends StatelessWidget {
           themeMode: ThemeMode.system,
           home: Scaffold(
             backgroundColor: ColorManager.black,
-            body: TacticboardScreenV2(),
+            body: TacticboardScreen(),
           ),
         );
       },

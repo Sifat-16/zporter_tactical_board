@@ -29,6 +29,7 @@ class _EquipmentToolbarComponentState extends State<EquipmentToolbarComponent>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
     return Container();
     // return BlocListener<EquipmentBloc, EquipmentState>(
     //   listener: (context, state) {

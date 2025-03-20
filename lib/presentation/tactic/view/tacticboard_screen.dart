@@ -1,31 +1,30 @@
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:zporter_tactical_board/app/core/component/responsive_screen_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/responsive/tacticboard_screen_tablet_v2.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/responsive/tacticboard_screen_tablet.dart';
 
-class TacticboardScreenV2 extends ResponsiveScreen {
-  const TacticboardScreenV2({super.key});
+class TacticboardScreen extends ResponsiveScreen {
+  const TacticboardScreen({super.key});
 
   @override
   Widget buildDesktop(BuildContext context) {
-    return TacticboardScreenTabletV2();
+    return TacticboardScreenTablet();
   }
 
   @override
   Widget buildMobile(BuildContext context) {
-    return TacticboardScreenTabletV2();
+    return TacticboardScreenTablet();
   }
 
   @override
   Widget buildTablet(BuildContext context) {
-    return TacticboardScreenTabletV2();
+    return TacticboardScreenTablet();
   }
 
   @override
-  _TacticboardScreenV2State createState() => _TacticboardScreenV2State();
+  _TacticboardScreenState createState() => _TacticboardScreenState();
 }
 
-class _TacticboardScreenV2State
-    extends ResponsiveScreenState<TacticboardScreenV2> {
+class _TacticboardScreenState extends ResponsiveScreenState<TacticboardScreen> {
   @override
   void initState() {
     // TODO: implement initState

@@ -1,16 +1,22 @@
 import 'dart:async';
-import 'dart:ui';
 
+import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_model_v2.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/player_sprite_component.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 
 import 'game_field.dart';
 
 class TacticBoardGame extends FlameGame {
   late GameField gameField;
-  List<PlayerModelV2> players = [];
+  List<PlayerModel> players = [];
+
+  // @override
+  // update(double dt) {
+  //   super.update(dt);
+  //   zlog(data: children.toString());
+  // }
 
   @override
   FutureOr<void> onLoad() {
@@ -36,10 +42,10 @@ class TacticBoardGame extends FlameGame {
     return ColorManager.grey;
   }
 
-  addPlayer(PlayerModelV2 player) {
+  addPlayer(PlayerModel player) {
     print("On Drag end ${player.offset}");
     players.add(player);
-    add(PlayerSpriteComponent(playerModelV2: player));
+    add(PlayerComponent(object: player));
   }
 
   @override

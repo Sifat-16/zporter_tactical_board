@@ -1,6 +1,7 @@
+import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_model_v2.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
 
 class GameScreen extends StatefulWidget {
@@ -15,11 +16,19 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DragTarget<PlayerModelV2>(
-      onAcceptWithDetails: (DragTargetDetails<PlayerModelV2> dragDetails) {
-        PlayerModelV2 playerModelV2 = dragDetails.data;
-        playerModelV2.offset = dragDetails.offset;
-        tacticBoardGame.addPlayer(playerModelV2);
+    return DragTarget<PlayerModel>(
+      onAcceptWithDetails: (DragTargetDetails<PlayerModel> dragDetails) {
+        PlayerModel playerModel = dragDetails.data;
+        // Dynamically adjust for GameScreen position
+        final RenderBox gameScreenBox = context.findRenderObject() as RenderBox;
+        final Offset gameScreenOffset = gameScreenBox.localToGlobal(
+          Offset.zero,
+        );
+        Vector2 adjustedOffset =
+            dragDetails.offset.toVector2() - gameScreenOffset.toVector2();
+        playerModel.offset =
+            adjustedOffset + tacticBoardGame.gameField.position;
+        tacticBoardGame.addPlayer(playerModel);
       },
       builder: (
         BuildContext context,

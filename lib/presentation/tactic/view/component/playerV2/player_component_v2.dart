@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_model_v2.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 
 class PlayerComponentV2 extends StatefulWidget {
   const PlayerComponentV2({
     super.key,
-    required this.playerModelV2,
+    required this.playerModel,
     this.activateFocus = false,
   });
 
-  final PlayerModelV2 playerModelV2;
+  final PlayerModel playerModel;
   final bool activateFocus;
 
   @override
@@ -30,8 +30,8 @@ class _PlayerComponentV2State extends State<PlayerComponentV2> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => _setFocus(!_isFocused),
-      child: Draggable<PlayerModelV2>(
-        data: widget.playerModelV2,
+      child: Draggable<PlayerModel>(
+        data: widget.playerModel,
         onDragStarted: () => _setFocus(true),
         onDragEnd: (DraggableDetails details) {
           _setFocus(false);
@@ -57,7 +57,7 @@ class _PlayerComponentV2State extends State<PlayerComponentV2> {
           padding: EdgeInsets.all(AppSize.s8),
           decoration: BoxDecoration(
             color:
-                widget.playerModelV2.playerType == PlayerType.HOME
+                widget.playerModel.playerType == PlayerType.HOME
                     ? ColorManager.blueAccent
                     : ColorManager.red,
             borderRadius: BorderRadius.circular(AppSize.s4),
@@ -72,7 +72,7 @@ class _PlayerComponentV2State extends State<PlayerComponentV2> {
               children: [
                 Center(
                   child: Text(
-                    widget.playerModelV2.role,
+                    widget.playerModel.role,
                     style: Theme.of(context).textTheme.labelLarge!.copyWith(
                       color: ColorManager.white,
                       fontWeight: FontWeight.bold,
@@ -82,7 +82,7 @@ class _PlayerComponentV2State extends State<PlayerComponentV2> {
                 Align(
                   alignment: Alignment.topRight,
                   child: Text(
-                    "${widget.playerModelV2.index}",
+                    "${widget.playerModel}",
                     style: Theme.of(
                       context,
                     ).textTheme.labelSmall!.copyWith(color: ColorManager.white),
