@@ -26,7 +26,7 @@ abstract class Scalable {
 }
 
 // Base component for field elements
-abstract class FieldComponent<FieldItemModel> extends PositionComponent
+abstract class FieldComponent<FieldItemModel> extends SpriteComponent
     with HasGameReference<TacticBoardGame>, DragCallbacks, TapCallbacks
     implements Selectable, Draggable, Scalable {
   FieldItemModel object;

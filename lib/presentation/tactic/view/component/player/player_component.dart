@@ -15,9 +15,9 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
+    sprite = await game.loadSprite("ball.png", srcSize: Vector2.zero());
     size = Vector2(AppSize.s32, AppSize.s32);
-    position = object.offset;
+    position = object.offset ?? Vector2(x, y);
     angle = object.angle ?? 0;
 
     zlog(data: "Trying to add Player ${size}");

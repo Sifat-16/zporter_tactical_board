@@ -26,7 +26,7 @@ class _PlayersToolbarAwayState extends State<PlayersToolbarAway>
     WidgetsBinding.instance.addPostFrameCallback((t) {
       setState(() {
         players = PlayerUtilsV2.generatePlayerModelList(
-          playerType: PlayerType.HOME,
+          playerType: PlayerType.AWAY,
         );
       });
     });

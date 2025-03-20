@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:multi_split_view/multi_split_view.dart';
+import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
@@ -31,13 +32,21 @@ class _TacticboardScreenTabletState extends State<TacticboardScreenTablet> {
           builder: (context, area) {
             return Padding(
               padding: const EdgeInsets.only(top: 50.0),
-              child: Column(
-                spacing: 20,
-                children: [
-                  Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
+              child: SingleChildScrollView(
+                child: Column(
+                  spacing: 20,
+                  children: [
+                    // Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
+                    SizedBox(
+                      height: context.heightPercent(80),
+                      child: GameScreen(key: _gameScreenKey),
+                    ),
 
-                  Flexible(flex: 1, child: Container(color: Colors.red)),
-                ],
+                    Container(color: Colors.red),
+
+                    // Flexible(flex: 1, child: Container(color: Colors.red)),
+                  ],
+                ),
               ),
             );
           },

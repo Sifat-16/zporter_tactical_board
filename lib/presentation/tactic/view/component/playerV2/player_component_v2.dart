@@ -66,8 +66,8 @@ class _PlayerComponentV2State extends State<PlayerComponentV2> {
             //     : null, // Add border if focused
           ),
           child: SizedBox(
-            height: AppSize.s20,
-            width: AppSize.s20,
+            height: AppSize.s32,
+            width: AppSize.s32,
             child: Stack(
               children: [
                 Center(
@@ -82,7 +82,7 @@ class _PlayerComponentV2State extends State<PlayerComponentV2> {
                 Align(
                   alignment: Alignment.topRight,
                   child: Text(
-                    "${widget.playerModel}",
+                    "${widget.playerModel.index}",
                     style: Theme.of(
                       context,
                     ).textTheme.labelSmall!.copyWith(color: ColorManager.white),

@@ -5,7 +5,7 @@ enum FieldItemType { PLAYER, FORM, EQUIPMENT }
 
 abstract class FieldItemModel {
   ObjectId id;
-  Vector2 offset;
+  Vector2? offset;
   FieldItemType fieldItemType;
   bool scaleSymmetrically;
   double? angle;
@@ -14,7 +14,7 @@ abstract class FieldItemModel {
 
   FieldItemModel({
     required this.id,
-    required this.offset,
+    this.offset,
     required this.fieldItemType,
     required this.scaleSymmetrically,
     this.angle,
@@ -25,7 +25,7 @@ abstract class FieldItemModel {
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
-      'offset': {'dx': offset.x, 'dy': offset.y},
+      'offset': {'dx': offset?.x ?? 0, 'dy': offset?.y ?? 0},
       'scaleSymmetrically': scaleSymmetrically,
       'fieldItemType': fieldItemType.toString().split('.').last,
       'angle': angle,

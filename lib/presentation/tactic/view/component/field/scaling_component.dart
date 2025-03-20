@@ -1,7 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:zporter_tactical_board/app/helper/logger.dart';
 
 import 'field_component.dart';
 
@@ -19,7 +18,6 @@ class ScalingHandle extends CircleComponent with DragCallbacks {
   @override
   void onDragUpdate(DragUpdateEvent event) {
     Vector2 delta = event.localDelta;
-    zlog(data: "Dragging the scale ${delta}");
 
     // Calculate scaling factor based on drag direction and anchor
     double scaleX = 1.0;
