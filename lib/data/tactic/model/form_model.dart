@@ -3,20 +3,29 @@ import 'package:mongo_dart/mongo_dart.dart';
 
 import 'field_item_model.dart';
 
-class EquipmentModel extends FieldItemModel {
+enum FormType { TEXT }
+
+abstract class FormItemModel {
+  FormType formType;
+  FormItemModel({required this.formType});
+}
+
+class FormModel extends FieldItemModel {
   String name;
   String? imagePath;
+  FormItemModel? formItemModel;
 
-  EquipmentModel({
+  FormModel({
     required super.id,
     super.offset,
-    super.fieldItemType = FieldItemType.EQUIPMENT,
+    super.fieldItemType = FieldItemType.FORM,
     super.angle,
     super.scaleSymmetrically = true,
     super.createdAt,
     super.updatedAt,
     required this.name,
     this.imagePath,
+    this.formItemModel,
   });
 
   @override
@@ -24,9 +33,9 @@ class EquipmentModel extends FieldItemModel {
     return {...super.toJson(), 'name': name, 'imagePath': imagePath};
   }
 
-  static EquipmentModel fromJson(Map<String, dynamic> json) {
+  static FormModel fromJson(Map<String, dynamic> json) {
     final base = FieldItemModel.fromJson(json);
-    return EquipmentModel(
+    return FormModel(
       id: base.id,
       offset: base.offset,
       angle: base.angle,
@@ -38,7 +47,7 @@ class EquipmentModel extends FieldItemModel {
   }
 
   @override
-  EquipmentModel copyWith({
+  FormModel copyWith({
     ObjectId? id,
     Vector2? offset,
     bool? scaleSymmetrically,
@@ -49,7 +58,7 @@ class EquipmentModel extends FieldItemModel {
     String? name,
     String? imagePath,
   }) {
-    return EquipmentModel(
+    return FormModel(
       id: id ?? this.id,
       offset: offset ?? this.offset,
       scaleSymmetrically: scaleSymmetrically ?? this.scaleSymmetrically,
@@ -63,8 +72,8 @@ class EquipmentModel extends FieldItemModel {
   }
 
   @override
-  EquipmentModel clone() {
-    return EquipmentModel(
+  FormModel clone() {
+    return FormModel(
       id: id,
       offset: offset,
       fieldItemType: fieldItemType,
@@ -75,4 +84,9 @@ class EquipmentModel extends FieldItemModel {
       imagePath: imagePath,
     );
   }
+}
+
+class FormTextModel extends FormItemModel {
+  FormTextModel({super.formType = FormType.TEXT, required this.text});
+  String text;
 }

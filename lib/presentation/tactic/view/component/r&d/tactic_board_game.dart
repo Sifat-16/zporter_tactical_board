@@ -5,8 +5,10 @@ import 'package:flame/game.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 
 import 'game_field.dart';
@@ -15,6 +17,7 @@ class TacticBoardGame extends FlameGame {
   late GameField gameField;
   List<PlayerModel> players = [];
   List<EquipmentModel> equipments = [];
+  List<FormModel> forms = [];
 
   // @override
   // update(double dt) {
@@ -34,12 +37,6 @@ class TacticBoardGame extends FlameGame {
     add(gameField);
   }
 
-  // _initiatePlayerSprite(){
-  //   players.forEach((e){
-  //
-  //   });
-  // }
-
   @override
   Color backgroundColor() {
     // TODO: implement backgroundColor
@@ -54,6 +51,9 @@ class TacticBoardGame extends FlameGame {
     } else if (item is EquipmentModel) {
       equipments.add(item);
       add(EquipmentComponent(object: item));
+    } else if (item is FormModel) {
+      forms.add(item);
+      add(FormComponent(object: item));
     }
   }
 
