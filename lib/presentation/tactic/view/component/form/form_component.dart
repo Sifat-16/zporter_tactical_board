@@ -20,8 +20,8 @@ class FormComponent extends FieldComponent<FormModel> {
     size = Vector2(AppSize.s32, AppSize.s32);
     position = object.offset ?? Vector2(x, y);
     angle = object.angle ?? 0;
-
-    if (object.formItemModel is FormTextModel) {
+    FormItemModel? formItemModel = object.formItemModel;
+    if (formItemModel is FormTextModel) {
       plugin = FormTextPlugin();
       size = plugin!.calculateSize(object, scale);
     }

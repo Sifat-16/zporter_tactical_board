@@ -1,9 +1,11 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 
 import 'field_item_model.dart';
 
-enum FormType { TEXT }
+enum FormType { TEXT, LINE }
 
 abstract class FormItemModel {
   FormType formType;
@@ -89,4 +91,19 @@ class FormModel extends FieldItemModel {
 class FormTextModel extends FormItemModel {
   FormTextModel({super.formType = FormType.TEXT, required this.text});
   String text;
+}
+
+class LineModel extends FormItemModel {
+  Vector2 start;
+  Vector2 end;
+  Color color;
+  double thickness;
+
+  LineModel({
+    super.formType = FormType.LINE,
+    required this.start,
+    required this.end,
+    required this.color,
+    this.thickness = 2.0,
+  });
 }

@@ -1,7 +1,11 @@
 import 'dart:async';
 
+import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
+import 'package:flame_bloc/flame_bloc.dart';
+import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
@@ -9,15 +13,23 @@ import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_bloc.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_event.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart';
 
 import 'game_field.dart';
 
-class TacticBoardGame extends FlameGame {
+class TacticBoardGame extends FlameGame with PanDetector {
+  TacticBoardGame({required this.lineBloc});
+
   late GameField gameField;
+  final LineBloc lineBloc;
   List<PlayerModel> players = [];
   List<EquipmentModel> equipments = [];
   List<FormModel> forms = [];
+  Vector2? lineStartPoint; // Start point of the line
 
   // @override
   // update(double dt) {
@@ -26,8 +38,16 @@ class TacticBoardGame extends FlameGame {
   // }
 
   @override
-  FutureOr<void> onLoad() {
+  FutureOr<void> onLoad() async {
     // TODO: implement onLoad
+    await add(
+      FlameMultiBlocProvider(
+        providers: [
+          FlameBlocProvider<LineBloc, LineState>.value(value: lineBloc),
+        ],
+      ),
+    );
+
     _initiateField();
     return super.onLoad();
   }
@@ -44,7 +64,7 @@ class TacticBoardGame extends FlameGame {
   }
 
   addItem(FieldItemModel item) {
-    print("On Drag end ${item.offset}");
+    zlog(data: "On Drag end ${item.offset}");
     if (item is PlayerModel) {
       players.add(item);
       add(PlayerComponent(object: item));
@@ -60,4 +80,56 @@ class TacticBoardGame extends FlameGame {
   @override
   // TODO: implement debugMode
   bool get debugMode => false;
+
+  @override
+  void onPanStart(DragStartInfo info) {
+    super.onPanStart(info);
+    if (lineBloc.state.isLineActiveToAddIntoGameField) {
+      lineStartPoint = info.raw.localPosition.toVector2();
+    }
+    zlog(data: "Line start ${info.raw.localPosition.toVector2()}");
+  }
+
+  @override
+  void onPanEnd(DragEndInfo info) {
+    super.onPanEnd(info);
+    if (lineBloc.state.isLineActiveToAddIntoGameField &&
+        lineStartPoint != null) {
+      final lineEndPoint = info.raw.localPosition.toVector2();
+
+      final lineModel = LineModel(
+        formType: FormType.TEXT, // Or create a new FormType.LINE
+        start: lineStartPoint!,
+        end: lineEndPoint,
+        color:
+            Colors
+                .black, // Or use a color from lineBloc.state.activatedLineForm
+      );
+
+      FormModel formModel = lineBloc.state.activatedLineForm!;
+      formModel.formItemModel = lineModel;
+      formModel.offset = lineStartPoint;
+
+      forms.add(formModel);
+
+      // Add the line to the game
+      // addItem(formModel);
+
+      add(
+        LineDrawerComponent(
+          lineModel: lineModel,
+          lineColor:
+              Colors
+                  .black, // Or use a color from lineBloc.state.activatedLineForm
+        ),
+      );
+
+      // Reset start point and line drawing mode
+      lineStartPoint = null;
+      lineBloc.add(
+        UnLoadActiveLineModelToAddIntoGameFieldEvent(formModel: formModel),
+      );
+    }
+    zlog(data: "Line end ${info.raw.localPosition.toVector2()}");
+  }
 }
