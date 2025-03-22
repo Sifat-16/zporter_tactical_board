@@ -84,6 +84,17 @@ class FormUtils {
       ),
     ),
 
+    FormModel(
+      id: ObjectId(),
+      name: "FREE-DRAW",
+      imagePath: "free-draw.png",
+      formItemModel: FreeDrawModel(
+        points: [],
+        color: ColorManager.black,
+        thickness: 5,
+      ),
+    ),
+
     // FormModel(
     //   id: ObjectId(),
     //   name: "RIGHT_TURN_ARROW",

@@ -24,7 +24,8 @@ class _FormItemState extends State<FormItem> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.formModel.formItemModel is LineModel) {
+    if (widget.formModel.formItemModel is LineModel ||
+        widget.formModel.formItemModel is FreeDrawModel) {
       return FormLineItem(formModel: widget.formModel);
     } else {
       return GestureDetector(

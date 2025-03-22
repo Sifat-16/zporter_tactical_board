@@ -29,6 +29,7 @@ class LineBloc extends Bloc<LineEvent, LineState> {
       state.copyWith(
         isLineActiveToAddIntoGameField: true,
         activatedLineForm: event.formModel,
+        isFreeDrawingActive: (event.formModel.formItemModel is FreeDrawModel),
       ),
     );
   }
@@ -41,6 +42,7 @@ class LineBloc extends Bloc<LineEvent, LineState> {
       state.copyWith(
         isLineActiveToAddIntoGameField: false,
         forceNullActivatedLine: true,
+        isFreeDrawingActive: false,
       ),
     );
   }
@@ -61,6 +63,7 @@ class LineBloc extends Bloc<LineEvent, LineState> {
         isLineActiveToAddIntoGameField: false,
         availableLineForms: forms,
         forceNullActivatedLine: true,
+        isFreeDrawingActive: false,
       ),
     );
   }

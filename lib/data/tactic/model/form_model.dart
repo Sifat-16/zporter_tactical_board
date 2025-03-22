@@ -5,7 +5,7 @@ import 'package:mongo_dart/mongo_dart.dart';
 
 import 'field_item_model.dart';
 
-enum FormType { TEXT, LINE }
+enum FormType { TEXT, LINE, FREE_DRAW }
 
 abstract class FormItemModel {
   FormType formType;
@@ -187,5 +187,93 @@ class LineModel extends FormItemModel {
   @override
   String toString() {
     return 'LineModel(start: $start, end: $end, color: $color, thickness: $thickness, lineType: $lineType)';
+  }
+}
+
+class FreeDrawModel extends FormItemModel {
+  List<Vector2> points;
+  Color color;
+  double thickness;
+
+  FreeDrawModel({
+    super.formType = FormType.FREE_DRAW,
+    required this.points,
+    required this.color,
+    this.thickness = 5.0,
+  });
+
+  FreeDrawModel copyWith({
+    List<Vector2>? points,
+    Color? color,
+    double? thickness,
+  }) {
+    return FreeDrawModel(
+      points: points ?? this.points,
+      color: color ?? this.color,
+      thickness: thickness ?? this.thickness,
+    );
+  }
+
+  factory FreeDrawModel.fromJson(Map<String, dynamic> json) {
+    final List<dynamic> pointsList = json['points'] as List<dynamic>;
+    final List<Vector2> points =
+        pointsList.map((point) {
+          return Vector2(
+            (point['x'] as num).toDouble(),
+            (point['y'] as num).toDouble(),
+          );
+        }).toList();
+
+    return FreeDrawModel(
+      points: points,
+      color: Color(json['color'] as int),
+      thickness: (json['thickness'] as num).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    final List<Map<String, dynamic>> pointsJson =
+        points.map((point) {
+          return {'x': point.x, 'y': point.y}; // Convert each Vector2 to a Map
+        }).toList();
+
+    return {
+      'points': pointsJson, // List of Maps
+      'color': color.value,
+      'thickness': thickness,
+      'formType': formType.index,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is FreeDrawModel &&
+        other.points.length == points.length && // Basic length check
+        _listEquals(other.points, points) && // Deep comparison
+        other.color == color &&
+        other.thickness == thickness;
+  }
+
+  // Helper function for deep list comparison
+  bool _listEquals<T>(List<T>? a, List<T>? b) {
+    if (a == null) return b == null;
+    if (b == null || a.length != b.length) return false;
+    if (identical(a, b)) return true;
+    for (int index = 0; index < a.length; index += 1) {
+      if (a[index] != b[index]) return false;
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    return points.hashCode ^ color.hashCode ^ thickness.hashCode;
+  }
+
+  @override
+  String toString() {
+    return 'FreeDrawModel(points: $points, color: $color, thickness: $thickness)';
   }
 }

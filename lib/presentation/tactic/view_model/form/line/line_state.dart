@@ -5,11 +5,13 @@ class LineState extends Equatable {
   final List<FormModel> availableLineForms;
   final bool isLineActiveToAddIntoGameField;
   final FormModel? activatedLineForm;
+  final bool isFreeDrawingActive;
 
   const LineState({
     this.availableLineForms = const [],
     this.isLineActiveToAddIntoGameField = false,
     this.activatedLineForm,
+    this.isFreeDrawingActive = false,
   });
 
   LineState copyWith({
@@ -17,6 +19,7 @@ class LineState extends Equatable {
     bool? isLineActiveToAddIntoGameField,
     FormModel? activatedLineForm,
     bool forceNullActivatedLine = false,
+    bool? isFreeDrawingActive,
   }) {
     return LineState(
       availableLineForms: availableLineForms ?? this.availableLineForms,
@@ -26,6 +29,7 @@ class LineState extends Equatable {
           forceNullActivatedLine == true
               ? null
               : activatedLineForm ?? this.activatedLineForm,
+      isFreeDrawingActive: isFreeDrawingActive ?? this.isFreeDrawingActive,
     );
   }
 

@@ -90,20 +90,20 @@ class LineDrawerComponent extends PositionComponent
         initialPosition: lineModel.start,
         onPositionChanged: (newPos) {
           lineModel.start = newPos;
-          _updateLine();
+          updateLine();
         },
       ),
       DraggableDot(
         initialPosition: lineModel.end,
         onPositionChanged: (newPos) {
           lineModel.end = newPos;
-          _updateLine();
+          updateLine();
         },
       ),
     ];
   }
 
-  void _updateLine() {
+  void updateLine() {
     dots[0].position = lineModel.start;
     dots[1].position = lineModel.end;
   }
@@ -431,7 +431,7 @@ class LineDrawerComponent extends PositionComponent
       final delta = event.localDelta;
       lineModel.start += delta;
       lineModel.end += delta;
-      _updateLine();
+      updateLine();
       event.continuePropagation = true;
     }
     super.onDragUpdate(event);
@@ -500,5 +500,44 @@ class LineDrawerComponent extends PositionComponent
     final closestY = start.y + clampT * dy;
     final distance = Vector2(closestX, closestY).distanceTo(point);
     return distance < (circleRadius * 1.5);
+  }
+}
+
+// --- FreeDrawerComponent ---
+
+class FreeDrawerComponent extends Component with DragCallbacks {
+  final FreeDrawModel freeDrawModel;
+  late final Paint _paint; // Declare _paint here
+
+  FreeDrawerComponent({required this.freeDrawModel}) : super(priority: 3) {
+    // Initialize Paint object in constructor
+    _paint =
+        Paint()
+          ..color = freeDrawModel.color
+          ..strokeWidth = freeDrawModel.thickness
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+  }
+
+  // Add a point to the drawing
+  void addPoint(Vector2 point) {
+    freeDrawModel.points.add(point);
+  }
+
+  // Update Free Draw model, if needed
+  void updateLine() {
+    //Currently no need of update for free draw
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // Draw the free-form line using the points in freeDrawModel
+    for (int i = 0; i < freeDrawModel.points.length - 1; i++) {
+      canvas.drawLine(
+        freeDrawModel.points[i].toOffset(),
+        freeDrawModel.points[i + 1].toOffset(),
+        _paint,
+      );
+    }
   }
 }

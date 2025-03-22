@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -19,6 +20,8 @@ class TacticApp extends StatelessWidget {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             title: 'Zporter Board',
+            builder: BotToastInit(),
+            navigatorObservers: [BotToastNavigatorObserver()],
             themeMode: ThemeMode.system,
             home: Scaffold(
               backgroundColor: ColorManager.black,
