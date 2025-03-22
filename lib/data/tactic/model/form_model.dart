@@ -93,17 +93,99 @@ class FormTextModel extends FormItemModel {
   String text;
 }
 
+enum LineType {
+  STRAIGHT_LINE,
+  STRAIGHT_LINE_DASHED,
+  STRAIGHT_LINE_ZIGZAG,
+  STRAIGHT_LINE_ZIGZAG_ARROW,
+  STRAIGHT_LINE_ARROW,
+  STRAIGHT_LINE_ARROW_DOUBLE,
+  RIGHT_TURN_ARROW,
+}
+
 class LineModel extends FormItemModel {
   Vector2 start;
   Vector2 end;
   Color color;
   double thickness;
+  LineType lineType;
 
   LineModel({
     super.formType = FormType.LINE,
     required this.start,
     required this.end,
+    required this.lineType,
     required this.color,
     this.thickness = 2.0,
   });
+
+  LineModel copyWith({
+    Vector2? start,
+    Vector2? end,
+    Color? color,
+    double? thickness,
+    LineType? lineType,
+  }) {
+    return LineModel(
+      start: start ?? this.start,
+      end: end ?? this.end,
+      color: color ?? this.color,
+      thickness: thickness ?? this.thickness,
+      lineType: lineType ?? this.lineType,
+    );
+  }
+
+  // Add this factory constructor for JSON deserialization
+  factory LineModel.fromJson(Map<String, dynamic> json) {
+    return LineModel(
+      start: Vector2(json['startX'] as double, json['startY'] as double),
+      end: Vector2(json['endX'] as double, json['endY'] as double),
+      color: Color(json['color'] as int),
+      thickness:
+          (json['thickness'] as num).toDouble(), // Handle both int and double
+      lineType:
+          LineType.values[json['lineType']
+              as int], // Assuming LineType is an enum
+    );
+  }
+
+  // Add this method for JSON serialization
+  Map<String, dynamic> toJson() {
+    return {
+      'startX': start.x,
+      'startY': start.y,
+      'endX': end.x,
+      'endY': end.y,
+      'color': color.value, // Store color as an integer
+      'thickness': thickness,
+      'lineType': lineType.index, // Store enum as an integer index
+      'formType': formType.index,
+    };
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    return other is LineModel &&
+        other.start == start &&
+        other.end == end &&
+        other.color == color &&
+        other.thickness == thickness &&
+        other.lineType == lineType;
+  }
+
+  @override
+  int get hashCode {
+    return start.hashCode ^
+        end.hashCode ^
+        color.hashCode ^
+        thickness.hashCode ^
+        lineType.hashCode;
+  }
+
+  @override
+  String toString() {
+    return 'LineModel(start: $start, end: $end, color: $color, thickness: $thickness, lineType: $lineType)';
+  }
 }

@@ -1,91 +1,87 @@
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 
-import 'form_component_plugin.dart';
-
-class FormLinePlugin implements FormComponentPlugin {
-  @override
-  void render(Canvas canvas, FormModel model, Vector2 size, Vector2 scale) {
-    if (model.formItemModel is LineModel) {
-      final line = model.formItemModel as LineModel;
-      final paint =
-          Paint()
-            ..color = line.color
-            ..strokeWidth = line.thickness * scale.x
-            ..style = PaintingStyle.stroke;
-
-      // Adjust start and end points for scaling
-      final scaledStart = line.start;
-      final scaledEnd = line.end;
-
-      canvas.drawLine(scaledStart.toOffset(), scaledEnd.toOffset(), paint);
-    }
-  }
-
-  @override
-  void onScaleUpdate(
-    FormModel model,
-    Vector2 scale,
-    Function(Vector2) updateSize,
-  ) {
-    // No specific scaling logic needed for line here
-    // But you might want to update the line thickness if needed
-  }
-
-  @override
-  void showTextInputDialog(
-    FormModel model,
-    BuildContext context,
-    Function(String) onTextUpdated,
-  ) {
-    // Lines don't have text input, so leave this empty
-  }
-
-  @override
-  Vector2 calculateSize(FormModel model, Vector2 scale) {
-    // Lines don't have a specific size, but we need to return something
-    return Vector2.zero(); // Or a small default size
-  }
-}
-
 class DraggableDot extends CircleComponent with DragCallbacks {
   final Function(Vector2) onPositionChanged;
-  final double radius;
   final Vector2 initialPosition;
 
   DraggableDot({
     required this.onPositionChanged,
     required this.initialPosition,
-    this.radius = 8.0,
+    super.radius = 8.0,
     Color color = Colors.blue,
   }) : super(
-         radius: radius,
          position: initialPosition,
          anchor: Anchor.center,
          paint: Paint()..color = color,
+         priority: 2, // Higher priority
        );
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    event.continuePropagation = true;
+    super.onDragStart(event);
+  }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     position.add(event.localDelta);
     onPositionChanged(position);
+    event.continuePropagation = true;
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    event.continuePropagation = true;
+    super.onDragEnd(event);
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    event.continuePropagation = true;
+    super.onDragCancel(event);
   }
 }
 
-class LineDrawerComponent extends PositionComponent {
+class LineDrawerComponent extends PositionComponent
+    with TapCallbacks, DragCallbacks {
   final LineModel lineModel;
   final Color lineColor;
   final double circleRadius;
   List<DraggableDot> dots = [];
+  bool isActive = false;
+  bool _isDragging = false;
+
+  // Store active/inactive paints
+  late Paint _activePaint;
+  late Paint _inactivePaint;
 
   LineDrawerComponent({
     required this.lineModel,
     this.lineColor = Colors.black,
     this.circleRadius = 8.0,
-  }) {
+  }) : super(priority: 1) {
     _createDots();
+    // Initialize paints in the constructor
+    _inactivePaint =
+        Paint()
+          ..color = lineColor
+          ..strokeWidth = lineModel.thickness
+          ..style = PaintingStyle.stroke;
+
+    _activePaint =
+        Paint()
+          ..color =
+              Colors
+                  .white // Active color
+          ..strokeWidth =
+              lineModel.thickness +
+              2.0 // Active thickness
+          ..style = PaintingStyle.stroke;
   }
 
   void _createDots() {
@@ -105,25 +101,404 @@ class LineDrawerComponent extends PositionComponent {
         },
       ),
     ];
-    addAll(dots);
   }
 
   void _updateLine() {
-    // No need to update middle dot positions since they're removed
+    dots[0].position = lineModel.start;
+    dots[1].position = lineModel.end;
   }
 
   @override
   void render(Canvas canvas) {
-    final paint =
-        Paint()
-          ..color = lineColor
-          ..strokeWidth = 2.0
-          ..style = PaintingStyle.stroke;
+    // Choose the correct paint based on isActive
+    final paint = isActive ? _activePaint : _inactivePaint;
 
+    if (lineModel.lineType == LineType.STRAIGHT_LINE_DASHED) {
+      _drawDashedLine(canvas, lineModel.start, lineModel.end, paint);
+    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ZIGZAG) {
+      _drawZigZagLine(canvas, lineModel.start, lineModel.end, paint);
+    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ZIGZAG_ARROW) {
+      _drawZigZagLineWithArrow(canvas, lineModel.start, lineModel.end, paint);
+    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ARROW) {
+      _drawStraightLineWithArrow(canvas, lineModel.start, lineModel.end, paint);
+    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ARROW_DOUBLE) {
+      _drawStraightLineWithDoubleArrow(
+        canvas,
+        lineModel.start,
+        lineModel.end,
+        paint,
+      );
+    } else if (lineModel.lineType == LineType.RIGHT_TURN_ARROW) {
+      _drawRightTurnArrow(canvas, lineModel.start, lineModel.end, paint);
+    } else {
+      canvas.drawLine(
+        lineModel.start.toOffset(),
+        lineModel.end.toOffset(),
+        paint,
+      );
+    }
+  }
+
+  void _drawDashedLine(Canvas canvas, Vector2 start, Vector2 end, Paint paint) {
+    const dashWidth = 10.0;
+    const dashSpace = 5.0;
+
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final distance = start.distanceTo(end);
+    final numDashes = (distance / (dashWidth + dashSpace)).floor();
+
+    for (int i = 0; i < numDashes; i++) {
+      final startOffset =
+          start + Vector2(dx, dy) * (i * (dashWidth + dashSpace) / distance);
+      final endOffset =
+          start +
+          Vector2(dx, dy) *
+              ((i * (dashWidth + dashSpace) + dashWidth) / distance);
+      canvas.drawLine(startOffset.toOffset(), endOffset.toOffset(), paint);
+    }
+  }
+
+  void _drawZigZagLine(Canvas canvas, Vector2 start, Vector2 end, Paint paint) {
+    const amplitude = 5.0; // Reduced for smaller zig-zags
+    const frequency = 10.0; // More frequent zig-zags
+    const dashLength = 10.0; // Length of the starting and ending dashes
+
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final distance = start.distanceTo(end);
+
+    // --- 1. Starting Dash ---
+    final lineDirection = Vector2(dx, dy).normalized();
+    final startDashEnd = start + lineDirection * dashLength;
+    canvas.drawLine(start.toOffset(), startDashEnd.toOffset(), paint);
+
+    // --- 2. Zig-Zag ---
+
+    // Adjust the starting point and distance for the zig-zag
+    final zigZagStart = startDashEnd;
+    final zigZagEnd = end - lineDirection * dashLength;
+    final zigZagDistance = zigZagStart.distanceTo(zigZagEnd);
+    final zigZagNumSegments = (zigZagDistance / frequency).floor();
+    final zigZagDx = zigZagEnd.x - zigZagStart.x;
+    final zigZagDy = zigZagEnd.y - zigZagStart.y;
+
+    var currentPoint = zigZagStart;
+
+    for (int i = 0; i < zigZagNumSegments; i++) {
+      final nextPoint =
+          zigZagStart +
+          Vector2(zigZagDx, zigZagDy) * ((i + 1) * frequency / zigZagDistance);
+      final midPoint = (currentPoint + nextPoint) / 2;
+      final perpendicular =
+          Vector2(-zigZagDy, zigZagDx).normalized(); // Perpendicular to zig-zag
+      final zigZagOffset = perpendicular * amplitude * (i.isEven ? 1 : -1);
+      final zigZagPoint = midPoint + zigZagOffset;
+
+      canvas.drawLine(currentPoint.toOffset(), zigZagPoint.toOffset(), paint);
+      canvas.drawLine(zigZagPoint.toOffset(), nextPoint.toOffset(), paint);
+      currentPoint = nextPoint;
+    }
+    // Connect to the end dash start point
+    canvas.drawLine(currentPoint.toOffset(), zigZagEnd.toOffset(), paint);
+
+    // --- 3. Ending Dash ---
+    final endDashStart = end - lineDirection * dashLength;
+    canvas.drawLine(endDashStart.toOffset(), end.toOffset(), paint);
+  }
+
+  void _drawZigZagLineWithArrow(
+    Canvas canvas,
+    Vector2 start,
+    Vector2 end,
+    Paint paint,
+  ) {
+    const amplitude = 5.0; // Reduced for smaller zig-zags
+    const frequency = 10.0; // More frequent zig-zags
+    final arrowSize = lineModel.thickness * 4;
+    const dashLength = 10.0; // Length of the starting and ending dashes
+
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final distance = start.distanceTo(end);
+
+    // --- 1. Starting Dash ---
+    final lineDirection = Vector2(dx, dy).normalized();
+    final startDashEnd = start + lineDirection * dashLength;
+    canvas.drawLine(start.toOffset(), startDashEnd.toOffset(), paint);
+
+    // --- 2. Zig-Zag ---
+
+    // Adjust the starting point and distance for the zig-zag
+    final zigZagStart = startDashEnd;
+    final zigZagEnd =
+        end -
+        lineDirection * (dashLength + arrowSize); //  Arrow size + end dash
+    final zigZagDistance = zigZagStart.distanceTo(zigZagEnd);
+    final zigZagNumSegments = (zigZagDistance / frequency).floor();
+    final zigZagDx = zigZagEnd.x - zigZagStart.x;
+    final zigZagDy = zigZagEnd.y - zigZagStart.y;
+
+    var currentPoint = zigZagStart;
+
+    for (int i = 0; i < zigZagNumSegments; i++) {
+      final nextPoint =
+          zigZagStart +
+          Vector2(zigZagDx, zigZagDy) * ((i + 1) * frequency / zigZagDistance);
+      final midPoint = (currentPoint + nextPoint) / 2;
+      final perpendicular =
+          Vector2(
+            -zigZagDy,
+            zigZagDx,
+          ).normalized(); // Perpendicular to zig-zag segment
+      final zigZagOffset = perpendicular * amplitude * (i.isEven ? 1 : -1);
+      final zigZagPoint = midPoint + zigZagOffset;
+
+      canvas.drawLine(currentPoint.toOffset(), zigZagPoint.toOffset(), paint);
+      canvas.drawLine(zigZagPoint.toOffset(), nextPoint.toOffset(), paint);
+      currentPoint = nextPoint;
+    }
+    // Connect the last zig-zag point to where the ending dash will start
+    canvas.drawLine(currentPoint.toOffset(), zigZagEnd.toOffset(), paint);
+
+    // --- 3. Ending Dash ---
+    final endDashStart =
+        end -
+        lineDirection *
+            (dashLength + arrowSize); // Calculate where dash should start
     canvas.drawLine(
-      lineModel.start.toOffset(),
-      lineModel.end.toOffset(),
+      endDashStart.toOffset(),
+      (end - lineDirection * arrowSize).toOffset(),
       paint,
     );
+
+    // --- 4. Arrowhead ---
+    final angle = math.atan2(dy, dx);
+    final path = Path();
+
+    // Adjust arrowhead position to be at the very end
+    final arrowBase = end - lineDirection * arrowSize;
+
+    path.moveTo(
+      arrowBase.x - arrowSize * math.cos(angle - math.pi / 6),
+      arrowBase.y - arrowSize * math.sin(angle - math.pi / 6),
+    );
+    path.lineTo(arrowBase.x, arrowBase.y); // Tip of the arrow at arrowBase
+    path.lineTo(
+      arrowBase.x - arrowSize * math.cos(angle + math.pi / 6),
+      arrowBase.y - arrowSize * math.sin(angle + math.pi / 6),
+    );
+
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawStraightLineWithArrow(
+    Canvas canvas,
+    Vector2 start,
+    Vector2 end,
+    Paint paint,
+  ) {
+    final arrowSize = lineModel.thickness * 4;
+
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final angle = math.atan2(dy, dx);
+
+    // --- 1. Draw the line ---
+    canvas.drawLine(start.toOffset(), end.toOffset(), paint);
+
+    // --- 2. Draw the Arrowhead ---
+    final path = Path();
+    // Adjust arrowhead position to be at the very end
+    path.moveTo(
+      end.x - arrowSize * math.cos(angle - math.pi / 6),
+      end.y - arrowSize * math.sin(angle - math.pi / 6),
+    );
+    path.lineTo(end.x, end.y); // Tip of the arrow at the end point
+    path.lineTo(
+      end.x - arrowSize * math.cos(angle + math.pi / 6),
+      end.y - arrowSize * math.sin(angle + math.pi / 6),
+    );
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  void _drawStraightLineWithDoubleArrow(
+    Canvas canvas,
+    Vector2 start,
+    Vector2 end,
+    Paint paint,
+  ) {
+    final arrowSize = lineModel.thickness * 4;
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final angle = math.atan2(dy, dx);
+
+    // --- 1. Draw the line ---
+    // Adjust line start and end points to accommodate arrowheads
+    final lineDirection = Vector2(dx, dy).normalized();
+    final lineStart = start + lineDirection * arrowSize;
+    final lineEnd = end - lineDirection * arrowSize;
+    canvas.drawLine(lineStart.toOffset(), lineEnd.toOffset(), paint);
+
+    // --- 2. Draw the Arrowhead at the end ---
+    final endPath = Path();
+    endPath.moveTo(
+      end.x - arrowSize * math.cos(angle - math.pi / 6),
+      end.y - arrowSize * math.sin(angle - math.pi / 6),
+    );
+    endPath.lineTo(end.x, end.y);
+    endPath.lineTo(
+      end.x - arrowSize * math.cos(angle + math.pi / 6),
+      end.y - arrowSize * math.sin(angle + math.pi / 6),
+    );
+    endPath.close();
+    canvas.drawPath(endPath, paint);
+
+    // --- 3. Draw the Arrowhead at the start ---
+    final startPath = Path();
+    startPath.moveTo(
+      start.x + arrowSize * math.cos(angle - math.pi / 6),
+      start.y + arrowSize * math.sin(angle - math.pi / 6),
+    );
+    startPath.lineTo(start.x, start.y);
+    startPath.lineTo(
+      start.x + arrowSize * math.cos(angle + math.pi / 6),
+      start.y + arrowSize * math.sin(angle + math.pi / 6),
+    );
+    startPath.close();
+    canvas.drawPath(startPath, paint);
+  }
+
+  void _drawRightTurnArrow(
+    Canvas canvas,
+    Vector2 start,
+    Vector2 end,
+    Paint paint,
+  ) {
+    final arrowSize = lineModel.thickness * 4;
+
+    // 1.  Determine the direction of the corner point.
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+
+    // 2. Calculate the corner point (C) of the right-angled triangle
+    final corner = Vector2(end.x, start.y);
+
+    // 3. Draw the two line segments.
+
+    // Draw the line from start to the corner.
+    canvas.drawLine(start.toOffset(), corner.toOffset(), paint);
+
+    // Calculate a point just before the end point to leave room for the arrowhead
+    final lineDirection = (end - corner).normalized();
+    final arrowBase = end - (lineDirection * arrowSize);
+    // Draw the line from the corner to just before the arrowhead
+    canvas.drawLine(corner.toOffset(), arrowBase.toOffset(), paint);
+
+    // 4. Arrowhead Calculation and Drawing
+    // Calculate angle for the arrowhead. We use the angle of the *second* line segment.
+    final angle = math.atan2(end.y - corner.y, end.x - corner.x);
+
+    final path = Path();
+    path.moveTo(
+      end.x - arrowSize * math.cos(angle - math.pi / 6),
+      end.y - arrowSize * math.sin(angle - math.pi / 6),
+    );
+    path.lineTo(end.x, end.y); // Tip of the arrow
+    path.lineTo(
+      end.x - arrowSize * math.cos(angle + math.pi / 6),
+      end.y - arrowSize * math.sin(angle + math.pi / 6),
+    );
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    if (isActive &&
+        !dots.any((dot) => dot.containsPoint(event.localPosition))) {
+      _isDragging = true;
+      event.continuePropagation = true;
+    }
+    super.onDragStart(event);
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    if (_isDragging) {
+      final delta = event.localDelta;
+      lineModel.start += delta;
+      lineModel.end += delta;
+      _updateLine();
+      event.continuePropagation = true;
+    }
+    super.onDragUpdate(event);
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    if (_isDragging) {
+      _isDragging = false;
+      event.continuePropagation = true;
+    }
+    super.onDragEnd(event);
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    if (_isDragging) {
+      _isDragging = false;
+      event.continuePropagation = true;
+    }
+    super.onDragCancel(event);
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!children.any(
+      (child) =>
+          child is DraggableDot && child.containsPoint(event.localPosition),
+    )) {
+      _toggleActive();
+    }
+    event.handled = true;
+  }
+
+  @override
+  void onLongTapDown(TapDownEvent event) {
+    if (!children.any(
+      (child) =>
+          child is DraggableDot && child.containsPoint(event.localPosition),
+    )) {
+      _toggleActive();
+    }
+    event.handled = true;
+  }
+
+  void _toggleActive() {
+    isActive = !isActive;
+    if (isActive) {
+      addAll(dots);
+    } else {
+      removeAll(dots);
+    }
+  }
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    final start = lineModel.start;
+    final end = lineModel.end;
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final t =
+        ((point.x - start.x) * dx + (point.y - start.y) * dy) /
+        (dx * dx + dy * dy);
+    final clampT = t.clamp(0.0, 1.0).toDouble();
+    final closestX = start.x + clampT * dx;
+    final closestY = start.y + clampT * dy;
+    final distance = Vector2(closestX, closestY).distanceTo(point);
+    return distance < (circleRadius * 1.5);
   }
 }

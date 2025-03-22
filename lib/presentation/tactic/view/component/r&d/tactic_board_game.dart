@@ -79,11 +79,12 @@ class TacticBoardGame extends FlameGame with PanDetector {
 
   @override
   // TODO: implement debugMode
-  bool get debugMode => false;
+  bool get debugMode => true;
 
   @override
   void onPanStart(DragStartInfo info) {
     super.onPanStart(info);
+    lineStartPoint = null;
     if (lineBloc.state.isLineActiveToAddIntoGameField) {
       lineStartPoint = info.raw.localPosition.toVector2();
     }
@@ -96,33 +97,31 @@ class TacticBoardGame extends FlameGame with PanDetector {
     if (lineBloc.state.isLineActiveToAddIntoGameField &&
         lineStartPoint != null) {
       final lineEndPoint = info.raw.localPosition.toVector2();
-
-      final lineModel = LineModel(
-        formType: FormType.TEXT, // Or create a new FormType.LINE
-        start: lineStartPoint!,
-        end: lineEndPoint,
-        color:
-            Colors
-                .black, // Or use a color from lineBloc.state.activatedLineForm
-      );
-
       FormModel formModel = lineBloc.state.activatedLineForm!;
-      formModel.formItemModel = lineModel;
+      FormItemModel? formItemModel = formModel.formItemModel;
+      if (formItemModel is LineModel) {
+        formItemModel = formItemModel.copyWith(
+          start: lineStartPoint!,
+          end: lineEndPoint,
+          color: Colors.black,
+        );
+      }
+
+      formModel.formItemModel = formItemModel;
       formModel.offset = lineStartPoint;
 
       forms.add(formModel);
 
-      // Add the line to the game
-      // addItem(formModel);
-
-      add(
-        LineDrawerComponent(
-          lineModel: lineModel,
-          lineColor:
-              Colors
-                  .black, // Or use a color from lineBloc.state.activatedLineForm
-        ),
-      );
+      if (formItemModel is LineModel) {
+        add(
+          LineDrawerComponent(
+            lineModel: formItemModel,
+            lineColor:
+                Colors
+                    .black, // Or use a color from lineBloc.state.activatedLineForm
+          ),
+        );
+      }
 
       // Reset start point and line drawing mode
       lineStartPoint = null;

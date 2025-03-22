@@ -36,7 +36,9 @@ class _FormLineItemState extends State<FormLineItem> {
             }
           },
           child: _buildLineComponent(
-            isFocused: state.isLineActiveToAddIntoGameField,
+            isFocused:
+                state.isLineActiveToAddIntoGameField &&
+                state.activatedLineForm == widget.formModel,
           ),
         );
       },
