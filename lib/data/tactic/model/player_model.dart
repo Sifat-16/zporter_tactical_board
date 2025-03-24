@@ -85,7 +85,7 @@ class PlayerModel extends FieldItemModel {
   PlayerModel clone() {
     return PlayerModel(
       id: id,
-      offset: offset,
+      offset: Vector2(offset?.x ?? 0, offset?.y ?? 0),
       fieldItemType: fieldItemType,
       angle: angle,
       index: index,

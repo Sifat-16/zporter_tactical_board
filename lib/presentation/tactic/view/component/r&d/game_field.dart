@@ -2,10 +2,8 @@ import 'dart:async';
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
 
-class GameField extends PositionComponent
-    with HasGameReference<TacticBoardGame> {
+class GameField extends PositionComponent with HasGameReference {
   GameField({required Vector2 size}) : super(size: size);
 
   // Measurements

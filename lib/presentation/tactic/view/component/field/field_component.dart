@@ -59,7 +59,6 @@ abstract class FieldComponent<FieldItemModel> extends SpriteComponent
     super.onDragUpdate(event);
     if (!_isRotationHandleDragged) {
       position += event.canvasDelta;
-      zlog(data: "Drag callback event ${event.localDelta}");
     }
   }
 

@@ -77,7 +77,7 @@ class FormModel extends FieldItemModel {
   FormModel clone() {
     return FormModel(
       id: id,
-      offset: offset,
+      offset: Vector2(offset?.x ?? 0, offset?.y ?? 0),
       fieldItemType: fieldItemType,
       angle: angle,
       name: name,

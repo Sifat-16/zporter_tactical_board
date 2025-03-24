@@ -6,14 +6,14 @@ import 'field_component.dart';
 
 class ScalingHandle extends CircleComponent with DragCallbacks {
   final FieldComponent component;
-  final Anchor anchor;
+
   final Color color;
 
   ScalingHandle({
     required this.component,
-    required this.anchor,
+    required super.anchor,
     this.color = const Color(0xFF00FF00),
-  }) : super(radius: 6, paint: Paint()..color = color, anchor: anchor);
+  }) : super(radius: 6, paint: Paint()..color = color);
 
   @override
   void onDragUpdate(DragUpdateEvent event) {

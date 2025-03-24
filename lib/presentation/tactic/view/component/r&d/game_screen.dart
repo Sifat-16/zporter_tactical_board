@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_bloc.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_bloc.dart';
 
 class GameScreen extends StatefulWidget {
@@ -14,12 +15,15 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late TacticBoardGame tacticBoardGame;
+  late TacticBoard tacticBoardGame;
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    tacticBoardGame = TacticBoardGame(lineBloc: context.read<LineBloc>());
+    tacticBoardGame = TacticBoard(
+      lineBloc: context.read<LineBloc>(),
+      boardBloc: context.read<BoardBloc>(),
+    );
   }
 
   @override

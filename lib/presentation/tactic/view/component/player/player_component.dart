@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -19,8 +18,6 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     size = Vector2(AppSize.s32, AppSize.s32);
     position = object.offset ?? Vector2(x, y);
     angle = object.angle ?? 0;
-
-    zlog(data: "Trying to add Player ${size}");
   }
 
   @override
@@ -71,5 +68,9 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
       (size.toOffset() / 2) -
           Offset(textPainter.width / 2, textPainter.height / 2),
     );
+  }
+
+  void moveTo(Vector2 newPosition) {
+    position.setFrom(newPosition); // Directly update the position
   }
 }

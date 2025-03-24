@@ -13,21 +13,26 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/equipm
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_bloc.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_event.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_bloc.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_event.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart';
 
 import 'game_field.dart';
 
-class TacticBoardGame extends FlameGame with DragCallbacks, TapDetector {
-  // Changed to DragDetector
-  TacticBoardGame({required this.lineBloc});
-
+abstract class TacticBoardGame extends FlameGame
+    with DragCallbacks, TapDetector {
   late GameField gameField;
+}
+
+class TacticBoard extends TacticBoardGame {
+  // Changed to DragDetector
+  TacticBoard({required this.lineBloc, required this.boardBloc});
+
   final LineBloc lineBloc;
-  List<PlayerModel> players = [];
-  List<EquipmentModel> equipments = [];
-  List<FormModel> forms = [];
+  final BoardBloc boardBloc;
+
   Vector2? lineStartPoint; // Start point of the line
   LineDrawerComponent? _currentLine; // Store the currently drawing line
   FreeDrawerComponent?
@@ -59,13 +64,13 @@ class TacticBoardGame extends FlameGame with DragCallbacks, TapDetector {
 
   addItem(FieldItemModel item) {
     if (item is PlayerModel) {
-      players.add(item);
+      boardBloc.add(AddBoardComponentEvent(fieldItemModel: item));
       add(PlayerComponent(object: item));
     } else if (item is EquipmentModel) {
-      equipments.add(item);
+      boardBloc.add(AddBoardComponentEvent(fieldItemModel: item));
       add(EquipmentComponent(object: item));
     } else if (item is FormModel) {
-      forms.add(item);
+      boardBloc.add(AddBoardComponentEvent(fieldItemModel: item));
       add(FormComponent(object: item));
     }
   }
@@ -132,7 +137,7 @@ class TacticBoardGame extends FlameGame with DragCallbacks, TapDetector {
       // Now we need to add finishing touch
       FormModel formModel = lineBloc.state.activatedLineForm!;
       formModel.formItemModel = _currentFreeDraw!.freeDrawModel.copyWith();
-      forms.add(formModel);
+      boardBloc.add(AddBoardComponentEvent(fieldItemModel: formModel));
 
       _currentFreeDraw =
           null; // Set _currentFreeDraw to null after the drag ends
@@ -144,7 +149,7 @@ class TacticBoardGame extends FlameGame with DragCallbacks, TapDetector {
         color: Colors.black,
       );
       formModel.offset = _currentLine!.lineModel.start;
-      forms.add(formModel);
+      boardBloc.add(AddBoardComponentEvent(fieldItemModel: formModel));
 
       _currentLine = null; // VERY IMPORTANT: Clear current line.
       lineStartPoint = null;
