@@ -1,4 +1,6 @@
+import 'package:flame/components.dart';
 import 'package:mongo_dart/mongo_dart.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 
 class EquipmentUtils {
@@ -85,6 +87,10 @@ class EquipmentUtils {
   ];
 
   static List<EquipmentModel> generateEquipments() {
-    return _equipments;
+    return _equipments
+        .map(
+          (e) => e.copyWith(color: ColorManager.yellow, size: Vector2(32, 32)),
+        )
+        .toList();
   }
 }

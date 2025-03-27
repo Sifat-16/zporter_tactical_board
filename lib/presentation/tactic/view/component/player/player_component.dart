@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
@@ -16,7 +15,7 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   Future<void> onLoad() async {
     await super.onLoad();
     sprite = await game.loadSprite("ball.png", srcSize: Vector2.zero());
-    size = Vector2(AppSize.s32, AppSize.s32);
+    size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
     position = object.offset ?? Vector2(x, y);
     angle = object.angle ?? 0;
   }
@@ -52,15 +51,20 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   void render(Canvas canvas) {
     super.render(canvas);
 
+    // // Determine color based on player type
+    // Color circleColor =
+    //     object.playerType == PlayerType.HOME
+    //         ? ColorManager
+    //             .blue // Home color
+    //         : ColorManager.red; // Away color
+
     // Determine color based on player type
-    Color circleColor =
-        object.playerType == PlayerType.HOME
-            ? ColorManager
-                .blue // Home color
-            : ColorManager.red; // Away color
+    size = object.size ?? Vector2(32, 32);
+    Color circleColor = object.color ?? Colors.transparent; // Away color
 
     // Draw the circle
-    final circlePaint = Paint()..color = circleColor;
+    final circlePaint =
+        Paint()..color = circleColor.withValues(alpha: object.opacity);
     canvas.drawCircle(size.toOffset() / 2, size.x / 2, circlePaint);
 
     final fontSize = (size.x / 2) * 0.5;
@@ -68,7 +72,10 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     final textPainter = TextPainter(
       text: TextSpan(
         text: object.role, // Assuming role is the jersey number
-        style: TextStyle(color: Colors.white, fontSize: fontSize),
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: object.opacity),
+          fontSize: fontSize,
+        ),
       ),
       textDirection: TextDirection.ltr,
     );

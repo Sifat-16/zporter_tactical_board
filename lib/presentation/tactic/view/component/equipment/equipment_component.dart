@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -13,10 +15,11 @@ class EquipmentComponent extends FieldComponent<EquipmentModel> {
   Future<void> onLoad() async {
     await super.onLoad();
     sprite = await game.loadSprite("${object.imagePath}");
-    size = Vector2(AppSize.s32, AppSize.s32);
+    size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
     position = object.offset ?? Vector2(x, y);
     angle = object.angle ?? 0;
-    tint(ColorManager.white);
+    tint(object.color ?? ColorManager.white);
+    opacity = object.opacity ?? 1;
   }
 
   @override
@@ -44,5 +47,13 @@ class EquipmentComponent extends FieldComponent<EquipmentModel> {
   void onRotationUpdate() {
     super.onRotationUpdate();
     object.angle = angle;
+  }
+
+  @override
+  render(Canvas canvas) {
+    super.render(canvas);
+    tint(object.color ?? ColorManager.white);
+    size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
+    opacity = object.opacity ?? 1;
   }
 }

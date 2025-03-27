@@ -13,6 +13,7 @@ import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -28,20 +29,21 @@ class TacticBoardGameAnimation extends TacticBoardGame {
 
   @override
   a.FutureOr<void> onLoad() async {
-    final bp = ref.read(boardProvider);
-    _initiateField();
+    await _initiateField();
+    // final bp = ref.read(boardProvider);
 
-    _animationModel = bp.animationModel;
-    // No _startAnimation call here. It's called externally.
-
-    startAnimation();
+    Future.delayed(Duration(seconds: 0), () {
+      _animationModel = ref.read(boardProvider).animationModel;
+      // No _startAnimation call here. It's called externally.
+      startAnimation();
+    });
 
     return super.onLoad();
   }
 
-  void _initiateField() {
+  Future<void> _initiateField() async {
     gameField = GameField(size: Vector2(size.x - 20, size.y - 20));
-    add(gameField);
+    await add(gameField);
   }
 
   @override
@@ -56,7 +58,16 @@ class TacticBoardGameAnimation extends TacticBoardGame {
     } else if (item is EquipmentModel) {
       await add(EquipmentComponent(object: item));
     } else if (item is FormModel) {
-      await add(FormComponent(object: item));
+      if (item.formItemModel is LineModel) {
+        await add(
+          LineDrawerComponent(
+            lineModel: (item.formItemModel as LineModel),
+            formModel: item,
+          ),
+        );
+      } else {
+        await add(FormComponent(object: item));
+      }
     }
     await lifecycleEventsProcessed;
   }
@@ -106,9 +117,15 @@ class TacticBoardGameAnimation extends TacticBoardGame {
                 (element) => element.object.id == i.id,
               );
             } else if (i is FormModel) {
-              component = children.query<FormComponent>().firstWhere(
-                (element) => element.object.id == i.id,
-              );
+              if (i.formItemModel is LineModel) {
+                component = children.query<LineDrawerComponent>().firstWhere(
+                  (element) => element.formModel.id == i.id,
+                );
+              } else {
+                component = children.query<FormComponent>().firstWhere(
+                  (element) => element.object.id == i.id,
+                );
+              }
             }
           } catch (e) {
             zlog(
@@ -132,7 +149,10 @@ class TacticBoardGameAnimation extends TacticBoardGame {
             );
             // *** Key Change:  COLLECT, don't add directly ***
             // collectedEffects.add((component: component, effect: effect));
-            component.add(effect);
+            if (component is LineDrawerComponent) {
+            } else {
+              component.add(effect);
+            }
           }
         }
         if (fieldItemIndex != -1) {

@@ -1,9 +1,15 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class DraggableDot extends CircleComponent with DragCallbacks {
   final Function(Vector2) onPositionChanged;
@@ -48,9 +54,9 @@ class DraggableDot extends CircleComponent with DragCallbacks {
 }
 
 class LineDrawerComponent extends PositionComponent
-    with TapCallbacks, DragCallbacks {
+    with TapCallbacks, DragCallbacks, RiverpodComponentMixin {
   final LineModel lineModel;
-  final Color lineColor;
+  final FormModel formModel;
   final double circleRadius;
   List<DraggableDot> dots = [];
   bool isActive = false;
@@ -62,26 +68,54 @@ class LineDrawerComponent extends PositionComponent
 
   LineDrawerComponent({
     required this.lineModel,
-    this.lineColor = Colors.black,
+    required this.formModel,
     this.circleRadius = 8.0,
   }) : super(priority: 1) {
     _createDots();
+
+    updatePaint();
     // Initialize paints in the constructor
+  }
+
+  updatePaint() {
     _inactivePaint =
         Paint()
-          ..color = lineColor
+          ..color =
+              formModel.color?.withValues(alpha: formModel.opacity) ??
+              ColorManager.black.withValues(alpha: formModel.opacity)
           ..strokeWidth = lineModel.thickness
           ..style = PaintingStyle.stroke;
 
     _activePaint =
         Paint()
           ..color =
-              Colors
-                  .white // Active color
+              formModel.color?.withValues(alpha: formModel.opacity) ??
+              ColorManager.black.withValues(alpha: formModel.opacity)
+          ..strokeWidth = lineModel.thickness
           ..strokeWidth =
               lineModel.thickness +
               2.0 // Active thickness
           ..style = PaintingStyle.stroke;
+  }
+
+  @override
+  FutureOr<void> onLoad() {
+    addToGameWidgetBuild(() {
+      ref.listen(boardProvider, (previous, current) {
+        _updateIsActive(current.selectedItemOnTheBoard);
+      });
+    });
+
+    // TODO: implement onLoad
+    return super.onLoad();
+  }
+
+  @override
+  void update(double dt) {
+    // TODO: implement update
+    super.update(dt);
+
+    updatePaint();
   }
 
   void _createDots() {
@@ -478,10 +512,18 @@ class LineDrawerComponent extends PositionComponent
   }
 
   void _toggleActive() {
-    isActive = !isActive;
-    if (isActive) {
+    ref
+        .read(boardProvider.notifier)
+        .toggleSelectItemEvent(fieldItemModel: formModel);
+  }
+
+  void _updateIsActive(FieldItemModel? item) {
+    zlog(data: "Item type selected ${item.runtimeType}");
+    if (item is FormModel && item.id == formModel.id) {
+      isActive = true;
       addAll(dots);
     } else {
+      isActive = false;
       removeAll(dots);
     }
   }

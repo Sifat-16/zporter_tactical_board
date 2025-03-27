@@ -1,33 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 
-class OpacitySlider extends StatefulWidget {
-  final ValueChanged<double>? onOpacityChanged;
-  final double initial;
+class CustomSlider extends StatefulWidget {
+  final ValueChanged<double>? onValueChanged;
+  final double min;
+  final double max;
+  final double? initial;
 
-  const OpacitySlider({Key? key, this.onOpacityChanged, required this.initial})
-    : super(key: key);
+  const CustomSlider({
+    Key? key,
+    this.onValueChanged,
+    required this.min,
+    required this.max,
+    required this.initial,
+  }) : super(key: key);
 
   @override
-  _OpacitySliderState createState() => _OpacitySliderState();
+  _CustomSliderState createState() => _CustomSliderState();
 }
 
-class _OpacitySliderState extends State<OpacitySlider> {
-  double _opacityValue = 1.0; // Initial opacity is 100%
+class _CustomSliderState extends State<CustomSlider> {
+  double _value = 1.0; // Initial opacity is 100%
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    _opacityValue = widget.initial;
+    _value = widget.initial ?? widget.min;
   }
 
   void _updateOpacity(double value) {
     setState(() {
-      _opacityValue = value;
+      _value = value;
     });
 
-    widget.onOpacityChanged?.call(_opacityValue); // Notify the parent if needed
+    widget.onValueChanged?.call(_value); // Notify the parent if needed
   }
 
   @override
@@ -56,10 +63,10 @@ class _OpacitySliderState extends State<OpacitySlider> {
               activeTrackColor: Colors.grey, // Active track color
             ),
             child: Slider(
-              value: _opacityValue,
+              value: _value,
               onChanged: _updateOpacity,
-              min: 0.0,
-              max: 1.0,
+              min: widget.min,
+              max: widget.max,
               divisions: 100, // Sets the slider divisions
               activeColor: Colors.grey,
               inactiveColor: Colors.white,
@@ -72,7 +79,7 @@ class _OpacitySliderState extends State<OpacitySlider> {
           children: [
             Container(),
             Text(
-              '${(_opacityValue * 100).round()}%', // Display percentage
+              '${(_value).round()}', // Display percentage
               style: Theme.of(context).textTheme.labelSmall!.copyWith(
                 color: ColorManager.grey,
                 fontWeight: FontWeight.bold,

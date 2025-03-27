@@ -43,12 +43,13 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
     required List<PlayerModel> players,
     required List<PlayerModel> fieldPlayers,
   }) {
+    List<PlayerModel> duplicatePlayers = List.from(players);
     for (var f in fieldPlayers) {
       if (f.playerType == PlayerType.AWAY) {
-        players.removeWhere((p) => p.id == f.id);
+        duplicatePlayers.removeWhere((p) => p.id == f.id);
       }
     }
-    return players;
+    return duplicatePlayers;
   }
 
   @override

@@ -93,4 +93,53 @@ class BoardController extends StateNotifier<BoardState> {
       data: "Selected item to work ${state.selectedItemOnTheBoard.runtimeType}",
     );
   }
+
+  void removeElement() {
+    state = state.copyWith(itemToDelete: state.selectedItemOnTheBoard);
+  }
+
+  void removeElementComplete() {
+    FieldItemModel? selectedItem = state.selectedItemOnTheBoard;
+    List<PlayerModel> players = state.players;
+    List<EquipmentModel> equipments = state.equipments;
+    List<FormModel> forms = state.forms;
+    if (selectedItem is PlayerModel) {
+      players.removeWhere((t) => t.id == selectedItem.id);
+    } else if (selectedItem is EquipmentModel) {
+      equipments.removeWhere((t) => t.id == selectedItem.id);
+    } else if (selectedItem is FormModel) {
+      forms.removeWhere((t) => t.id == selectedItem.id);
+    }
+    state = state.copyWith(
+      forceItemToDeleteNull: true,
+      forceItemModelNull: true,
+      players: players,
+      equipments: equipments,
+      forms: forms,
+    );
+  }
+
+  void copyElement() {
+    state = state.copyWith(copyItem: state.selectedItemOnTheBoard);
+  }
+
+  void copyDone() {
+    state = state.copyWith(copyItem: null);
+  }
+
+  void moveDown() {
+    state = state.copyWith(moveDown: true);
+  }
+
+  void moveDownComplete() {
+    state = state.copyWith(moveDown: false);
+  }
+
+  void moveUp() {
+    state = state.copyWith(moveUp: true);
+  }
+
+  void moveUpComplete() {
+    state = state.copyWith(moveUp: false);
+  }
 }

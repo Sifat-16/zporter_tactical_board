@@ -21,6 +21,7 @@ class TacticboardScreenTablet extends ConsumerStatefulWidget {
 
 class _TacticboardScreenTabletState
     extends ConsumerState<TacticboardScreenTablet> {
+  bool showAnimation = false;
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
@@ -46,8 +47,7 @@ class _TacticboardScreenTabletState
                     // Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
                     SizedBox(
                       height: context.heightPercent(80),
-                      child:
-                          bp.showAnimation ? AnimationScreen() : GameScreen(),
+                      child: showAnimation ? AnimationScreen() : GameScreen(),
                     ),
 
                     _buildFieldToolbar(),
@@ -182,9 +182,9 @@ class _TacticboardScreenTabletState
                   onTap: () {
                     // context.read<AnimationBloc>().add(PlayAnimationEvent());
                     // context.read<BoardBloc>().add(ShowAnimationEvent());
-                    // setState(() {
-                    //   showAnimation = !showAnimation;
-                    // });
+                    setState(() {
+                      showAnimation = !showAnimation;
+                    });
                   },
                   fillColor: ColorManager.green,
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),

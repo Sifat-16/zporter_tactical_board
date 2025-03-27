@@ -61,6 +61,19 @@ class SelectionBorder extends RectangleComponent {
     // );
   }
 
+  @override
+  update(double dt) {
+    size = component.size;
+    anchor = Anchor.center;
+    position = Vector2(component.size.x / 2, component.size.y / 2);
+    paint =
+        Paint()
+          ..color = const Color(0xFF00FF00)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5;
+    priority = 2;
+  }
+
   List<Vector2> getVertices() {
     return [
       Vector2(-10, -10),

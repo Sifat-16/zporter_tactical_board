@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
@@ -43,21 +44,24 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     required List<PlayerModel> players,
     required List<PlayerModel> fieldPlayers,
   }) {
+    List<PlayerModel> duplicatePlayers = List.from(players);
     for (var f in fieldPlayers) {
       if (f.playerType == PlayerType.HOME) {
-        players.removeWhere((p) => p.id == f.id);
+        duplicatePlayers.removeWhere((p) => p.id == f.id);
       }
     }
-    return players;
+    return duplicatePlayers;
   }
 
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
+
     List<PlayerModel> updatedPlayers = generateActivePlayers(
       players: players,
       fieldPlayers: bp.players,
     );
+    zlog(data: "Home active players ${bp.players} - ${updatedPlayers.length}");
     return GridView.count(
       crossAxisCount: 3,
       children: [
@@ -68,8 +72,4 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
       ],
     );
   }
-
-  @override
-  // TODO: implement wantKeepAlive
-  bool get wantKeepAlive => true;
 }

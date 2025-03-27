@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:zporter_tactical_board/app/datastructures/tuple.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 
 class PlayerUtilsV2 {
@@ -163,8 +164,13 @@ class PlayerUtilsV2 {
         id: id,
         role: p.item1,
         index: index,
+        color:
+            playerType == PlayerType.HOME
+                ? ColorManager.blue
+                : ColorManager.red,
         playerType: playerType,
         offset: Vector2(0, 0),
+        size: Vector2(32, 32),
       );
       generatedPlayers.add(playerModelV2);
       index++;
