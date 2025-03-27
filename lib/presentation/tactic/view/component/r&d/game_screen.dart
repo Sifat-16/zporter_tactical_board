@@ -1,11 +1,11 @@
 import 'package:flame/extensions.dart';
-import 'package:flame/game.dart';
+import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_bloc.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_bloc.dart';
+
+final GlobalKey<RiverpodAwareGameWidgetState> gameWidgetKey =
+    GlobalKey<RiverpodAwareGameWidgetState>();
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -20,10 +20,7 @@ class _GameScreenState extends State<GameScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    tacticBoardGame = TacticBoard(
-      lineBloc: context.read<LineBloc>(),
-      boardBloc: context.read<BoardBloc>(),
-    );
+    tacticBoardGame = TacticBoard();
   }
 
   @override
@@ -47,7 +44,10 @@ class _GameScreenState extends State<GameScreen> {
         List<Object?> candidateData,
         List<dynamic> rejectedData,
       ) {
-        return GameWidget(game: tacticBoardGame);
+        return RiverpodAwareGameWidget(
+          game: tacticBoardGame,
+          key: gameWidgetKey,
+        );
       },
     );
   }

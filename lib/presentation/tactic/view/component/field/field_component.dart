@@ -2,10 +2,13 @@ import 'dart:async';
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/selection_border_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 // Interface for selectable components
 abstract class Selectable {
@@ -26,10 +29,14 @@ abstract class Scalable {
 }
 
 // Base component for field elements
-abstract class FieldComponent<FieldItemModel> extends SpriteComponent
-    with HasGameReference<TacticBoardGame>, DragCallbacks, TapCallbacks
+abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
+    with
+        HasGameReference<TacticBoardGame>,
+        DragCallbacks,
+        TapCallbacks,
+        RiverpodComponentMixin
     implements Selectable, Draggable, Scalable {
-  FieldItemModel object;
+  T object;
 
   SelectionBorder? selectionBorder;
   bool _isRotationHandleDragged = false;
@@ -40,6 +47,7 @@ abstract class FieldComponent<FieldItemModel> extends SpriteComponent
   @override
   FutureOr<void> onLoad() async {
     await super.onLoad();
+
     anchor = Anchor.center;
     position = Vector2(
       game.gameField.size.x / 2,
@@ -48,11 +56,30 @@ abstract class FieldComponent<FieldItemModel> extends SpriteComponent
   }
 
   @override
-  void onTapDown(TapDownEvent event) {
-    super.onTapDown(event);
-    _isSelected = !_isSelected;
-    updateSelectionBorder();
+  void onMount() {
+    addToGameWidgetBuild(() {
+      ref.listen(boardProvider, (p0, p1) {
+        if (p1.selectedItemOnTheBoard == null ||
+            p1.selectedItemOnTheBoard?.id != object.id) {
+          _isSelected = false;
+        } else {
+          _isSelected = true;
+        }
+        updateSelectionBorder();
+      });
+    });
+    super.onMount();
   }
+
+  // @override
+  // void onTapDown(TapDownEvent event) {
+  //   super.onTapDown(event);
+  //
+  //
+  //
+  //   // _isSelected = !_isSelected;
+  //   // updateSelectionBorder();
+  // }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {

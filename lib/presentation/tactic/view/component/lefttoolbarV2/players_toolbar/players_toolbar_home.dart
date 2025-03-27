@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-class PlayersToolbarHome extends StatefulWidget {
+class PlayersToolbarHome extends ConsumerStatefulWidget {
   const PlayersToolbarHome({super.key});
 
   @override
-  State<PlayersToolbarHome> createState() => _PlayersToolbarHomeState();
+  ConsumerState<PlayersToolbarHome> createState() => _PlayersToolbarHomeState();
 }
 
-class _PlayersToolbarHomeState extends State<PlayersToolbarHome>
-    with AutomaticKeepAliveClientMixin {
+class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   List<PlayerModel> players = [];
 
   @override
@@ -38,14 +39,30 @@ class _PlayersToolbarHomeState extends State<PlayersToolbarHome>
     });
   }
 
+  List<PlayerModel> generateActivePlayers({
+    required List<PlayerModel> players,
+    required List<PlayerModel> fieldPlayers,
+  }) {
+    for (var f in fieldPlayers) {
+      if (f.playerType == PlayerType.HOME) {
+        players.removeWhere((p) => p.id == f.id);
+      }
+    }
+    return players;
+  }
+
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+    final bp = ref.watch(boardProvider);
+    List<PlayerModel> updatedPlayers = generateActivePlayers(
+      players: players,
+      fieldPlayers: bp.players,
+    );
     return GridView.count(
       crossAxisCount: 3,
       children: [
-        ...List.generate(players.length, (index) {
-          PlayerModel player = players[index];
+        ...List.generate(updatedPlayers.length, (index) {
+          PlayerModel player = updatedPlayers[index];
           return PlayerComponentV2(playerModel: player);
         }),
       ],

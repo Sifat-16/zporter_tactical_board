@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
@@ -9,82 +9,64 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/leftto
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_bloc.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_event.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-class TacticboardScreenTablet extends StatefulWidget {
+class TacticboardScreenTablet extends ConsumerStatefulWidget {
   const TacticboardScreenTablet({super.key});
 
   @override
-  State<TacticboardScreenTablet> createState() =>
+  ConsumerState<TacticboardScreenTablet> createState() =>
       _TacticboardScreenTabletState();
 }
 
-class _TacticboardScreenTabletState extends State<TacticboardScreenTablet>
-    with AutomaticKeepAliveClientMixin {
-  final GlobalKey _gameScreenKey = GlobalKey(); // Add a GlobalKey
-  bool showAnimation = false;
+class _TacticboardScreenTabletState
+    extends ConsumerState<TacticboardScreenTablet> {
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-    return BlocConsumer<BoardBloc, BoardState>(
-      builder: (context, state) {
-        return MultiSplitView(
-          initialAreas: [
-            Area(
-              flex: 1,
-              max: 1,
-              builder: (context, area) {
-                return LefttoolbarComponent();
-              },
-            ),
-            Area(
-              flex: 3,
-              max: 3,
-              builder: (context, area) {
-                return Padding(
-                  padding: const EdgeInsets.only(top: 50.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      spacing: 20,
-                      children: [
-                        // Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
-                        SizedBox(
-                          height: context.heightPercent(80),
-                          child:
-                              showAnimation
-                                  ? AnimationScreen()
-                                  : GameScreen(key: _gameScreenKey),
-                        ),
-
-                        _buildFieldToolbar(),
-
-                        // Flexible(flex: 1, child: Container(color: Colors.red)),
-                      ],
+    final bp = ref.watch(boardProvider);
+    return MultiSplitView(
+      initialAreas: [
+        Area(
+          flex: 1,
+          max: 1,
+          builder: (context, area) {
+            return LefttoolbarComponent();
+          },
+        ),
+        Area(
+          flex: 3,
+          max: 3,
+          builder: (context, area) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 50.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  spacing: 20,
+                  children: [
+                    // Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
+                    SizedBox(
+                      height: context.heightPercent(80),
+                      child:
+                          bp.showAnimation ? AnimationScreen() : GameScreen(),
                     ),
-                  ),
-                );
-              },
-            ),
-            Area(
-              flex: 1,
-              max: 1,
-              builder: (context, area) {
-                return RighttoolbarComponent();
-              },
-            ),
-          ],
-        );
-      },
 
-      listener: (BuildContext context, BoardState state) {
-        if (state.showAnimation != showAnimation) {
-          setState(() {
-            showAnimation = state.showAnimation;
-          });
-        }
-      },
+                    _buildFieldToolbar(),
+
+                    // Flexible(flex: 1, child: Container(color: Colors.red)),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        Area(
+          flex: 1,
+          max: 1,
+          builder: (context, area) {
+            return RighttoolbarComponent();
+          },
+        ),
+      ],
     );
   }
 
@@ -152,7 +134,8 @@ class _TacticboardScreenTabletState extends State<TacticboardScreenTablet>
 
                 CustomButton(
                   onTap: () {
-                    context.read<BoardBloc>().add(SaveToAnimationEvent());
+                    ref.read(boardProvider.notifier).onAnimationSave();
+                    // context.read<BoardBloc>().add(SaveToAnimationEvent());
                     // AnimationDataModel animationDataModel = AnimationDataModel(id: ObjectId(), items: globalAnimations);
                     // context.read<AnimationBloc>().add(AnimationDatabaseSaveEvent(animationDataModel: animationDataModel));
                   },
@@ -199,9 +182,9 @@ class _TacticboardScreenTabletState extends State<TacticboardScreenTablet>
                   onTap: () {
                     // context.read<AnimationBloc>().add(PlayAnimationEvent());
                     // context.read<BoardBloc>().add(ShowAnimationEvent());
-                    setState(() {
-                      showAnimation = !showAnimation;
-                    });
+                    // setState(() {
+                    //   showAnimation = !showAnimation;
+                    // });
                   },
                   fillColor: ColorManager.green,
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),

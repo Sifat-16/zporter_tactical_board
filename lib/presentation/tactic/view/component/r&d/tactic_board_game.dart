@@ -1,37 +1,37 @@
 import 'dart:async';
 
 import 'package:flame/events.dart';
+import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
-import 'package:flame_bloc/flame_bloc.dart';
+import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_bloc.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_event.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_bloc.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_event.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 
 import 'game_field.dart';
 
 abstract class TacticBoardGame extends FlameGame
-    with DragCallbacks, TapDetector {
+    with DragCallbacks, TapDetector, RiverpodGameMixin {
   late GameField gameField;
 }
 
 class TacticBoard extends TacticBoardGame {
   // Changed to DragDetector
-  TacticBoard({required this.lineBloc, required this.boardBloc});
+  TacticBoard();
 
-  final LineBloc lineBloc;
-  final BoardBloc boardBloc;
+  // final LineBloc lineBloc;
+  // final BoardBloc boardBloc;
 
   Vector2? lineStartPoint; // Start point of the line
   LineDrawerComponent? _currentLine; // Store the currently drawing line
@@ -40,14 +40,6 @@ class TacticBoard extends TacticBoardGame {
 
   @override
   FutureOr<void> onLoad() async {
-    await add(
-      FlameMultiBlocProvider(
-        providers: [
-          FlameBlocProvider<LineBloc, LineState>.value(value: lineBloc),
-        ],
-      ),
-    );
-
     _initiateField();
     return super.onLoad();
   }
@@ -64,13 +56,13 @@ class TacticBoard extends TacticBoardGame {
 
   addItem(FieldItemModel item) {
     if (item is PlayerModel) {
-      boardBloc.add(AddBoardComponentEvent(fieldItemModel: item));
+      ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
       add(PlayerComponent(object: item));
     } else if (item is EquipmentModel) {
-      boardBloc.add(AddBoardComponentEvent(fieldItemModel: item));
+      ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
       add(EquipmentComponent(object: item));
     } else if (item is FormModel) {
-      boardBloc.add(AddBoardComponentEvent(fieldItemModel: item));
+      ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
       add(FormComponent(object: item));
     }
   }
@@ -80,8 +72,9 @@ class TacticBoard extends TacticBoardGame {
 
   @override
   void onDragStart(DragStartEvent info) {
+    final lp = ref.read(lineProvider);
     // Start drawing the line only if the line is active to be added
-    if (lineBloc.state.isFreeDrawingActive) {
+    if (lp.isFreeDrawingActive) {
       _currentFreeDraw = FreeDrawerComponent(
         freeDrawModel: FreeDrawModel(
           points: [info.localPosition],
@@ -89,11 +82,11 @@ class TacticBoard extends TacticBoardGame {
         ),
       );
       add(_currentFreeDraw!);
-    } else if (lineBloc.state.isLineActiveToAddIntoGameField) {
+    } else if (lp.isLineActiveToAddIntoGameField) {
       lineStartPoint = info.localPosition; // Use game coordinates
 
       // Create the line component
-      FormModel formModel = lineBloc.state.activatedLineForm!;
+      FormModel formModel = lp.activatedLineForm!;
       LineModel? lineModel = formModel.formItemModel as LineModel?;
 
       if (lineModel != null) {
@@ -116,11 +109,11 @@ class TacticBoard extends TacticBoardGame {
   @override
   void onDragUpdate(DragUpdateEvent info) {
     super.onDragUpdate(info);
+    final lp = ref.read(lineProvider);
     // Keep updating the line if it's being drawn.
     if (_currentFreeDraw != null) {
       _currentFreeDraw!.addPoint(info.localStartPosition);
-    } else if (lineBloc.state.isLineActiveToAddIntoGameField &&
-        lineStartPoint != null) {
+    } else if (lp.isLineActiveToAddIntoGameField && lineStartPoint != null) {
       final currentPoint = info.localStartPosition;
       if (_currentLine != null) {
         _currentLine!.lineModel.end = currentPoint;
@@ -132,37 +125,44 @@ class TacticBoard extends TacticBoardGame {
   @override
   void onDragEnd(DragEndEvent info) {
     super.onDragEnd(info);
+    final lp = ref.read(lineProvider);
+
     // Finalize the line drawing.
     if (_currentFreeDraw != null) {
       // Now we need to add finishing touch
-      FormModel formModel = lineBloc.state.activatedLineForm!;
+      FormModel formModel = lp.activatedLineForm!;
       formModel.formItemModel = _currentFreeDraw!.freeDrawModel.copyWith();
-      boardBloc.add(AddBoardComponentEvent(fieldItemModel: formModel));
+      ref
+          .read(boardProvider.notifier)
+          .addBoardComponent(fieldItemModel: formModel);
 
       _currentFreeDraw =
           null; // Set _currentFreeDraw to null after the drag ends
-    } else if (lineBloc.state.isLineActiveToAddIntoGameField &&
+    } else if (lp.isLineActiveToAddIntoGameField &&
         lineStartPoint != null &&
         _currentLine != null) {
-      FormModel formModel = lineBloc.state.activatedLineForm!;
+      FormModel formModel = lp.activatedLineForm!;
       formModel.formItemModel = _currentLine!.lineModel.copyWith(
         color: Colors.black,
       );
       formModel.offset = _currentLine!.lineModel.start;
-      boardBloc.add(AddBoardComponentEvent(fieldItemModel: formModel));
+      ref
+          .read(boardProvider.notifier)
+          .addBoardComponent(fieldItemModel: formModel);
 
       _currentLine = null; // VERY IMPORTANT: Clear current line.
       lineStartPoint = null;
-
-      lineBloc.add(
-        UnLoadActiveLineModelToAddIntoGameFieldEvent(formModel: formModel),
-      );
+      ref
+          .read(lineProvider.notifier)
+          .unLoadActiveLineModelToAddIntoGameFieldEvent(formModel: formModel);
     }
   }
 
   @override
   void onDragCancel(DragCancelEvent info) {
     super.onDragCancel(info);
+    final lp = ref.read(lineProvider);
+
     // Clean up if the drag is cancelled
 
     if (_currentFreeDraw != null) {
@@ -173,12 +173,31 @@ class TacticBoard extends TacticBoardGame {
       remove(_currentLine!);
       _currentLine = null;
       lineStartPoint = null;
-      if (lineBloc.state.isLineActiveToAddIntoGameField) {
-        lineBloc.add(
-          UnLoadActiveLineModelToAddIntoGameFieldEvent(
-            formModel: lineBloc.state.activatedLineForm!,
-          ),
-        );
+      if (lp.isLineActiveToAddIntoGameField) {
+        ref
+            .read(lineProvider.notifier)
+            .unLoadActiveLineModelToAddIntoGameFieldEvent(
+              formModel: lp.activatedLineForm!,
+            );
+      }
+    }
+  }
+
+  @override
+  void onTapDown(TapDownInfo info) {
+    // TODO: implement onTapDown
+    super.onTapDown(info);
+    final tapPosition = info.raw.localPosition; // Position in game coordinates
+    final components = componentsAtPoint(tapPosition.toVector2());
+    if (components.isNotEmpty) {
+      zlog(
+        data:
+            "Components tap happened ${components.any((t) => t is FieldComponent)} - ${components.map((t) => t.runtimeType).toList()}",
+      );
+      if (!components.any((t) => t is FieldComponent)) {
+        ref
+            .read(boardProvider.notifier)
+            .toggleSelectItemEvent(fieldItemModel: null);
       }
     }
   }

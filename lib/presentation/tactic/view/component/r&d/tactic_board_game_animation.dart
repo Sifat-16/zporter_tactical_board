@@ -2,7 +2,6 @@ import 'dart:async' as a;
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
-import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -16,32 +15,23 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/equipm
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_bloc.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_event.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 import 'game_field.dart';
 
 class TacticBoardGameAnimation extends TacticBoardGame {
-  TacticBoardGameAnimation({required this.boardBloc});
+  TacticBoardGameAnimation();
 
-  final BoardBloc boardBloc;
   AnimationModel? _animationModel;
   final List<FieldItemModel> _components =
       []; // Keep track of added components.
 
   @override
   a.FutureOr<void> onLoad() async {
-    await add(
-      FlameMultiBlocProvider(
-        providers: [
-          FlameBlocProvider<BoardBloc, BoardState>.value(value: boardBloc),
-        ],
-      ),
-    );
+    final bp = ref.read(boardProvider);
     _initiateField();
 
-    _animationModel = boardBloc.state.animationModel;
+    _animationModel = bp.animationModel;
     // No _startAnimation call here. It's called externally.
 
     startAnimation();
@@ -168,7 +158,7 @@ class TacticBoardGameAnimation extends TacticBoardGame {
     } // End of outer loop (animations)
 
     // After ALL AnimationItemModels and their effects are complete:
-    boardBloc.add(CompleteAnimationEvent()); // Dispatch the event.
+    ref.read(boardProvider.notifier).completeAnimationEvent();
     zlog(data: "All animations completed."); // Log completion.
   }
 }

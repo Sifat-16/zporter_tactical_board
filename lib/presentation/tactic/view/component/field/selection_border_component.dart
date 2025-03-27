@@ -12,53 +12,53 @@ class SelectionBorder extends RectangleComponent {
 
   SelectionBorder({required this.component, required this.symmetrically})
     : super(
-        size: component.size + Vector2.all(20),
+        size: component.size,
         anchor: Anchor.center,
         position: Vector2(component.size.x / 2, component.size.y / 2),
         paint:
             Paint()
               ..color = const Color(0xFF00FF00)
               ..style = PaintingStyle.stroke
-              ..strokeWidth = 2,
+              ..strokeWidth = 0.5,
         priority: 2,
       ) {
     add(RotationHandle(component)..position = Vector2(size.x / 2, 0));
 
-    List<Vector2> vertices = getVertices();
-
-    Vector2 topLeft = vertices[0];
-    Vector2 topRight = vertices[1];
-    Vector2 bottomLeft = vertices[2];
-    Vector2 bottomRight = vertices[3];
-
-    add(
-      ScalingHandle(
-        component: component,
-        anchor: Anchor.topLeft,
-        color: Colors.white,
-      )..position = topLeft,
-    );
-    add(
-      ScalingHandle(
-        component: component,
-        anchor: Anchor.topRight,
-        color: Colors.red,
-      )..position = topRight,
-    );
-    add(
-      ScalingHandle(
-        component: component,
-        anchor: Anchor.bottomLeft,
-        color: Colors.black,
-      )..position = bottomLeft,
-    );
-    add(
-      ScalingHandle(
-        component: component,
-        anchor: Anchor.bottomRight,
-        color: Colors.blue,
-      )..position = bottomRight,
-    );
+    // List<Vector2> vertices = getVertices();
+    //
+    // Vector2 topLeft = vertices[0];
+    // Vector2 topRight = vertices[1];
+    // Vector2 bottomLeft = vertices[2];
+    // Vector2 bottomRight = vertices[3];
+    //
+    // add(
+    //   ScalingHandle(
+    //     component: component,
+    //     anchor: Anchor.topLeft,
+    //     color: Colors.black,
+    //   )..position = topLeft,
+    // );
+    // add(
+    //   ScalingHandle(
+    //     component: component,
+    //     anchor: Anchor.topRight,
+    //     color: Colors.black,
+    //   )..position = topRight,
+    // );
+    // add(
+    //   ScalingHandle(
+    //     component: component,
+    //     anchor: Anchor.bottomLeft,
+    //     color: Colors.black,
+    //   )..position = bottomLeft,
+    // );
+    // add(
+    //   ScalingHandle(
+    //     component: component,
+    //     anchor: Anchor.bottomRight,
+    //     color: Colors.black,
+    //   )..position = bottomRight,
+    // );
   }
 
   List<Vector2> getVertices() {

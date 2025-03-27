@@ -1,7 +1,6 @@
-import 'package:equatable/equatable.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 
-class LineState extends Equatable {
+class LineState {
   final List<FormModel> availableLineForms;
   final bool isLineActiveToAddIntoGameField;
   final FormModel? activatedLineForm;

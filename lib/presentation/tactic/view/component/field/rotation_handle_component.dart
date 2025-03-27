@@ -14,7 +14,7 @@ class RotationHandle extends PositionComponent {
     add(
       CustomPaintComponent(
         painter: LinePainter(),
-        size: Vector2(0, 30),
+        size: Vector2(0, 20),
         anchor: Anchor.bottomCenter,
       ),
     );
@@ -22,7 +22,7 @@ class RotationHandle extends PositionComponent {
       DraggableCircleComponent(
         component: component,
         rotationSpeed: rotationSpeed,
-        position: Vector2(0, -30),
+        position: Vector2(0, -20),
       ),
     );
   }
@@ -34,7 +34,7 @@ class LinePainter extends CustomPainter {
     final paint =
         Paint()
           ..color = const Color(0xFF00FF00)
-          ..strokeWidth = 2;
+          ..strokeWidth = 1;
     canvas.drawLine(Offset(0, 0), Offset(0, -size.height), paint);
   }
 

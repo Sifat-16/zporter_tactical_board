@@ -7,6 +7,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class PlayerComponent extends FieldComponent<PlayerModel> {
   PlayerComponent({required super.object});
@@ -18,6 +19,15 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     size = Vector2(AppSize.s32, AppSize.s32);
     position = object.offset ?? Vector2(x, y);
     angle = object.angle ?? 0;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    // TODO: implement onTapDown
+    super.onTapDown(event);
+    ref
+        .read(boardProvider.notifier)
+        .toggleSelectItemEvent(fieldItemModel: object);
   }
 
   @override

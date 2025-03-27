@@ -4,6 +4,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class EquipmentComponent extends FieldComponent<EquipmentModel> {
   EquipmentComponent({required super.object});
@@ -22,6 +23,15 @@ class EquipmentComponent extends FieldComponent<EquipmentModel> {
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
     object.offset = position;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    // TODO: implement onTapDown
+    super.onTapDown(event);
+    ref
+        .read(boardProvider.notifier)
+        .toggleSelectItemEvent(fieldItemModel: object);
   }
 
   @override

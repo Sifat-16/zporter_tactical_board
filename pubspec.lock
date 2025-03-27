@@ -25,14 +25,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.8.2"
-  bloc:
-    dependency: transitive
-    description:
-      name: bloc
-      sha256: "52c10575f4445c61dd9e0cafcc6356fdd827c4c64dd7945ef3c4105f6b6ac189"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.0.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -121,14 +113,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.1"
-  equatable:
-    dependency: "direct main"
-    description:
-      name: equatable
-      sha256: "567c64b3cb4cf82397aac55f4f0cbd3ca20d77c6c03bedbc4ceaddc08904aef7"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.0.7"
   fake_async:
     dependency: transitive
     description:
@@ -157,31 +141,23 @@ packages:
     dependency: "direct main"
     description:
       name: flame
-      sha256: "03e90d4bd3bc4f6a325602914ee27509f02d8743bb7ccb9282c88192b58eeb84"
+      sha256: "6a68254f6d6a298e14bb1671147d859e73bb505e05bf2ab4fb0bf663cb3b2696"
       url: "https://pub.dev"
     source: hosted
-    version: "1.26.0"
-  flame_bloc:
+    version: "1.26.1"
+  flame_riverpod:
     dependency: "direct main"
     description:
-      name: flame_bloc
-      sha256: "5ad5609c906a063eb5e6a4556355c094123f2fe0d37ecd3cb7ba7688e36433da"
+      name: flame_riverpod
+      sha256: "9c2b38683c93ef92e470ad7b8097744f320a97b71e6b4c6939a1277a7bd08d34"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.8"
+    version: "5.4.11"
   flutter:
     dependency: "direct main"
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_bloc:
-    dependency: "direct main"
-    description:
-      name: flutter_bloc
-      sha256: "1046d719fbdf230330d3443187cc33cc11963d15c9089f6cc56faa42a4c5f0cc"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.1.0"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -190,6 +166,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
+  flutter_riverpod:
+    dependency: "direct main"
+    description:
+      name: flutter_riverpod
+      sha256: "9532ee6db4a943a1ed8383072a2e3eeda041db5657cdf6d2acecf3c21ecbe7e1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.6.1"
   flutter_screenutil:
     dependency: "direct main"
     description:
@@ -339,14 +323,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.6.0"
-  nested:
-    dependency: transitive
-    description:
-      name: nested
-      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   ordered_set:
     dependency: transitive
     description:
@@ -403,14 +379,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.3"
-  provider:
-    dependency: transitive
-    description:
-      name: provider
-      sha256: c8a055ee5ce3fd98d6fc872478b03823ffdb448699c6ebdbbc71d59b596fd48c
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.2"
   rational:
     dependency: transitive
     description:
@@ -419,6 +387,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.3"
+  riverpod:
+    dependency: transitive
+    description:
+      name: riverpod
+      sha256: "59062512288d3056b2321804332a13ffdd1bf16df70dcc8e506e411280a72959"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.6.1"
   sasl_scram:
     dependency: transitive
     description:
@@ -464,6 +440,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.1"
+  state_notifier:
+    dependency: transitive
+    description:
+      name: state_notifier
+      sha256: b8677376aa54f2d7c58280d5a007f9e8774f1968d1fb1c096adcb4792fba29bb
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   stream_channel:
     dependency: transitive
     description:

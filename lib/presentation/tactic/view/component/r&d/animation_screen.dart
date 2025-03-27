@@ -1,9 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game_animation.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_bloc.dart';
 
 class AnimationScreen extends StatefulWidget {
   const AnimationScreen({super.key});
@@ -19,9 +17,7 @@ class _AnimationScreenState extends State<AnimationScreen> {
     zlog(data: "Animation screen rendering");
     // TODO: implement initState
     super.initState();
-    tacticBoardGame = TacticBoardGameAnimation(
-      boardBloc: context.read<BoardBloc>(),
-    );
+    tacticBoardGame = TacticBoardGameAnimation();
   }
 
   @override

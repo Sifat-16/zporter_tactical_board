@@ -14,7 +14,7 @@ class DraggableCircleComponent extends CircleComponent with DragCallbacks {
     required this.rotationSpeed,
     super.position,
   }) : super(
-         radius: 8,
+         radius: 5,
          paint: Paint()..color = const Color(0xFF00FF00),
          anchor: Anchor.center,
        );
