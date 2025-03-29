@@ -1,6 +1,8 @@
+import 'dart:ui';
+
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mongo_dart/mongo_dart.dart';
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -41,7 +43,7 @@ class BoardController extends StateNotifier<BoardState> {
   onAnimationSave() {
     try {
       AnimationItemModel animationItemModel = AnimationItemModel(
-        id: ObjectId(),
+        id: RandomGenerator.generateId(),
         components: [
           ...state.players.map((e) => e.clone()),
           ...state.equipments.map((e) => e.clone()),
@@ -52,17 +54,21 @@ class BoardController extends StateNotifier<BoardState> {
       );
       AnimationModel? animationModel = state.animationModel;
       animationModel ??= AnimationModel(
-        id: ObjectId(),
-        animations: [],
+        id: RandomGenerator.generateId(),
+        name: "+++++++++\n++++++++\n+++++++++",
+        animationScenes: [],
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
-      animationModel.animations.add(animationItemModel);
+      animationModel.animationScenes.add(animationItemModel);
       zlog(
         data:
-            "On Animation save the items ${animationModel.animations.map((t) => t.components.map((c) => c.toJson()).toList()).toList()}",
+            "On Animation save the items ${animationModel.animationScenes.map((t) => t.components.map((c) => c.toJson()).toList()).toList()}",
       );
-      state = state.copyWith(animationModel: animationModel);
+      state = state.copyWith(
+        animationModel: animationModel,
+        animationModelJson: animationModel.toJson(),
+      );
     } catch (e) {
     } finally {
       BotToast.showText(text: "Animation saved");
@@ -141,5 +147,9 @@ class BoardController extends StateNotifier<BoardState> {
 
   void moveUpComplete() {
     state = state.copyWith(moveUp: false);
+  }
+
+  void updateBoardColor(Color color) {
+    state = state.copyWith(boardColor: color);
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
@@ -61,7 +60,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
       players: players,
       fieldPlayers: bp.players,
     );
-    zlog(data: "Home active players ${bp.players} - ${updatedPlayers.length}");
+
     return GridView.count(
       crossAxisCount: 3,
       children: [

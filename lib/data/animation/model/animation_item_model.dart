@@ -1,8 +1,7 @@
-import 'package:mongo_dart/mongo_dart.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 
 class AnimationItemModel {
-  ObjectId id;
+  String id;
   List<FieldItemModel> components;
   DateTime createdAt;
   DateTime updatedAt;
@@ -15,7 +14,7 @@ class AnimationItemModel {
   });
 
   AnimationItemModel copyWith({
-    ObjectId? id,
+    String? id,
     List<FieldItemModel>? components,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -39,7 +38,7 @@ class AnimationItemModel {
 
   factory AnimationItemModel.fromJson(Map<String, dynamic> json) {
     return AnimationItemModel(
-      id: json['_id'] as ObjectId, // Cast to ObjectId
+      id: json['_id'], // Cast to ObjectId
       components:
           (json['components'] as List)
               .map((componentJson) => FieldItemModel.fromJson(componentJson))

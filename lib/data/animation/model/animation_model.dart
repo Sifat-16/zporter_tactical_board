@@ -1,29 +1,32 @@
-import 'package:mongo_dart/mongo_dart.dart';
-
 import 'animation_item_model.dart'; // Import AnimationItemModel
 
 class AnimationModel {
-  ObjectId id;
-  List<AnimationItemModel> animations;
+  String id;
+  String name;
+
+  List<AnimationItemModel> animationScenes;
   DateTime createdAt;
   DateTime updatedAt;
 
   AnimationModel({
     required this.id,
-    required this.animations,
+    required this.name,
+    required this.animationScenes,
     required this.createdAt,
     required this.updatedAt,
   });
 
   AnimationModel copyWith({
-    ObjectId? id,
-    List<AnimationItemModel>? animations,
+    String? id,
+    String? name,
+    List<AnimationItemModel>? animationScenes,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return AnimationModel(
       id: id ?? this.id,
-      animations: animations ?? this.animations,
+      name: name ?? this.name,
+      animationScenes: animationScenes ?? this.animationScenes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -32,7 +35,9 @@ class AnimationModel {
   Map<String, dynamic> toJson() {
     return {
       '_id': id,
-      'animations': animations.map((animation) => animation.toJson()).toList(),
+      'name': name,
+      'animationScenes':
+          animationScenes.map((animation) => animation.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -40,9 +45,10 @@ class AnimationModel {
 
   factory AnimationModel.fromJson(Map<String, dynamic> json) {
     return AnimationModel(
-      id: json['_id'] as ObjectId,
-      animations:
-          (json['animations'] as List)
+      id: json['_id'],
+      name: json['name'],
+      animationScenes:
+          (json['animationScenes'] as List)
               .map(
                 (animationJson) => AnimationItemModel.fromJson(animationJson),
               )
@@ -55,7 +61,8 @@ class AnimationModel {
   AnimationModel clone() {
     return AnimationModel(
       id: id, // ObjectId is immutable
-      animations: animations.map((e) => e.clone()).toList(),
+      name: name,
+      animationScenes: animationScenes.map((e) => e.clone()).toList(),
       createdAt: createdAt, // DateTime is immutable
       updatedAt: updatedAt, // DateTime is immutable
     );

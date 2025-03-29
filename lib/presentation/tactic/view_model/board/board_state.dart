@@ -1,3 +1,6 @@
+import 'dart:ui';
+
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
@@ -10,12 +13,13 @@ class BoardState {
   final FieldItemModel? itemToDelete;
   final List<FormModel> forms;
   final AnimationModel? animationModel;
+  final Map<String, dynamic> animationModelJson;
   final bool showAnimation;
   final FieldItemModel? selectedItemOnTheBoard;
   final bool forceItemModelNull;
   final FieldItemModel? copyItem;
   final bool moveDown;
-
+  final Color boardColor;
   final bool moveUp;
 
   const BoardState({
@@ -23,6 +27,7 @@ class BoardState {
     this.equipments = const [],
     this.itemToDelete,
     this.forms = const [],
+    this.animationModelJson = const {},
     this.animationModel,
     this.showAnimation = false,
     this.selectedItemOnTheBoard,
@@ -30,6 +35,7 @@ class BoardState {
     this.moveDown = false,
     this.moveUp = false,
     this.copyItem,
+    this.boardColor = ColorManager.grey,
   });
 
   BoardState copyWith({
@@ -45,6 +51,8 @@ class BoardState {
     FieldItemModel? copyItem,
     bool? moveDown,
     bool? moveUp,
+    Color? boardColor,
+    Map<String, dynamic>? animationModelJson,
   }) {
     return BoardState(
       players: players ?? this.players,
@@ -63,6 +71,8 @@ class BoardState {
       copyItem: copyItem,
       moveDown: moveDown ?? this.moveDown,
       moveUp: moveUp ?? this.moveUp,
+      boardColor: boardColor ?? this.boardColor,
+      animationModelJson: animationModelJson ?? this.animationModelJson,
     );
   }
 }

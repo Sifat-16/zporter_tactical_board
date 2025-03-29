@@ -1,32 +1,22 @@
 import 'package:flame/components.dart';
-import 'package:flutter/foundation.dart'; // For describeEnum
+import 'package:flutter/foundation.dart'; // For describeEnum, listEquals
 import 'package:flutter/material.dart'; // For Color
-import 'package:mongo_dart/mongo_dart.dart';
 
-// Assuming FieldItemModel and its helpers (vector2ToJson/FromJson) are in this file or imported
+// Assuming FieldItemModel and its helpers are defined correctly and imported
 import 'field_item_model.dart';
 
-// --- FormItemModel Hierarchy ---
+// --- FormItemModel Hierarchy (Keep as provided) ---
 
-enum FormType { TEXT, LINE, FREE_DRAW, UNKNOWN } // Added UNKNOWN
+enum FormType { TEXT, LINE, FREE_DRAW, UNKNOWN }
 
 abstract class FormItemModel {
   final FormType formType;
 
   FormItemModel({required this.formType});
-
-  /// Creates a JSON representation including the formType.
   Map<String, dynamic> toJson();
-
-  /// Creates a deep copy of the specific FormItemModel implementation.
   FormItemModel clone();
+  Map<String, dynamic> baseToJson() => {'formType': describeEnum(formType)};
 
-  /// Base serialization for common properties (like formType).
-  Map<String, dynamic> baseToJson() => {
-    'formType': describeEnum(formType), // Use describeEnum for robustness
-  };
-
-  /// Factory constructor to deserialize JSON into the correct concrete subclass.
   factory FormItemModel.fromJson(Map<String, dynamic>? json) {
     if (json == null) {
       throw ArgumentError('Cannot create FormItemModel from null JSON');
@@ -53,24 +43,16 @@ abstract class FormItemModel {
   }
 }
 
-// --- Concrete FormItemModel Subclasses ---
+// --- Concrete FormItemModel Subclasses (Keep as provided) ---
 
 class FormTextModel extends FormItemModel {
   String text;
-
   FormTextModel({required this.text}) : super(formType: FormType.TEXT);
-
-  // Specific fromJson constructor/factory
   FormTextModel.fromJson(Map<String, dynamic> json)
-    : text = json['text'] as String? ?? '', // Default to empty string if null
+    : text = json['text'] as String? ?? '',
       super(formType: FormType.TEXT);
-
   @override
-  Map<String, dynamic> toJson() => {
-    ...super.baseToJson(), // Include formType
-    'text': text,
-  };
-
+  Map<String, dynamic> toJson() => {...super.baseToJson(), 'text': text};
   @override
   FormTextModel clone() => FormTextModel(text: text);
 }
@@ -83,7 +65,7 @@ enum LineType {
   STRAIGHT_LINE_ARROW,
   STRAIGHT_LINE_ARROW_DOUBLE,
   RIGHT_TURN_ARROW,
-  UNKNOWN, // Added UNKNOWN
+  UNKNOWN,
 }
 
 class LineModel extends FormItemModel {
@@ -92,7 +74,6 @@ class LineModel extends FormItemModel {
   Color color;
   double thickness;
   LineType lineType;
-
   LineModel({
     required this.start,
     required this.end,
@@ -100,106 +81,76 @@ class LineModel extends FormItemModel {
     required this.color,
     this.thickness = 2.0,
   }) : super(formType: FormType.LINE);
-
-  // fromJson constructor/factory
   LineModel.fromJson(Map<String, dynamic> json)
-    : start =
-          FieldItemModel.vector2FromJson(json['start']) ??
-          Vector2.zero(), // Use helper
-      end =
-          FieldItemModel.vector2FromJson(json['end']) ??
-          Vector2.zero(), // Use helper
-      color = Color(
-        json['color'] as int? ?? Colors.black.value,
-      ), // Default color
-      thickness =
-          (json['thickness'] as num?)?.toDouble() ?? 2.0, // Default thickness
+    : start = FieldItemModel.vector2FromJson(json['start']) ?? Vector2.zero(),
+      end = FieldItemModel.vector2FromJson(json['end']) ?? Vector2.zero(),
+      color = Color(json['color'] as int? ?? Colors.black.value),
+      thickness = (json['thickness'] as num?)?.toDouble() ?? 2.0,
       lineType = LineType.values.firstWhere(
         (e) => describeEnum(e) == (json['lineType'] as String?),
         orElse: () => LineType.UNKNOWN,
-      ), // Use describeEnum
+      ),
       super(formType: FormType.LINE);
-
   @override
-  Map<String, dynamic> toJson() {
-    return {
-      ...super.baseToJson(), // Include formType
-      'start': FieldItemModel.vector2ToJson(start), // Use helper
-      'end': FieldItemModel.vector2ToJson(end), // Use helper
-      'color': color.value,
-      'thickness': thickness,
-      'lineType': describeEnum(lineType), // Use describeEnum
-    };
-  }
-
+  Map<String, dynamic> toJson() => {
+    ...super.baseToJson(),
+    'start': FieldItemModel.vector2ToJson(start),
+    'end': FieldItemModel.vector2ToJson(end),
+    'color': color.value,
+    'thickness': thickness,
+    'lineType': describeEnum(lineType),
+  };
   @override
-  LineModel clone() {
-    return LineModel(
-      start: start.clone(), // Clone mutable Vector2
-      end: end.clone(), // Clone mutable Vector2
-      color: color, // Color is immutable
-      thickness: thickness,
-      lineType: lineType,
-    );
-  }
-
-  // copyWith remains useful for modifying instances
+  LineModel clone() => LineModel(
+    start: start.clone(),
+    end: end.clone(),
+    color: color,
+    thickness: thickness,
+    lineType: lineType,
+  );
   LineModel copyWith({
     Vector2? start,
     Vector2? end,
     Color? color,
     double? thickness,
     LineType? lineType,
-  }) {
-    return LineModel(
-      start: start ?? this.start.clone(),
-      end: end ?? this.end.clone(),
-      color: color ?? this.color,
-      thickness: thickness ?? this.thickness,
-      lineType: lineType ?? this.lineType,
-    );
-  }
-
-  // ==, hashCode, toString from your original code are fine
+  }) => LineModel(
+    start: start ?? this.start.clone(),
+    end: end ?? this.end.clone(),
+    color: color ?? this.color,
+    thickness: thickness ?? this.thickness,
+    lineType: lineType ?? this.lineType,
+  );
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is LineModel &&
-        other.start == start &&
-        other.end == end &&
-        other.color == color &&
-        other.thickness == thickness &&
-        other.lineType == lineType;
-  }
-
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LineModel &&
+          other.start == start &&
+          other.end == end &&
+          other.color == color &&
+          other.thickness == thickness &&
+          other.lineType == lineType;
   @override
-  int get hashCode {
-    return start.hashCode ^
-        end.hashCode ^
-        color.hashCode ^
-        thickness.hashCode ^
-        lineType.hashCode;
-  }
-
+  int get hashCode =>
+      start.hashCode ^
+      end.hashCode ^
+      color.hashCode ^
+      thickness.hashCode ^
+      lineType.hashCode;
   @override
-  String toString() {
-    return 'LineModel(start: $start, end: $end, color: $color, thickness: $thickness, lineType: $lineType)';
-  }
+  String toString() =>
+      'LineModel(start: $start, end: $end, color: $color, thickness: $thickness, lineType: $lineType)';
 }
 
 class FreeDrawModel extends FormItemModel {
   List<Vector2> points;
   Color color;
   double thickness;
-
   FreeDrawModel({
     required this.points,
     required this.color,
     this.thickness = 5.0,
   }) : super(formType: FormType.FREE_DRAW);
-
-  // fromJson constructor/factory
   FreeDrawModel.fromJson(Map<String, dynamic> json)
     : points =
           (json['points'] as List<dynamic>?)
@@ -208,94 +159,62 @@ class FreeDrawModel extends FormItemModel {
                     FieldItemModel.vector2FromJson(pointJson) ?? Vector2.zero(),
               )
               .toList() ??
-          [], // Handle null list, null points
-      color = Color(
-        json['color'] as int? ?? Colors.black.value,
-      ), // Default color
-      thickness =
-          (json['thickness'] as num?)?.toDouble() ?? 5.0, // Default thickness
+          [],
+      color = Color(json['color'] as int? ?? Colors.black.value),
+      thickness = (json['thickness'] as num?)?.toDouble() ?? 5.0,
       super(formType: FormType.FREE_DRAW);
-
   @override
-  Map<String, dynamic> toJson() {
-    return {
-      ...super.baseToJson(), // Include formType
-      'points':
-          points
-              .map((p) => FieldItemModel.vector2ToJson(p))
-              .toList(), // Use helper
-      'color': color.value,
-      'thickness': thickness,
-    };
-  }
-
+  Map<String, dynamic> toJson() => {
+    ...super.baseToJson(),
+    'points': points.map((p) => FieldItemModel.vector2ToJson(p)).toList(),
+    'color': color.value,
+    'thickness': thickness,
+  };
   @override
-  FreeDrawModel clone() {
-    return FreeDrawModel(
-      points:
-          points.map((p) => p.clone()).toList(), // Deep copy list of Vector2
-      color: color,
-      thickness: thickness,
-    );
-  }
-
-  // copyWith remains useful
+  FreeDrawModel clone() => FreeDrawModel(
+    points: points.map((p) => p.clone()).toList(),
+    color: color,
+    thickness: thickness,
+  );
   FreeDrawModel copyWith({
     List<Vector2>? points,
     Color? color,
     double? thickness,
-  }) {
-    return FreeDrawModel(
-      points:
-          points ??
-          this.points
-              .map((p) => p.clone())
-              .toList(), // Deep copy if using existing
-      color: color ?? this.color,
-      thickness: thickness ?? this.thickness,
-    );
-  }
-
-  // ==, hashCode, toString from your original code are fine (assuming _listEquals works)
+  }) => FreeDrawModel(
+    points: points ?? this.points.map((p) => p.clone()).toList(),
+    color: color ?? this.color,
+    thickness: thickness ?? this.thickness,
+  );
   @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-
-    return other is FreeDrawModel &&
-        // other.points.length == points.length && // listEquals checks length
-        listEquals(other.points, points) && // Use listEquals from foundation
-        other.color == color &&
-        other.thickness == thickness;
-  }
-
-  // @override
-  // int get hashCode {
-  //   // Use listHash from foundation for better list hashing
-  //
-  //   return Object.hash(listEquals(points), color, thickness);
-  // }
-
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is FreeDrawModel &&
+          listEquals(other.points, points) &&
+          other.color == color &&
+          other.thickness == thickness;
+  // Corrected hashCode using Object.hash for list comparison
   @override
-  String toString() {
-    return 'FreeDrawModel(points: $points, color: $color, thickness: $thickness)';
-  }
+  int get hashCode => Object.hash(Object.hashAll(points), color, thickness);
+  @override
+  String toString() =>
+      'FreeDrawModel(points: $points, color: $color, thickness: $thickness)';
 }
 
-// --- Final FormModel (mostly verification) ---
+// --- FormModel Class with Fixed fromJson ---
 
 class FormModel extends FieldItemModel {
   String name;
   String? imagePath;
-  FormItemModel? formItemModel;
+  FormItemModel? formItemModel; // This uses the hierarchy above
 
   FormModel({
     // Base properties
     required super.id,
-    super.offset,
-    super.fieldItemType = FieldItemType.FORM,
+    super.offset, // Nullable as per constructor
+    super.fieldItemType = FieldItemType.FORM, // Default type for FormModel
     super.angle,
-    super.canBeCopied = true,
-    super.scaleSymmetrically = true,
+    super.canBeCopied = true, // Keep existing default
+    super.scaleSymmetrically = true, // Keep existing default
     super.createdAt,
     super.updatedAt,
     super.size,
@@ -309,46 +228,76 @@ class FormModel extends FieldItemModel {
 
   @override
   Map<String, dynamic> toJson() {
+    // Keep existing toJson logic
     return {
-      ...super.toJson(),
+      ...super.toJson(), // Includes base fields + fieldItemType='FORM'
       'name': name,
       'imagePath': imagePath,
-      'formItemModel':
-          formItemModel?.toJson(), // Now calls correct subclass method
+      'formItemModel': formItemModel?.toJson(), // Calls correct subclass toJson
     };
   }
 
+  // --- FIXED fromJson Static Method ---
   static FormModel fromJson(Map<String, dynamic> json) {
-    final base = FieldItemModel.fromJson(json);
+    // --- Parse Base Class Properties DIRECTLY from JSON ---
+    // DO NOT call FieldItemModel.fromJson(json) here!
+    // Use static helpers from FieldItemModel where appropriate.
+
+    final id = json['_id']; // Use helper
+    final offset = FieldItemModel.offsetFromJson(
+      json['offset'],
+    ); // Use helper (nullable)
+    // Note: fieldItemType is not parsed here, it's determined by being in FormModel.fromJson
+    final scaleSymmetrically =
+        json['scaleSymmetrically'] as bool? ?? true; // Default from constructor
+    final angle = json['angle'] as double?;
+    final canBeCopied =
+        json['canBeCopied'] as bool? ?? true; // Default from constructor
+    final createdAt =
+        json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
+    final updatedAt =
+        json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
+    final size = FieldItemModel.vector2FromJson(json['size']); // Use helper
+    final color = json['color'] != null ? Color(json['color']) : null;
+    final opacity = json['opacity'] as double?;
+
+    // --- Deserialize FormModel Specific Properties (Keep Existing Logic) ---
+    final name = json['name'] as String? ?? 'Unnamed Form'; // Default if null
+    final imagePath = json['imagePath'] as String?;
     final formItemData =
         json['formItemModel'] as Map<String, dynamic>?; // Cast for safety
 
+    // Correctly use the FormItemModel factory constructor for the nested model
+    final formItemModel =
+        formItemData != null ? FormItemModel.fromJson(formItemData) : null;
+
+    // --- Construct and Return FormModel Instance ---
     return FormModel(
-      // Pass base properties
-      id: base.id,
-      offset: base.offset,
-      fieldItemType: base.fieldItemType,
-      angle: base.angle,
-      scaleSymmetrically: base.scaleSymmetrically,
-      canBeCopied: base.canBeCopied,
-      createdAt: base.createdAt,
-      updatedAt: base.updatedAt,
-      size: base.size,
-      color: base.color,
-      opacity: base.opacity,
-      // Pass FormModel properties
-      name: json['name'] ?? 'Unnamed Form',
-      imagePath: json['imagePath'],
-      // Use the factory constructor, handle null
-      formItemModel:
-          formItemData != null ? FormItemModel.fromJson(formItemData) : null,
+      // Pass parsed base properties
+      id: id,
+      offset: offset,
+      scaleSymmetrically: scaleSymmetrically,
+      angle: angle,
+      canBeCopied: canBeCopied,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      size: size,
+      color: color,
+      opacity: opacity,
+      // fieldItemType is set automatically by FormModel constructor
+
+      // Pass parsed FormModel specific properties
+      name: name,
+      imagePath: imagePath,
+      formItemModel: formItemModel, // Pass the deserialized nested model
     );
   }
 
+  // --- copyWith and clone remain unchanged from your provided code ---
   @override
   FormModel copyWith({
     // Base properties
-    ObjectId? id,
+    String? id,
     Vector2? offset,
     bool? scaleSymmetrically,
     FieldItemType? fieldItemType,
@@ -362,19 +311,18 @@ class FormModel extends FieldItemModel {
     // FormModel properties
     String? name,
     String? imagePath,
-    FormItemModel? formItemModel, // Allows replacing the whole item
-    bool clearFormItemModel = false, // Option to explicitly clear
+    FormItemModel? formItemModel,
+    bool clearFormItemModel = false,
   }) {
-    // Determine the formItemModel for the new instance
     FormItemModel? newFormItemModel;
     if (clearFormItemModel) {
       newFormItemModel = null;
     } else if (formItemModel != null) {
-      // If a new one is provided, use it (assume it's already correct type/cloned if needed)
       newFormItemModel = formItemModel;
     } else {
-      // Otherwise, clone the existing one if it's not null
-      newFormItemModel = this.formItemModel?.clone();
+      newFormItemModel =
+          this.formItemModel
+              ?.clone(); // Clone existing if not replacing/clearing
     }
 
     return FormModel(
@@ -393,11 +341,10 @@ class FormModel extends FieldItemModel {
       // FormModel properties
       name: name ?? this.name,
       imagePath: imagePath ?? this.imagePath,
-      formItemModel: newFormItemModel, // Use the determined value
+      formItemModel: newFormItemModel,
     );
   }
 
-  // Use simplified clone
   @override
   FormModel clone() => copyWith();
 }

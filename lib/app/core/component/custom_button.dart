@@ -7,6 +7,7 @@ class CustomButton extends StatelessWidget {
   final Color? borderColor;
   final double? borderRadius;
   final EdgeInsets? padding;
+  final double? height;
 
   const CustomButton({
     super.key,
@@ -15,6 +16,7 @@ class CustomButton extends StatelessWidget {
     this.fillColor = Colors.blue,
     this.borderColor,
     this.borderRadius = 8.0,
+    this.height,
     this.padding = const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
   });
 
@@ -24,6 +26,7 @@ class CustomButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: padding,
+        height: height,
         decoration: BoxDecoration(
           color: fillColor,
           border: Border.all(color: borderColor ?? Colors.transparent),

@@ -63,9 +63,25 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     Color circleColor = object.color ?? Colors.transparent; // Away color
 
     // Draw the circle
-    final circlePaint =
+    final rectPaint =
         Paint()..color = circleColor.withValues(alpha: object.opacity);
-    canvas.drawCircle(size.toOffset() / 2, size.x / 2, circlePaint);
+
+    // canvas.drawCircle(size.toOffset() / 2, size.x / 2, circlePaint);
+
+    // Assuming 'size' is a Vector2 and 'rectPaint' is your Paint object
+
+    // 1. Define the rectangle bounds (as before)
+    final Rect rect = size.toRect();
+
+    // 2. Define the corner radius
+    const double cornerRadiusValue = 8.0; // Or your desired radius
+    final Radius cornerRadius = Radius.circular(cornerRadiusValue);
+
+    // 3. Create the Rounded Rectangle (RRect) object
+    final RRect roundedRect = RRect.fromRectAndRadius(rect, cornerRadius);
+
+    // 4. Draw the rounded rectangle using the existing paint
+    canvas.drawRRect(roundedRect, rectPaint);
 
     final fontSize = (size.x / 2) * 0.5;
     // Draw the jersey number

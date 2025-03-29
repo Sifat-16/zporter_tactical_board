@@ -1,19 +1,19 @@
 import 'package:flame/components.dart';
-import 'package:mongo_dart/mongo_dart.dart';
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 
 class FormUtils {
   static final List<FormModel> _forms = [
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "TEXT",
       imagePath: "text.png",
       formItemModel: FormTextModel(text: "T"),
     ),
 
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "STRAIGHT-LINE",
       imagePath: "diagonal-line.png",
       formItemModel: LineModel(
@@ -25,7 +25,7 @@ class FormUtils {
     ),
 
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "STRAIGHT-LINE-DASHED",
       imagePath: "diagonal-line-dashed.png",
       formItemModel: LineModel(
@@ -37,7 +37,7 @@ class FormUtils {
     ),
 
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "STRAIGHT-LINE-ZIGZAG",
       imagePath: "diagonal-line-zigzag.png",
       formItemModel: LineModel(
@@ -49,7 +49,7 @@ class FormUtils {
     ),
 
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "STRAIGHT-LINE-ZIGZAG-ARROW",
       imagePath: "diagonal-line-zigzag-arrow.png",
       formItemModel: LineModel(
@@ -61,7 +61,7 @@ class FormUtils {
     ),
 
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "STRAIGHT-LINE-ARROW",
       imagePath: "diagonal-line-arrow.png",
       formItemModel: LineModel(
@@ -73,7 +73,7 @@ class FormUtils {
     ),
 
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "STRAIGHT-LINE-ARROW-DOUBLE",
       imagePath: "diagonal-line-arrow-double.png",
       formItemModel: LineModel(
@@ -85,7 +85,7 @@ class FormUtils {
     ),
 
     FormModel(
-      id: ObjectId(),
+      id: RandomGenerator.generateId(),
       name: "FREE-DRAW",
       imagePath: "free-draw.png",
       formItemModel: FreeDrawModel(

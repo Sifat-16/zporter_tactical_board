@@ -5,9 +5,9 @@ import 'package:flame/events.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/selection_border_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 // Interface for selectable components

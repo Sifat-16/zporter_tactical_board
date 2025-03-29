@@ -55,8 +55,8 @@ class DraggableDot extends CircleComponent with DragCallbacks {
 
 class LineDrawerComponent extends PositionComponent
     with TapCallbacks, DragCallbacks, RiverpodComponentMixin {
-  final LineModel lineModel;
-  final FormModel formModel;
+  // LineModel lineModel;
+  FormModel formModel;
   final double circleRadius;
   List<DraggableDot> dots = [];
   bool isActive = false;
@@ -66,11 +66,14 @@ class LineDrawerComponent extends PositionComponent
   late Paint _activePaint;
   late Paint _inactivePaint;
 
+  late LineModel lineModel;
+
   LineDrawerComponent({
-    required this.lineModel,
+    // required this.lineModel,
     required this.formModel,
     this.circleRadius = 8.0,
   }) : super(priority: 1) {
+    lineModel = (formModel.formItemModel as LineModel);
     _createDots();
 
     updatePaint();
@@ -140,6 +143,7 @@ class LineDrawerComponent extends PositionComponent
   void updateLine() {
     dots[0].position = lineModel.start;
     dots[1].position = lineModel.end;
+    formModel.formItemModel = lineModel;
   }
 
   @override

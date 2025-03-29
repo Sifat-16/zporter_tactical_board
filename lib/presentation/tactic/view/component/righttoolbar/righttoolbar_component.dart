@@ -31,8 +31,12 @@ class _RighttoolbarComponentState extends State<RighttoolbarComponent>
   void initState() {
     super.initState();
     // Initialize the TabController
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _pageController = PageController();
+    _tabController = TabController(
+      initialIndex: 1,
+      length: _tabs.length,
+      vsync: this,
+    );
+    _pageController = PageController(initialPage: 1);
 
     // Sync TabBar with PageView swipe
     _tabController.addListener(() {

@@ -2,7 +2,7 @@ import 'package:flame/extensions.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
 final GlobalKey<RiverpodAwareGameWidgetState> gameWidgetKey =
     GlobalKey<RiverpodAwareGameWidgetState>();

@@ -1,5 +1,4 @@
 import 'package:flame/components.dart';
-import 'package:mongo_dart/mongo_dart.dart';
 import 'package:zporter_tactical_board/app/datastructures/tuple.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -159,7 +158,7 @@ class PlayerUtilsV2 {
     int index = 1;
 
     for (Tuple2 p in players) {
-      ObjectId id = ObjectId.fromHexString(p.item2);
+      String id = p.item2;
       PlayerModel playerModelV2 = PlayerModel(
         id: id,
         role: p.item1,

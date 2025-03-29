@@ -11,11 +11,12 @@ import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 import 'game_field.dart';
@@ -33,7 +34,15 @@ class TacticBoardGameAnimation extends TacticBoardGame {
     // final bp = ref.read(boardProvider);
 
     Future.delayed(Duration(seconds: 0), () {
-      _animationModel = ref.read(boardProvider).animationModel;
+      zlog(
+        data:
+            "Animation json come ${ref.read(boardProvider).animationModelJson}",
+      );
+
+      _animationModel = AnimationModel.fromJson(
+        ref.read(boardProvider).animationModelJson,
+      );
+
       // No _startAnimation call here. It's called externally.
       startAnimation();
     });
@@ -61,7 +70,7 @@ class TacticBoardGameAnimation extends TacticBoardGame {
       if (item.formItemModel is LineModel) {
         await add(
           LineDrawerComponent(
-            lineModel: (item.formItemModel as LineModel),
+            // lineModel: (item.formItemModel as LineModel),
             formModel: item,
           ),
         );
@@ -81,7 +90,7 @@ class TacticBoardGameAnimation extends TacticBoardGame {
       return; // No animation to play.
     }
 
-    List<AnimationItemModel> animations = _animationModel!.animations;
+    List<AnimationItemModel> animations = _animationModel!.animationScenes;
 
     zlog(
       data:
@@ -140,6 +149,13 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               data:
                   "Adding effect to component ${DateTime.now()} - ${i.offset}",
             );
+            if (component is FieldComponent) {
+              component.object = i;
+            } else if (component is LineDrawerComponent) {
+              if (i is FormModel) {
+                component.formModel = i;
+              }
+            }
             final effect = MoveToEffect(
               i.offset!,
               EffectController(duration: 3), // Use your desired duration
@@ -150,6 +166,9 @@ class TacticBoardGameAnimation extends TacticBoardGame {
             // *** Key Change:  COLLECT, don't add directly ***
             // collectedEffects.add((component: component, effect: effect));
             if (component is LineDrawerComponent) {
+              zlog(data: "Line drawer component stat ${i.toJson()}");
+              remove(component);
+              addItem(i);
             } else {
               component.add(effect);
             }
@@ -161,20 +180,6 @@ class TacticBoardGameAnimation extends TacticBoardGame {
       }
       await Future.delayed(Duration(seconds: 3));
       zlog(data: "Check lifecycleEventsProcessed effect is processed or not");
-      // *** Key Change:  Apply all effects AFTER collection ***
-      // List<Future<void>> effectFutures = [];
-      // for (final collectedEffect in collectedEffects) {
-      //   final completer = a.Completer<void>(); // Use a Completer for awaiting
-      //   collectedEffect.effect.onComplete = () {
-      //     completer.complete(); // Resolve when effect is done.
-      //   };
-      //   collectedEffect.component.add(
-      //     collectedEffect.effect,
-      //   ); // NOW add the effect.
-      //   effectFutures.add(completer.future);
-      // }
-      // await Future.wait(effectFutures);
-      // zlog(data: "One animation is complete ${animationItem.id}");
     } // End of outer loop (animations)
 
     // After ALL AnimationItemModels and their effects are complete:

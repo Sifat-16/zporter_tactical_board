@@ -1,12 +1,13 @@
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart'; // For describeEnum
 import 'package:flutter/material.dart'; // For Color
-import 'package:mongo_dart/mongo_dart.dart';
 
-// Assuming FieldItemModel and its helpers (vector2ToJson/FromJson) are in this file or imported
+// Assuming FieldItemModel and its helpers (vector2ToJson/FromJson, parseObjectId etc.)
+// are defined in 'field_item_model.dart' or imported correctly.
 import 'field_item_model.dart';
 
-enum PlayerType { HOME, OTHER, AWAY, UNKNOWN } // Added UNKNOWN
+// Ensure this enum definition matches your project
+enum PlayerType { HOME, OTHER, AWAY, UNKNOWN }
 
 class PlayerModel extends FieldItemModel {
   String role;
@@ -18,10 +19,10 @@ class PlayerModel extends FieldItemModel {
     // --- Base FieldItemModel properties ---
     required super.id,
     required super.offset, // PlayerModel seems to require offset unlike others
-    super.fieldItemType = FieldItemType.PLAYER,
+    super.fieldItemType = FieldItemType.PLAYER, // Default type for PlayerModel
     super.angle,
-    super.canBeCopied = false, // Keep existing default
-    super.scaleSymmetrically = true, // Keep existing default
+    super.canBeCopied = false, // Keep existing default from provided code
+    super.scaleSymmetrically = true, // Keep existing default from provided code
     super.createdAt,
     super.updatedAt,
     // --- New FieldItemModel properties ---
@@ -37,57 +38,80 @@ class PlayerModel extends FieldItemModel {
 
   @override
   Map<String, dynamic> toJson() {
+    // Keep existing toJson logic
     return {
-      ...super
-          .toJson(), // Includes id, offset, angle, scaleSym, canBeCopied, dates, size, color, opacity, fieldItemType
-      // Add PlayerModel specific fields
+      ...super.toJson(), // Includes base fields + fieldItemType='PLAYER'
       'role': role,
       'imagePath': imagePath,
       'index': index,
-      'playerType': describeEnum(playerType), // Use describeEnum
+      'playerType': describeEnum(
+        playerType,
+      ), // Use describeEnum for serialization
     };
   }
 
+  // --- FIXED fromJson Static Method ---
   static PlayerModel fromJson(Map<String, dynamic> json) {
-    // FieldItemModel.fromJson handles all base properties including new ones
-    final base = FieldItemModel.fromJson(json);
+    // --- Parse Base Class Properties DIRECTLY from JSON ---
+    // DO NOT call FieldItemModel.fromJson(json) here!
+    // Use static helpers from FieldItemModel where appropriate.
 
-    // Deserialize playerType safely using describeEnum
+    final id = json['_id']; // Use helper
+    final offset =
+        FieldItemModel.offsetFromJson(json['offset']) ??
+        Vector2.zero(); // Use helper + Default
+    final scaleSymmetrically =
+        json['scaleSymmetrically'] as bool? ?? true; // Default from constructor
+    final angle = json['angle'] as double?;
+    final canBeCopied =
+        json['canBeCopied'] as bool? ?? false; // Default from constructor
+    final createdAt =
+        json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
+    final updatedAt =
+        json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
+    final size = FieldItemModel.vector2FromJson(json['size']); // Use helper
+    final color = json['color'] != null ? Color(json['color']) : null;
+    final opacity = json['opacity'] as double?;
+    // final fieldItemType = FieldItemType.PLAYER; // We know this because we are in PlayerModel.fromJson
+
+    // --- Deserialize PlayerModel Specific Properties (Keep Existing Logic) ---
     final playerTypeString = json['playerType'] as String?;
     final playerType = PlayerType.values.firstWhere(
       (e) => describeEnum(e) == playerTypeString,
       orElse: () => PlayerType.UNKNOWN, // Default if null or invalid
     );
+    final role = json['role'] as String? ?? 'Unknown'; // Default if null
+    final index = json['index'] as int? ?? -1; // Default if null
+    final imagePath = json['imagePath'] as String?;
 
+    // --- Construct and Return PlayerModel Instance ---
     return PlayerModel(
-      // --- Pass all base properties ---
-      id: base.id,
-      offset:
-          base.offset ??
-          Vector2.zero(), // Provide default if base offset is null
-      fieldItemType: base.fieldItemType, // Should be PLAYER, but respect base
-      angle: base.angle,
-      // Pass missing base properties from original code
-      scaleSymmetrically: base.scaleSymmetrically,
-      canBeCopied: base.canBeCopied,
-      createdAt: base.createdAt,
-      updatedAt: base.updatedAt,
-      // --- Pass NEW base properties ---
-      size: base.size,
-      color: base.color,
-      opacity: base.opacity,
-      // --- Pass PlayerModel specific properties ---
-      role: json['role'] as String? ?? 'Unknown', // Default if null
-      index: json['index'] as int? ?? -1, // Default if null
-      imagePath: json['imagePath'] as String?,
+      // Pass parsed base properties
+      id: id,
+      offset: offset,
+      scaleSymmetrically: scaleSymmetrically,
+      angle: angle,
+      canBeCopied: canBeCopied,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      size: size,
+      color: color,
+      opacity: opacity,
+      // fieldItemType is set automatically by PlayerModel constructor
+
+      // Pass parsed PlayerModel specific properties
+      role: role,
+      index: index,
+      imagePath: imagePath,
       playerType: playerType,
     );
   }
 
+  // --- copyWith and clone remain unchanged from your provided code ---
   @override
   PlayerModel copyWith({
     // --- Base FieldItemModel properties ---
-    ObjectId? id,
+    String? id,
     Vector2? offset,
     bool? scaleSymmetrically,
     FieldItemType? fieldItemType, // Usually not overridden for specific types
@@ -107,51 +131,30 @@ class PlayerModel extends FieldItemModel {
     return PlayerModel(
       // --- Use new or existing values for base properties ---
       id: id ?? this.id,
-      offset: offset ?? this.offset?.clone(), // Clone mutable Vector2
+      offset:
+          offset ??
+          this.offset
+              ?.clone(), // Assumes Vector2 is immutable OR handle clone if needed
       scaleSymmetrically: scaleSymmetrically ?? this.scaleSymmetrically,
-      fieldItemType: this.fieldItemType, // Keep original type
+      fieldItemType: this.fieldItemType, // Keep original type PLAYER
       angle: angle ?? this.angle,
       canBeCopied: canBeCopied ?? this.canBeCopied,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      size: size ?? this.size?.clone(), // Clone mutable Vector2
+      size:
+          size ??
+          this.size, // Assumes Vector2 is immutable OR handle clone if needed
       color: color ?? this.color, // Color is immutable
       opacity: opacity ?? this.opacity,
       // --- Use new or existing values for PlayerModel properties ---
       role: role ?? this.role,
       index: index ?? this.index,
-      imagePath: imagePath ?? this.imagePath,
+      imagePath:
+          imagePath ?? this.imagePath, // Handles null assignment correctly
       playerType: playerType ?? this.playerType,
     );
   }
 
-  // Use simplified clone
   @override
-  PlayerModel clone() => copyWith();
-
-  /* // Manual clone (less maintainable)
-  @override
-  PlayerModel clone() {
-    return PlayerModel(
-      // --- Base ---
-      id: id,
-      offset: offset?.clone(), // Clone mutable Vector2
-      fieldItemType: fieldItemType,
-      angle: angle,
-      scaleSymmetrically: scaleSymmetrically,
-      canBeCopied: canBeCopied,
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      // --- New Base ---
-      size: size?.clone(), // Clone mutable Vector2
-      color: color,
-      opacity: opacity,
-      // --- Player ---
-      role: role,
-      index: index,
-      imagePath: imagePath,
-      playerType: playerType,
-    );
-  }
-  */
+  PlayerModel clone() => copyWith(); // Keep simplified clone
 }

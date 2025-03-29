@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:flame/components.dart';
+import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-class GameField extends PositionComponent with HasGameReference {
+class GameField extends PositionComponent
+    with HasGameReference, RiverpodComponentMixin {
   GameField({required Vector2 size}) : super(size: size);
 
   // Measurements
@@ -16,17 +20,22 @@ class GameField extends PositionComponent with HasGameReference {
 
   final Paint _borderPaint =
       Paint()
-        ..color = Colors.white
+        ..color = ColorManager.black
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
+        ..strokeWidth = 1;
 
-  final Paint _fieldPaint =
-      Paint()..color = const Color(0xFF4CAF50); // Green Field
+  final Paint _fieldPaint = Paint()..color = ColorManager.grey; // Green Field
 
   @override
   FutureOr<void> onLoad() {
+    addToGameWidgetBuild(() {
+      ref.listen(boardProvider, (previous, current) {
+        _fieldPaint.color = current.boardColor;
+      });
+    });
     _initializePosition();
     _initializeMeasurements();
+
     return super.onLoad();
   }
 
