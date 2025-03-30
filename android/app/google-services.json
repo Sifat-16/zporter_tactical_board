@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "623338569626",
+    "project_id": "zporter-board",
+    "storage_bucket": "zporter-board.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:623338569626:android:62fb14ba7a2a69ef120423",
+        "android_client_info": {
+          "package_name": "com.example.zporter_tactical_board"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiXs0KM7tNLjAB9UVKb-D1DDevaASEaRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "623338569626-bcgqsjoncdn99ttgldebae78k7j91mcp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.zporter.zporterBoard"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:623338569626:android:7ccaf1f6ec4ab51b120423",
+        "android_client_info": {
+          "package_name": "com.zporter.zporter_board"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "623338569626-nrlj49a6dglc3qof13lufm0ne9d1kjhu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zporter.zporter_board",
+            "certificate_hash": "bce7564cd1778394c94a8284a6af646b48a42fb0"
+          }
+        },
+        {
+          "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBiXs0KM7tNLjAB9UVKb-D1DDevaASEaRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "623338569626-bcgqsjoncdn99ttgldebae78k7j91mcp.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.zporter.zporterBoard"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
