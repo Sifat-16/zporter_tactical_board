@@ -1,71 +1,20 @@
-# Name of the workflow
-name: Build and Deploy Zporter Tactical Board Web to GitHub Pages
+name: App-Deploy
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push events but only for the "app" branch
   push:
-    branches: [ app ]
+    branches: [app]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# Sets permissions for the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: write # Needed to commit changes to the gh-pages branch
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build-and-deploy"
-  build-and-deploy:
-    # The type of runner that the job will run on
+  build:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Step 1: Check out the repository code
-      - name: Checkout repository code
-        uses: actions/checkout@v4 # Checks-out your repository under $GITHUB_WORKSPACE
-
-      # Step 2: Set up the latest stable Flutter SDK
-      - name: Setup Flutter SDK
-        uses: flutter-actions/setup-flutter@v1
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable' # Use the latest stable Flutter release
-
-      # Step 3: Cache Flutter dependencies
-      # Reduces time taken for 'flutter pub get' in future runs
-      - name: Cache Flutter dependencies
-        uses: actions/cache@v4
+          channel: stable
+          flutter-version: 3.29.0
+      - uses: bluefireteam/flutter-gh-pages@v8
         with:
-          path: | # Paths to cache: .pub-cache directory
-            ~/.pub-cache
-            .dart_tool
-            build # Optionally cache build directory if useful between runs (less common for pure web builds)
-          # Create a unique key based on the pubspec.lock file and runner OS
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-flutter-
-
-      # Step 4: Install project dependencies
-      - name: Get Flutter dependencies
-        run: flutter pub get
-
-      # Step 5: Build and deploy Flutter web app to GitHub Pages
-      - name: Build and Deploy to GitHub Pages
-        uses: bluefireteam/flutter-gh-pages@v8 # Use the deployment action
-        with:
-          # Set the base Href for the deployed site, crucial for routing in Flutter web
-          # Assumes you want to deploy to https://<your-username>.github.io/zporter_tactical_board/
           baseHref: /zporter_tactical_board/
-
-          # Optional: Specify the web renderer ('canvaskit' or 'html').
-          # CanvasKit often gives better fidelity but has a larger initial download.
-          # Default might be 'auto' or 'html' depending on the action/flutter version, specify if needed.
           webRenderer: canvaskit
-
-          # Optional: If your pubspec.yaml is not in the root directory, specify workingDir
-          # workingDir: ./path/to/flutter/app
-
-          # Optional: Specify build arguments if needed, e.g., --dart-define
-          # buildArgs: --dart-define=VAR_NAME=VAR_VALUE
