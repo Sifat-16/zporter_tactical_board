@@ -27,8 +27,7 @@ class TacticboardScreenTablet extends ConsumerStatefulWidget {
 }
 
 class _TacticboardScreenTabletState
-    extends ConsumerState<TacticboardScreenTablet>
-    with AutomaticKeepAliveClientMixin {
+    extends ConsumerState<TacticboardScreenTablet> {
   // Key for the "New Collection" form
   final _newCollectionFormKey = GlobalKey<FormState>();
   // Controller for the collection name input
@@ -46,7 +45,6 @@ class _TacticboardScreenTabletState
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final bp = ref.watch(boardProvider);
     final ap = ref.watch(animationProvider);
 
@@ -371,8 +369,4 @@ class _TacticboardScreenTabletState
       zlog(data: "Form is invalid.");
     }
   }
-
-  @override
-  // TODO: implement wantKeepAlive
-  bool get wantKeepAlive => true;
 }

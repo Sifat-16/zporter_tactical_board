@@ -28,11 +28,11 @@ class _AnimationToolbarComponentState
   void initState() {
     // TODO: implement initState
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((t) {
-      if (ref.read(animationProvider).animationCollections.isEmpty) {
-        ref.read(animationProvider.notifier).getAllCollections();
-      }
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((t) {
+    //   if (ref.read(animationProvider).animationCollections.isEmpty) {
+    //     ref.read(animationProvider.notifier).getAllCollections();
+    //   }
+    // });
   }
 
   @override

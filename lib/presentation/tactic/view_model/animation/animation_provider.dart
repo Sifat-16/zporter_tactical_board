@@ -54,11 +54,9 @@ class AnimationController extends StateNotifier<AnimationState> {
   void getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
     List<AnimationCollectionModel> collections = state.animationCollections;
+    zlog(data: "Animation collection fetching issue ");
     try {
       collections = await _getAllAnimationCollectionUseCase.call(null);
-    } catch (e) {
-      zlog(data: "Animation collection fetching issue ${e}");
-    } finally {
       AnimationCollectionModel? selectedAnimation =
           state.selectedAnimationCollectionModel ?? collections.firstOrNull;
       state = state.copyWith(
@@ -66,6 +64,8 @@ class AnimationController extends StateNotifier<AnimationState> {
         isLoadingAnimationCollections: false,
       );
       selectAnimationCollection(selectedAnimation);
+    } catch (e) {
+      zlog(data: "Animation collection fetching issue ${e}");
     }
   }
 
