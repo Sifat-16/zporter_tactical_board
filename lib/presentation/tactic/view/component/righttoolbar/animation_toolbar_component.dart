@@ -1,12 +1,15 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
+import 'package:zporter_tactical_board/app/core/dialogs/input_dialog.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_list_item.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_scene_item.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 
@@ -37,43 +40,22 @@ class _AnimationToolbarComponentState
     super.build(context);
     final ap = ref.watch(animationProvider);
 
-    // --- Estimate or determine the height needed for the bottom selectors ---
-    // This is the trickiest part of this method. You might need to adjust this value.
-    // Consider font sizes, padding, and the intrinsic height of DropdownSelector.
-    // Let's estimate ~70-80px per dropdown including padding.
-    const double bottomSelectorAreaHeight =
-        160.0; // Adjust this value as needed
-
-    return Stack(
-      children: [
-        // ListView takes up the whole stack area, but with bottom padding
-        // so content doesn't go under the positioned selectors
-        Padding(
-          // Apply padding only at the bottom of the ListView area
-          padding: const EdgeInsets.only(bottom: bottomSelectorAreaHeight),
-          child:
-              ap.selectedAnimationModel == null
-                  ? _buildAnimationList(ap: ap)
-                  : ListView.builder(
-                    itemCount: 100,
-                    // No shrinkWrap or special physics needed here
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 4.0,
-                          horizontal: 8.0,
-                        ),
-                        child: Text(
-                          "Hello $index", // Added index
-                          style: TextStyle(color: ColorManager.white),
-                        ),
-                      );
-                    },
-                  ),
-        ),
-
-        _buildCollectionBox(ap: ap),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildCollectionBox(ap: ap),
+          // ListView takes up the whole stack area, but with bottom padding
+          // so content doesn't go under the positioned selectors
+          Padding(
+            // Apply padding only at the bottom of the ListView area
+            padding: const EdgeInsets.only(bottom: 10),
+            child:
+                ap.selectedAnimationModel == null
+                    ? _buildAnimationList(ap: ap)
+                    : _buildAnimationSceneList(ap: ap),
+          ),
+        ],
+      ),
     );
   }
 
@@ -84,6 +66,8 @@ class _AnimationToolbarComponentState
   Widget _buildAnimationList({required AnimationState ap}) {
     return ListView.builder(
       itemCount: ap.animations.length,
+      physics: NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
       itemBuilder: (context, index) {
         final animation = ap.animations[index];
         // // Calculate display index (e.g., starting from 1)
@@ -99,14 +83,29 @@ class _AnimationToolbarComponentState
           ), // Use a unique key if list items can change/reorder
           animation: animation,
 
-          onTap: () {
-            ref.read(animationProvider.notifier).selectAnimation(animation);
+          onDelete: () {
+            ref
+                .read(animationProvider.notifier)
+                .deleteAnimation(animation: animation);
           },
 
           fieldColor: colorForThisField,
-          onCopy: () {
+
+          onCopy: () async {
             zlog(data: "Copy tapped for: ${animation.name ?? animation.id}");
             // TODO: Implement actual copy logic (e.g., call notifier)
+            String? name = await showInputDialog(
+              context,
+              title: "Enter animation name",
+              initialValue: "${animation.name} copy",
+              buttonText: "Copy",
+              hintText: "${animation.name} copy",
+            );
+            if (name != null) {
+              ref
+                  .read(animationProvider.notifier)
+                  .copyAnimation(name, animation);
+            }
           },
           onOpen: () {
             zlog(data: "Open tapped for: ${animation.name ?? animation.id}");
@@ -119,6 +118,50 @@ class _AnimationToolbarComponentState
                   "More options tapped for: ${animation.name ?? animation.id}",
             );
             // TODO: Implement more options logic (e.g., show menu/dialog)
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAnimationSceneList({required AnimationState ap}) {
+    return ListView.builder(
+      itemCount: ap.selectedAnimationModel?.animationScenes.length,
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      itemBuilder: (context, index) {
+        final animationItemModel =
+            ap.selectedAnimationModel?.animationScenes[index];
+        // // Calculate display index (e.g., starting from 1)
+        // final String displayIndexString = "${index + 1}";
+        // Determine field color if needed
+        final Color colorForThisField =
+            ColorManager.grey; // Default or from animation
+
+        // Return the new dedicated widget instance
+        if (animationItemModel == null) {
+          return SizedBox();
+        }
+        return AnimationSceneItem(
+          key: ValueKey(
+            animationItemModel.id,
+          ), // Use a unique key if list items can change/reorder
+          animation: animationItemModel,
+          isSelected: ap.selectedScene?.id == animationItemModel.id,
+          onItemTap: () {
+            ref
+                .read(animationProvider.notifier)
+                .selectScene(scene: animationItemModel);
+          },
+          fieldColor: colorForThisField,
+          onMoreOptions: () {
+            // TODO: Implement more options logic (e.g., show menu/dialog)
+          },
+
+          onDelete: () {
+            ref
+                .read(animationProvider.notifier)
+                .deleteScene(scene: animationItemModel);
           },
         );
       },
@@ -190,16 +233,39 @@ class _AnimationToolbarComponentState
                       ],
                     ),
 
-                    CustomButton(
-                      fillColor: ColorManager.blue,
-                      borderRadius: 3,
-                      height: 50,
-                      child: Text(
-                        "New",
-                        style: Theme.of(context).textTheme.labelMedium!
-                            .copyWith(color: ColorManager.white),
+                    if (ap.selectedAnimationModel != null)
+                      Builder(
+                        builder: (context) {
+                          final Object heroTag =
+                              'anim_${ap.selectedAnimationModel?.id.toString()}';
+                          return IconButton(
+                            onPressed: () {
+                              AnimationModel? animationModel =
+                                  ap.selectedAnimationModel;
+                              if (animationModel == null) {
+                                BotToast.showText(text: "No animation to show");
+                                return;
+                              }
+                              Navigator.push(
+                                context,
+                                // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) => AnimationScreen(
+                                        // Pass the necessary data AND the hero tag
+                                        animationModel: animationModel,
+                                        heroTag: heroTag, // Pass the SAME tag
+                                      ),
+                                ),
+                              );
+                            },
+                            icon: Icon(
+                              Icons.play_circle_outline,
+                              color: ColorManager.green,
+                            ),
+                          );
+                        },
                       ),
-                    ),
                   ],
                 ),
               ),

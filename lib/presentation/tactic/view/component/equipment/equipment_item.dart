@@ -50,7 +50,7 @@ class _EquipmentItemState extends State<EquipmentItem> {
       child: Center(
         child: Image.asset(
           "assets/images/${widget.equipmentModel.imagePath}",
-          color: ColorManager.yellowLight,
+          color: ColorManager.white,
           height: AppSize.s32,
           width: AppSize.s32,
         ),

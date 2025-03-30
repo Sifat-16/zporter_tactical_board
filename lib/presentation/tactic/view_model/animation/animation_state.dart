@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 
 // Define a private sentinel object constant (can be outside the class)
@@ -12,6 +13,9 @@ class AnimationState {
   bool isLoadingAnimationCollections;
   List<AnimationModel> animations;
   AnimationModel? selectedAnimationModel;
+  AnimationItemModel? selectedScene;
+
+  bool showAnimation;
 
   // Constructor remains the same, prefer const if possible
   AnimationState({
@@ -20,6 +24,8 @@ class AnimationState {
     this.isLoadingAnimationCollections = false,
     this.animations = const [],
     this.selectedAnimationModel,
+    this.selectedScene,
+    this.showAnimation = false,
   });
 
   AnimationState copyWith({
@@ -29,6 +35,8 @@ class AnimationState {
     bool? isLoadingAnimationCollections,
     List<AnimationModel>? animations,
     Object? selectedAnimationModel = _sentinel,
+    AnimationItemModel? selectedScene,
+    bool? showAnimation,
   }) {
     return AnimationState(
       selectedAnimationCollectionModel:
@@ -43,6 +51,8 @@ class AnimationState {
           selectedAnimationModel == _sentinel
               ? this.selectedAnimationModel
               : selectedAnimationModel as AnimationModel?,
+      selectedScene: selectedScene ?? this.selectedScene,
+      showAnimation: showAnimation ?? this.showAnimation,
     );
   }
 

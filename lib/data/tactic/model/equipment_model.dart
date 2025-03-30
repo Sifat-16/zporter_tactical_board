@@ -100,6 +100,7 @@ class EquipmentModel extends FieldItemModel {
     bool? canBeCopied,
     DateTime? createdAt,
     DateTime? updatedAt,
+    Vector2? fieldSize,
     // --- NEW FieldItemModel properties ---
     Vector2? size,
     Color? color,

@@ -19,7 +19,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 mixin ItemManagement on TacticBoardGame {
   // Public method moved from TacticBoard (Code inside unchanged)
   // This 'addItem' handles adding the COMPONENT based on the model TYPE
-  addItem(FieldItemModel item) {
+  addItem(FieldItemModel item) async {
     // --- Exact code from original TacticBoard.addItem ---
     if (item is PlayerModel) {
       ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
@@ -28,10 +28,27 @@ mixin ItemManagement on TacticBoardGame {
       ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
       add(EquipmentComponent(object: item)); // add() is available via FlameGame
     } else if (item is FormModel) {
+      if (item.formItemModel is LineModel) {
+        await add(
+          LineDrawerComponent(
+            // lineModel: (item.formItemModel as LineModel),
+            formModel: item,
+          ),
+        );
+      } else {
+        await add(FormComponent(object: item));
+      }
       ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
-      add(FormComponent(object: item)); // add() is available via FlameGame
+      // add(FormComponent(object: item)); // add() is available via FlameGame
     }
     // --- End of exact code ---
+  }
+
+  resetItems(List<FieldItemModel> items) {
+    removeAll(children);
+    for (FieldItemModel i in items) {
+      addItem(i);
+    }
   }
 
   // Private/Helper methods moved from TacticBoard (Code inside unchanged)
@@ -123,5 +140,12 @@ mixin ItemManagement on TacticBoardGame {
       ref.read(boardProvider.notifier).copyDone();
     }
     // --- End of exact code ---
+  }
+
+  void addInitialItems(List<FieldItemModel> initialItems) {
+    ref.read(boardProvider.notifier).clearItems();
+    for (var f in initialItems) {
+      addItem(f);
+    }
   }
 }

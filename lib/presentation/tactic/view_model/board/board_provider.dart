@@ -1,11 +1,11 @@
 import 'dart:ui';
 
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flame/components.dart';
+import 'package:flame/src/game/notifying_vector2.dart';
+import 'package:flutter/src/material/tab_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
-import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
-import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
@@ -31,6 +31,10 @@ class BoardController extends StateNotifier<BoardState> {
     }
   }
 
+  List<FieldItemModel> allFieldItems() {
+    return [...state.players, ...state.equipments, ...state.forms];
+  }
+
   // playAnimation(
   //     PlayBoardAnimationEvent event,
   //     Emitter<BoardState> emit,
@@ -40,39 +44,44 @@ class BoardController extends StateNotifier<BoardState> {
   //   }
   // }
 
-  onAnimationSave() {
-    try {
-      AnimationItemModel animationItemModel = AnimationItemModel(
-        id: RandomGenerator.generateId(),
-        components: [
-          ...state.players.map((e) => e.clone()),
-          ...state.equipments.map((e) => e.clone()),
-          ...state.forms.map((e) => e.clone()),
-        ],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      AnimationModel? animationModel = state.animationModel;
-      animationModel ??= AnimationModel(
-        id: RandomGenerator.generateId(),
-        name: "+++++++++\n++++++++\n+++++++++",
-        animationScenes: [],
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-      animationModel.animationScenes.add(animationItemModel);
-      zlog(
-        data:
-            "On Animation save the items ${animationModel.animationScenes.map((t) => t.components.map((c) => c.toJson()).toList()).toList()}",
-      );
-      state = state.copyWith(
-        animationModel: animationModel,
-        animationModelJson: animationModel.toJson(),
-      );
-    } catch (e) {
-    } finally {
-      BotToast.showText(text: "Animation saved");
-    }
+  List<FieldItemModel> onAnimationSave() {
+    return [
+      ...state.players.map((e) => e.clone()),
+      ...state.equipments.map((e) => e.clone()),
+      ...state.forms.map((e) => e.clone()),
+    ];
+    // try {
+    //   AnimationItemModel animationItemModel = AnimationItemModel(
+    //     id: RandomGenerator.generateId(),
+    //     components: [
+    //       ...state.players.map((e) => e.clone()),
+    //       ...state.equipments.map((e) => e.clone()),
+    //       ...state.forms.map((e) => e.clone()),
+    //     ],
+    //     createdAt: DateTime.now(),
+    //     updatedAt: DateTime.now(),
+    //   );
+    //   AnimationModel? animationModel = state.animationModel;
+    //   animationModel ??= AnimationModel(
+    //     id: RandomGenerator.generateId(),
+    //     name: "+++++++++\n++++++++\n+++++++++",
+    //     animationScenes: [],
+    //     createdAt: DateTime.now(),
+    //     updatedAt: DateTime.now(),
+    //   );
+    //   animationModel.animationScenes.add(animationItemModel);
+    //   zlog(
+    //     data:
+    //         "On Animation save the items ${animationModel.animationScenes.map((t) => t.components.map((c) => c.toJson()).toList()).toList()}",
+    //   );
+    //   state = state.copyWith(
+    //     animationModel: animationModel,
+    //     animationModelJson: animationModel.toJson(),
+    //   );
+    // } catch (e) {
+    // } finally {
+    //   BotToast.showText(text: "Animation saved");
+    // }
   }
 
   showAnimationEvent() {
@@ -151,5 +160,26 @@ class BoardController extends StateNotifier<BoardState> {
 
   void updateBoardColor(Color color) {
     state = state.copyWith(boardColor: color);
+  }
+
+  void clearItems() {
+    state = state.copyWith(players: [], equipments: [], forms: []);
+  }
+
+  Vector2? fetchFieldSize() {
+    return state.fieldSize;
+  }
+
+  void updateFieldSize({required NotifyingVector2 size}) {
+    state = state.copyWith(fieldSize: size);
+  }
+
+  void animateToDesignTab() {
+    TabController? _controller = state.tabController;
+    _controller?.animateTo(0);
+  }
+
+  void updateTabController({required TabController controller}) {
+    state = state.copyWith(tabController: controller);
   }
 }

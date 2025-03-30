@@ -6,6 +6,7 @@ import 'package:flame/game.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
@@ -32,8 +33,8 @@ class TacticBoard extends TacticBoardGame
         LayeringManagement, // Provides layering helpers and _moveUp/DownElement
         BoardRiverpodIntegration // Provides setupBoardListeners
         {
-  // Constructor remains simple
-  TacticBoard();
+  final AnimationItemModel scene;
+  TacticBoard({required this.scene});
 
   @override
   FutureOr<void> onLoad() async {
@@ -45,7 +46,9 @@ class TacticBoard extends TacticBoardGame
   // Methods specific to TacticBoard remain here
   _initiateField() {
     gameField = GameField(size: Vector2(size.x - 20, size.y - 20));
+    ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
     add(gameField); // add() is available via FlameGame
+    addInitialItems(scene.components);
   }
 
   @override
@@ -62,7 +65,7 @@ class TacticBoard extends TacticBoardGame
     super.onTapDown(info);
     final tapPosition = info.raw.localPosition; // Position in game coordinates
     final components = componentsAtPoint(tapPosition.toVector2());
-    zlog(data: "Items tapped ${components.map((e) => e.runtimeType).toList()}");
+
     if (components.isNotEmpty) {
       if (!components.any((t) => t is FieldComponent) &&
           !components.any((t) => t is DraggableCircleComponent) &&
@@ -70,6 +73,9 @@ class TacticBoard extends TacticBoardGame
         ref // ref is available via RiverpodGameMixin
             .read(boardProvider.notifier)
             .toggleSelectItemEvent(fieldItemModel: null);
+      } else {
+        zlog(data: "Animate to design tab called");
+        ref.read(boardProvider.notifier).animateToDesignTab();
       }
     }
   }

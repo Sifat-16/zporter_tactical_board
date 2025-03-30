@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_text_field.dart';
@@ -7,8 +8,10 @@ import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
@@ -26,7 +29,6 @@ class TacticboardScreenTablet extends ConsumerStatefulWidget {
 class _TacticboardScreenTabletState
     extends ConsumerState<TacticboardScreenTablet>
     with AutomaticKeepAliveClientMixin {
-  bool showAnimation = false;
   // Key for the "New Collection" form
   final _newCollectionFormKey = GlobalKey<FormState>();
   // Controller for the collection name input
@@ -64,13 +66,25 @@ class _TacticboardScreenTabletState
               max: 3,
               builder: (context, area) {
                 final asp = ref.watch(animationProvider);
+                AnimationCollectionModel? collectionModel =
+                    asp.selectedAnimationCollectionModel;
+                AnimationModel? animationModel = asp.selectedAnimationModel;
+                AnimationItemModel? selectedScene = asp.selectedScene;
                 return Padding(
                   padding: const EdgeInsets.only(top: 50.0),
                   child:
-                      asp.selectedAnimationCollectionModel == null
+                      collectionModel == null
                           ? Center(child: _buildNewAnimationCollectionWidget())
-                          : asp.selectedAnimationModel == null
+                          : animationModel == null
                           ? Center(child: _buildNewAnimationWidget(ap: asp))
+                          : selectedScene == null
+                          ? Center(
+                            child: Text(
+                              "Please Select a scene",
+                              style: Theme.of(context).textTheme.labelLarge!
+                                  .copyWith(color: ColorManager.white),
+                            ),
+                          )
                           : SingleChildScrollView(
                             child: Column(
                               spacing: 20,
@@ -78,13 +92,14 @@ class _TacticboardScreenTabletState
                                 // Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
                                 SizedBox(
                                   height: context.heightPercent(80),
-                                  child:
-                                      showAnimation
-                                          ? AnimationScreen()
-                                          : GameScreen(),
+                                  child: GameScreen(scene: selectedScene),
                                 ),
 
-                                _buildFieldToolbar(),
+                                _buildFieldToolbar(
+                                  selectedCollection: collectionModel,
+                                  selectedAnimation: animationModel,
+                                  selectedScene: selectedScene,
+                                ),
 
                                 // Flexible(flex: 1, child: Container(color: Colors.red)),
                               ],
@@ -104,43 +119,43 @@ class _TacticboardScreenTabletState
         );
   }
 
-  Widget _buildFieldToolbar() {
+  Widget _buildFieldToolbar({
+    required AnimationCollectionModel selectedCollection,
+    required AnimationModel selectedAnimation,
+    required AnimationItemModel selectedScene,
+  }) {
     return Container(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Flexible(flex: 1, child: Container()),
           Flexible(
-            flex: 2,
+            flex: 1,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
                   onPressed: () {},
-                  icon: Icon(
-                    Icons.fullscreen_rounded,
-                    color: ColorManager.white,
+                  icon: FaIcon(
+                    FontAwesomeIcons.arrowsUpDownLeftRight,
+                    color: ColorManager.grey,
                   ),
                 ),
+
+                // IconButton(
+                //   onPressed: () {},
+                //   icon: FaIcon(FontAwesomeIcons.plus, color: ColorManager.grey),
+                // ),
                 IconButton(
-                  onPressed: () {
-                    // setState(() {
-                    //   if(rotationAngle==pi/2){
-                    //     rotationAngle=0;
-                    //   }else{
-                    //     rotationAngle=pi/2;
-                    //   }
-                    // });
-                  },
-                  icon: Icon(Icons.rotate_left, color: ColorManager.white),
+                  onPressed: () {},
+                  icon: Icon(Icons.rotate_left, color: ColorManager.grey),
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: Icon(Icons.threed_rotation, color: ColorManager.white),
+                  icon: Icon(Icons.threed_rotation, color: ColorManager.grey),
                 ),
                 IconButton(
                   onPressed: () {},
-                  icon: Icon(Icons.share, color: ColorManager.white),
+                  icon: Icon(Icons.share, color: ColorManager.grey),
                 ),
               ],
             ),
@@ -153,27 +168,41 @@ class _TacticboardScreenTabletState
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // CustomButton(
-                //   borderColor: ColorManager.red,
-                //   fillColor: ColorManager.transparent,
-                //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                //   borderRadius: 3,
-                //   child: Text(
-                //     "Delete",
-                //     style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                //       color: ColorManager.white,
-                //       fontWeight: FontWeight.bold,
-                //     ),
-                //   ),
-                // ),
                 CustomButton(
                   onTap: () {
-                    ref.read(boardProvider.notifier).onAnimationSave();
+                    ref
+                        .read(animationProvider.notifier)
+                        .addNewScene(
+                          selectedCollection: selectedCollection,
+                          selectedAnimation: selectedAnimation,
+                          selectedScene: selectedScene,
+                        );
+                  },
+                  fillColor: ColorManager.blue,
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  borderRadius: 3,
+                  child: Text(
+                    "Add New Scene",
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                      color: ColorManager.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                CustomButton(
+                  onTap: () {
+                    ref
+                        .read(animationProvider.notifier)
+                        .onAnimationSave(
+                          selectedCollection: selectedCollection,
+                          selectedAnimation: selectedAnimation,
+                          selectedScene: selectedScene,
+                        );
                     // context.read<BoardBloc>().add(SaveToAnimationEvent());
                     // AnimationDataModel animationDataModel = AnimationDataModel(id: ObjectId(), items: globalAnimations);
                     // context.read<AnimationBloc>().add(AnimationDatabaseSaveEvent(animationDataModel: animationDataModel));
                   },
-                  fillColor: ColorManager.grey,
+                  fillColor: ColorManager.blue,
                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   borderRadius: 3,
                   child: Text(
@@ -184,53 +213,6 @@ class _TacticboardScreenTabletState
                     ),
                   ),
                 ),
-
-                // CustomButton(
-                //   fillColor: ColorManager.blue,
-                //
-                //   onTap: () {
-                //     // List<FieldDraggableItem> copiedItems = itemPosition.map(
-                //     //         (e){
-                //     //       if(e is ArrowHead){
-                //     //         return e.copyWith(parent: e.parent.copyWith());
-                //     //       }
-                //     //       return e.copyWith();
-                //     //     }
-                //     // ).toList();
-                //     // AnimationModel animationModel = AnimationModel(id: ObjectId(), items: copiedItems, index: -1);
-                //     // globalAnimations.add(animationModel);
-                //     // context.read<AnimationBloc>().add(AnimationSaveEvent(animationModel: animationModel));
-                //   },
-                //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                //   borderRadius: 3,
-                //   child: Text(
-                //     "Save",
-                //     style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                //       color: ColorManager.white,
-                //       fontWeight: FontWeight.bold,
-                //     ),
-                //   ),
-                // ),
-                //
-                // CustomButton(
-                //   onTap: () {
-                //     // context.read<AnimationBloc>().add(PlayAnimationEvent());
-                //     // context.read<BoardBloc>().add(ShowAnimationEvent());
-                //     setState(() {
-                //       showAnimation = !showAnimation;
-                //     });
-                //   },
-                //   fillColor: ColorManager.green,
-                //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                //   borderRadius: 3,
-                //   child: Text(
-                //     "Play",
-                //     style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                //       color: ColorManager.white,
-                //       fontWeight: FontWeight.bold,
-                //     ),
-                //   ),
-                // ),
               ],
             ),
           ),

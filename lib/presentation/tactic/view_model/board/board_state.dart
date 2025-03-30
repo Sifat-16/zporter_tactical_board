@@ -1,5 +1,5 @@
-import 'dart:ui';
-
+import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
@@ -21,6 +21,9 @@ class BoardState {
   final bool moveDown;
   final Color boardColor;
   final bool moveUp;
+  final TabController? tabController;
+
+  final Vector2? fieldSize;
 
   const BoardState({
     this.players = const [],
@@ -36,6 +39,8 @@ class BoardState {
     this.moveUp = false,
     this.copyItem,
     this.boardColor = ColorManager.grey,
+    this.fieldSize,
+    this.tabController,
   });
 
   BoardState copyWith({
@@ -53,6 +58,8 @@ class BoardState {
     bool? moveUp,
     Color? boardColor,
     Map<String, dynamic>? animationModelJson,
+    Vector2? fieldSize,
+    TabController? tabController,
   }) {
     return BoardState(
       players: players ?? this.players,
@@ -73,6 +80,8 @@ class BoardState {
       moveUp: moveUp ?? this.moveUp,
       boardColor: boardColor ?? this.boardColor,
       animationModelJson: animationModelJson ?? this.animationModelJson,
+      fieldSize: fieldSize ?? this.fieldSize,
+      tabController: tabController ?? this.tabController,
     );
   }
 }
