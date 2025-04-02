@@ -112,7 +112,10 @@ class AnimationController extends StateNotifier<AnimationState> {
           await _saveAnimationCollectionUseCase.call(animationCollectionModel);
       collections.add(newAnimationCollectionModel);
       state = state.copyWith(animationCollections: collections);
-      selectAnimationCollection(newAnimationCollectionModel);
+      selectAnimationCollection(
+        newAnimationCollectionModel,
+        changeSelectedScene: false,
+      );
     } catch (e) {
       zlog(data: "Animation collection creating issue ${e}");
     } finally {
@@ -188,7 +191,11 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void clearAnimation() {
-    state = state.copyWith(selectedAnimationModel: null, selectedScene: null);
+    state = state.copyWith(
+      selectedAnimationModel: null,
+      selectedScene: state.defaultAnimationItems[0],
+      defaultAnimationItemIndex: 0,
+    );
   }
 
   void copyAnimation(String name, AnimationModel animation) async {
@@ -331,6 +338,14 @@ class AnimationController extends StateNotifier<AnimationState> {
         selectedAnimationModel: selectedAnimation,
         selectedScene: selectedAnimation.animationScenes.last,
       );
+      try {
+        onAnimationSave(
+          selectedCollection: state.selectedAnimationCollectionModel!,
+          selectedAnimation: state.selectedAnimationModel!,
+          selectedScene: state.selectedScene!,
+          showLoading: false,
+        );
+      } catch (e) {}
     } else {
       BotToast.showText(text: "Server error!!!");
     }
@@ -399,7 +414,10 @@ class AnimationController extends StateNotifier<AnimationState> {
     selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
       selectedCollectionModel,
     );
-    selectAnimationCollection(selectedCollectionModel);
+    selectAnimationCollection(
+      selectedCollectionModel,
+      changeSelectedScene: false,
+    );
   }
 
   void toggleNewCollectionInputShow(bool show) {

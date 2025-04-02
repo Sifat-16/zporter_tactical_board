@@ -115,30 +115,30 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                     ),
                   ),
                 ),
-                CustomButton(
-                  onTap: () {
-                    // ref
-                    //     .read(animationProvider.notifier)
-                    //     .onAnimationSave(
-                    //       selectedCollection: selectedCollection,
-                    //       selectedAnimation: selectedAnimation,
-                    //       selectedScene: selectedScene,
-                    //     );
-                    // context.read<BoardBloc>().add(SaveToAnimationEvent());
-                    // AnimationDataModel animationDataModel = AnimationDataModel(id: ObjectId(), items: globalAnimations);
-                    // context.read<AnimationBloc>().add(AnimationDatabaseSaveEvent(animationDataModel: animationDataModel));
-                  },
-                  fillColor: ColorManager.blue,
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  borderRadius: 3,
-                  child: Text(
-                    "Save to animation",
-                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: ColorManager.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                // CustomButton(
+                //   onTap: () {
+                //     // ref
+                //     //     .read(animationProvider.notifier)
+                //     //     .onAnimationSave(
+                //     //       selectedCollection: selectedCollection,
+                //     //       selectedAnimation: selectedAnimation,
+                //     //       selectedScene: selectedScene,
+                //     //     );
+                //     // context.read<BoardBloc>().add(SaveToAnimationEvent());
+                //     // AnimationDataModel animationDataModel = AnimationDataModel(id: ObjectId(), items: globalAnimations);
+                //     // context.read<AnimationBloc>().add(AnimationDatabaseSaveEvent(animationDataModel: animationDataModel));
+                //   },
+                //   fillColor: ColorManager.blue,
+                //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                //   borderRadius: 3,
+                //   child: Text(
+                //     "Save to animation",
+                //     style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                //       color: ColorManager.white,
+                //       fontWeight: FontWeight.bold,
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),
