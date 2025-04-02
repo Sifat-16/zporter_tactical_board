@@ -236,7 +236,10 @@ class _AnimationToolbarComponentState
                     onChanged: (s) {
                       ref
                           .read(animationProvider.notifier)
-                          .selectAnimationCollection(s);
+                          .selectAnimationCollection(
+                            s,
+                            changeSelectedScene: false,
+                          );
                       zlog(data: "Collection Chosen ${s}");
                     },
                     itemAsString: (AnimationCollectionModel? item) {

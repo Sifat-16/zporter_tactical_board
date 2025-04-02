@@ -39,6 +39,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   void selectAnimationCollection(
     AnimationCollectionModel? animationCollectionModel, {
     AnimationModel? animationSelect,
+    bool changeSelectedScene = true,
   }) {
     // if (animationSelect != null) {
     //   int index =
@@ -55,7 +56,10 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedAnimationCollectionModel: animationCollectionModel,
       animations: animationCollectionModel?.animations ?? [],
       selectedAnimationModel: selectedAnimation,
-      selectedScene: selectedAnimation?.animationScenes.first,
+      selectedScene:
+          changeSelectedScene == true
+              ? selectedAnimation?.animationScenes.first
+              : state.selectedScene,
       showNewCollectionInput: false,
       showNewAnimationInput: false,
       showQuickSave: false,
