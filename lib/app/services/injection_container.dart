@@ -6,7 +6,9 @@ import 'package:zporter_tactical_board/data/animation/datasource/animation_datas
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/get_all_default_animation_items_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/save_animation_collection_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/save_default_animation_usecase.dart';
 import 'package:zporter_tactical_board/firebase_options.dart';
 
 final sl = GetIt.instance;
@@ -40,6 +42,18 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<GetAllAnimationCollectionUseCase>(
     () => GetAllAnimationCollectionUseCase(
+      animationRepository: sl.get<AnimationRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<GetAllDefaultAnimationItemsUseCase>(
+    () => GetAllDefaultAnimationItemsUseCase(
+      animationRepository: sl.get<AnimationRepository>(),
+    ),
+  );
+
+  sl.registerLazySingleton<SaveDefaultAnimationUseCase>(
+    () => SaveDefaultAnimationUseCase(
       animationRepository: sl.get<AnimationRepository>(),
     ),
   );

@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 // Keep datasource interface and model imports
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 
 class AnimationDatasourceImpl implements AnimationDatasource {
   // Get Firestore instance (can be injected)
@@ -18,10 +19,16 @@ class AnimationDatasourceImpl implements AnimationDatasource {
   // Reference to the Firestore collection
   late final CollectionReference<Map<String, dynamic>> _animationCollectionRef;
 
+  // Reference to the Firestore collection
+  late final CollectionReference<Map<String, dynamic>> _defaultAnimationItemRef;
+
   // Constructor initializes the collection reference
   AnimationDatasourceImpl() {
     _animationCollectionRef = _firestore.collection(
       FirestoreConstant.ANIMATION_COLLECTIONS,
+    );
+    _defaultAnimationItemRef = _firestore.collection(
+      FirestoreConstant.DEFAULT_ANIMATION_ITEMS,
     );
   }
 
@@ -117,4 +124,175 @@ class AnimationDatasourceImpl implements AnimationDatasource {
       throw Exception("Error getting all animation collections: $e");
     }
   }
-}
+
+  @override
+  Future<List<AnimationItemModel>> getDefaultAnimations() async {
+    try {
+      // Get all documents from the collection
+      final QuerySnapshot<Map<String, dynamic>> snapshot =
+          await _defaultAnimationItemRef.get();
+
+      List<AnimationItemModel> animationItems = [];
+
+      if (snapshot.docs.isEmpty) {
+        return animationItems; // Return empty list if no documents
+      }
+
+      // Iterate through the document snapshots
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
+          in snapshot.docs) {
+        try {
+          final data = doc.data();
+          // --- Call your MODIFIED fromJson(Map) ---
+          // Pass the data map directly. It expects '_id' and handles Timestamps.
+          animationItems.add(AnimationItemModel.fromJson(data));
+        } catch (e, stackTrace) {
+          zlog(
+            level: Level.error,
+            data:
+                "Error parsing default animation items document ${doc.id}: $e\n$stackTrace",
+          ); // Use LogLevel
+        }
+      }
+
+      return animationItems;
+    } on FirebaseException catch (e) {
+      zlog(
+        level: Level.error,
+        data:
+            "Firebase error getting all default animations : ${e.code} - ${e.message}",
+      );
+      throw Exception("Error getting default animation : ${e.message}");
+    } catch (e) {
+      zlog(
+        level: Level.error,
+        data: "Error getting all default animation : $e",
+      );
+      throw Exception("Error getting all default animation : $e");
+    }
+  }
+
+  @override
+  Future<List<AnimationItemModel>> saveDefaultAnimations({
+    required List<AnimationItemModel> animationItems,
+  }) async {
+    // Create a WriteBatch instance from Firestore
+    final WriteBatch batch = _firestore.batch();
+    // List to hold models potentially updated with new IDs (returned value)
+    final List<AnimationItemModel> savedOrUpdatedItems = [];
+    // Set to keep track of the IDs present in the input list
+    final Set<String> inputItemIds = {};
+
+    try {
+      // --- Step 1: Fetch existing document IDs from Firestore ---
+      zlog(
+        level: Level.debug,
+        data: "Fetching existing default animation IDs...",
+      );
+      final QuerySnapshot<Map<String, dynamic>> existingSnapshot =
+          await _defaultAnimationItemRef.get();
+      // Store existing IDs in a Set for efficient lookup
+      final Set<String> existingFirestoreIds =
+          existingSnapshot.docs.map((doc) => doc.id).toSet();
+      zlog(
+        level: Level.debug,
+        data:
+            "Found ${existingFirestoreIds.length} existing default animations in Firestore.",
+      );
+
+      // --- Step 2: Process input items and prepare SET operations ---
+      zlog(
+        level: Level.debug,
+        data:
+            "Processing ${animationItems.length} input default animations for saving/updating...",
+      );
+      for (var item in animationItems) {
+        DocumentReference<Map<String, dynamic>> docRef;
+        String currentItemId = item.id; // Use a local var for the definite ID
+
+        // Ensure each item has an ID, generating one if necessary
+        if (currentItemId.isNotEmpty) {
+          docRef = _defaultAnimationItemRef.doc(currentItemId);
+        } else {
+          // Generate a new document reference (which includes a new ID)
+          docRef = _defaultAnimationItemRef.doc();
+          currentItemId = docRef.id; // Get the newly generated ID
+          // Update the item model instance with the new ID
+          item = item.copyWith(id: currentItemId);
+          zlog(
+            level: Level.info,
+            data:
+                "Generated new Firestore ID for default animation: $currentItemId",
+          );
+        }
+
+        // Track the ID of this input item
+        inputItemIds.add(currentItemId);
+
+        // Convert the item model (with definite ID) to JSON
+        final jsonData = item.toJson();
+
+        // Add a 'set' operation to the batch (creates or overwrites)
+        batch.set(docRef, jsonData);
+
+        // Add the item (potentially updated with ID) to our result list
+        savedOrUpdatedItems.add(item);
+      }
+      zlog(
+        level: Level.debug,
+        data: "Prepared SET operations for ${inputItemIds.length} items.",
+      );
+
+      // --- Step 3: Determine which existing IDs need to be deleted ---
+      // Find IDs that are in Firestore but NOT in the input list
+      final Set<String> idsToDelete = existingFirestoreIds.difference(
+        inputItemIds,
+      );
+      // This is equivalent to:
+      // final idsToDelete = existingFirestoreIds.where((id) => !inputItemIds.contains(id)).toSet();
+
+      // --- Step 4: Add DELETE operations to the batch ---
+      if (idsToDelete.isNotEmpty) {
+        zlog(
+          level: Level.info,
+          data:
+              "Identified ${idsToDelete.length} default animations in Firestore to DELETE (not in input list): ${idsToDelete.join(', ')}",
+        );
+        for (final idToDelete in idsToDelete) {
+          batch.delete(_defaultAnimationItemRef.doc(idToDelete));
+        }
+      } else {
+        zlog(
+          level: Level.debug,
+          data: "No existing default animations need deletion.",
+        );
+      }
+
+      // --- Step 5: Commit all operations (sets and deletes) atomically ---
+      zlog(level: Level.debug, data: "Committing batch operations...");
+      await batch.commit();
+
+      zlog(
+        level: Level.info,
+        data:
+            "Successfully synchronized default animations. Saved/Updated: ${savedOrUpdatedItems.length}, Deleted: ${idsToDelete.length}.",
+      );
+
+      // --- Step 6: Return the list of items that were saved or updated ---
+      return savedOrUpdatedItems;
+    } on FirebaseException catch (e) {
+      zlog(
+        level: Level.error,
+        data:
+            "Firebase error synchronizing default animations: ${e.code} - ${e.message}",
+      );
+      throw Exception("Error synchronizing default animations: ${e.message}");
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: "Error synchronizing default animations: $e\n$stackTrace",
+      );
+      throw Exception("Error synchronizing default animations: $e");
+    }
+  }
+} // End of AnimationDatasourceImpl class

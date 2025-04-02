@@ -60,7 +60,10 @@ class EquipmentModel extends FieldItemModel {
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
     final size = FieldItemModel.vector2FromJson(json['size']); // Use helper
     final color = json['color'] != null ? Color(json['color']) : null;
-    final opacity = json['opacity'] as double?;
+    final opacity =
+        json['opacity'] == null
+            ? null
+            : double.parse(json['opacity'].toString());
 
     // --- Deserialize EquipmentModel Specific Properties (Keep Existing Logic) ---
     final name =

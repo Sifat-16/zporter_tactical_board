@@ -12,7 +12,7 @@ final GlobalKey<RiverpodAwareGameWidgetState> gameWidgetKey =
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key, required this.scene});
-  final AnimationItemModel scene;
+  final AnimationItemModel? scene;
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -33,12 +33,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void didUpdateWidget(covariant GameScreen oldWidget) {
     // TODO: implement didUpdateWidget
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.scene.id != widget.scene.id) {
+    if (oldWidget.scene?.id != widget.scene?.id) {
       updateTacticBoardIfNecessary(widget.scene);
     }
   }
 
-  updateTacticBoardIfNecessary(AnimationItemModel selectedScene) {
+  updateTacticBoardIfNecessary(AnimationItemModel? selectedScene) {
     WidgetsBinding.instance.addPostFrameCallback((t) {
       setState(() {
         tacticBoardGame = TacticBoard(scene: selectedScene);

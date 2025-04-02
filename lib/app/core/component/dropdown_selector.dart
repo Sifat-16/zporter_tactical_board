@@ -7,8 +7,10 @@ class DropdownSelector<T> extends StatefulWidget {
   final String label;
   final List<T> items;
   final String? emptyItem;
+
   final T? initialValue;
   final ValueChanged<T?> onChanged;
+  final EdgeInsets? padding;
   final String Function(T item) itemAsString; // Converts non-null T to String
 
   const DropdownSelector({
@@ -16,8 +18,10 @@ class DropdownSelector<T> extends StatefulWidget {
     required this.label,
     this.emptyItem,
     required this.items,
+
     this.initialValue,
     required this.onChanged,
+    this.padding,
     required this.itemAsString,
   });
 
@@ -78,13 +82,21 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
 
     return Padding(
       // Keep overall padding
-      padding: const EdgeInsets.all(16.0),
+      padding: widget.padding ?? EdgeInsets.zero,
       // Replace DropdownButtonFormField with DropdownMenu
       child: DropdownMenu<T?>(
+        expandedInsets: EdgeInsets.zero,
+        enableSearch: true,
+
+        searchCallback: (items, query) {
+          return null;
+        },
+
         // Controller manages the text field's display
         controller: _controller,
         // Provide initial selection (DropdownMenu handles this internally too, but sync with controller)
         initialSelection: _selectedValue,
+
         // Label Widget
         label: Text(
           widget.label,
@@ -99,23 +111,23 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
 
         // Build the list of entries
         dropdownMenuEntries: <DropdownMenuEntry<T?>>[
-          // Null option entry - Use labelWidget for custom styling
-          if (widget.emptyItem == null)
-            DropdownMenuEntry<T?>(
-              value: null,
-              label: "-", // Base label string
-              labelWidget: Text("-", style: dropdownHintStyle), // Styled widget
-            )
-          else
-            DropdownMenuEntry<T?>(
-              value: null,
-              label: widget.emptyItem ?? "-", // Base label string
-              labelWidget: Text(
-                widget.emptyItem ?? "-",
-                style: dropdownHintStyle,
-              ), // Styled widget
-            ),
-          // Map the List<T> items
+          // // Null option entry - Use labelWidget for custom styling
+          // if (widget.emptyItem == null)
+          //   DropdownMenuEntry<T?>(
+          //     value: null,
+          //     label: "-", // Base label string
+          //     labelWidget: Text("-", style: dropdownHintStyle), // Styled widget
+          //   )
+          // else
+          //   DropdownMenuEntry<T?>(
+          //     value: null,
+          //     label: widget.emptyItem ?? "-", // Base label string
+          //     labelWidget: Text(
+          //       widget.emptyItem ?? "-",
+          //       style: dropdownHintStyle,
+          //     ), // Styled widget
+          //   ),
+          // // Map the List<T> items
           ...widget.items.map<DropdownMenuEntry<T?>>((T item) {
             return DropdownMenuEntry<T?>(
               value: item,

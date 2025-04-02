@@ -14,8 +14,12 @@ class AnimationState {
   List<AnimationModel> animations;
   AnimationModel? selectedAnimationModel;
   AnimationItemModel? selectedScene;
-
+  bool showNewCollectionInput;
+  bool showNewAnimationInput;
+  bool showQuickSave;
   bool showAnimation;
+  int defaultAnimationItemIndex;
+  List<AnimationItemModel> defaultAnimationItems;
 
   // Constructor remains the same, prefer const if possible
   AnimationState({
@@ -25,7 +29,12 @@ class AnimationState {
     this.animations = const [],
     this.selectedAnimationModel,
     this.selectedScene,
+    this.showNewCollectionInput = false,
     this.showAnimation = false,
+    this.showNewAnimationInput = false,
+    this.showQuickSave = false,
+    this.defaultAnimationItemIndex = 0,
+    this.defaultAnimationItems = const [],
   });
 
   AnimationState copyWith({
@@ -35,8 +44,13 @@ class AnimationState {
     bool? isLoadingAnimationCollections,
     List<AnimationModel>? animations,
     Object? selectedAnimationModel = _sentinel,
-    AnimationItemModel? selectedScene,
+    Object? selectedScene = _sentinel,
     bool? showAnimation,
+    bool? showNewCollectionInput,
+    bool? showNewAnimationInput,
+    bool? showQuickSave,
+    int? defaultAnimationItemIndex,
+    List<AnimationItemModel>? defaultAnimationItems,
   }) {
     return AnimationState(
       selectedAnimationCollectionModel:
@@ -51,8 +65,20 @@ class AnimationState {
           selectedAnimationModel == _sentinel
               ? this.selectedAnimationModel
               : selectedAnimationModel as AnimationModel?,
-      selectedScene: selectedScene ?? this.selectedScene,
+      selectedScene:
+          selectedScene == _sentinel
+              ? this.selectedScene
+              : selectedScene as AnimationItemModel?,
       showAnimation: showAnimation ?? this.showAnimation,
+      showNewCollectionInput:
+          showNewCollectionInput ?? this.showNewCollectionInput,
+      showNewAnimationInput:
+          showNewAnimationInput ?? this.showNewAnimationInput,
+      showQuickSave: showQuickSave ?? this.showQuickSave,
+      defaultAnimationItemIndex:
+          defaultAnimationItemIndex ?? this.defaultAnimationItemIndex,
+      defaultAnimationItems:
+          defaultAnimationItems ?? this.defaultAnimationItems,
     );
   }
 
@@ -72,7 +98,8 @@ class AnimationState {
         ) && // Compare list contents
         isLoadingAnimationCollections == other.isLoadingAnimationCollections &&
         listEquals(animations, other.animations) && // Compare list contents
-        selectedAnimationModel == other.selectedAnimationModel;
+        selectedAnimationModel == other.selectedAnimationModel &&
+        selectedScene == other.selectedScene;
   }
 
   @override
@@ -84,6 +111,7 @@ class AnimationState {
       isLoadingAnimationCollections,
       Object.hashAll(animations), // Hash list content
       selectedAnimationModel,
+      selectedScene,
     );
   }
 }

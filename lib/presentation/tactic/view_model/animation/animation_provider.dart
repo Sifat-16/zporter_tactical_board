@@ -9,7 +9,9 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/get_all_default_animation_items_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/save_animation_collection_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/save_default_animation_usecase.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
@@ -28,30 +30,39 @@ class AnimationController extends StateNotifier<AnimationState> {
   final GetAllAnimationCollectionUseCase _getAllAnimationCollectionUseCase =
       sl.get<GetAllAnimationCollectionUseCase>();
 
+  final GetAllDefaultAnimationItemsUseCase _getAllDefaultAnimationItemsUseCase =
+      sl.get<GetAllDefaultAnimationItemsUseCase>();
+
+  final SaveDefaultAnimationUseCase _saveDefaultAnimationUseCase =
+      sl.get<SaveDefaultAnimationUseCase>();
+
   void selectAnimationCollection(
     AnimationCollectionModel? animationCollectionModel, {
     AnimationModel? animationSelect,
   }) {
-    if (animationSelect != null) {
-      int index =
-          animationCollectionModel?.animations.indexWhere(
-            (a) => a.id == animationSelect?.id,
-          ) ??
-          -1;
-      if (index == -1) {
-        animationSelect = null;
-      }
-    }
+    // if (animationSelect != null) {
+    //   int index =
+    //       animationCollectionModel?.animations.indexWhere(
+    //         (a) => a.id == animationSelect?.id,
+    //       ) ??
+    //       -1;
+    //   if (index == -1) {
+    //     animationSelect = null;
+    //   }
+    // }
     AnimationModel? selectedAnimation = animationSelect;
     state = state.copyWith(
       selectedAnimationCollectionModel: animationCollectionModel,
       animations: animationCollectionModel?.animations ?? [],
       selectedAnimationModel: selectedAnimation,
       selectedScene: selectedAnimation?.animationScenes.first,
+      showNewCollectionInput: false,
+      showNewAnimationInput: false,
+      showQuickSave: false,
     );
   }
 
-  void getAllCollections() async {
+  Future<void> getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
     List<AnimationCollectionModel> collections = state.animationCollections;
     zlog(data: "Animation collection fetching issue ");
@@ -105,7 +116,10 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
   }
 
-  void createNewAnimation(String newAnimationName) async {
+  void createNewAnimation(
+    String newAnimationName, {
+    AnimationItemModel? dummyAnimationPassed,
+  }) async {
     BotToast.showLoading();
     try {
       AnimationModel animationModel = AnimationModel(
@@ -139,7 +153,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           fieldSize:
               ref.read(boardProvider.notifier).fetchFieldSize() ??
               Vector2(0, 0),
-          components: [],
+          components: dummyAnimationPassed?.components ?? [],
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),
@@ -167,6 +181,10 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedAnimationModel: s,
       selectedScene: s?.animationScenes.firstOrNull,
     );
+  }
+
+  void clearAnimation() {
+    state = state.copyWith(selectedAnimationModel: null, selectedScene: null);
   }
 
   void copyAnimation(String name, AnimationModel animation) async {
@@ -237,6 +255,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     required AnimationCollectionModel selectedCollection,
     required AnimationModel selectedAnimation,
     required AnimationItemModel selectedScene,
+    bool showLoading = true,
   }) async {
     List<FieldItemModel> components =
         ref.read(boardProvider.notifier).onAnimationSave();
@@ -254,7 +273,10 @@ class AnimationController extends StateNotifier<AnimationState> {
       if (animationIndex != -1) {
         selectedCollection.animations[animationIndex] = selectedAnimation;
 
-        BotToast.showLoading();
+        if (showLoading) {
+          BotToast.showLoading();
+        }
+
         try {
           selectedCollection = await _saveAnimationCollectionUseCase.call(
             selectedCollection,
@@ -374,5 +396,150 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedCollectionModel,
     );
     selectAnimationCollection(selectedCollectionModel);
+  }
+
+  void toggleNewCollectionInputShow(bool show) {
+    state = state.copyWith(showNewCollectionInput: show);
+  }
+
+  void toggleNewAnimationInputShow(bool show) {
+    state = state.copyWith(showNewAnimationInput: show);
+  }
+
+  void showQuickSave() {
+    List<FieldItemModel> components =
+        ref.read(boardProvider.notifier).onAnimationSave();
+    AnimationItemModel quickSaveAnimation = AnimationItemModel(
+      id: RandomGenerator.generateId(),
+      components: components,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      fieldSize:
+          ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2(0, 0),
+    );
+    state = state.copyWith(
+      showQuickSave: true,
+      selectedScene: quickSaveAnimation,
+    );
+  }
+
+  void cancelQuickSave() {
+    state = state.copyWith(showQuickSave: false);
+  }
+
+  Future<void> configureDefaultAnimations() async {
+    List<AnimationItemModel> animationItems = [];
+    try {
+      animationItems = await _getAllDefaultAnimationItemsUseCase.call(null);
+      zlog(data: "Animation item fetch ${animationItems}");
+    } catch (e) {
+      zlog(data: "Animation item fetch issue");
+    }
+    if (animationItems.isEmpty) {
+      animationItems.add(
+        AnimationItemModel(
+          id: RandomGenerator.generateId(),
+          components: [],
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          fieldSize:
+              ref.read(boardProvider.notifier).fetchFieldSize() ??
+              Vector2.zero(),
+        ),
+      );
+    }
+    state = state.copyWith(
+      defaultAnimationItems: animationItems,
+      selectedScene: animationItems.first,
+      defaultAnimationItemIndex: 0,
+    );
+  }
+
+  void changeDefaultAnimationIndex(int index) {
+    state = state.copyWith(
+      defaultAnimationItemIndex: index,
+      selectedScene: state.defaultAnimationItems[index],
+    );
+  }
+
+  void onSaveDefault() {
+    try {
+      int index = state.defaultAnimationItemIndex;
+      List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
+
+      AnimationItemModel changeModel = defaultAnimations[index].clone();
+      changeModel.components =
+          ref.read(boardProvider.notifier).onAnimationSave();
+      changeModel.fieldSize =
+          ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
+
+      defaultAnimations[index] = changeModel;
+
+      _saveDefaultAnimationUseCase.call(defaultAnimations);
+    } catch (e) {}
+  }
+
+  void updateDatabaseOnChange() {
+    AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+    if (selectedAnimationModel == null) {
+      try {
+        onSaveDefault();
+        zlog(data: "Auto save default");
+      } catch (e) {
+        zlog(data: "Auto save error");
+      }
+    } else {
+      /// working on saved animation
+      try {
+        onAnimationSave(
+          selectedCollection: state.selectedAnimationCollectionModel!,
+          selectedAnimation: state.selectedAnimationModel!,
+          selectedScene: state.selectedScene!,
+          showLoading: false,
+        );
+        zlog(data: "Auto save complete");
+      } catch (e) {
+        zlog(data: "Auto save error");
+      }
+    }
+  }
+
+  void createNewDefaultAnimationItem() {
+    List<AnimationItemModel> defaultItems = state.defaultAnimationItems;
+    defaultItems.add(_generateDummyAnimationItem());
+    state = state.copyWith(
+      defaultAnimationItems: defaultItems,
+      defaultAnimationItemIndex: defaultItems.length - 1,
+      selectedScene: defaultItems.last,
+    );
+  }
+
+  AnimationItemModel _generateDummyAnimationItem() {
+    return AnimationItemModel(
+      id: RandomGenerator.generateId(),
+      components: [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      fieldSize:
+          ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero(),
+    );
+  }
+
+  void deleteDefaultAnimation() async {
+    int index = state.defaultAnimationItemIndex;
+    List<AnimationItemModel> defaultItems = state.defaultAnimationItems;
+    defaultItems.removeAt(index);
+    BotToast.showLoading();
+    try {
+      defaultItems = await _saveDefaultAnimationUseCase.call(defaultItems);
+      index = index >= defaultItems.length ? defaultItems.length - 1 : index;
+
+      state = state.copyWith(
+        defaultAnimationItems: defaultItems,
+        defaultAnimationItemIndex: index,
+        selectedScene: defaultItems[index],
+      );
+    } catch (e) {}
+    BotToast.cleanAll();
   }
 }

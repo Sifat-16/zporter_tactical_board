@@ -1,6 +1,6 @@
-import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/input_dialog.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -28,29 +28,40 @@ class _AnimationToolbarComponentState
   void initState() {
     // TODO: implement initState
     super.initState();
-    // WidgetsBinding.instance.addPostFrameCallback((t) {
-    //   if (ref.read(animationProvider).animationCollections.isEmpty) {
-    //     ref.read(animationProvider.notifier).getAllCollections();
-    //   }
-    // });
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final ap = ref.watch(animationProvider);
+    final List<AnimationCollectionModel> collectionList =
+        ap.animationCollections;
+    final AnimationCollectionModel? selectedCollection =
+        ap.selectedAnimationCollectionModel;
+    final List<AnimationModel> animations = ap.animations;
+    final AnimationModel? selectedAnimation = ap.selectedAnimationModel;
 
     return SingleChildScrollView(
       child: Column(
         children: [
-          _buildCollectionBox(ap: ap),
+          _buildCollectionBox(
+            collectionList: collectionList,
+            selectedCollection: selectedCollection,
+          ),
+
+          _buildAnimationBox(
+            animationList: animations,
+            selectedAnimation: selectedAnimation,
+            selectedCollection: selectedCollection,
+          ),
+
           // ListView takes up the whole stack area, but with bottom padding
           // so content doesn't go under the positioned selectors
           Padding(
             // Apply padding only at the bottom of the ListView area
             padding: const EdgeInsets.only(bottom: 10),
             child:
-                ap.selectedAnimationModel == null
+                selectedAnimation == null
                     ? _buildAnimationList(ap: ap)
                     : _buildAnimationSceneList(ap: ap),
           ),
@@ -168,107 +179,202 @@ class _AnimationToolbarComponentState
     );
   }
 
-  Widget _buildCollectionBox({required AnimationState ap}) {
+  Widget _buildCollectionBox({
+    required List<AnimationCollectionModel> collectionList,
+    required AnimationCollectionModel? selectedCollection,
+  }) {
     // Positioned container at the bottom for the selectors
 
     return Align(
       alignment: Alignment.bottomCenter,
-      child:
-          ap.isLoadingAnimationCollections
-              ? Center(child: CircularProgressIndicator())
-              : Container(
-                // Add background color so list doesn't show through
-                // Use your app's background color or a specific one
-                color: ColorManager.black, // Example
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 8,
-                ), // Optional padding above dropdowns
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, // Take only needed height
+      child: Container(
+        // Add background color so list doesn't show through
+        // Use your app's background color or a specific one
+        color: ColorManager.black, // Example
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8.0,
+          vertical: 8,
+        ), // Optional padding above dropdowns
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Collection",
+                  style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                    color: ColorManager.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ref
+                        .read(animationProvider.notifier)
+                        .toggleNewCollectionInputShow(true);
+                  },
+                  child: Text(
+                    "+ New Collection",
+                    style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                      color: ColorManager.green,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Expanded(
+                  child: DropdownSelector<AnimationCollectionModel?>(
+                    key: UniqueKey(),
+
+                    label: "Select Collection",
+                    // emptyItem: "Add new Collection",
+                    items: collectionList,
+                    initialValue: selectedCollection,
+                    onChanged: (s) {
+                      ref
+                          .read(animationProvider.notifier)
+                          .selectAnimationCollection(s);
+                      zlog(data: "Collection Chosen ${s}");
+                    },
+                    itemAsString: (AnimationCollectionModel? item) {
+                      return item?.name ?? "";
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimationBox({
+    required List<AnimationModel> animationList,
+    required AnimationModel? selectedAnimation,
+    required AnimationCollectionModel? selectedCollection,
+  }) {
+    // Positioned container at the bottom for the selectors
+
+    if (selectedCollection == null) return SizedBox.shrink();
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        // Add background color so list doesn't show through
+        // Use your app's background color or a specific one
+        color: ColorManager.black, // Example
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8.0,
+          vertical: 8,
+        ), // Optional padding above dropdowns
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Take only needed height
+          children: [
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownSelector<AnimationCollectionModel?>(
-                            key: UniqueKey(),
-                            label: "Collection",
-                            emptyItem: "Add new Collection",
-                            items: ap.animationCollections,
-                            initialValue: ap.selectedAnimationCollectionModel,
-                            onChanged: (s) {
-                              ref
-                                  .read(animationProvider.notifier)
-                                  .selectAnimationCollection(s);
-                              zlog(data: "Collection Chosen ${s}");
-                            },
-                            itemAsString: (AnimationCollectionModel? item) {
-                              return item?.name ?? "";
-                            },
-                          ),
-                        ),
-                      ],
+                    Text(
+                      "Animation",
+                      style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                        color: ColorManager.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
+                    TextButton(
+                      onPressed: () {
+                        ref
+                            .read(animationProvider.notifier)
+                            .toggleNewAnimationInputShow(true);
+                      },
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownSelector<AnimationModel>(
-                            key: UniqueKey(),
-                            label: "Animation",
-                            emptyItem: "Add new Animation",
-                            items: ap.animations,
-                            initialValue: ap.selectedAnimationModel,
-                            onChanged: (s) {
-                              ref
-                                  .read(animationProvider.notifier)
-                                  .selectAnimation(s);
-                              zlog(data: "Animation Chosen ${s}");
-                            },
-                            itemAsString: (AnimationModel? item) {
-                              return item?.name ?? "";
-                            },
-                          ),
-                        ),
-                      ],
+                      child: Text(
+                        "+ New Animation",
+                        style: Theme.of(context).textTheme.labelMedium!
+                            .copyWith(color: ColorManager.green),
+                      ),
                     ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownSelector<AnimationModel>(
+                        key: UniqueKey(),
+                        label: "Select Animation",
+                        items: animationList,
+                        initialValue: selectedAnimation,
+                        onChanged: (s) {
+                          ref
+                              .read(animationProvider.notifier)
+                              .selectAnimation(s);
+                          zlog(data: "Animation Chosen ${s}");
+                        },
+                        itemAsString: (AnimationModel? item) {
+                          return item?.name ?? "";
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
 
-                    if (ap.selectedAnimationModel != null)
-                      Builder(
-                        builder: (context) {
-                          final Object heroTag =
-                              'anim_${ap.selectedAnimationModel?.id.toString()}';
-                          return IconButton(
-                            onPressed: () {
-                              AnimationModel? animationModel =
-                                  ap.selectedAnimationModel;
-                              if (animationModel == null) {
-                                BotToast.showText(text: "No animation to show");
-                                return;
-                              }
-                              Navigator.push(
-                                context,
-                                // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => AnimationScreen(
-                                        // Pass the necessary data AND the hero tag
-                                        animationModel: animationModel,
-                                        heroTag: heroTag, // Pass the SAME tag
-                                      ),
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.play_circle_outline,
-                              color: ColorManager.green,
+            if (selectedAnimation != null)
+              Row(
+                children: [
+                  Builder(
+                    builder: (context) {
+                      final Object heroTag =
+                          'anim_${selectedAnimation.id.toString()}';
+                      return IconButton(
+                        onPressed: () {
+                          AnimationModel? animationModel = selectedAnimation;
+                          Navigator.push(
+                            context,
+                            // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => AnimationScreen(
+                                    // Pass the necessary data AND the hero tag
+                                    animationModel: animationModel,
+                                    heroTag: heroTag, // Pass the SAME tag
+                                  ),
                             ),
                           );
                         },
+                        icon: Icon(
+                          Icons.play_circle_outline,
+                          color: ColorManager.green,
+                        ),
+                      );
+                    },
+                  ),
+                  CustomButton(
+                    onTap: () {
+                      ref.read(animationProvider.notifier).clearAnimation();
+                    },
+                    fillColor: ColorManager.blue,
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    borderRadius: 3,
+                    child: Text(
+                      "Back to default",
+                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                        color: ColorManager.white,
+                        fontWeight: FontWeight.bold,
                       ),
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
+          ],
+        ),
+      ),
     );
   }
 
