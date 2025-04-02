@@ -40,7 +40,7 @@ class TacticBoard extends TacticBoardGame
 
   // --- Variables for the 1-second timer ---
   double _timerAccumulator = 0.0; // Accumulates delta time
-  final double _checkInterval = 5.0; // Desired interval in seconds
+  final double _checkInterval = 1.0; // Desired interval in seconds
 
   // --- Variable to store the previous state for comparison ---
   // Ensure this is a member variable if used across update calls

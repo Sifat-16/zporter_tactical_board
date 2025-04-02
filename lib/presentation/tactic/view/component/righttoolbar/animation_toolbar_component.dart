@@ -327,6 +327,7 @@ class _AnimationToolbarComponentState
 
             if (selectedAnimation != null)
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Builder(
                     builder: (context) {

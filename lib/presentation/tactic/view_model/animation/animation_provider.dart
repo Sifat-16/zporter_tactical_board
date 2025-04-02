@@ -456,6 +456,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void changeDefaultAnimationIndex(int index) {
+    zlog(data: 'Default animation index ${index}');
     state = state.copyWith(
       defaultAnimationItemIndex: index,
       selectedScene: state.defaultAnimationItems[index],
@@ -507,6 +508,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   void createNewDefaultAnimationItem() {
     List<AnimationItemModel> defaultItems = state.defaultAnimationItems;
     defaultItems.add(_generateDummyAnimationItem());
+    zlog(data: 'Default animation index ${defaultItems.length - 1}');
     state = state.copyWith(
       defaultAnimationItems: defaultItems,
       defaultAnimationItemIndex: defaultItems.length - 1,

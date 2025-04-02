@@ -98,6 +98,8 @@ class _TacticboardScreenTabletState
                                                     .length,
                                             initialPage:
                                                 asp.defaultAnimationItemIndex,
+                                            currentPage:
+                                                asp.defaultAnimationItemIndex,
                                             onIndexChange: (index) {
                                               ref
                                                   .read(
