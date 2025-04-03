@@ -33,4 +33,10 @@ class AnimationRepositoryImpl implements AnimationRepository {
       animationItems: animationItems,
     );
   }
+
+  @override
+  Future<AnimationItemModel> getDefaultSceneFromId({required String id}) {
+    // TODO: implement getDefaultSceneFromId
+    throw UnimplementedError();
+  }
 }

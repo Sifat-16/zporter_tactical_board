@@ -528,7 +528,9 @@ class LineDrawerComponent extends PositionComponent
       addAll(dots);
     } else {
       isActive = false;
-      removeAll(dots);
+      try {
+        removeAll(dots);
+      } catch (e) {}
     }
   }
 
@@ -552,11 +554,14 @@ class LineDrawerComponent extends PositionComponent
 // --- FreeDrawerComponent ---
 
 class FreeDrawerComponent extends Component with DragCallbacks {
-  final FreeDrawModel freeDrawModel;
-  late final Paint _paint; // Declare _paint here
+  FormModel formModel;
 
-  FreeDrawerComponent({required this.freeDrawModel}) : super(priority: 3) {
+  late final Paint _paint; // Declare _paint here
+  late FreeDrawModel freeDrawModel;
+
+  FreeDrawerComponent({required this.formModel}) : super(priority: 3) {
     // Initialize Paint object in constructor
+    freeDrawModel = formModel.formItemModel as FreeDrawModel;
     _paint =
         Paint()
           ..color = freeDrawModel.color

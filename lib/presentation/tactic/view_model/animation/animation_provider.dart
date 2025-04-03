@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_model.dart
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_default_animation_items_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/get_default_scene_from_id_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/save_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/save_default_animation_usecase.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
@@ -35,6 +36,9 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   final SaveDefaultAnimationUseCase _saveDefaultAnimationUseCase =
       sl.get<SaveDefaultAnimationUseCase>();
+
+  final GetDefaultSceneFromIdUseCase _getDefaultSceneFromIdUseCase =
+      sl.get<GetDefaultSceneFromIdUseCase>();
 
   void selectAnimationCollection(
     AnimationCollectionModel? animationCollectionModel, {
@@ -262,11 +266,12 @@ class AnimationController extends StateNotifier<AnimationState> {
     return false;
   }
 
-  Future<bool> onAnimationSave({
+  Future<bool> _onAnimationSave({
     required AnimationCollectionModel selectedCollection,
     required AnimationModel selectedAnimation,
     required AnimationItemModel selectedScene,
     bool showLoading = true,
+    required bool addToHistory,
   }) async {
     List<FieldItemModel> components =
         ref.read(boardProvider.notifier).onAnimationSave();
@@ -298,7 +303,7 @@ class AnimationController extends StateNotifier<AnimationState> {
             selectedAnimationModel: selectedAnimation,
             selectedScene: selectedScene,
           );
-          BotToast.showText(text: "Scene Saved Successfully");
+          BotToast.showText(text: "Scene Saved Successfully ${selectedScene}");
           return true;
         } catch (e) {
           BotToast.showText(text: "Unexpected server error ${e}");
@@ -319,10 +324,11 @@ class AnimationController extends StateNotifier<AnimationState> {
     required AnimationModel selectedAnimation,
     required AnimationItemModel selectedScene,
   }) async {
-    bool savedAnimationSuccessfully = await onAnimationSave(
+    bool savedAnimationSuccessfully = await _onAnimationSave(
       selectedCollection: selectedCollection,
       selectedAnimation: selectedAnimation,
       selectedScene: selectedScene,
+      addToHistory: false,
     );
     if (savedAnimationSuccessfully) {
       selectedCollection = state.selectedAnimationCollectionModel!;
@@ -339,11 +345,12 @@ class AnimationController extends StateNotifier<AnimationState> {
         selectedScene: selectedAnimation.animationScenes.last,
       );
       try {
-        onAnimationSave(
+        _onAnimationSave(
           selectedCollection: state.selectedAnimationCollectionModel!,
           selectedAnimation: state.selectedAnimationModel!,
           selectedScene: state.selectedScene!,
           showLoading: false,
+          addToHistory: false,
         );
       } catch (e) {}
     } else {
@@ -485,28 +492,53 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
   }
 
-  void onSaveDefault() {
+  void _onSaveDefault({
+    required bool addToHistory,
+    required bool performUndo,
+  }) async {
     try {
       int index = state.defaultAnimationItemIndex;
       List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
 
-      AnimationItemModel changeModel = defaultAnimations[index].clone();
-      changeModel.components =
-          ref.read(boardProvider.notifier).onAnimationSave();
+      AnimationItemModel changeModel = defaultAnimations[index].clone(
+        addHistory: true,
+      );
+
+      if (addToHistory) {
+        AnimationItemModel dummy = await _getDefaultSceneFromIdUseCase.call(
+          changeModel.id,
+        );
+        changeModel.addToHistory(dummy);
+        // changeModel.addToHistory(dummy.clone());
+      }
+
+      if (performUndo) {
+        changeModel = changeModel.undo();
+      } else {
+        changeModel.components =
+            ref.read(boardProvider.notifier).onAnimationSave();
+      }
+
       changeModel.fieldSize =
           ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
-
       defaultAnimations[index] = changeModel;
-
-      _saveDefaultAnimationUseCase.call(defaultAnimations);
-    } catch (e) {}
+      await _saveDefaultAnimationUseCase.call(defaultAnimations);
+      state = state.copyWith(selectedScene: changeModel);
+    } catch (e) {
+      zlog(data: "Default Auto save failed $e");
+    }
   }
 
-  void updateDatabaseOnChange() {
+  void updateDatabaseOnChange({
+    bool addToHistory = true,
+    bool performUndo = false,
+  }) async {
     AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+    AnimationItemModel? selectedScene = state.selectedScene;
+
     if (selectedAnimationModel == null) {
       try {
-        onSaveDefault();
+        _onSaveDefault(addToHistory: addToHistory, performUndo: performUndo);
         zlog(data: "Auto save default");
       } catch (e) {
         zlog(data: "Auto save error");
@@ -514,11 +546,12 @@ class AnimationController extends StateNotifier<AnimationState> {
     } else {
       /// working on saved animation
       try {
-        onAnimationSave(
+        _onAnimationSave(
           selectedCollection: state.selectedAnimationCollectionModel!,
           selectedAnimation: state.selectedAnimationModel!,
           selectedScene: state.selectedScene!,
           showLoading: false,
+          addToHistory: addToHistory,
         );
         zlog(data: "Auto save complete");
       } catch (e) {
@@ -558,6 +591,11 @@ class AnimationController extends StateNotifier<AnimationState> {
       defaultItems = await _saveDefaultAnimationUseCase.call(defaultItems);
       index = index >= defaultItems.length ? defaultItems.length - 1 : index;
 
+      if (defaultItems.isEmpty) {
+        defaultItems.add(_generateDummyAnimationItem());
+        index = 0;
+      }
+
       state = state.copyWith(
         defaultAnimationItems: defaultItems,
         defaultAnimationItemIndex: index,
@@ -565,5 +603,14 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
     } catch (e) {}
     BotToast.cleanAll();
+  }
+
+  void performUndoOperation() {
+    // AnimationItemModel? selectedScene = state.selectedScene;
+    // if (selectedScene?.canUndo == true) {
+    //   selectedScene?.undo();
+    // }
+    // state = state.copyWith(selectedScene: selectedScene);
+    updateDatabaseOnChange(addToHistory: false, performUndo: true);
   }
 }

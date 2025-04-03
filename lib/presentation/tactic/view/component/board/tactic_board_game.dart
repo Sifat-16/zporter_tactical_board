@@ -140,6 +140,7 @@ class TacticBoard extends TacticBoardGame
   }
 
   updateDatabase() {
+    zlog(data: "Updated database..."); // Log that the check is running
     ref.read(animationProvider.notifier).updateDatabaseOnChange();
   }
 }

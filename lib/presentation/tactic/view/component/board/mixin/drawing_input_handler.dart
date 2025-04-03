@@ -21,13 +21,24 @@ mixin DrawingInputHandler on TacticBoardGame {
     final lp = ref.read(lineProvider);
     // Start drawing the line only if the line is active to be added
     if (lp.isFreeDrawingActive) {
-      _currentFreeDraw = FreeDrawerComponent(
-        freeDrawModel: FreeDrawModel(
+      // Create the free draw component
+      FormModel formModel = lp.activatedLineForm!;
+      FreeDrawModel? freeDrawModel = formModel.formItemModel as FreeDrawModel?;
+
+      if (freeDrawModel != null) {
+        FreeDrawModel initialFreeDrawerModel = freeDrawModel.copyWith(
           points: [info.localPosition],
           color: ColorManager.black, // Get color from bloc
-        ),
-      );
-      add(_currentFreeDraw!);
+        );
+
+        formModel.formItemModel = initialFreeDrawerModel;
+
+        _currentFreeDraw = FreeDrawerComponent(
+          formModel: formModel,
+          // lineModel: initialLineModel,
+        );
+        add(_currentFreeDraw!); // Add to component tree
+      }
     } else if (lp.isLineActiveToAddIntoGameField) {
       lineStartPoint = info.localPosition; // Use game coordinates
 

@@ -12,7 +12,7 @@ import 'package:zporter_tactical_board/data/animation/datasource/animation_datas
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 
-class AnimationDatasourceImpl implements AnimationDatasource {
+class AnimationRemoteDatasourceImpl implements AnimationDatasource {
   // Get Firestore instance (can be injected)
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -23,7 +23,7 @@ class AnimationDatasourceImpl implements AnimationDatasource {
   late final CollectionReference<Map<String, dynamic>> _defaultAnimationItemRef;
 
   // Constructor initializes the collection reference
-  AnimationDatasourceImpl() {
+  AnimationRemoteDatasourceImpl() {
     _animationCollectionRef = _firestore.collection(
       FirestoreConstant.ANIMATION_COLLECTIONS,
     );
@@ -294,5 +294,11 @@ class AnimationDatasourceImpl implements AnimationDatasource {
       );
       throw Exception("Error synchronizing default animations: $e");
     }
+  }
+
+  @override
+  Future<AnimationItemModel> getDefaultSceneFromId({required String id}) {
+    // TODO: implement getDefaultSceneFromId
+    throw UnimplementedError();
   }
 } // End of AnimationDatasourceImpl class

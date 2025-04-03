@@ -35,6 +35,8 @@ mixin ItemManagement on TacticBoardGame {
             formModel: item,
           ),
         );
+      } else if (item.formItemModel is FreeDrawModel) {
+        await add(FreeDrawerComponent(formModel: item));
       } else {
         await add(FormComponent(object: item));
       }

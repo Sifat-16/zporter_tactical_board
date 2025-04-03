@@ -33,7 +33,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void didUpdateWidget(covariant GameScreen oldWidget) {
     // TODO: implement didUpdateWidget
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.scene?.id != widget.scene?.id) {
+    if (oldWidget.scene?.id != widget.scene?.id ||
+        oldWidget.scene?.toJson().toString() !=
+            widget.scene?.toJson().toString()) {
       updateTacticBoardIfNecessary(widget.scene);
     }
   }

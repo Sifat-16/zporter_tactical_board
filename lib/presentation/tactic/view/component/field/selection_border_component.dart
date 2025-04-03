@@ -12,7 +12,7 @@ class SelectionBorder extends RectangleComponent {
 
   SelectionBorder({required this.component, required this.symmetrically})
     : super(
-        size: component.size,
+        size: component.size + Vector2.all(10),
         anchor: Anchor.center,
         position: Vector2(component.size.x / 2, component.size.y / 2),
         paint:
@@ -63,7 +63,7 @@ class SelectionBorder extends RectangleComponent {
 
   @override
   update(double dt) {
-    size = component.size;
+    size = component.size + Vector2.all(10);
     anchor = Anchor.center;
     position = Vector2(component.size.x / 2, component.size.y / 2);
     paint =

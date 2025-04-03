@@ -35,16 +35,6 @@ class TacticBoardGameAnimation extends TacticBoardGame {
     // final bp = ref.read(boardProvider);
 
     Future.delayed(Duration(seconds: 0), () {
-      zlog(
-        data:
-            "Animation json come ${ref.read(boardProvider).animationModelJson}",
-      );
-
-      // _animationModel = AnimationModel.fromJson(
-      //   ref.read(boardProvider).animationModelJson,
-      // );
-
-      // No _startAnimation call here. It's called externally.
       startAnimation();
     });
 
@@ -76,6 +66,8 @@ class TacticBoardGameAnimation extends TacticBoardGame {
             formModel: item,
           ),
         );
+      } else if (item.formItemModel is FreeDrawModel) {
+        await add(FreeDrawerComponent(formModel: item));
       } else {
         await add(FormComponent(object: item));
       }
@@ -131,6 +123,10 @@ class TacticBoardGameAnimation extends TacticBoardGame {
                 component = children.query<LineDrawerComponent>().firstWhere(
                   (element) => element.formModel.id == i.id,
                 );
+              } else if (i.formItemModel is FreeDrawModel) {
+                component = children.query<FreeDrawerComponent>().firstWhere(
+                  (element) => element.formModel.id == i.id,
+                );
               } else {
                 component = children.query<FormComponent>().firstWhere(
                   (element) => element.object.id == i.id,
@@ -145,6 +141,8 @@ class TacticBoardGameAnimation extends TacticBoardGame {
             continue; //Skip and process next component
           }
 
+          zlog(data: "Component added effect ${component.runtimeType}");
+
           if (component != null) {
             if (component is FieldComponent) {
               component.object = i;
@@ -153,20 +151,26 @@ class TacticBoardGameAnimation extends TacticBoardGame {
                 component.formModel = i;
               }
             }
-            final effect = MoveToEffect(
-              i.offset!,
-              EffectController(duration: 3), // Use your desired duration
-              onComplete: () {
-                // We don't need a Completer anymore!
-              },
-            );
+
+            // zlog(data: "Component added effect ${i.runtimeType} - ${i.offset}");
             // *** Key Change:  COLLECT, don't add directly ***
             // collectedEffects.add((component: component, effect: effect));
             if (component is LineDrawerComponent) {
               zlog(data: "Line drawer component stat ${i.toJson()}");
               remove(component);
               addItem(i);
+            } else if (component is FreeDrawerComponent) {
+              zlog(data: "Free drawer component stat ${i.toJson()}");
+              remove(component);
+              addItem(i);
             } else {
+              final effect = MoveToEffect(
+                i.offset ?? Vector2.zero(),
+                EffectController(duration: 3), // Use your desired duration
+                onComplete: () {
+                  // We don't need a Completer anymore!
+                },
+              );
               component.add(effect);
             }
           }
@@ -239,25 +243,47 @@ class TacticBoardGameAnimation extends TacticBoardGame {
             adjustedItem.offset!.x * scaleX,
             adjustedItem.offset!.y * scaleY,
           );
+
+          if (adjustedItem is FormModel) {
+            FormItemModel? formItem = adjustedItem.formItemModel?.clone();
+            if (formItem is LineModel) {
+              formItem.start = Vector2(
+                formItem.start.x * scaleX,
+                formItem.start.y * scaleY,
+              );
+
+              formItem.end = Vector2(
+                formItem.end.x * scaleX,
+                formItem.end.y * scaleY,
+              );
+            } else if (formItem is FreeDrawModel) {
+              zlog(data: "freedraw points before ${formItem.points}");
+              formItem.points =
+                  formItem.points
+                      .map((e) => Vector2(e.x * scaleX, e.y * scaleY))
+                      .toList();
+
+              zlog(data: "freedraw points after ${formItem.points}");
+            }
+            adjustedItem.formItemModel = formItem;
+          }
+
+          /// handle if the line drawer component
         } else {
-          // Handle null offset if necessary (e.g., default to 0,0?)
-          // adjustedItem.offset = Vector2.zero();
+          if (adjustedItem is FormModel) {
+            FormItemModel? formItem = adjustedItem.formItemModel?.clone();
+            if (formItem is FreeDrawModel) {
+              formItem.points =
+                  formItem.points
+                      .map((e) => Vector2(e.x * scaleX, e.y * scaleY))
+                      .toList();
+            }
+            adjustedItem.formItemModel = formItem;
+          }
         }
-
-        // Adjust size (optional, but usually desired)
-        // if (adjustedItem.size != null) {
-        //   adjustedItem.size = Vector2(
-        //     adjustedItem.size!.x * scaleX,
-        //     adjustedItem.size!.y * scaleY,
-        //   );
-        // } else {
-        //   // Handle null size if necessary
-        // }
-
         // Add the modified clone to the new animation item's component list
         adjustedAnimationItem.components.add(adjustedItem);
       }
-
       // Add the fully adjusted animation item (with its adjusted components) to the result list
       adjustedAnimations.add(adjustedAnimationItem);
     }

@@ -1,4 +1,5 @@
 import 'package:flame/components.dart'; // For Vector2
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 // Assuming FieldItemModel and its helpers are correctly imported
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 // Import ObjectId if your ID is actually that type
@@ -11,12 +12,15 @@ class AnimationItemModel {
   DateTime updatedAt;
   Vector2 fieldSize; // <-- CHANGED: Removed '?', now non-nullable
 
+  List<AnimationItemModel> history;
+
   AnimationItemModel({
     required this.id,
     required this.components,
     required this.createdAt,
     required this.updatedAt,
     required this.fieldSize, // <-- CHANGED: Marked as required
+    this.history = const [],
   });
 
   AnimationItemModel copyWith({
@@ -26,6 +30,7 @@ class AnimationItemModel {
     DateTime? updatedAt,
     Vector2?
     fieldSize, // <-- Parameter stays optional to allow copying without changing it
+    List<AnimationItemModel>? history,
   }) {
     return AnimationItemModel(
       id: id ?? this.id,
@@ -38,6 +43,7 @@ class AnimationItemModel {
           fieldSize ??
           this.fieldSize
               .clone(), // <-- CHANGED: No '?.' needed for 'this.fieldSize'
+      history: history ?? this.history.map((e) => e.clone()).toList(),
     );
   }
 
@@ -47,12 +53,21 @@ class AnimationItemModel {
       'components': components.map((component) => component.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'history': history.map((component) => component.toJson()).toList(),
       // fieldSize is guaranteed non-null. Clone it before serializing.
       'fieldSize': FieldItemModel.vector2ToJson(
         fieldSize.clone(),
       ), // <-- CHANGED: No '?.' needed
     };
   }
+
+  addToHistory(AnimationItemModel previousItem) {
+    zlog(data: "History saved $history");
+    history = [...history, previousItem.clone()];
+    zlog(data: "History saved $history");
+  }
+
+  bool get canUndo => history.isNotEmpty;
 
   factory AnimationItemModel.fromJson(Map<String, dynamic> json) {
     // Perform null checks for required fields upfront
@@ -61,10 +76,14 @@ class AnimationItemModel {
     final updatedAtString = json['updatedAt'] as String?;
     final idValue = json['id'] ?? json['_id'];
     final fieldSizeJson = json['fieldSize']; // Get potential fieldSize data
+    final historyList = (json['history'] ?? []) as List?;
+
+    zlog(data: "History list json ${historyList}");
 
     if (idValue == null ||
         componentsList == null ||
         createdAtString == null ||
+        historyList == null ||
         updatedAtString == null) {
       throw FormatException(
         "Missing required fields (id, components, createdAt, updatedAt) in AnimationItemModel JSON",
@@ -93,20 +112,37 @@ class AnimationItemModel {
                 ),
               )
               .toList(),
+
+      history:
+          historyList
+              .map(
+                (historyJson) => AnimationItemModel.fromJson(
+                  historyJson as Map<String, dynamic>,
+                ),
+              )
+              .toList(),
       createdAt: DateTime.parse(createdAtString),
       updatedAt: DateTime.parse(updatedAtString),
       fieldSize: parsedFieldSize, // <-- Pass the non-nullable parsed value
     );
   }
 
-  AnimationItemModel clone() {
+  AnimationItemModel clone({bool addHistory = false}) {
     return AnimationItemModel(
       id: id,
+      history: addHistory == true ? history.map((e) => e.clone()).toList() : [],
       components: components.map((e) => e.clone()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
       fieldSize:
           fieldSize.clone(), // <-- CHANGED: No '?.' needed, must clone Vector2
     );
+  }
+
+  AnimationItemModel undo() {
+    List<AnimationItemModel> currentHistory = history;
+    AnimationItemModel lastElement = currentHistory.removeLast();
+    lastElement.history = currentHistory;
+    return lastElement;
   }
 }

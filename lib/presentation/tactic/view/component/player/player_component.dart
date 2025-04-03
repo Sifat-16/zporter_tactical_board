@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
@@ -50,46 +51,68 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+    // Assuming super.render(canvas) is correctly called if needed
+    // Assuming 'object' and 'opacity' are defined and available in this scope
+    // YourObject object = YourObject(); // Example instance
+    // double opacity = 1.0; // Example opacity
 
-    // // Determine color based on player type
-    // Color circleColor =
-    //     object.playerType == PlayerType.HOME
-    //         ? ColorManager
-    //             .blue // Home color
-    //         : ColorManager.red; // Away color
-
-    // Determine color based on player type
     size = object.size ?? Vector2(32, 32);
     Color circleColor = object.color ?? Colors.transparent; // Away color
 
-    // Draw the circle
-    final rectPaint =
-        Paint()..color = circleColor.withValues(alpha: object.opacity);
-
-    // canvas.drawCircle(size.toOffset() / 2, size.x / 2, circlePaint);
-
-    // Assuming 'size' is a Vector2 and 'rectPaint' is your Paint object
-
-    // 1. Define the rectangle bounds (as before)
-    final Rect rect = size.toRect();
-
-    // 2. Define the corner radius
-    const double cornerRadiusValue = 8.0; // Or your desired radius
+    // --- Draw the rounded rectangle (existing code - UNCHANGED) ---
+    final rectPaint = Paint()..color = circleColor.withValues(alpha: opacity);
+    final Rect rect = size.toRect(); // Using your existing method
+    const double cornerRadiusValue = 8.0;
     final Radius cornerRadius = Radius.circular(cornerRadiusValue);
-
-    // 3. Create the Rounded Rectangle (RRect) object
     final RRect roundedRect = RRect.fromRectAndRadius(rect, cornerRadius);
-
-    // 4. Draw the rounded rectangle using the existing paint
     canvas.drawRRect(roundedRect, rectPaint);
 
-    final fontSize = (size.x / 2) * 0.5;
-    // Draw the jersey number
+    // --- Draw the Triangle at the Top Center ---
+    // 1. Define triangle properties (UNCHANGED)
+    final double triangleBaseWidth = size.x * 0.3;
+    final double triangleHeight = size.y * 0.2;
+    final Color triangleColor = ColorManager.yellowLight;
+
+    // 2. Define triangle paint (UNCHANGED)
+    final trianglePaint =
+        Paint()
+          ..color = triangleColor.withValues(
+            alpha: opacity,
+          ) // Using your existing method
+          ..style = PaintingStyle.fill;
+
+    // 3. Define triangle path (>>> CHANGED AS REQUESTED <<<)
+    //    Draws an UPWARD pointing triangle with its BASE centered on the TOP edge.
+    final path = Path();
+    final double topCenterX = size.x / 2;
+    final double topEdgeY = 0; // Y-coordinate of the top edge is 0
+    // Calculate the Y coordinate of the peak (negative value means above the top edge)
+    final double peakY = topEdgeY - triangleHeight;
+
+    // Move to the left vertex of the base (on the top edge)
+    path.moveTo(topCenterX - triangleBaseWidth / 2, topEdgeY);
+
+    // Line to the top peak vertex (above the rectangle)
+    path.lineTo(topCenterX, peakY);
+
+    // Line to the right vertex of the base (on the top edge)
+    path.lineTo(topCenterX + triangleBaseWidth / 2, topEdgeY);
+
+    // Close the path (draws the base line along the top edge)
+    path.close();
+
+    // 4. Draw the triangle (UNCHANGED)
+    canvas.drawPath(path, trianglePaint);
+
+    // --- Draw the jersey number (existing code - UNCHANGED) ---
+    final fontSize = (size.x / 2) * 0.5; // Using your existing calculation
     final textPainter = TextPainter(
       text: TextSpan(
-        text: object.role, // Assuming role is the jersey number
+        text: object.role,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: object.opacity),
+          color: Colors.white.withValues(
+            alpha: opacity,
+          ), // Using your existing method
           fontSize: fontSize,
         ),
       ),
@@ -98,7 +121,7 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      (size.toOffset() / 2) -
+      (size.toOffset() / 2) - // Using your existing offset calculation
           Offset(textPainter.width / 2, textPainter.height / 2),
     );
   }

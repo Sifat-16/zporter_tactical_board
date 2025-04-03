@@ -11,4 +11,6 @@ abstract class AnimationDatasource {
   Future<List<AnimationItemModel>> saveDefaultAnimations({
     required List<AnimationItemModel> animationItems,
   });
+
+  Future<AnimationItemModel> getDefaultSceneFromId({required String id});
 }

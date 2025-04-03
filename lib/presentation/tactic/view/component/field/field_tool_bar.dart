@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
@@ -29,6 +30,10 @@ class FieldToolBar extends ConsumerStatefulWidget {
 class _FieldToolBarState extends ConsumerState<FieldToolBar> {
   @override
   Widget build(BuildContext context) {
+    zlog(
+      data:
+          "Animation scene updated {widget.selectedScene?.componentHistory.length}",
+    );
     return Container(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -54,6 +59,16 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                   onPressed: () {},
                   icon: Icon(Icons.rotate_left, color: ColorManager.grey),
                 ),
+
+                if (widget.selectedScene?.canUndo == true)
+                  IconButton(
+                    onPressed: () {
+                      ref
+                          .read(animationProvider.notifier)
+                          .performUndoOperation();
+                    },
+                    icon: Icon(Icons.undo, color: ColorManager.green),
+                  ),
                 IconButton(
                   onPressed: () {},
                   icon: Icon(Icons.threed_rotation, color: ColorManager.grey),

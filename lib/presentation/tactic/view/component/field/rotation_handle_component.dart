@@ -29,7 +29,7 @@ class RotationHandle extends PositionComponent {
 
   @override
   update(double dt) {
-    position = Vector2(component.size.x / 2, 0);
+    position = Vector2((component.size.x / 2) + 5, 0);
   }
 }
 
