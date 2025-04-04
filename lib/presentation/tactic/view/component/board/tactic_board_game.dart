@@ -35,7 +35,7 @@ class TacticBoard extends TacticBoardGame
         LayeringManagement, // Provides layering helpers and _moveUp/DownElement
         BoardRiverpodIntegration // Provides setupBoardListeners
         {
-  final AnimationItemModel? scene;
+  AnimationItemModel? scene;
   TacticBoard({required this.scene});
 
   // --- Variables for the 1-second timer ---
@@ -60,6 +60,10 @@ class TacticBoard extends TacticBoardGame
     add(gameField); // add() is available via FlameGame
     addInitialItems(scene?.components ?? []);
   }
+
+  // updateScene({required AnimationItemModel? newScene}) {
+  //   scene = newScene;
+  // }
 
   @override
   Color backgroundColor() {

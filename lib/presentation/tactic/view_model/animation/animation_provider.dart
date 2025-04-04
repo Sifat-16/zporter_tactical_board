@@ -505,10 +505,10 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
 
       if (addToHistory) {
-        AnimationItemModel dummy = await _getDefaultSceneFromIdUseCase.call(
+        AnimationItemModel? dummy = await _getDefaultSceneFromIdUseCase.call(
           changeModel.id,
         );
-        changeModel.addToHistory(dummy);
+        changeModel.addToHistory(dummy ?? changeModel);
         // changeModel.addToHistory(dummy.clone());
       }
 
@@ -522,7 +522,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       changeModel.fieldSize =
           ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
       defaultAnimations[index] = changeModel;
-      await _saveDefaultAnimationUseCase.call(defaultAnimations);
+
+      zlog(data: "Default animation model ${defaultAnimations}");
+      _saveDefaultAnimationUseCase.call(defaultAnimations);
       state = state.copyWith(selectedScene: changeModel);
     } catch (e) {
       zlog(data: "Default Auto save failed $e");

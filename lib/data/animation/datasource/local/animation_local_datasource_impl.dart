@@ -1,6 +1,7 @@
 import 'package:logger/logger.dart'; // Assuming zlog uses this
 import 'package:sembast/sembast.dart';
 import 'package:zporter_tactical_board/app/config/database/local/semDB.dart';
+import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 // Your project specific imports
 import 'package:zporter_tactical_board/app/helper/logger.dart'; // For zlog
@@ -272,8 +273,10 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
   }
 
   @override
-  Future<AnimationItemModel> getDefaultSceneFromId({required String id}) async {
+  Future<AnimationItemModel?> getDefaultSceneFromId({
+    required String id,
+  }) async {
     List<AnimationItemModel> savedScenes = await getDefaultAnimations();
-    return savedScenes.firstWhere((t) => t.id == id);
+    return savedScenes.firstWhereOrNull((t) => t.id == id);
   }
 } // End of AnimationLocalDatasource class

@@ -33,9 +33,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void didUpdateWidget(covariant GameScreen oldWidget) {
     // TODO: implement didUpdateWidget
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.scene?.id != widget.scene?.id ||
-        oldWidget.scene?.toJson().toString() !=
-            widget.scene?.toJson().toString()) {
+    if (oldWidget.scene?.id == widget.scene?.id) {
+      if (oldWidget.scene?.toJson().toString() !=
+          widget.scene?.toJson().toString()) {
+        // updateTacticElement(widget.scene);
+        updateTacticBoardIfNecessary(widget.scene);
+      }
+    } else {
       updateTacticBoardIfNecessary(widget.scene);
     }
   }
@@ -48,6 +52,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       });
     });
   }
+
+  // updateTacticElement(AnimationItemModel? selectedScene) {
+  //   WidgetsBinding.instance.addPostFrameCallback((t) {
+  //     setState(() {
+  //       tacticBoardGame.updateScene(newScene: selectedScene);
+  //     });
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {

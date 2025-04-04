@@ -405,7 +405,9 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   }
 
   @override
-  Future<AnimationItemModel> getDefaultSceneFromId({required String id}) async {
+  Future<AnimationItemModel?> getDefaultSceneFromId({
+    required String id,
+  }) async {
     return await _localDs.getDefaultSceneFromId(id: id);
   }
 } // End of class AnimationCacheRepositoryImpl
