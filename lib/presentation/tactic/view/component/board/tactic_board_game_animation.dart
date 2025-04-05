@@ -290,4 +290,7 @@ class TacticBoardGameAnimation extends TacticBoardGame {
 
     return adjustedAnimations;
   }
+
+  @override
+  void rotate() {}
 }

@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_collection
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class FieldToolBar extends ConsumerStatefulWidget {
   const FieldToolBar({
@@ -56,7 +57,9 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                 //   icon: FaIcon(FontAwesomeIcons.plus, color: ColorManager.grey),
                 // ),
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    ref.read(boardProvider.notifier).rotateField();
+                  },
                   icon: Icon(Icons.rotate_left, color: ColorManager.grey),
                 ),
 

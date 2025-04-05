@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 final boardProvider = StateNotifierProvider<BoardController, BoardState>(
@@ -181,5 +182,26 @@ class BoardController extends StateNotifier<BoardState> {
 
   void updateTabController({required TabController controller}) {
     state = state.copyWith(tabController: controller);
+  }
+
+  void updateGameBoard(TacticBoardGame? game) {
+    state = state.copyWith(tacticBoardGame: game);
+  }
+
+  void rotateField() {
+    int angle = state.boardAngle;
+    if (angle == 0) {
+      angle = 1;
+    } else {
+      angle = 0;
+    }
+    state = state.copyWith(boardAngle: angle);
+    // TacticBoardGame? tacticBoardGame = state.tacticBoardGame;
+    //
+    // if (tacticBoardGame != null) {
+    //   tacticBoardGame.rotate();
+    // } else {
+    //   zlog(data: "Rotation error");
+    // }
   }
 }

@@ -20,6 +20,7 @@ class AnimationState {
   bool showAnimation;
   int defaultAnimationItemIndex;
   List<AnimationItemModel> defaultAnimationItems;
+  bool isPerformingUndo;
 
   // Constructor remains the same, prefer const if possible
   AnimationState({
@@ -35,6 +36,7 @@ class AnimationState {
     this.showQuickSave = false,
     this.defaultAnimationItemIndex = 0,
     this.defaultAnimationItems = const [],
+    this.isPerformingUndo = false,
   });
 
   AnimationState copyWith({
@@ -51,6 +53,7 @@ class AnimationState {
     bool? showQuickSave,
     int? defaultAnimationItemIndex,
     List<AnimationItemModel>? defaultAnimationItems,
+    bool? isPerformingUndo,
   }) {
     return AnimationState(
       selectedAnimationCollectionModel:
@@ -79,6 +82,7 @@ class AnimationState {
           defaultAnimationItemIndex ?? this.defaultAnimationItemIndex,
       defaultAnimationItems:
           defaultAnimationItems ?? this.defaultAnimationItems,
+      isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
     );
   }
 

@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
@@ -49,6 +51,7 @@ class TacticBoard extends TacticBoardGame
   @override
   FutureOr<void> onLoad() async {
     await super.onLoad();
+    camera.viewfinder.anchor = Anchor.center; // Set anchor
     _initiateField(); // Field setup specific to this game
     setupBoardListeners(); // Call the listener setup method from the mixin
   }
@@ -58,16 +61,18 @@ class TacticBoard extends TacticBoardGame
     gameField = GameField(size: Vector2(size.x - 20, size.y - 20));
     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
     add(gameField); // add() is available via FlameGame
+
     addInitialItems(scene?.components ?? []);
   }
-
-  // updateScene({required AnimationItemModel? newScene}) {
-  //   scene = newScene;
-  // }
 
   @override
   Color backgroundColor() {
     return ColorManager.grey;
+  }
+
+  @override
+  void rotate() {
+    camera.viewfinder.angle = camera.viewfinder.angle + pi / 2;
   }
 
   @override

@@ -61,9 +61,9 @@ class AnimationItemModel {
     };
   }
 
-  addToHistory(AnimationItemModel previousItem) {
+  addToHistory() {
     zlog(data: "History saved $history");
-    history = [...history, previousItem.clone()];
+    history = [...history, clone()];
     zlog(data: "History saved $history");
   }
 
@@ -77,8 +77,6 @@ class AnimationItemModel {
     final idValue = json['id'] ?? json['_id'];
     final fieldSizeJson = json['fieldSize']; // Get potential fieldSize data
     final historyList = (json['history'] ?? []) as List?;
-
-    zlog(data: "History list json ${historyList}");
 
     if (idValue == null ||
         componentsList == null ||
@@ -127,10 +125,10 @@ class AnimationItemModel {
     );
   }
 
-  AnimationItemModel clone({bool addHistory = false}) {
+  AnimationItemModel clone({bool addHistory = true}) {
     return AnimationItemModel(
       id: id,
-      history: addHistory == true ? history.map((e) => e.clone()).toList() : [],
+      history: addHistory ? history.map((e) => e.clone()).toList() : [],
       components: components.map((e) => e.clone()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -139,10 +137,14 @@ class AnimationItemModel {
     );
   }
 
-  AnimationItemModel undo() {
-    List<AnimationItemModel> currentHistory = history;
-    AnimationItemModel lastElement = currentHistory.removeLast();
-    lastElement.history = currentHistory;
-    return lastElement;
+  AnimationItemModel cloneHistory() {
+    return AnimationItemModel(
+      id: id,
+      components: components.map((e) => e.clone()).toList(),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      fieldSize:
+          fieldSize.clone(), // <-- CHANGED: No '?.' needed, must clone Vector2
+    );
   }
 }

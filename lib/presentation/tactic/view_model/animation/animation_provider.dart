@@ -271,10 +271,19 @@ class AnimationController extends StateNotifier<AnimationState> {
     required AnimationModel selectedAnimation,
     required AnimationItemModel selectedScene,
     bool showLoading = true,
-    required bool addToHistory,
+    bool addHistory = true,
   }) async {
     List<FieldItemModel> components =
         ref.read(boardProvider.notifier).onAnimationSave();
+
+    if (addHistory) {
+      List<AnimationItemModel> history = [
+        ...selectedScene.history.map((e) => e.clone()),
+      ];
+      history.add(selectedScene.cloneHistory());
+      selectedScene.history = history;
+    }
+
     selectedScene.components = components;
     selectedScene.fieldSize =
         ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
@@ -324,38 +333,35 @@ class AnimationController extends StateNotifier<AnimationState> {
     required AnimationModel selectedAnimation,
     required AnimationItemModel selectedScene,
   }) async {
-    bool savedAnimationSuccessfully = await _onAnimationSave(
-      selectedCollection: selectedCollection,
-      selectedAnimation: selectedAnimation,
-      selectedScene: selectedScene,
-      addToHistory: false,
+    selectedCollection = state.selectedAnimationCollectionModel!;
+    selectedAnimation = state.selectedAnimationModel!;
+    AnimationItemModel newAnimationItemModel = selectedScene.clone(
+      addHistory: false,
     );
-    if (savedAnimationSuccessfully) {
-      selectedCollection = state.selectedAnimationCollectionModel!;
-      selectedAnimation = state.selectedAnimationModel!;
-      AnimationItemModel newAnimationItemModel = selectedScene.clone();
-      newAnimationItemModel.id = RandomGenerator.generateId();
-      newAnimationItemModel.createdAt = DateTime.now();
-      newAnimationItemModel.updatedAt = DateTime.now();
-      selectedAnimation.animationScenes.add(newAnimationItemModel);
+    newAnimationItemModel.id = RandomGenerator.generateId();
+    newAnimationItemModel.createdAt = DateTime.now();
+    newAnimationItemModel.updatedAt = DateTime.now();
+    selectedAnimation.animationScenes.add(newAnimationItemModel);
 
-      state = state.copyWith(
-        selectedAnimationCollectionModel: selectedCollection,
-        selectedAnimationModel: selectedAnimation,
-        selectedScene: selectedAnimation.animationScenes.last,
+    state = state.copyWith(
+      selectedAnimationCollectionModel: selectedCollection,
+      selectedAnimationModel: selectedAnimation,
+      selectedScene: selectedAnimation.animationScenes.last,
+    );
+    try {
+      _onAnimationSave(
+        selectedCollection: state.selectedAnimationCollectionModel!,
+        selectedAnimation: state.selectedAnimationModel!,
+        selectedScene: state.selectedScene!,
+        showLoading: false,
+        addHistory: false,
       );
-      try {
-        _onAnimationSave(
-          selectedCollection: state.selectedAnimationCollectionModel!,
-          selectedAnimation: state.selectedAnimationModel!,
-          selectedScene: state.selectedScene!,
-          showLoading: false,
-          addToHistory: false,
-        );
-      } catch (e) {}
-    } else {
-      BotToast.showText(text: "Server error!!!");
-    }
+    } catch (e) {}
+    // if (savedAnimationSuccessfully) {
+    //
+    // } else {
+    //   BotToast.showText(text: "Server error!!!");
+    // }
   }
 
   void selectScene({required AnimationItemModel scene}) {
@@ -492,37 +498,23 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
   }
 
-  void _onSaveDefault({
-    required bool addToHistory,
-    required bool performUndo,
-  }) async {
+  void _onSaveDefault() async {
     try {
       int index = state.defaultAnimationItemIndex;
       List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
 
-      AnimationItemModel changeModel = defaultAnimations[index].clone(
-        addHistory: true,
-      );
+      AnimationItemModel changeModel = defaultAnimations[index].clone();
 
-      if (addToHistory) {
-        AnimationItemModel? dummy = await _getDefaultSceneFromIdUseCase.call(
-          changeModel.id,
-        );
-        changeModel.addToHistory(dummy ?? changeModel);
-        // changeModel.addToHistory(dummy.clone());
-      }
-
-      if (performUndo) {
-        changeModel = changeModel.undo();
-      } else {
-        changeModel.components =
-            ref.read(boardProvider.notifier).onAnimationSave();
-      }
-
+      List<AnimationItemModel> history = [
+        ...changeModel.history.map((e) => e.clone()),
+      ];
+      history.add(changeModel.cloneHistory());
+      changeModel.history = history;
+      changeModel.components =
+          ref.read(boardProvider.notifier).onAnimationSave();
       changeModel.fieldSize =
           ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
       defaultAnimations[index] = changeModel;
-
       zlog(data: "Default animation model ${defaultAnimations}");
       _saveDefaultAnimationUseCase.call(defaultAnimations);
       state = state.copyWith(selectedScene: changeModel);
@@ -531,16 +523,13 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
   }
 
-  void updateDatabaseOnChange({
-    bool addToHistory = true,
-    bool performUndo = false,
-  }) async {
+  void updateDatabaseOnChange() async {
     AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
     AnimationItemModel? selectedScene = state.selectedScene;
 
     if (selectedAnimationModel == null) {
       try {
-        _onSaveDefault(addToHistory: addToHistory, performUndo: performUndo);
+        _onSaveDefault();
         zlog(data: "Auto save default");
       } catch (e) {
         zlog(data: "Auto save error");
@@ -553,7 +542,6 @@ class AnimationController extends StateNotifier<AnimationState> {
           selectedAnimation: state.selectedAnimationModel!,
           selectedScene: state.selectedScene!,
           showLoading: false,
-          addToHistory: addToHistory,
         );
         zlog(data: "Auto save complete");
       } catch (e) {
@@ -608,11 +596,120 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void performUndoOperation() {
-    // AnimationItemModel? selectedScene = state.selectedScene;
+    AnimationItemModel? selectedScene = state.selectedScene;
+    AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+
+    if (selectedAnimationModel == null) {
+      // perform undo operation on the default board
+      _onUndoDefault();
+    } else {
+      _onUndoAnimation();
+    }
     // if (selectedScene?.canUndo == true) {
     //   selectedScene?.undo();
     // }
     // state = state.copyWith(selectedScene: selectedScene);
-    updateDatabaseOnChange(addToHistory: false, performUndo: true);
+    // updateDatabaseOnChange();
+
+    zlog(
+      data:
+          "Undo operation called ${selectedScene?.components.first.offset} - ${selectedScene?.history.last.components.first.offset}",
+    );
+  }
+
+  void _onUndoDefault() async {
+    try {
+      int index = state.defaultAnimationItemIndex;
+      List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
+
+      AnimationItemModel? changeModel = state.selectedScene;
+
+      /// to perform undo, pick the last model from history -> replace components with current one -> delete last model from history -> save to database,
+
+      List<AnimationItemModel> currentHistory = changeModel?.history ?? [];
+
+      AnimationItemModel? lastItem = currentHistory.removeLast();
+
+      changeModel?.components = lastItem.components;
+
+      changeModel?.history = currentHistory;
+
+      changeModel?.fieldSize =
+          ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
+      defaultAnimations[index] = changeModel!;
+      zlog(data: "Default animation model Undo ${defaultAnimations}");
+      _saveDefaultAnimationUseCase.call(defaultAnimations);
+      state = state.copyWith(
+        selectedScene: changeModel,
+        isPerformingUndo: true,
+      );
+      zlog(data: "Undo default saved successfully");
+    } catch (e) {
+      zlog(data: "Default Auto save failed $e");
+    }
+  }
+
+  void toggleUndo({required bool undo}) {
+    state = state.copyWith(isPerformingUndo: undo);
+  }
+
+  void _onUndoAnimation() async {
+    /// to perform undo, pick the last model from history -> replace components with current one -> delete last model from history -> save to database,
+
+    AnimationItemModel? selectedScene = state.selectedScene;
+
+    /// to perform undo, pick the last model from history -> replace components with current one -> delete last model from history -> save to database,
+
+    List<AnimationItemModel> currentHistory = selectedScene?.history ?? [];
+
+    AnimationItemModel? lastItem = currentHistory.removeLast();
+
+    selectedScene?.components = lastItem.components;
+
+    selectedScene?.history = currentHistory;
+
+    selectedScene?.fieldSize =
+        ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
+
+    AnimationModel? selectedAnimation = state.selectedAnimationModel;
+    AnimationCollectionModel? selectedCollection =
+        state.selectedAnimationCollectionModel;
+    int sceneIndex =
+        selectedAnimation?.animationScenes.indexWhere(
+          (a) => a.id == selectedScene?.id,
+        ) ??
+        -1;
+    if (sceneIndex != -1) {
+      selectedAnimation?.animationScenes[sceneIndex] = selectedScene!;
+      int animationIndex =
+          selectedCollection?.animations.indexWhere(
+            (a) => a.id == selectedAnimation?.id,
+          ) ??
+          -1;
+      if (animationIndex != -1) {
+        selectedCollection?.animations[animationIndex] = selectedAnimation!;
+
+        try {
+          selectedCollection = await _saveAnimationCollectionUseCase.call(
+            selectedCollection!,
+          );
+
+          state = state.copyWith(
+            selectedAnimationCollectionModel: selectedCollection,
+            selectedAnimationModel: selectedAnimation,
+            selectedScene: selectedScene,
+            isPerformingUndo: true,
+          );
+        } catch (e) {
+          BotToast.showText(text: "Unexpected server error ${e}");
+        } finally {
+          BotToast.cleanAll();
+        }
+      } else {
+        BotToast.showText(text: "No Animation found!!");
+      }
+    } else {
+      BotToast.showText(text: "No scene found!!");
+    }
   }
 }

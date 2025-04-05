@@ -6,6 +6,9 @@ import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+
+const Object _sentinel = Object();
 
 class BoardState {
   final List<PlayerModel> players;
@@ -22,7 +25,8 @@ class BoardState {
   final Color boardColor;
   final bool moveUp;
   final TabController? tabController;
-
+  final TacticBoardGame? tacticBoardGame;
+  final int boardAngle;
   final Vector2? fieldSize;
 
   const BoardState({
@@ -41,6 +45,8 @@ class BoardState {
     this.boardColor = ColorManager.grey,
     this.fieldSize,
     this.tabController,
+    this.tacticBoardGame,
+    this.boardAngle = 0,
   });
 
   BoardState copyWith({
@@ -60,6 +66,8 @@ class BoardState {
     Map<String, dynamic>? animationModelJson,
     Vector2? fieldSize,
     TabController? tabController,
+    Object? tacticBoardGame = _sentinel,
+    int? boardAngle,
   }) {
     return BoardState(
       players: players ?? this.players,
@@ -82,6 +90,28 @@ class BoardState {
       animationModelJson: animationModelJson ?? this.animationModelJson,
       fieldSize: fieldSize ?? this.fieldSize,
       tabController: tabController ?? this.tabController,
+      tacticBoardGame:
+          tacticBoardGame == _sentinel
+              ? this.tacticBoardGame
+              : tacticBoardGame as TacticBoardGame?,
+      boardAngle: boardAngle ?? this.boardAngle,
     );
+  }
+
+  // --- CORRECTED Equality and HashCode ---
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+
+    // Use listEquals for comparing lists
+    return other is BoardState &&
+        runtimeType == other.runtimeType &&
+        tacticBoardGame == other.tacticBoardGame;
+  }
+
+  @override
+  int get hashCode {
+    // Use Object.hash to combine hash codes of all fields checked in ==
+    return Object.hash(tacticBoardGame, itemToDelete);
   }
 }

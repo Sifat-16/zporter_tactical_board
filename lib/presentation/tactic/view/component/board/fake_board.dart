@@ -40,5 +40,8 @@ class TacticBoardFake extends TacticBoardGame
   }
 
   @override
-  bool get debugMode => false; // Unchanged
+  bool get debugMode => false;
+
+  @override
+  void rotate() {} // Unchanged
 }
