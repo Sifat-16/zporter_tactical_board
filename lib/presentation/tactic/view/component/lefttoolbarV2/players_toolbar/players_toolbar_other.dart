@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_model_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 
 class PlayersToolbarOther extends StatefulWidget {
@@ -12,7 +12,7 @@ class PlayersToolbarOther extends StatefulWidget {
 
 class _PlayersToolbarOtherState extends State<PlayersToolbarOther>
     with AutomaticKeepAliveClientMixin {
-  List<PlayerModelV2> players = [];
+  List<PlayerModel> players = [];
 
   @override
   void initState() {
@@ -32,7 +32,7 @@ class _PlayersToolbarOtherState extends State<PlayersToolbarOther>
     });
   }
 
-  initiatePlayers(List<PlayerModelV2> home) {
+  initiatePlayers(List<PlayerModel> home) {
     setState(() {
       players = home;
     });
@@ -45,8 +45,8 @@ class _PlayersToolbarOtherState extends State<PlayersToolbarOther>
       crossAxisCount: 3,
       children: [
         ...List.generate(players.length, (index) {
-          PlayerModelV2 player = players[index];
-          return PlayerComponentV2(playerModelV2: player);
+          PlayerModel player = players[index];
+          return PlayerComponentV2(playerModel: player);
         }),
       ],
     );
