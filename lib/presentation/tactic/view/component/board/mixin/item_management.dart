@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
@@ -29,6 +30,16 @@ mixin ItemManagement on TacticBoardGame {
       add(EquipmentComponent(object: item)); // add() is available via FlameGame
     } else if (item is FormModel) {
       if (item.formItemModel is LineModel) {
+        LineModel lineModel = item.formItemModel as LineModel;
+        lineModel.start = SizeHelper.getBoardActualVector(
+          gameScreenSize: gameField.size,
+          actualPosition: lineModel.start,
+        );
+        lineModel.end = SizeHelper.getBoardActualVector(
+          gameScreenSize: gameField.size,
+          actualPosition: lineModel.end,
+        );
+        item.formItemModel = lineModel;
         await add(
           LineDrawerComponent(
             // lineModel: (item.formItemModel as LineModel),

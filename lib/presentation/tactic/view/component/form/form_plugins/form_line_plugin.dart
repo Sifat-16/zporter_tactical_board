@@ -553,7 +553,7 @@ class LineDrawerComponent extends PositionComponent
 
 // --- FreeDrawerComponent ---
 
-class FreeDrawerComponent extends Component with DragCallbacks {
+class FreeDrawerComponent extends PositionComponent with DragCallbacks {
   FormModel formModel;
 
   late final Paint _paint; // Declare _paint here

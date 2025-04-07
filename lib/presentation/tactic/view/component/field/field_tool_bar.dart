@@ -10,7 +10,6 @@ import 'package:zporter_tactical_board/data/animation/model/animation_collection
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class FieldToolBar extends ConsumerStatefulWidget {
   const FieldToolBar({
@@ -45,7 +44,24 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    ref.read(animationProvider.notifier).toggleFullScreen();
+                    // final Object heroTag =
+                    //     'anim_${widget.selectedScene?.id.toString()}';
+                    // AnimationItemModel? animationModel = widget.selectedScene;
+                    // Navigator.pushReplacement(
+                    //   context,
+                    //   // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
+                    //   MaterialPageRoute(
+                    //     builder:
+                    //         (context) => LargeGameScreen(
+                    //           heroTag: heroTag,
+                    //           selectedScene:
+                    //               animationModel!, // Pass the SAME tag
+                    //         ),
+                    //   ),
+                    // );
+                  },
                   icon: FaIcon(
                     FontAwesomeIcons.arrowsUpDownLeftRight,
                     color: ColorManager.grey,
@@ -56,13 +72,6 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                 //   onPressed: () {},
                 //   icon: FaIcon(FontAwesomeIcons.plus, color: ColorManager.grey),
                 // ),
-                IconButton(
-                  onPressed: () {
-                    ref.read(boardProvider.notifier).rotateField();
-                  },
-                  icon: Icon(Icons.rotate_left, color: ColorManager.grey),
-                ),
-
                 if (widget.selectedScene?.canUndo == true)
                   IconButton(
                     onPressed: () {
@@ -70,7 +79,10 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                           .read(animationProvider.notifier)
                           .performUndoOperation();
                     },
-                    icon: Icon(Icons.undo, color: ColorManager.green),
+                    icon: Icon(
+                      FontAwesomeIcons.arrowRotateLeft,
+                      color: ColorManager.grey,
+                    ),
                   ),
                 IconButton(
                   onPressed: () {},
@@ -98,16 +110,6 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                       // no collection or animation is chosen, so show a overlay to add or select item
 
                       ref.read(animationProvider.notifier).showQuickSave();
-
-                      // showDialog(
-                      //   context: context,
-                      //   builder: (context) {
-                      //     return AlertDialog(
-                      //       backgroundColor: ColorManager.dark2,
-                      //       content: Center(child: ShowQuickSaveComponent()),
-                      //     );
-                      //   },
-                      // );
                     } else {
                       try {
                         ref
@@ -133,30 +135,6 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                     ),
                   ),
                 ),
-                // CustomButton(
-                //   onTap: () {
-                //     // ref
-                //     //     .read(animationProvider.notifier)
-                //     //     .onAnimationSave(
-                //     //       selectedCollection: selectedCollection,
-                //     //       selectedAnimation: selectedAnimation,
-                //     //       selectedScene: selectedScene,
-                //     //     );
-                //     // context.read<BoardBloc>().add(SaveToAnimationEvent());
-                //     // AnimationDataModel animationDataModel = AnimationDataModel(id: ObjectId(), items: globalAnimations);
-                //     // context.read<AnimationBloc>().add(AnimationDatabaseSaveEvent(animationDataModel: animationDataModel));
-                //   },
-                //   fillColor: ColorManager.blue,
-                //   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                //   borderRadius: 3,
-                //   child: Text(
-                //     "Save to animation",
-                //     style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                //       color: ColorManager.white,
-                //       fontWeight: FontWeight.bold,
-                //     ),
-                //   ),
-                // ),
               ],
             ),
           ),

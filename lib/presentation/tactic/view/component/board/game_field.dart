@@ -35,7 +35,7 @@ class GameField extends PositionComponent
     });
     _initializePosition();
     _initializeMeasurements();
-
+    size.y -= 20;
     return super.onLoad();
   }
 

@@ -40,8 +40,10 @@ class _TacticboardScreenTabletState
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
     final ap = ref.watch(animationProvider);
-
-    return ap.isLoadingAnimationCollections
+    final AnimationItemModel? selectedScene = ap.selectedScene;
+    return ap.showFullScreen == true
+        ? LargeGameScreen(heroTag: "asasdd", selectedScene: selectedScene!)
+        : ap.isLoadingAnimationCollections
         ? Center(child: CircularProgressIndicator())
         : MultiSplitView(
           initialAreas: [
@@ -71,6 +73,7 @@ class _TacticboardScreenTabletState
                           : asp.showQuickSave
                           ? ShowQuickSaveComponent()
                           : SingleChildScrollView(
+                            physics: NeverScrollableScrollPhysics(),
                             child: Column(
                               spacing: 10,
                               children: [

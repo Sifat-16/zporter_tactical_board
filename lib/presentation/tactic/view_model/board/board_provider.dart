@@ -6,6 +6,7 @@ import 'package:flame/src/game/notifying_vector2.dart';
 import 'package:flutter/src/material/tab_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
@@ -46,10 +47,32 @@ class BoardController extends StateNotifier<BoardState> {
   // }
 
   List<FieldItemModel> onAnimationSave() {
+    Vector2? gameSize = fetchFieldSize();
     return [
       ...state.players.map((e) => e.clone()),
       ...state.equipments.map((e) => e.clone()),
-      ...state.forms.map((e) => e.clone()),
+      ...state.forms.map((e) {
+        FormItemModel? fModel = e.formItemModel;
+        if (fModel is LineModel) {
+          fModel = fModel.copyWith(
+            start: SizeHelper.getBoardRelativeVector(
+              gameScreenSize: gameSize!,
+              actualPosition: fModel.start,
+            ),
+            end: SizeHelper.getBoardRelativeVector(
+              gameScreenSize: gameSize!,
+              actualPosition: fModel.end,
+            ),
+          );
+        }
+        return e.copyWith(
+          offset: SizeHelper.getBoardRelativeVector(
+            gameScreenSize: gameSize!,
+            actualPosition: e.offset!,
+          ),
+          formItemModel: fModel,
+        );
+      }),
     ];
     // try {
     //   AnimationItemModel animationItemModel = AnimationItemModel(
@@ -196,12 +219,11 @@ class BoardController extends StateNotifier<BoardState> {
       angle = 0;
     }
     state = state.copyWith(boardAngle: angle);
-    // TacticBoardGame? tacticBoardGame = state.tacticBoardGame;
-    //
-    // if (tacticBoardGame != null) {
-    //   tacticBoardGame.rotate();
-    // } else {
-    //   zlog(data: "Rotation error");
-    // }
+  }
+
+  void clearFreeDrawItem(FormModel formModel) {
+    List<FormModel> forms = [...state.forms];
+    forms.removeWhere((f) => f.id == formModel.id);
+    state = state.copyWith(forms: forms);
   }
 }

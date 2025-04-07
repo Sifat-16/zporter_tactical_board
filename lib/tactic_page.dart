@@ -21,13 +21,27 @@ class TacticApp extends StatelessWidget {
             builder: BotToastInit(),
             navigatorObservers: [BotToastNavigatorObserver()],
             themeMode: ThemeMode.system,
-            home: Scaffold(
-              backgroundColor: ColorManager.black,
-              body: TacticboardScreen(),
-            ),
+            home: HomePage(),
           );
         },
       ),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: ColorManager.black,
+      body: TacticboardScreen(),
     );
   }
 }

@@ -712,4 +712,8 @@ class AnimationController extends StateNotifier<AnimationState> {
       BotToast.showText(text: "No scene found!!");
     }
   }
+
+  void toggleFullScreen() {
+    state = state.copyWith(showFullScreen: !state.showFullScreen);
+  }
 }

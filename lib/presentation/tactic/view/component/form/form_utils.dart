@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 
 class FormUtils {
@@ -109,5 +111,18 @@ class FormUtils {
   ];
   static List<FormModel> generateForms() {
     return _forms;
+  }
+
+  static bool isPresentFreeDraw(AnimationItemModel scene) {
+    List<FieldItemModel> items = scene.components;
+    return items.indexWhere((t) {
+          if (t is FormModel) {
+            if (t.formItemModel is FreeDrawModel) {
+              return true;
+            }
+          }
+          return false;
+        }) !=
+        -1;
   }
 }

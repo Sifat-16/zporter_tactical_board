@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -17,7 +18,10 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     await super.onLoad();
     sprite = await game.loadSprite("ball.png", srcSize: Vector2.zero());
     size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
-    position = object.offset ?? Vector2(x, y);
+    position = SizeHelper.getBoardActualVector(
+      gameScreenSize: game.gameField.size,
+      actualPosition: object.offset ?? Vector2(x, y),
+    );
     angle = object.angle ?? 0;
   }
 
@@ -33,13 +37,19 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
-    object.offset = position;
+    object.offset = SizeHelper.getBoardRelativeVector(
+      gameScreenSize: game.gameField.size,
+      actualPosition: position,
+    );
   }
 
   @override
   void onScaleUpdate(DragUpdateEvent event) {
     super.onScaleUpdate(event);
-    object.offset = position;
+    object.offset = SizeHelper.getBoardRelativeVector(
+      gameScreenSize: game.gameField.size,
+      actualPosition: position,
+    );
   }
 
   @override

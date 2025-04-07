@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart'; // Base class/interface
 // Import the other mixins to make their types known for casting
 
@@ -41,12 +39,6 @@ mixin BoardRiverpodIntegration on TacticBoardGame {
             current.selectedItemOnTheBoard,
           );
           ref.read(boardProvider.notifier).moveUpComplete();
-        }
-
-        if (current.boardAngle == 0) {
-          gameField.angle = 0;
-        } else {
-          gameField.angle = pi / 2;
         }
       });
     });
