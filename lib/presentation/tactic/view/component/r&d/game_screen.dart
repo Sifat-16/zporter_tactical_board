@@ -13,6 +13,12 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 
+final GlobalKey<RiverpodAwareGameWidgetState> gameWidgetKey =
+    GlobalKey<RiverpodAwareGameWidgetState>();
+
+final GlobalKey<RiverpodAwareGameWidgetState> largeGameWidgetKey =
+    GlobalKey<RiverpodAwareGameWidgetState>();
+
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key, required this.scene});
   final AnimationItemModel? scene;
@@ -25,8 +31,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   late TacticBoard tacticBoardGame;
   bool gameInitialized = false;
   int previousAngle = 0;
-  final GlobalKey<RiverpodAwareGameWidgetState> gameWidgetKey =
-      GlobalKey<RiverpodAwareGameWidgetState>();
 
   @override
   void initState() {
@@ -70,6 +74,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (quarterTurns != previousAngle) {
       updateTacticBoardIfNecessary(widget.scene);
     }
+    ref.listen(boardProvider, (prev, current) {
+      if (prev?.showFullScreen != current.showFullScreen) {
+        tacticBoardGame.redrawLines();
+      }
+      zlog(
+        data:
+            "Listen to show fullscreen change ${prev?.showFullScreen != current.showFullScreen}",
+      );
+    });
     previousAngle = quarterTurns;
     return DragTarget<FieldItemModel>(
       onAcceptWithDetails: (DragTargetDetails<FieldItemModel> dragDetails) {
@@ -96,33 +109,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             screenRelativeOffset
                 .y; // Vertical distance from top in screen coords
 
-        // --- Define the rotation state (should match your RotatedBox) ---
-
-        // 2. Transform the offset based ONLY on RotatedBox's quarterTurns
         Vector2 transformedOffset;
         if (quarterTurns == 1) {
-          // Apply the 90-degree clockwise transformation rule:
-          // New X is original Y
-          // New Y is original Width minus original X
           transformedOffset = Vector2(dy, gameScreenWidth - dx);
-        }
-        // --- Add cases for other rotations if needed ---
-        // else if (quarterTurns == 2) { // 180 degrees
-        //   transformedOffset = Vector2(gameScreenWidth - dx, gameScreenHeight - dy);
-        // } else if (quarterTurns == 3) { // 270 degrees clockwise
-        //   transformedOffset = Vector2(gameScreenHeight - dy, dx);
-        // }
-        else {
-          // Default: No rotation (quarterTurns == 0 or 4)
+        } else {
           transformedOffset = screenRelativeOffset; // Use the original offset
         }
-
-        // --- Logging for Debugging ---
-
-        // -----------------------------
-
-        // 3. Assign the final offset in the game's coordinate system
-        //    We use the transformed offset, and keep your gameField.position addition for now.
 
         Vector2 actualPosition =
             transformedOffset + tacticBoardGame.gameField.position;
@@ -181,102 +173,74 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 }
 
-class LargeGameScreen extends ConsumerStatefulWidget {
-  const LargeGameScreen({
-    super.key,
-    required this.heroTag,
-    required this.selectedScene,
-  });
-  final AnimationItemModel selectedScene;
-  final Object heroTag;
-
-  @override
-  ConsumerState<LargeGameScreen> createState() => _LargeGameScreenState();
-}
-
-class _LargeGameScreenState extends ConsumerState<LargeGameScreen> {
-  final closeButtonColor = Colors.grey[300]; // Lighter grey for icon
-  final closeButtonBackgroundColor = Colors.black.withOpacity(0.4);
-
-  @override
-  Widget build(BuildContext context) {
-    final bp = ref.watch(boardProvider);
-    return Scaffold(
-      backgroundColor: ColorManager.black,
-      body: Center(
-        child: FractionallySizedBox(
-          widthFactor: 0.95,
-          heightFactor: 0.95,
-          child: Hero(
-            tag: widget.heroTag,
-            child: Stack(
-              children: [
-                GameScreen(scene: widget.selectedScene),
-                Positioned(
-                  top: 10.0,
-                  right: 10.0,
-                  child: Material(
-                    // Use Material for ink splash on tap
-                    color: Colors.transparent,
-                    shape: const CircleBorder(),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      // InkWell provides splash
-                      splashColor: Colors.white12,
-                      onTap: () {
-                        ref.read(animationProvider.notifier).toggleFullScreen();
-                      }, // Call the close callback
-                      child: Container(
-                        padding: const EdgeInsets.all(
-                          4,
-                        ), // Padding around the icon
-                        decoration: BoxDecoration(
-                          color: closeButtonBackgroundColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.close,
-                          color: closeButtonColor,
-                          size: 26.0,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // _buildGameWidget({required TacticBoardGame tacticBoardGame}) {
-  //   final GlobalKey<RiverpodAwareGameWidgetState> gameWidgetKey =
-  //       GlobalKey<RiverpodAwareGameWidgetState>();
-  //   return Stack(
-  //     children: [
-  //       Container(
-  //         padding: EdgeInsets.only(bottom: 0),
-  //         child: RiverpodAwareGameWidget(
-  //           game: tacticBoardGame,
-  //           key: gameWidgetKey,
-  //         ),
-  //       ),
-  //
-  //       Align(
-  //         alignment: Alignment.bottomCenter,
-  //         child: Container(
-  //           height: 30,
-  //           padding: EdgeInsets.symmetric(vertical: 2, horizontal: 10),
-  //           decoration: BoxDecoration(),
-  //           child: Row(
-  //             mainAxisSize: MainAxisSize.min,
-  //             children: [FormSpeedDialComponent()],
-  //           ),
-  //         ),
-  //       ),
-  //     ],
-  //   );
-  // }
-}
+// class LargeGameScreen extends ConsumerStatefulWidget {
+//   const LargeGameScreen({super.key, required this.scene});
+//   final AnimationItemModel? scene;
+//   @override
+//   ConsumerState<LargeGameScreen> createState() => _LargeGameScreenState();
+// }
+//
+// class _LargeGameScreenState extends ConsumerState<LargeGameScreen> {
+//   late LargeGameBoard tacticBoardGame;
+//   bool gameInitialized = false;
+//   int previousAngle = 0;
+//
+//   @override
+//   void initState() {
+//     // TODO: implement initState
+//     super.initState();
+//     updateTacticBoardIfNecessary(widget.scene);
+//   }
+//
+//   @override
+//   void didUpdateWidget(covariant LargeGameScreen oldWidget) {
+//     // TODO: implement didUpdateWidget
+//     super.didUpdateWidget(oldWidget);
+//     if (oldWidget.scene?.id == widget.scene?.id) {
+//       WidgetsBinding.instance.addPostFrameCallback((t) {
+//         if (ref.read(animationProvider).isPerformingUndo == true) {
+//           updateTacticBoardIfNecessary(widget.scene);
+//           ref.read(animationProvider.notifier).toggleUndo(undo: false);
+//         }
+//       });
+//     } else {
+//       updateTacticBoardIfNecessary(widget.scene);
+//     }
+//   }
+//
+//   updateTacticBoardIfNecessary(AnimationItemModel? selectedScene) {
+//     WidgetsBinding.instance.addPostFrameCallback((t) {
+//       setState(() {
+//         tacticBoardGame = LargeGameBoard(scene: selectedScene);
+//         zlog(data: "Build new tactic board");
+//         ref.read(boardProvider.notifier).updateGameBoard(tacticBoardGame);
+//         gameInitialized = true;
+//       });
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final ap = ref.watch(animationProvider);
+//     return gameInitialized == false
+//         ? Center(child: CircularProgressIndicator())
+//         : Stack(
+//           children: [
+//             RiverpodAwareGameWidget(
+//               game: tacticBoardGame,
+//               key: largeGameWidgetKey,
+//             ),
+//             Align(
+//               alignment: Alignment.topRight,
+//               child: IconButton(
+//                 onPressed: () {
+//                   boardComparator = null;
+//                   Navigator.of(context).pop();
+//                 },
+//                 icon: Icon(Icons.cancel_outlined),
+//               ),
+//             ),
+//           ],
+//         );
+//   }
+// }

@@ -20,7 +20,7 @@ class FormSpeedDialComponent extends ConsumerStatefulWidget {
 
 class _FormSpeedDialComponentState
     extends ConsumerState<FormSpeedDialComponent> {
-  List<FormModel> forms = [];
+  List<LineModelV2> lines = [];
 
   @override
   void initState() {
@@ -33,7 +33,7 @@ class _FormSpeedDialComponentState
 
   setupForms() {
     setState(() {
-      forms = FormUtils.generateForms();
+      lines = LineUtils.generateLines();
     });
   }
 
@@ -83,7 +83,7 @@ class _FormSpeedDialComponentState
               // --- Use Expanded to make GridView fill available space ---
               Expanded(
                 child: GridView.builder(
-                  itemCount: forms.length, // Your total number of items
+                  itemCount: lines.length, // Your total number of items
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4, // Adjust number of columns
                     crossAxisSpacing: 10.0, // Spacing between columns
@@ -94,7 +94,7 @@ class _FormSpeedDialComponentState
                   itemBuilder: (BuildContext gridContext, int index) {
                     // Replace with your actual item data and logic
                     return FormLineItem(
-                      formModel: forms[index],
+                      lineModelV2: lines[index],
                       onTap: () {
                         Navigator.pop(context);
                       },
@@ -119,9 +119,12 @@ class _FormSpeedDialComponentState
       spacing: 20,
       children: [
         GestureDetector(
-          onTap: () {
-            _showActionGrid(context);
-          },
+          onTap:
+              lp.isFreeDrawingActive || lp.isEraserActivated
+                  ? null
+                  : () {
+                    _showActionGrid(context);
+                  },
           child:
               lp.activatedLineForm !=
                       null // Assuming lp is available in this scope
@@ -130,31 +133,101 @@ class _FormSpeedDialComponentState
                   ) // Assuming this exists
                   : Center(
                     child: Icon(
-                      FontAwesomeIcons.pencil,
-                      color: ColorManager.white.withValues(alpha: 0.7),
+                      FontAwesomeIcons.arrowPointer,
+                      color: ColorManager.white.withValues(
+                        alpha:
+                            lp.isFreeDrawingActive || lp.isEraserActivated
+                                ? 0.3
+                                : 0.9,
+                      ),
                     ),
                   ),
         ),
 
-        if (selectedScene != null)
-          if (FormUtils.isPresentFreeDraw(selectedScene))
-            GestureDetector(
-              onTap: () {
-                ref.read(lineProvider.notifier).toggleEraser();
-              },
-              child: Icon(
-                FontAwesomeIcons.eraser,
-                color:
-                    lp.isEraserActivated
-                        ? ColorManager.white
-                        : ColorManager.white.withValues(alpha: 0.7),
-              ),
-            ),
+        GestureDetector(
+          onTap:
+              lp.isLineActiveToAddIntoGameField || lp.isEraserActivated
+                  ? null
+                  : () {
+                    if (lp.isFreeDrawingActive) {
+                      ref
+                          .read(lineProvider.notifier)
+                          .dismissActiveLineModelToAddIntoGameFieldEvent();
+                    } else {
+                      ref
+                          .read(lineProvider.notifier)
+                          .loadActiveFreeDrawModelToAddIntoGameFieldEvent();
+                    }
+                  },
+          child: _buildFreeDrawComponent(isFocused: lp.isFreeDrawingActive),
+        ),
+
+        GestureDetector(
+          onTap:
+              lp.isFreeDrawingActive || lp.isLineActiveToAddIntoGameField
+                  ? null
+                  : () {
+                    ref.read(lineProvider.notifier).toggleEraser();
+                  },
+          child: Icon(
+            FontAwesomeIcons.eraser,
+            color:
+                lp.isEraserActivated
+                    ? ColorManager.white
+                    : ColorManager.white.withValues(
+                      alpha:
+                          lp.isFreeDrawingActive ||
+                                  lp.isLineActiveToAddIntoGameField
+                              ? 0.3
+                              : 0.7,
+                    ),
+          ),
+        ),
       ],
     );
   }
 
-  _buildFormWidget({required FormModel activatedLineForm}) {
-    return FormItemSpeedDial(formModel: activatedLineForm);
+  _buildFormWidget({required LineModelV2 activatedLineForm}) {
+    return FormItemSpeedDial(lineModelV2: activatedLineForm);
+  }
+
+  Widget _buildFreeDrawComponent({required bool isFocused}) {
+    if (!isFocused) {
+      return Center(
+        child: Container(
+          padding: EdgeInsets.all(5),
+          decoration: BoxDecoration(),
+          child: Stack(
+            children: [
+              Image.asset(
+                "assets/images/free-draw.png",
+                color: ColorManager.white,
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      return RepaintBoundary(
+        key: UniqueKey(),
+        child: Center(
+          child: Container(
+            padding: EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: ColorManager.red),
+            ),
+            child: Stack(
+              children: [
+                Image.asset(
+                  "assets/images/free-draw.png",
+                  color: ColorManager.red,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
   }
 }

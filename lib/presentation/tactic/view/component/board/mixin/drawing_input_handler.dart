@@ -1,8 +1,9 @@
 // --- Mixin for Drawing Input Handling ---
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
-import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/eraser/eraser_component.dart';
@@ -13,8 +14,8 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/
 mixin DrawingInputHandler on TacticBoardGame {
   // State variables moved from TacticBoard
   Vector2? lineStartPoint;
-  LineDrawerComponent? _currentLine;
-  FreeDrawerComponent? _currentFreeDraw;
+  LineDrawerComponentV2? _currentLine;
+  FreeDrawerComponentV2? _currentFreeDraw;
 
   EraserComponent? _currentEraserVisual;
   // Define eraser size consistently
@@ -46,44 +47,43 @@ mixin DrawingInputHandler on TacticBoardGame {
 
     // Start drawing the line only if the line is active to be added
     if (lp.isFreeDrawingActive) {
-      // Create the free draw component
-      FormModel formModel = lp.activatedLineForm!;
-      FreeDrawModel? freeDrawModel = formModel.formItemModel as FreeDrawModel?;
+      FreeDrawModelV2 initialFreeDrawerModel = FreeDrawModelV2(
+        id: RandomGenerator.generateId(),
+        points: [
+          SizeHelper.getBoardRelativeVector(
+            gameScreenSize: gameField.size,
+            actualPosition: info.localPosition,
+          ),
+        ],
+      );
 
-      if (freeDrawModel != null) {
-        FreeDrawModel initialFreeDrawerModel = freeDrawModel.copyWith(
-          points: [info.localPosition],
-          color: ColorManager.black, // Get color from bloc
-        );
-
-        formModel.formItemModel = initialFreeDrawerModel;
-
-        _currentFreeDraw = FreeDrawerComponent(
-          formModel: formModel,
-          // lineModel: initialLineModel,
-        );
-        add(_currentFreeDraw!); // Add to component tree
-      }
+      _currentFreeDraw = FreeDrawerComponentV2(
+        freeDrawModelV2: initialFreeDrawerModel,
+      );
+      add(_currentFreeDraw!); // Add to component tree
     } else if (lp.isLineActiveToAddIntoGameField) {
       lineStartPoint = info.localPosition; // Use game coordinates
 
       // Create the line component
-      FormModel formModel = lp.activatedLineForm!;
-      LineModel? lineModel = formModel.formItemModel as LineModel?;
+      LineModelV2? lineModelV2 = lp.activatedLineForm;
 
-      if (lineModel != null) {
-        LineModel initialLineModel = lineModel.copyWith(
-          start: lineStartPoint!,
-          end: lineStartPoint!, // Start with end = start
-          color: formModel.color,
+      if (lineModelV2 != null) {
+        lineModelV2 = lineModelV2.copyWith(
+          start: SizeHelper.getBoardRelativeVector(
+            gameScreenSize: gameField.size,
+            actualPosition: lineStartPoint!,
+          ),
+          end: SizeHelper.getBoardRelativeVector(
+            gameScreenSize: gameField.size,
+            actualPosition: lineStartPoint!,
+          ),
         );
 
-        formModel.formItemModel = initialLineModel;
-
-        _currentLine = LineDrawerComponent(
-          formModel: formModel,
+        _currentLine = LineDrawerComponentV2(
+          lineModelV2: lineModelV2,
           // lineModel: initialLineModel,
         );
+
         add(_currentLine!); // Add to component tree
       }
     }
@@ -118,7 +118,7 @@ mixin DrawingInputHandler on TacticBoardGame {
     } else if (lp.isLineActiveToAddIntoGameField && lineStartPoint != null) {
       final currentPoint = info.localStartPosition;
       if (_currentLine != null) {
-        _currentLine!.lineModel.end = currentPoint;
+        _currentLine!.updateEnd(currentPoint);
         _currentLine!
             .updateLine(); // Assuming updateLine exists on LineDrawerComponent
       }
@@ -138,11 +138,6 @@ mixin DrawingInputHandler on TacticBoardGame {
         remove(_currentEraserVisual!); // Remove the visual from the game
         _currentEraserVisual = null; // Clear the reference
       }
-      // -------------------------------
-
-      // Optional: Erase at the final point (might be redundant)
-      // Vector2? finalPosition = info.localPosition; // Might not be available or reliable
-      // if (finalPosition != null) _eraseAtPoint(finalPosition);
 
       super.onDragEnd(info); // Allow other handlers
       return; // Prevent drawing logic
@@ -150,36 +145,33 @@ mixin DrawingInputHandler on TacticBoardGame {
 
     // Finalize the line drawing.
     if (_currentFreeDraw != null) {
-      // Now we need to add finishing touch
-      FormModel formModel = lp.activatedLineForm!;
-      formModel.formItemModel = _currentFreeDraw!.freeDrawModel.copyWith();
+      FreeDrawModelV2 freeDrawModelV2 =
+          _currentFreeDraw!.freeDrawModelV2.copyWith();
       ref
           .read(boardProvider.notifier)
-          .addBoardComponent(fieldItemModel: formModel);
+          .addBoardComponent(fieldItemModel: freeDrawModelV2);
 
       _currentFreeDraw =
           null; // Set _currentFreeDraw to null after the drag ends
 
       ref
           .read(lineProvider.notifier)
-          .unLoadActiveLineModelToAddIntoGameFieldEvent(formModel: formModel);
+          .unLoadActiveFreeDrawModelToAddIntoGameFieldEvent(
+            freeDraw: freeDrawModelV2,
+          );
     } else if (lp.isLineActiveToAddIntoGameField &&
         lineStartPoint != null &&
         _currentLine != null) {
-      FormModel formModel = lp.activatedLineForm!;
-      formModel.formItemModel = _currentLine!.lineModel.copyWith(
-        color: ColorManager.black,
-      );
-      formModel.offset = _currentLine!.lineModel.start;
+      LineModelV2 lineModelV2 = _currentLine!.lineModelV2;
       ref
           .read(boardProvider.notifier)
-          .addBoardComponent(fieldItemModel: formModel);
+          .addBoardComponent(fieldItemModel: lineModelV2);
+      ref
+          .read(lineProvider.notifier)
+          .unLoadActiveLineModelToAddIntoGameFieldEvent(line: lineModelV2);
 
       _currentLine = null; // VERY IMPORTANT: Clear current line.
       lineStartPoint = null;
-      ref
-          .read(lineProvider.notifier)
-          .unLoadActiveLineModelToAddIntoGameFieldEvent(formModel: formModel);
     }
 
     // --- End of exact code ---
@@ -217,7 +209,7 @@ mixin DrawingInputHandler on TacticBoardGame {
         ref
             .read(lineProvider.notifier)
             .unLoadActiveLineModelToAddIntoGameFieldEvent(
-              formModel: lp.activatedLineForm!,
+              line: lp.activatedLineForm!,
             );
       }
     }
@@ -225,30 +217,30 @@ mixin DrawingInputHandler on TacticBoardGame {
   }
 
   void _eraseAtPoint(Vector2 point) {
-    final componentsToRemove = <FreeDrawerComponent>[];
+    final componentsToRemove = <FreeDrawerComponentV2>[];
     // Query potentially erasable components. This queries all direct children.
     // If components are nested, you might need a recursive query or broadphase.
-    final potentiallyErasable = children.query<FreeDrawerComponent>();
+    final potentiallyErasable = children.query<FreeDrawerComponentV2>();
     for (final component in potentiallyErasable) {
-      List<Vector2> points = component.freeDrawModel.points;
-
+      List<Vector2> points = component.freeDrawModelV2.points;
       for (var p in points) {
-        double distance = p.taxicabDistanceTo(point);
+        double distance = SizeHelper.getBoardActualVector(
+          gameScreenSize: gameField.size,
+          actualPosition: p,
+        ).taxicabDistanceTo(point);
+
         zlog(data: "Found intersect ${distance} - ${p} - ${point}");
         if (distance <= 15) {
           componentsToRemove.add(component);
         }
       }
-
-      // if (eraserRect.ov) {
-      //   zlog(data: "Eraser rect ${component.freeDrawModel.points}");
-      //   componentsToRemove.add(component);
-      // }
     }
 
     // Remove the identified components from the game tree
     for (final component in componentsToRemove) {
-      ref.read(boardProvider.notifier).clearFreeDrawItem(component.formModel);
+      ref
+          .read(boardProvider.notifier)
+          .clearFreeDrawItem(component.freeDrawModelV2);
       remove(component); // Remove from Flame game visualization
     }
   }

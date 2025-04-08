@@ -13,8 +13,9 @@ const Object _sentinel = Object();
 class BoardState {
   final List<PlayerModel> players;
   final List<EquipmentModel> equipments;
+  final List<LineModelV2> lines;
   final FieldItemModel? itemToDelete;
-  final List<FormModel> forms;
+  final List<FreeDrawModelV2> freeDraw;
   final AnimationModel? animationModel;
   final Map<String, dynamic> animationModelJson;
   final bool showAnimation;
@@ -28,12 +29,14 @@ class BoardState {
   final TacticBoardGame? tacticBoardGame;
   final int boardAngle;
   final Vector2? fieldSize;
+  final bool showFullScreen;
 
   const BoardState({
     this.players = const [],
     this.equipments = const [],
+    this.lines = const [],
     this.itemToDelete,
-    this.forms = const [],
+    this.freeDraw = const [],
     this.animationModelJson = const {},
     this.animationModel,
     this.showAnimation = false,
@@ -47,12 +50,14 @@ class BoardState {
     this.tabController,
     this.tacticBoardGame,
     this.boardAngle = 0,
+    this.showFullScreen = false,
   });
 
   BoardState copyWith({
     List<PlayerModel>? players,
     List<EquipmentModel>? equipments,
-    List<FormModel>? forms,
+    List<LineModelV2>? lines,
+    List<FreeDrawModelV2>? freeDraws,
     AnimationModel? animationModel,
     bool? showAnimation,
     FieldItemModel? selectedItemOnTheBoard,
@@ -68,11 +73,12 @@ class BoardState {
     TabController? tabController,
     Object? tacticBoardGame = _sentinel,
     int? boardAngle,
+    bool? showFullScreen,
   }) {
     return BoardState(
       players: players ?? this.players,
       equipments: equipments ?? this.equipments,
-      forms: forms ?? this.forms,
+      freeDraw: freeDraws ?? this.freeDraw,
       animationModel: animationModel ?? this.animationModel,
       showAnimation: showAnimation ?? this.showAnimation,
       selectedItemOnTheBoard:
@@ -95,6 +101,8 @@ class BoardState {
               ? this.tacticBoardGame
               : tacticBoardGame as TacticBoardGame?,
       boardAngle: boardAngle ?? this.boardAngle,
+      lines: lines ?? this.lines,
+      showFullScreen: showFullScreen ?? this.showFullScreen,
     );
   }
 

@@ -7,8 +7,12 @@ import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 
 class FormLineItem extends ConsumerStatefulWidget {
-  const FormLineItem({super.key, required this.formModel, required this.onTap});
-  final FormModel formModel;
+  const FormLineItem({
+    super.key,
+    required this.lineModelV2,
+    required this.onTap,
+  });
+  final LineModelV2 lineModelV2;
   final VoidCallback onTap;
 
   @override
@@ -29,7 +33,7 @@ class _FormLineItemState extends ConsumerState<FormLineItem> {
           ref
               .read(lineProvider.notifier)
               .loadActiveLineModelToAddIntoGameFieldEvent(
-                formModel: widget.formModel,
+                lineModelV2: widget.lineModelV2,
               );
         }
 
@@ -38,7 +42,7 @@ class _FormLineItemState extends ConsumerState<FormLineItem> {
       child: _buildLineComponent(
         isFocused:
             lp.isLineActiveToAddIntoGameField &&
-            lp.activatedFormId == widget.formModel.id,
+            lp.activatedLineId == widget.lineModelV2.id,
       ),
     );
   }
@@ -48,7 +52,7 @@ class _FormLineItemState extends ConsumerState<FormLineItem> {
       key: UniqueKey(),
       child: Center(
         child: Image.asset(
-          "assets/images/${widget.formModel.imagePath}",
+          "assets/images/${widget.lineModelV2.imagePath}",
           color: isFocused ? ColorManager.yellowLight : ColorManager.white,
           height: AppSize.s32,
           width: AppSize.s32,
@@ -59,8 +63,8 @@ class _FormLineItemState extends ConsumerState<FormLineItem> {
 }
 
 class FormItemSpeedDial extends ConsumerStatefulWidget {
-  const FormItemSpeedDial({super.key, required this.formModel});
-  final FormModel formModel;
+  const FormItemSpeedDial({super.key, required this.lineModelV2});
+  final LineModelV2 lineModelV2;
 
   @override
   ConsumerState<FormItemSpeedDial> createState() => _FormItemSpeedDialState();
@@ -80,14 +84,14 @@ class _FormItemSpeedDialState extends ConsumerState<FormItemSpeedDial> {
           ref
               .read(lineProvider.notifier)
               .loadActiveLineModelToAddIntoGameFieldEvent(
-                formModel: widget.formModel,
+                lineModelV2: widget.lineModelV2,
               );
         }
       },
       child: _buildLineComponent(
         isFocused:
             lp.isLineActiveToAddIntoGameField &&
-            lp.activatedFormId == widget.formModel.id,
+            lp.activatedLineId == widget.lineModelV2.id,
       ),
     );
   }
@@ -100,13 +104,13 @@ class _FormItemSpeedDialState extends ConsumerState<FormItemSpeedDial> {
           padding: EdgeInsets.all(5),
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: ColorManager.white),
+            border: Border.all(color: ColorManager.red),
           ),
           child: Stack(
             children: [
               Image.asset(
-                "assets/images/${widget.formModel.imagePath}",
-                color: ColorManager.white,
+                "assets/images/${widget.lineModelV2.imagePath}",
+                color: ColorManager.red,
               ),
             ],
           ),

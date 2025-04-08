@@ -73,7 +73,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   Future<void> getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
     List<AnimationCollectionModel> collections = state.animationCollections;
-    zlog(data: "Animation collection fetching issue ");
+
     try {
       collections = await _getAllAnimationCollectionUseCase.call(null);
       AnimationCollectionModel? selectedAnimation =
@@ -82,6 +82,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         animationCollections: collections,
         isLoadingAnimationCollections: false,
       );
+
       selectAnimationCollection(selectedAnimation);
     } catch (e) {
       zlog(data: "Animation collection fetching issue ${e}");
@@ -466,7 +467,6 @@ class AnimationController extends StateNotifier<AnimationState> {
     List<AnimationItemModel> animationItems = [];
     try {
       animationItems = await _getAllDefaultAnimationItemsUseCase.call(null);
-      zlog(data: "Animation item fetch ${animationItems}");
     } catch (e) {
       zlog(data: "Animation item fetch issue");
     }
@@ -515,7 +515,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       changeModel.fieldSize =
           ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
       defaultAnimations[index] = changeModel;
-      zlog(data: "Default animation model ${defaultAnimations}");
+      zlog(data: "Default animation model List ${changeModel.components}");
       _saveDefaultAnimationUseCase.call(defaultAnimations);
       state = state.copyWith(selectedScene: changeModel);
     } catch (e) {
@@ -580,7 +580,6 @@ class AnimationController extends StateNotifier<AnimationState> {
     try {
       defaultItems = await _saveDefaultAnimationUseCase.call(defaultItems);
       index = index >= defaultItems.length ? defaultItems.length - 1 : index;
-
       if (defaultItems.isEmpty) {
         defaultItems.add(_generateDummyAnimationItem());
         index = 0;
@@ -591,6 +590,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         defaultAnimationItemIndex: index,
         selectedScene: defaultItems[index],
       );
+      ref.read(boardProvider.notifier).clearItems();
     } catch (e) {}
     BotToast.cleanAll();
   }
@@ -711,9 +711,5 @@ class AnimationController extends StateNotifier<AnimationState> {
     } else {
       BotToast.showText(text: "No scene found!!");
     }
-  }
-
-  void toggleFullScreen() {
-    state = state.copyWith(showFullScreen: !state.showFullScreen);
   }
 }

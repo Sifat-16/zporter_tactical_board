@@ -6,9 +6,11 @@ import 'package:flame/events.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class DraggableDot extends CircleComponent with DragCallbacks {
@@ -53,10 +55,15 @@ class DraggableDot extends CircleComponent with DragCallbacks {
   }
 }
 
-class LineDrawerComponent extends PositionComponent
-    with TapCallbacks, DragCallbacks, RiverpodComponentMixin {
+class LineDrawerComponentV2 extends PositionComponent
+    with
+        TapCallbacks,
+        DragCallbacks,
+        RiverpodComponentMixin,
+        HasGameReference<TacticBoardGame> {
   // LineModel lineModel;
-  FormModel formModel;
+  LineModelV2 lineModelV2;
+  late LineModelV2 _duplicateLine;
   final double circleRadius;
   List<DraggableDot> dots = [];
   bool isActive = false;
@@ -66,17 +73,11 @@ class LineDrawerComponent extends PositionComponent
   late Paint _activePaint;
   late Paint _inactivePaint;
 
-  late LineModel lineModel;
-
-  LineDrawerComponent({
+  LineDrawerComponentV2({
     // required this.lineModel,
-    required this.formModel,
+    required this.lineModelV2,
     this.circleRadius = 8.0,
   }) : super(priority: 1) {
-    lineModel = (formModel.formItemModel as LineModel);
-    _createDots();
-
-    updatePaint();
     // Initialize paints in the constructor
   }
 
@@ -84,19 +85,19 @@ class LineDrawerComponent extends PositionComponent
     _inactivePaint =
         Paint()
           ..color =
-              formModel.color?.withValues(alpha: formModel.opacity) ??
-              ColorManager.black.withValues(alpha: formModel.opacity)
-          ..strokeWidth = lineModel.thickness
+              _duplicateLine.color?.withValues(alpha: _duplicateLine.opacity) ??
+              ColorManager.black.withValues(alpha: _duplicateLine.opacity)
+          ..strokeWidth = _duplicateLine.thickness
           ..style = PaintingStyle.stroke;
 
     _activePaint =
         Paint()
           ..color =
-              formModel.color?.withValues(alpha: formModel.opacity) ??
-              ColorManager.black.withValues(alpha: formModel.opacity)
-          ..strokeWidth = lineModel.thickness
+              _duplicateLine.color?.withValues(alpha: _duplicateLine.opacity) ??
+              ColorManager.black.withValues(alpha: _duplicateLine.opacity)
+          ..strokeWidth = _duplicateLine.thickness
           ..strokeWidth =
-              lineModel.thickness +
+              _duplicateLine.thickness +
               2.0 // Active thickness
           ..style = PaintingStyle.stroke;
   }
@@ -108,6 +109,22 @@ class LineDrawerComponent extends PositionComponent
         _updateIsActive(current.selectedItemOnTheBoard);
       });
     });
+
+    _duplicateLine = lineModelV2.clone();
+
+    updatePaint();
+
+    _duplicateLine.start = SizeHelper.getBoardActualVector(
+      gameScreenSize: game.gameField.size,
+      actualPosition: _duplicateLine.start,
+    );
+    _duplicateLine.end = SizeHelper.getBoardActualVector(
+      gameScreenSize: game.gameField.size,
+      actualPosition: _duplicateLine.end,
+    );
+    _createDots();
+
+    zlog(data: "Line model data ${_duplicateLine.toJson()}");
 
     // TODO: implement onLoad
     return super.onLoad();
@@ -124,16 +141,16 @@ class LineDrawerComponent extends PositionComponent
   void _createDots() {
     dots = [
       DraggableDot(
-        initialPosition: lineModel.start,
+        initialPosition: _duplicateLine.start,
         onPositionChanged: (newPos) {
-          lineModel.start = newPos;
+          _duplicateLine.start = newPos;
           updateLine();
         },
       ),
       DraggableDot(
-        initialPosition: lineModel.end,
+        initialPosition: _duplicateLine.end,
         onPositionChanged: (newPos) {
-          lineModel.end = newPos;
+          _duplicateLine.end = newPos;
           updateLine();
         },
       ),
@@ -141,9 +158,30 @@ class LineDrawerComponent extends PositionComponent
   }
 
   void updateLine() {
-    dots[0].position = lineModel.start;
-    dots[1].position = lineModel.end;
-    formModel.formItemModel = lineModel;
+    dots[0].position = _duplicateLine.start;
+    dots[1].position = _duplicateLine.end;
+    lineModelV2 = _duplicateLine.copyWith(
+      start:
+          SizeHelper.getBoardRelativeVector(
+            gameScreenSize: game.gameField.size,
+            actualPosition: _duplicateLine.start,
+          ).clone(),
+      end:
+          SizeHelper.getBoardRelativeVector(
+            gameScreenSize: game.gameField.size,
+            actualPosition: _duplicateLine.end,
+          ).clone(),
+    );
+    ref.read(boardProvider.notifier).updateLine(line: lineModelV2);
+    zlog(
+      data:
+          "Line model update called ${lineModelV2.start} - ${lineModelV2.end}",
+    );
+    // formModel.formItemModel = lineModel;
+  }
+
+  void updateEnd(Vector2 currentPoint) {
+    _duplicateLine.end = currentPoint;
   }
 
   @override
@@ -151,27 +189,42 @@ class LineDrawerComponent extends PositionComponent
     // Choose the correct paint based on isActive
     final paint = isActive ? _activePaint : _inactivePaint;
 
-    if (lineModel.lineType == LineType.STRAIGHT_LINE_DASHED) {
-      _drawDashedLine(canvas, lineModel.start, lineModel.end, paint);
-    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ZIGZAG) {
-      _drawZigZagLine(canvas, lineModel.start, lineModel.end, paint);
-    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ZIGZAG_ARROW) {
-      _drawZigZagLineWithArrow(canvas, lineModel.start, lineModel.end, paint);
-    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ARROW) {
-      _drawStraightLineWithArrow(canvas, lineModel.start, lineModel.end, paint);
-    } else if (lineModel.lineType == LineType.STRAIGHT_LINE_ARROW_DOUBLE) {
-      _drawStraightLineWithDoubleArrow(
+    if (_duplicateLine.lineType == LineType.STRAIGHT_LINE_DASHED) {
+      _drawDashedLine(canvas, _duplicateLine.start, _duplicateLine.end, paint);
+    } else if (_duplicateLine.lineType == LineType.STRAIGHT_LINE_ZIGZAG) {
+      _drawZigZagLine(canvas, _duplicateLine.start, _duplicateLine.end, paint);
+    } else if (_duplicateLine.lineType == LineType.STRAIGHT_LINE_ZIGZAG_ARROW) {
+      _drawZigZagLineWithArrow(
         canvas,
-        lineModel.start,
-        lineModel.end,
+        _duplicateLine.start,
+        _duplicateLine.end,
         paint,
       );
-    } else if (lineModel.lineType == LineType.RIGHT_TURN_ARROW) {
-      _drawRightTurnArrow(canvas, lineModel.start, lineModel.end, paint);
+    } else if (_duplicateLine.lineType == LineType.STRAIGHT_LINE_ARROW) {
+      _drawStraightLineWithArrow(
+        canvas,
+        _duplicateLine.start,
+        _duplicateLine.end,
+        paint,
+      );
+    } else if (_duplicateLine.lineType == LineType.STRAIGHT_LINE_ARROW_DOUBLE) {
+      _drawStraightLineWithDoubleArrow(
+        canvas,
+        _duplicateLine.start,
+        _duplicateLine.end,
+        paint,
+      );
+    } else if (_duplicateLine.lineType == LineType.RIGHT_TURN_ARROW) {
+      _drawRightTurnArrow(
+        canvas,
+        _duplicateLine.start,
+        _duplicateLine.end,
+        paint,
+      );
     } else {
       canvas.drawLine(
-        lineModel.start.toOffset(),
-        lineModel.end.toOffset(),
+        _duplicateLine.start.toOffset(),
+        _duplicateLine.end.toOffset(),
         paint,
       );
     }
@@ -253,7 +306,7 @@ class LineDrawerComponent extends PositionComponent
   ) {
     const amplitude = 5.0; // Reduced for smaller zig-zags
     const frequency = 10.0; // More frequent zig-zags
-    final arrowSize = lineModel.thickness * 4;
+    final arrowSize = _duplicateLine.thickness * 4;
     const dashLength = 10.0; // Length of the starting and ending dashes
 
     final dx = end.x - start.x;
@@ -337,7 +390,7 @@ class LineDrawerComponent extends PositionComponent
     Vector2 end,
     Paint paint,
   ) {
-    final arrowSize = lineModel.thickness * 4;
+    final arrowSize = _duplicateLine.thickness * 4;
 
     final dx = end.x - start.x;
     final dy = end.y - start.y;
@@ -368,7 +421,7 @@ class LineDrawerComponent extends PositionComponent
     Vector2 end,
     Paint paint,
   ) {
-    final arrowSize = lineModel.thickness * 4;
+    final arrowSize = _duplicateLine.thickness * 4;
     final dx = end.x - start.x;
     final dy = end.y - start.y;
     final angle = math.atan2(dy, dx);
@@ -415,7 +468,7 @@ class LineDrawerComponent extends PositionComponent
     Vector2 end,
     Paint paint,
   ) {
-    final arrowSize = lineModel.thickness * 4;
+    final arrowSize = _duplicateLine.thickness * 4;
 
     // 1.  Determine the direction of the corner point.
     final dx = end.x - start.x;
@@ -467,8 +520,8 @@ class LineDrawerComponent extends PositionComponent
   void onDragUpdate(DragUpdateEvent event) {
     if (_isDragging) {
       final delta = event.localDelta;
-      lineModel.start += delta;
-      lineModel.end += delta;
+      _duplicateLine.start += delta;
+      _duplicateLine.end += delta;
       updateLine();
       event.continuePropagation = true;
     }
@@ -518,12 +571,12 @@ class LineDrawerComponent extends PositionComponent
   void _toggleActive() {
     ref
         .read(boardProvider.notifier)
-        .toggleSelectItemEvent(fieldItemModel: formModel);
+        .toggleSelectItemEvent(fieldItemModel: _duplicateLine);
   }
 
   void _updateIsActive(FieldItemModel? item) {
     zlog(data: "Item type selected ${item.runtimeType}");
-    if (item is FormModel && item.id == formModel.id) {
+    if (item is LineModelV2 && item.id == _duplicateLine.id) {
       isActive = true;
       addAll(dots);
     } else {
@@ -536,8 +589,8 @@ class LineDrawerComponent extends PositionComponent
 
   @override
   bool containsLocalPoint(Vector2 point) {
-    final start = lineModel.start;
-    final end = lineModel.end;
+    final start = _duplicateLine.start;
+    final end = _duplicateLine.end;
     final dx = end.x - start.x;
     final dy = end.y - start.y;
     final t =
@@ -551,42 +604,63 @@ class LineDrawerComponent extends PositionComponent
   }
 }
 
-// --- FreeDrawerComponent ---
+class FreeDrawerComponentV2 extends PositionComponent
+    with
+        DragCallbacks,
+        HasGameReference<TacticBoardGame>,
+        RiverpodComponentMixin {
+  FreeDrawModelV2 freeDrawModelV2;
+  late FreeDrawModelV2 _duplicateDrawerModel;
 
-class FreeDrawerComponent extends PositionComponent with DragCallbacks {
-  FormModel formModel;
+  late final Paint _paint;
 
-  late final Paint _paint; // Declare _paint here
-  late FreeDrawModel freeDrawModel;
-
-  FreeDrawerComponent({required this.formModel}) : super(priority: 3) {
-    // Initialize Paint object in constructor
-    freeDrawModel = formModel.formItemModel as FreeDrawModel;
+  FreeDrawerComponentV2({required this.freeDrawModelV2}) : super(priority: 3) {
     _paint =
         Paint()
-          ..color = freeDrawModel.color
-          ..strokeWidth = freeDrawModel.thickness
+          ..color = freeDrawModelV2.color ?? ColorManager.dark2
+          ..strokeWidth = freeDrawModelV2.thickness
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke;
   }
 
-  // Add a point to the drawing
-  void addPoint(Vector2 point) {
-    freeDrawModel.points.add(point);
+  @override
+  FutureOr<void> onLoad() {
+    // TODO: implement onLoad
+    _duplicateDrawerModel = freeDrawModelV2.clone();
+    _duplicateDrawerModel.points =
+        _duplicateDrawerModel.points
+            .map(
+              (e) => SizeHelper.getBoardActualVector(
+                gameScreenSize: game.gameField.size,
+                actualPosition: e,
+              ),
+            )
+            .toList();
+    return super.onLoad();
   }
 
-  // Update Free Draw model, if needed
-  void updateLine() {
-    //Currently no need of update for free draw
+  // Add a point to the drawing
+  void addPoint(Vector2 point) {
+    _duplicateDrawerModel.points.add(point);
+    freeDrawModelV2.points.add(
+      SizeHelper.getBoardRelativeVector(
+        gameScreenSize: game.gameField.size,
+        actualPosition: point,
+      ),
+    );
+
+    zlog(data: "Free draw points ${freeDrawModelV2.points}");
+
+    ref.read(boardProvider.notifier).updateFreeDraw(freeDraw: freeDrawModelV2);
   }
 
   @override
   void render(Canvas canvas) {
     // Draw the free-form line using the points in freeDrawModel
-    for (int i = 0; i < freeDrawModel.points.length - 1; i++) {
+    for (int i = 0; i < _duplicateDrawerModel.points.length - 1; i++) {
       canvas.drawLine(
-        freeDrawModel.points[i].toOffset(),
-        freeDrawModel.points[i + 1].toOffset(),
+        _duplicateDrawerModel.points[i].toOffset(),
+        _duplicateDrawerModel.points[i + 1].toOffset(),
         _paint,
       );
     }

@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_collection
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class FieldToolBar extends ConsumerStatefulWidget {
   const FieldToolBar({
@@ -30,6 +31,8 @@ class FieldToolBar extends ConsumerStatefulWidget {
 class _FieldToolBarState extends ConsumerState<FieldToolBar> {
   @override
   Widget build(BuildContext context) {
+    final bp = ref.watch(boardProvider);
+    final ap = ref.watch(animationProvider);
     zlog(
       data:
           "Animation scene updated {widget.selectedScene?.componentHistory.length}",
@@ -45,22 +48,7 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
               children: [
                 IconButton(
                   onPressed: () {
-                    ref.read(animationProvider.notifier).toggleFullScreen();
-                    // final Object heroTag =
-                    //     'anim_${widget.selectedScene?.id.toString()}';
-                    // AnimationItemModel? animationModel = widget.selectedScene;
-                    // Navigator.pushReplacement(
-                    //   context,
-                    //   // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
-                    //   MaterialPageRoute(
-                    //     builder:
-                    //         (context) => LargeGameScreen(
-                    //           heroTag: heroTag,
-                    //           selectedScene:
-                    //               animationModel!, // Pass the SAME tag
-                    //         ),
-                    //   ),
-                    // );
+                    ref.read(boardProvider.notifier).toggleFullScreen();
                   },
                   icon: FaIcon(
                     FontAwesomeIcons.arrowsUpDownLeftRight,
@@ -69,21 +57,28 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
                 ),
 
                 // IconButton(
+                //   onPressed: () {
+                //     ref.read(boardProvider.notifier).rotateField();
+                //   },
+                //   icon: Icon(Icons.rotate_left, color: ColorManager.grey),
+                // ),
+
+                // IconButton(
                 //   onPressed: () {},
                 //   icon: FaIcon(FontAwesomeIcons.plus, color: ColorManager.grey),
                 // ),
-                if (widget.selectedScene?.canUndo == true)
-                  IconButton(
-                    onPressed: () {
-                      ref
-                          .read(animationProvider.notifier)
-                          .performUndoOperation();
-                    },
-                    icon: Icon(
-                      FontAwesomeIcons.arrowRotateLeft,
-                      color: ColorManager.grey,
-                    ),
-                  ),
+                // if (widget.selectedScene?.canUndo == true)
+                //   IconButton(
+                //     onPressed: () {
+                //       ref
+                //           .read(animationProvider.notifier)
+                //           .performUndoOperation();
+                //     },
+                //     icon: Icon(
+                //       FontAwesomeIcons.arrowRotateLeft,
+                //       color: ColorManager.grey,
+                //     ),
+                //   ),
                 IconButton(
                   onPressed: () {},
                   icon: Icon(Icons.threed_rotation, color: ColorManager.grey),

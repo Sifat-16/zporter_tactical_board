@@ -7,7 +7,6 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjus
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart'; // Adjust import path
 // Import models needed for drawing logic
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart'; // Adjust import path
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart'; // Adjust import path
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart'; // Adjust import path
 // Import specific FormItemModels
 
@@ -145,8 +144,6 @@ class MiniGameFieldPainter extends CustomPainter {
     ); // Use this for item *sizes*
     const double minVisualSize = 3.0; // Min pixels for item representation
 
-    List<FormModel> formsToDrawLater = []; // Collect forms to draw last
-
     // --- Draw Players and Equipment ---
     for (final item in items) {
       final Vector2 itemOffset = item.offset ?? Vector2.zero(); // World offset
@@ -169,12 +166,6 @@ class MiniGameFieldPainter extends CustomPainter {
         itemSize.y * uniformItemScale,
       );
       final Size visualItemSize = Size(visualWidth, visualHeight);
-
-      // Defer drawing forms
-      if (item is FormModel) {
-        formsToDrawLater.add(item);
-        continue;
-      }
 
       // --- Prepare to draw centered & rotated item ---
       canvas.save();
@@ -207,13 +198,6 @@ class MiniGameFieldPainter extends CustomPainter {
       canvas.restore(); // Restore canvas state (removes rotation/translation)
       // --- End Player/Equipment Item ---
     }
-
-    // --- Draw Forms (on top) using absolute scaled coordinates ---
-    for (final form in formsToDrawLater) {
-      // Pass necessary info to helper
-      _drawFormAbsolute(canvas, form, scaleX, scaleY, uniformItemScale, size);
-    }
-    // --- End Draw Items ---
   }
 
   // --- Helper Drawing Functions ---
@@ -285,98 +269,6 @@ class MiniGameFieldPainter extends CustomPainter {
     canvas.drawRect(rect, paint);
     // TODO: Consider drawing a specific icon/shape based on equipment.name or imagePath if needed
   }
-
-  // Draws forms using absolute scaled coordinates relative to the canvas origin (0,0)
-  void _drawFormAbsolute(
-    Canvas canvas,
-    FormModel form,
-    double scaleX,
-    double scaleY,
-    double uniformItemScale,
-    Size canvasSize, // The actual size of the CustomPaint canvas
-  ) {
-    final formItem = form.formItemModel;
-    final formOpacity = form.opacity ?? 1.0;
-    final formColor = form.color ?? Colors.white; // Default form color
-    final Vector2 formOffset =
-        form.offset ?? Vector2.zero(); // FormModel itself can have an offset
-
-    if (formItem is LineModel) {
-      _linePaint.color = (formItem.color ?? formColor).withOpacity(formOpacity);
-      // Scale thickness, ensure minimum visible width
-      _linePaint.strokeWidth = math.max(
-        0.8,
-        formItem.thickness * uniformItemScale,
-      );
-
-      // Calculate absolute scaled points for the line
-      // Points in LineModel are relative to the FormModel's offset
-      final Offset startAbs = Offset(
-        (formOffset.x + formItem.start.x) * scaleX,
-        (formOffset.y + formItem.start.y) * scaleY,
-      );
-      final Offset endAbs = Offset(
-        (formOffset.x + formItem.end.x) * scaleX,
-        (formOffset.y + formItem.end.y) * scaleY,
-      );
-
-      canvas.drawLine(startAbs, endAbs, _linePaint);
-      // TODO: Add logic for different line types (dashed, arrows etc.)
-    } else if (formItem is FreeDrawModel) {
-      if (formItem.points.length < 2) return; // Need at least 2 points
-
-      _linePaint.color = (formItem.color ?? formColor).withOpacity(formOpacity);
-      _linePaint.strokeWidth = math.max(
-        0.8,
-        formItem.thickness * uniformItemScale,
-      );
-      _linePaint.style = PaintingStyle.stroke; // Ensure stroke
-
-      final path = Path();
-      // Points are relative to the FormModel's offset
-      final firstPoint = formItem.points.first;
-      path.moveTo(
-        (formOffset.x + firstPoint.x) * scaleX,
-        (formOffset.y + firstPoint.y) * scaleY,
-      );
-      for (int i = 1; i < formItem.points.length; i++) {
-        final point = formItem.points[i];
-        path.lineTo(
-          (formOffset.x + point.x) * scaleX,
-          (formOffset.y + point.y) * scaleY,
-        );
-      }
-      canvas.drawPath(path, _linePaint);
-    } else if (formItem is FormTextModel) {
-      // Calculate absolute top-left position for the text based on form's offset
-      final double textX = formOffset.x * scaleX;
-      final double textY = formOffset.y * scaleY;
-      // Scale font size based on form's logical height or a default, ensure minimum
-      final double logicalFontSize =
-          form.size?.y ?? 12.0; // Use form's height or default
-      final double scaledFontSize = math.max(
-        4.0,
-        logicalFontSize * uniformItemScale * 0.6,
-      ); // Adjust multiplier
-
-      _textPainter.text = TextSpan(
-        text: formItem.text,
-        style: TextStyle(
-          color: formColor.withOpacity(formOpacity),
-          fontSize: scaledFontSize,
-        ),
-      );
-      // Layout with the available canvas width as constraint
-      _textPainter.layout(
-        minWidth: 0,
-        maxWidth: canvasSize.width - textX,
-      ); // Consider available width
-      // Draw text at the calculated scaled position
-      _textPainter.paint(canvas, Offset(textX, textY));
-    }
-    // Add drawing logic for other FormItemModel types here
-  }
-  // --- End Helper Drawing Functions ---
 
   @override
   bool shouldRepaint(covariant MiniGameFieldPainter oldDelegate) {

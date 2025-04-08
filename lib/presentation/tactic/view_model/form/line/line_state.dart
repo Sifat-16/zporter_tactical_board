@@ -3,45 +3,49 @@ import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
 const Object _sentinel = Object();
 
 class LineState {
-  final List<FormModel> availableLineForms;
+  final List<LineModelV2> availableLines;
+  final List<FreeDrawModelV2> availableFreeDraws;
   final bool isLineActiveToAddIntoGameField;
-  final FormModel? activatedLineForm;
+  final LineModelV2? activatedLineForm;
   final bool isFreeDrawingActive;
-  final String? activatedFormId;
+  final String? activatedLineId;
 
   final bool isEraserActivated;
 
   const LineState({
-    this.availableLineForms = const [],
+    this.availableLines = const [],
+    this.availableFreeDraws = const [],
     this.isLineActiveToAddIntoGameField = false,
     this.activatedLineForm,
     this.isFreeDrawingActive = false,
-    this.activatedFormId,
+    this.activatedLineId,
     this.isEraserActivated = false,
   });
 
   LineState copyWith({
-    List<FormModel>? availableLineForms,
+    List<LineModelV2>? availableLines,
+    List<FreeDrawModelV2>? availableFreeDraws,
     bool? isLineActiveToAddIntoGameField,
     Object? activatedLineForm = _sentinel,
     bool? isFreeDrawingActive,
-    Object? activatedFormId = _sentinel,
+    Object? activatedLineId = _sentinel,
     bool? isEraserActivated,
   }) {
     return LineState(
-      availableLineForms: availableLineForms ?? this.availableLineForms,
+      availableLines: availableLines ?? this.availableLines,
+      availableFreeDraws: availableFreeDraws ?? this.availableFreeDraws,
       isLineActiveToAddIntoGameField:
           isLineActiveToAddIntoGameField ?? this.isLineActiveToAddIntoGameField,
       activatedLineForm:
           activatedLineForm == _sentinel
               ? this.activatedLineForm
-              : activatedLineForm as FormModel?,
+              : activatedLineForm as LineModelV2?,
 
       isFreeDrawingActive: isFreeDrawingActive ?? this.isFreeDrawingActive,
-      activatedFormId:
-          activatedFormId == _sentinel
-              ? this.activatedFormId
-              : activatedFormId as String?,
+      activatedLineId:
+          activatedLineId == _sentinel
+              ? this.activatedLineId
+              : activatedLineId as String?,
       isEraserActivated: isEraserActivated ?? this.isEraserActivated,
     );
   }
@@ -53,12 +57,12 @@ class LineState {
     // Use listEquals for comparing lists
     return other is LineState &&
         runtimeType == other.runtimeType &&
-        activatedFormId == other.activatedFormId;
+        activatedLineId == other.activatedLineId;
   }
 
   @override
   // TODO: implement hashCode
   int get hashCode {
-    return Object.hash(activatedFormId, activatedLineForm);
+    return Object.hash(activatedLineId, activatedLineForm);
   }
 }

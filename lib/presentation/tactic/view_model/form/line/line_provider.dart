@@ -13,14 +13,16 @@ class LineController extends StateNotifier<LineState> {
 
   Ref ref;
 
-  loadActiveLineModelToAddIntoGameFieldEvent({required FormModel formModel}) {
-    FormModel newForm = formModel.clone();
-    newForm.id = RandomGenerator.generateId();
+  loadActiveLineModelToAddIntoGameFieldEvent({
+    required LineModelV2 lineModelV2,
+  }) {
+    LineModelV2 newLine = lineModelV2.clone();
+    newLine.id = RandomGenerator.generateId();
     state = state.copyWith(
       isLineActiveToAddIntoGameField: true,
-      activatedLineForm: newForm,
-      activatedFormId: formModel.id,
-      isFreeDrawingActive: (formModel.formItemModel is FreeDrawModel),
+      activatedLineForm: newLine,
+      activatedLineId: newLine.id,
+      // isFreeDrawingActive: (formModel.formItemModel is FreeDrawModel),
     );
   }
 
@@ -32,36 +34,17 @@ class LineController extends StateNotifier<LineState> {
     );
   }
 
-  unLoadActiveLineModelToAddIntoGameFieldEvent({required FormModel formModel}) {
-    List<FormModel> forms = state.availableLineForms;
+  unLoadActiveLineModelToAddIntoGameFieldEvent({required LineModelV2 line}) {
+    List<LineModelV2> lines = state.availableLines;
     try {
-      forms.add(formModel);
-      zlog(
-        data:
-            "Problem adding unloaded forms ${formModel.formItemModel.runtimeType}",
-      );
+      lines.add(line);
+      zlog(data: "Problem adding unloaded forms ${line.runtimeType}");
     } catch (e) {}
-
-    // FormModel newForm = formModel.copyWith(formItemModel: null);
-    // newForm.id = RandomGenerator.generateId();
-    // FormItemModel? formItemModel = newForm.formItemModel?.clone();
-    //
-    // if (formItemModel is LineModel) {
-    //   formItemModel.start = Vector2.zero();
-    //   formItemModel.end = Vector2.zero();
-    //   newForm.formItemModel = formItemModel;
-    //
-    //   zlog(
-    //     data:
-    //         "Activated new lineform ${(newForm.formItemModel as LineModel).start} - ${(newForm.formItemModel as LineModel).end}",
-    //   );
-    // }
-
     state = state.copyWith(
       isLineActiveToAddIntoGameField: false,
-      availableLineForms: forms,
+      availableLines: lines,
       activatedLineForm: null,
-      activatedFormId: null,
+      activatedLineId: null,
       // activatedLineForm: null,
       // isFreeDrawingActive: false,
     );
@@ -77,5 +60,33 @@ class LineController extends StateNotifier<LineState> {
       dismissActiveLineModelToAddIntoGameFieldEvent();
       state = state.copyWith(isEraserActivated: true);
     }
+  }
+
+  void loadActiveFreeDrawModelToAddIntoGameFieldEvent() {
+    state = state.copyWith(
+      isLineActiveToAddIntoGameField: false,
+      activatedLineForm: null,
+      activatedLineId: null,
+      isFreeDrawingActive: true,
+      // isFreeDrawingActive: (formModel.formItemModel is FreeDrawModel),
+    );
+  }
+
+  void unLoadActiveFreeDrawModelToAddIntoGameFieldEvent({
+    required FreeDrawModelV2 freeDraw,
+  }) {
+    List<FreeDrawModelV2> freeDraws = state.availableFreeDraws;
+    try {
+      freeDraws.add(freeDraw);
+      zlog(data: "Problem adding unloaded forms ${freeDraw.runtimeType}");
+    } catch (e) {}
+    state = state.copyWith(
+      isLineActiveToAddIntoGameField: false,
+      activatedLineForm: null,
+      activatedLineId: null,
+      isFreeDrawingActive: false,
+      availableFreeDraws: freeDraws,
+      // isFreeDrawingActive: (formModel.formItemModel is FreeDrawModel),
+    );
   }
 }

@@ -183,8 +183,10 @@ class _DesignToolbarComponentState
 
   Widget _buildSizeSliderWidget({required BoardState boardState}) {
     FieldItemModel item = boardState.selectedItemOnTheBoard!;
-    if (item is FormModel && item.formItemModel is LineModel ||
-        item is FormModel && item.formItemModel is FreeDrawModel) {
+    if (
+    // item is FormModel && item.formItemModel is LineModel
+    //     ||
+    item is LineModelV2 || item is FreeDrawModelV2) {
       return SizedBox.shrink();
     }
     return Column(

@@ -6,7 +6,6 @@ import 'package:flame/src/game/notifying_vector2.dart';
 import 'package:flutter/src/material/tab_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
-import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
@@ -28,84 +27,34 @@ class BoardController extends StateNotifier<BoardState> {
       state = state.copyWith(players: [...state.players, fieldItemModel]);
     } else if (fieldItemModel is EquipmentModel) {
       state = state.copyWith(equipments: [...state.equipments, fieldItemModel]);
-    } else if (fieldItemModel is FormModel) {
-      state = state.copyWith(forms: [...state.forms, fieldItemModel]);
+    } else if (fieldItemModel is FreeDrawModelV2) {
+      state = state.copyWith(freeDraws: [...state.freeDraw, fieldItemModel]);
+    } else if (fieldItemModel is LineModelV2) {
+      state = state.copyWith(lines: [...state.lines, fieldItemModel]);
     }
   }
 
   List<FieldItemModel> allFieldItems() {
-    return [...state.players, ...state.equipments, ...state.forms];
+    return [
+      ...state.players,
+      ...state.equipments,
+      ...state.freeDraw,
+      ...state.lines,
+    ];
   }
-
-  // playAnimation(
-  //     PlayBoardAnimationEvent event,
-  //     Emitter<BoardState> emit,
-  //     ) {
-  //   for (var e in state.animationModel?.animations ?? []) {
-  //     zlog(data: "Item on the board ${e.toJson()}");
-  //   }
-  // }
 
   List<FieldItemModel> onAnimationSave() {
     Vector2? gameSize = fetchFieldSize();
     return [
       ...state.players.map((e) => e.clone()),
       ...state.equipments.map((e) => e.clone()),
-      ...state.forms.map((e) {
-        FormItemModel? fModel = e.formItemModel;
-        if (fModel is LineModel) {
-          fModel = fModel.copyWith(
-            start: SizeHelper.getBoardRelativeVector(
-              gameScreenSize: gameSize!,
-              actualPosition: fModel.start,
-            ),
-            end: SizeHelper.getBoardRelativeVector(
-              gameScreenSize: gameSize!,
-              actualPosition: fModel.end,
-            ),
-          );
-        }
-        return e.copyWith(
-          offset: SizeHelper.getBoardRelativeVector(
-            gameScreenSize: gameSize!,
-            actualPosition: e.offset!,
-          ),
-          formItemModel: fModel,
-        );
+      ...state.freeDraw.map((e) {
+        return e.clone();
+      }),
+      ...state.lines.map((e) {
+        return e.clone();
       }),
     ];
-    // try {
-    //   AnimationItemModel animationItemModel = AnimationItemModel(
-    //     id: RandomGenerator.generateId(),
-    //     components: [
-    //       ...state.players.map((e) => e.clone()),
-    //       ...state.equipments.map((e) => e.clone()),
-    //       ...state.forms.map((e) => e.clone()),
-    //     ],
-    //     createdAt: DateTime.now(),
-    //     updatedAt: DateTime.now(),
-    //   );
-    //   AnimationModel? animationModel = state.animationModel;
-    //   animationModel ??= AnimationModel(
-    //     id: RandomGenerator.generateId(),
-    //     name: "+++++++++\n++++++++\n+++++++++",
-    //     animationScenes: [],
-    //     createdAt: DateTime.now(),
-    //     updatedAt: DateTime.now(),
-    //   );
-    //   animationModel.animationScenes.add(animationItemModel);
-    //   zlog(
-    //     data:
-    //         "On Animation save the items ${animationModel.animationScenes.map((t) => t.components.map((c) => c.toJson()).toList()).toList()}",
-    //   );
-    //   state = state.copyWith(
-    //     animationModel: animationModel,
-    //     animationModelJson: animationModel.toJson(),
-    //   );
-    // } catch (e) {
-    // } finally {
-    //   BotToast.showText(text: "Animation saved");
-    // }
   }
 
   showAnimationEvent() {
@@ -141,20 +90,24 @@ class BoardController extends StateNotifier<BoardState> {
     FieldItemModel? selectedItem = state.selectedItemOnTheBoard;
     List<PlayerModel> players = state.players;
     List<EquipmentModel> equipments = state.equipments;
-    List<FormModel> forms = state.forms;
+    List<FreeDrawModelV2> freeDraws = state.freeDraw;
+    List<LineModelV2> lines = state.lines;
     if (selectedItem is PlayerModel) {
       players.removeWhere((t) => t.id == selectedItem.id);
     } else if (selectedItem is EquipmentModel) {
       equipments.removeWhere((t) => t.id == selectedItem.id);
-    } else if (selectedItem is FormModel) {
-      forms.removeWhere((t) => t.id == selectedItem.id);
+    } else if (selectedItem is FreeDrawModelV2) {
+      freeDraws.removeWhere((t) => t.id == selectedItem.id);
+    } else if (selectedItem is LineModelV2) {
+      lines.removeWhere((t) => t.id == selectedItem.id);
     }
     state = state.copyWith(
       forceItemToDeleteNull: true,
       forceItemModelNull: true,
       players: players,
       equipments: equipments,
-      forms: forms,
+      freeDraws: freeDraws,
+      lines: lines,
     );
   }
 
@@ -187,7 +140,12 @@ class BoardController extends StateNotifier<BoardState> {
   }
 
   void clearItems() {
-    state = state.copyWith(players: [], equipments: [], forms: []);
+    state = state.copyWith(
+      players: [],
+      equipments: [],
+      freeDraws: [],
+      lines: [],
+    );
   }
 
   Vector2? fetchFieldSize() {
@@ -221,9 +179,37 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(boardAngle: angle);
   }
 
-  void clearFreeDrawItem(FormModel formModel) {
-    List<FormModel> forms = [...state.forms];
-    forms.removeWhere((f) => f.id == formModel.id);
-    state = state.copyWith(forms: forms);
+  void clearFreeDrawItem(FreeDrawModelV2 freeDrawModelV2) {
+    List<FreeDrawModelV2> freeDraw = [...state.freeDraw];
+    freeDraw.removeWhere((f) => f.id == freeDrawModelV2.id);
+    state = state.copyWith(freeDraws: freeDraw);
+
   }
+
+  void updateLine({required LineModelV2 line}) {
+    List<LineModelV2> lines = state.lines;
+    int index = lines.indexWhere((l) => l.id == line.id);
+    if (index != -1) {
+      lines[index] = line;
+      state = state.copyWith(lines: lines);
+    }
+  }
+
+  void updateFreeDraw({required FreeDrawModelV2 freeDraw}) {
+    List<FreeDrawModelV2> freeDraws = state.freeDraw;
+    int index = freeDraws.indexWhere((l) => l.id == freeDraw.id);
+    if (index != -1) {
+      freeDraws[index] = freeDraw;
+      state = state.copyWith(freeDraws: freeDraws);
+    }
+  }
+
+  void toggleFullScreen() {
+    boardComparator = null;
+    state = state.copyWith(showFullScreen: !state.showFullScreen);
+  }
+
+  // void eraseComparator() {
+  //   (state.tacticBoardGame as TacticBoard).eraseComparator();
+  // }
 }

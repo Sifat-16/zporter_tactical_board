@@ -21,7 +21,6 @@ class AnimationState {
   int defaultAnimationItemIndex;
   List<AnimationItemModel> defaultAnimationItems;
   bool isPerformingUndo;
-  bool showFullScreen;
 
   // Constructor remains the same, prefer const if possible
   AnimationState({
@@ -38,7 +37,6 @@ class AnimationState {
     this.defaultAnimationItemIndex = 0,
     this.defaultAnimationItems = const [],
     this.isPerformingUndo = false,
-    this.showFullScreen = false,
   });
 
   AnimationState copyWith({
@@ -56,7 +54,6 @@ class AnimationState {
     int? defaultAnimationItemIndex,
     List<AnimationItemModel>? defaultAnimationItems,
     bool? isPerformingUndo,
-    bool? showFullScreen,
   }) {
     return AnimationState(
       selectedAnimationCollectionModel:
@@ -86,7 +83,6 @@ class AnimationState {
       defaultAnimationItems:
           defaultAnimationItems ?? this.defaultAnimationItems,
       isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
-      showFullScreen: showFullScreen ?? this.showFullScreen,
     );
   }
 

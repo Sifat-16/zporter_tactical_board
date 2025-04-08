@@ -21,6 +21,8 @@ import 'mixin/drawing_input_handler.dart';
 import 'mixin/item_management.dart';
 import 'mixin/layering_management.dart'; // Make sure this import points to the correct file
 
+String? boardComparator;
+
 // --- Base Abstract Class (Unchanged) ---
 abstract class TacticBoardGame extends FlameGame
     with DragCallbacks, TapDetector, RiverpodGameMixin {
@@ -44,11 +46,11 @@ class TacticBoard extends TacticBoardGame
 
   // --- Variable to store the previous state for comparison ---
   // Ensure this is a member variable if used across update calls
-  String? _comparator;
 
   @override
   FutureOr<void> onLoad() async {
     await super.onLoad();
+
     _initiateField(); // Field setup specific to this game
     setupBoardListeners(); // Call the listener setup method from the mixin
   }
@@ -80,7 +82,7 @@ class TacticBoard extends TacticBoardGame
     if (components.isNotEmpty) {
       if (!components.any((t) => t is FieldComponent) &&
           !components.any((t) => t is DraggableCircleComponent) &&
-          !components.any((t) => t is LineDrawerComponent)) {
+          !components.any((t) => t is LineDrawerComponentV2)) {
         ref // ref is available via RiverpodGameMixin
             .read(boardProvider.notifier)
             .toggleSelectItemEvent(fieldItemModel: null);
@@ -117,14 +119,17 @@ class TacticBoard extends TacticBoardGame
             ',',
           ); // Use join for a more stable string representation if order matters
 
-      if (_comparator == null) {
-        _comparator = current;
+      zlog(data: "[TacticBoard] Running 1-second check... ${current}");
+      // zlog(data: "Updated database... ${current}");
+
+      if (boardComparator == null) {
+        boardComparator = current;
       } else {
-        if (_comparator != current) {
+        if (boardComparator != current) {
           // --- ACTION: Do something when a change is detected ---
           // e.g., trigger autosave, update external UI, etc.
-          _comparator = current; // Update comparator to the new state
-          zlog(data: "Update database is called");
+          boardComparator = current; // Update comparator to the new state
+
           updateDatabase();
         } else {}
       }
@@ -143,5 +148,12 @@ class TacticBoard extends TacticBoardGame
   updateDatabase() {
     zlog(data: "Updated database..."); // Log that the check is running
     ref.read(animationProvider.notifier).updateDatabaseOnChange();
+  }
+
+  void redrawLines() {
+    List<FieldItemModel> items =
+        ref.read(boardProvider.notifier).allFieldItems();
+    zlog(data: "items detected ${items}");
+    resetItems(items);
   }
 }

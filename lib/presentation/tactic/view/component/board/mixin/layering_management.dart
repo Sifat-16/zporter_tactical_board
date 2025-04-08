@@ -7,7 +7,6 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 
 mixin LayeringManagement on TacticBoardGame {
@@ -24,11 +23,12 @@ mixin LayeringManagement on TacticBoardGame {
         if (component is FieldComponent && component.object.id == modelId) {
           return true;
         }
-        if (component is LineDrawerComponent &&
-            component.formModel.id == modelId) {
+        if (component is LineDrawerComponentV2 &&
+            component.lineModelV2.id == modelId) {
           return true;
         }
-        if (component is FormComponent && component.object.id == modelId) {
+        if (component is FreeDrawerComponentV2 &&
+            component.freeDrawModelV2.id == modelId) {
           return true;
         }
         // Add other component type checks if necessary...
@@ -48,10 +48,10 @@ mixin LayeringManagement on TacticBoardGame {
       if (component.size.isZero()) return null;
       return component.toRect();
     }
-    if (component is LineDrawerComponent) {
+    if (component is LineDrawerComponentV2) {
       // Assuming lineModel and thickness are accessible
       final lineModel =
-          component.lineModel; // Need getter on LineDrawerComponent
+          component.lineModelV2; // Need getter on LineDrawerComponent
       final thickness = lineModel.thickness; // Need thickness on LineModel
 
       if (lineModel.start == lineModel.end) {
@@ -109,8 +109,9 @@ mixin LayeringManagement on TacticBoardGame {
       // Check if 'otherComp' is a type relevant for layering
       bool isRelevant =
           (otherComp is FieldComponent ||
-              otherComp is LineDrawerComponent ||
-              otherComp is FormComponent /* Add other relevant types */ ) &&
+              otherComp is LineDrawerComponentV2 ||
+              otherComp
+                  is FreeDrawerComponentV2 /* Add other relevant types */ ) &&
           otherComp != gameField; // gameField is available via TacticBoardGame
 
       // If not relevant, skip to the next component in the loop
@@ -210,8 +211,9 @@ mixin LayeringManagement on TacticBoardGame {
       // Check if 'otherComp' is a type relevant for layering
       bool isRelevant =
           (otherComp is FieldComponent ||
-              otherComp is LineDrawerComponent ||
-              otherComp is FormComponent /* Add other relevant types */ ) &&
+              otherComp is LineDrawerComponentV2 ||
+              otherComp
+                  is FreeDrawerComponentV2 /* Add other relevant types */ ) &&
           otherComp != gameField; // gameField is available via TacticBoardGame
 
       // If not relevant, skip to the next component in the loop
