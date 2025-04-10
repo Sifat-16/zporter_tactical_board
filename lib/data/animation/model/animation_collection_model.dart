@@ -4,6 +4,7 @@ class AnimationCollectionModel {
   String id;
   String name;
   List<AnimationModel> animations;
+  String userId;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -11,6 +12,7 @@ class AnimationCollectionModel {
     required this.id,
     required this.name,
     required this.animations,
+    required this.userId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -20,11 +22,13 @@ class AnimationCollectionModel {
     String? name,
     List<AnimationModel>? animations,
     DateTime? createdAt,
+    String? userId,
     DateTime? updatedAt,
   }) {
     return AnimationCollectionModel(
       id: id ?? this.id,
       name: name ?? this.name,
+      userId: userId ?? this.userId,
       animations: animations ?? this.animations,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -35,6 +39,7 @@ class AnimationCollectionModel {
     return {
       '_id': id,
       'name': name,
+      'userId': userId,
       'animations': animations.map((animation) => animation.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -45,6 +50,7 @@ class AnimationCollectionModel {
     return AnimationCollectionModel(
       id: json['_id'],
       name: json['name'],
+      userId: json['userId'],
       animations:
           (json['animations'] as List)
               .map((animationJson) => AnimationModel.fromJson(animationJson))
@@ -58,6 +64,7 @@ class AnimationCollectionModel {
     return AnimationCollectionModel(
       id: id, // ObjectId is immutable
       name: name,
+      userId: userId,
       animations: animations.map((e) => e.clone()).toList(),
       createdAt: createdAt, // DateTime is immutable
       updatedAt: updatedAt, // DateTime is immutable

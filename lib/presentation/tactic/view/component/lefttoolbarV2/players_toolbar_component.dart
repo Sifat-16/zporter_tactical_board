@@ -3,7 +3,6 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/players_toolbar/players_toolbar_away.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/players_toolbar/players_toolbar_home.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/players_toolbar/players_toolbar_other.dart';
 
 class PlayersToolbarComponent extends StatefulWidget {
   const PlayersToolbarComponent({super.key});
@@ -21,7 +20,7 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
   // List of tab names and content to display
   final List<Map<String, dynamic>> _tabs = [
     {'title': 'Home', 'content': PlayersToolbarHome()},
-    {'title': 'Other', 'content': PlayersToolbarOther()},
+    // {'title': 'Other', 'content': PlayersToolbarOther()},
     {'title': 'Away', 'content': PlayersToolbarAway()},
   ];
 
@@ -44,6 +43,7 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
   void dispose() {
     _tabController.dispose();
     _pageController.dispose();
+
     super.dispose();
   }
 
@@ -65,7 +65,6 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
               controller: _tabController,
               labelColor: ColorManager.yellow,
               padding: EdgeInsets.zero,
-
               unselectedLabelColor: ColorManager.white,
               indicatorColor: ColorManager.yellow, // Remove the indicator line
               labelPadding: EdgeInsets.symmetric(
@@ -79,54 +78,32 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
                   }).toList(),
             ),
           ),
-          _buildHeader(),
 
-          Container(
-            child: Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  _tabController.animateTo(index); // Sync TabBar with PageView
-                },
-                children:
-                    _tabs.map((tab) {
-                      dynamic type = tab['content'];
-                      if (type is Widget) {
-                        return type;
-                      }
-                      return Center(
-                        child: Text(
-                          tab['content'],
-                          style: TextStyle(color: ColorManager.white),
-                        ),
-                      );
-                    }).toList(),
-              ),
+          // SizedBox(height: AppSize.s8), // Add some space if needed
+          Expanded(
+            // Ensure PageView gets available space
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                _tabController.animateTo(index); // Sync TabBar with PageView
+              },
+              children:
+                  _tabs.map((tab) {
+                    dynamic type = tab['content'];
+                    if (type is Widget) {
+                      return type;
+                    }
+                    return Center(
+                      child: Text(
+                        tab['content'],
+                        style: TextStyle(color: ColorManager.white),
+                      ),
+                    );
+                  }).toList(),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          "0 Players",
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
-        ),
-        Row(
-          children: [
-            Icon(Icons.search, color: ColorManager.grey),
-            Icon(Icons.arrow_drop_down_outlined, color: ColorManager.grey),
-            Icon(Icons.filter_list_outlined, color: ColorManager.grey),
-          ],
-        ),
-      ],
     );
   }
 }

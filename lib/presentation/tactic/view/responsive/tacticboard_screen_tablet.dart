@@ -17,7 +17,9 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class TacticboardScreenTablet extends ConsumerStatefulWidget {
-  const TacticboardScreenTablet({super.key});
+  const TacticboardScreenTablet({super.key, required this.userId});
+
+  final String userId;
 
   @override
   ConsumerState<TacticboardScreenTablet> createState() =>

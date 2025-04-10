@@ -3,13 +3,16 @@ import 'package:flame/components.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -26,21 +29,64 @@ mixin ItemManagement on TacticBoardGame {
       add(EquipmentComponent(object: item)); // add() is available via FlameGame
     } else if (item is LineModelV2) {
       await add(LineDrawerComponentV2(lineModelV2: item));
-    } else if (item is FreeDrawModelV2) {
-      await add(FreeDrawerComponentV2(freeDrawModelV2: item));
     }
+    // else if (item is FreeDrawModelV2) {
+    //   await add(FreeDrawerComponentV2(freeDrawModelV2: item));
+    // }
     if (save) {
       ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
     }
     // --- End of exact code ---
   }
 
+  _addFreeDrawing({required List<FreeDrawModelV2> lines}) {
+    try {
+      resetDrawings();
+    } catch (e) {}
+
+    zlog(data: "Initial lines before ${lines}");
+
+    ref.read(boardProvider.notifier).updateFreeDraws(lines: lines);
+    List<FreeDrawModelV2> duplicateLines = lines.map((e) => e.clone()).toList();
+
+    duplicateLines =
+        duplicateLines.map((l) {
+          List<Vector2> points = l.points;
+          points =
+              points
+                  .map(
+                    (p) => SizeHelper.getBoardActualVector(
+                      gameScreenSize: gameField.size,
+                      actualPosition: p,
+                    ),
+                  )
+                  .toList();
+          l.points = points;
+          return l;
+        }).toList();
+
+    zlog(data: "Initial lines after ${duplicateLines}");
+    drawingBoard = DrawingBoardComponent(
+      position: gameField.position,
+      initialLines: duplicateLines,
+      size: gameField.size,
+      eraserStrokeWidth: 20.0,
+    );
+    // Add the component to the game tree
+    add(drawingBoard);
+  }
+
   resetItems(List<FieldItemModel> items) {
-    removeAll(children);
     zlog(data: "Resetting now children is ${children}");
+    removeAll(children);
+    items = items.where((t) => t is! FreeDrawModelV2).toList();
     for (FieldItemModel i in items) {
       addItem(i, save: false);
     }
+  }
+
+  void resetDrawings() {
+    drawingBoard.resetDrawing();
   }
 
   // Private/Helper methods moved from TacticBoard (Code inside unchanged)
@@ -102,9 +148,17 @@ mixin ItemManagement on TacticBoardGame {
   }
 
   void addInitialItems(List<FieldItemModel> initialItems) {
+    zlog(data: "Initial items ${initialItems}");
     ref.read(boardProvider.notifier).clearItems();
     for (var f in initialItems) {
       addItem(f);
     }
+    _addFreeDrawing(
+      lines:
+          initialItems
+              .whereType<FreeDrawModelV2>()
+              .map((e) => e.clone())
+              .toList(),
+    );
   }
 }

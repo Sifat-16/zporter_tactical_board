@@ -3,7 +3,8 @@ import 'package:flutter/material.dart'; // Import for Color
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 
 import 'equipment_model.dart';
-import 'form_model.dart';
+import 'free_draw_model.dart';
+import 'line_model.dart';
 
 enum FieldItemType { PLAYER, EQUIPMENT, LINE, FREEDRAW }
 

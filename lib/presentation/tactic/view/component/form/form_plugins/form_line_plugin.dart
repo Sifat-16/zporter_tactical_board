@@ -9,7 +9,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
@@ -601,68 +601,5 @@ class LineDrawerComponentV2 extends PositionComponent
     final closestY = start.y + clampT * dy;
     final distance = Vector2(closestX, closestY).distanceTo(point);
     return distance < (circleRadius * 1.5);
-  }
-}
-
-class FreeDrawerComponentV2 extends PositionComponent
-    with
-        DragCallbacks,
-        HasGameReference<TacticBoardGame>,
-        RiverpodComponentMixin {
-  FreeDrawModelV2 freeDrawModelV2;
-  late FreeDrawModelV2 _duplicateDrawerModel;
-
-  late final Paint _paint;
-
-  FreeDrawerComponentV2({required this.freeDrawModelV2}) : super(priority: 3) {
-    _paint =
-        Paint()
-          ..color = freeDrawModelV2.color ?? ColorManager.dark2
-          ..strokeWidth = freeDrawModelV2.thickness
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke;
-  }
-
-  @override
-  FutureOr<void> onLoad() {
-    // TODO: implement onLoad
-    _duplicateDrawerModel = freeDrawModelV2.clone();
-    _duplicateDrawerModel.points =
-        _duplicateDrawerModel.points
-            .map(
-              (e) => SizeHelper.getBoardActualVector(
-                gameScreenSize: game.gameField.size,
-                actualPosition: e,
-              ),
-            )
-            .toList();
-    return super.onLoad();
-  }
-
-  // Add a point to the drawing
-  void addPoint(Vector2 point) {
-    _duplicateDrawerModel.points.add(point);
-    freeDrawModelV2.points.add(
-      SizeHelper.getBoardRelativeVector(
-        gameScreenSize: game.gameField.size,
-        actualPosition: point,
-      ),
-    );
-
-    zlog(data: "Free draw points ${freeDrawModelV2.points}");
-
-    ref.read(boardProvider.notifier).updateFreeDraw(freeDraw: freeDrawModelV2);
-  }
-
-  @override
-  void render(Canvas canvas) {
-    // Draw the free-form line using the points in freeDrawModel
-    for (int i = 0; i < _duplicateDrawerModel.points.length - 1; i++) {
-      canvas.drawLine(
-        _duplicateDrawerModel.points[i].toOffset(),
-        _duplicateDrawerModel.points[i + 1].toOffset(),
-        _paint,
-      );
-    }
   }
 }

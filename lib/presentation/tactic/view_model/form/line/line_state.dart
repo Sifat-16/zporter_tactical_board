@@ -1,4 +1,5 @@
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 
 const Object _sentinel = Object();
 

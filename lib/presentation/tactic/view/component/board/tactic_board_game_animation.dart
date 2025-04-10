@@ -10,11 +10,13 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -28,6 +30,8 @@ class TacticBoardGameAnimation extends TacticBoardGame {
       []; // Keep track of added components.
 
   Vector2 gameFieldSize = Vector2.zero();
+  late DrawingBoardComponent
+  drawingBoard; // Declare the component instance variable
 
   @override
   a.FutureOr<void> onLoad() async {
@@ -42,9 +46,18 @@ class TacticBoardGameAnimation extends TacticBoardGame {
   }
 
   Future<void> _initiateField() async {
-    gameField = GameField(size: Vector2(size.x - 20, size.y - 20));
+    gameField = GameField(
+      size: Vector2(size.x - 20, size.y - 20),
+      initialColor: animationModel.fieldColor,
+    );
     gameFieldSize = gameField.size;
     await add(gameField);
+
+    drawingBoard = DrawingBoardComponent(
+      position: gameField.position,
+      size: gameField.size,
+    );
+    await add(drawingBoard);
   }
 
   @override
@@ -60,8 +73,6 @@ class TacticBoardGameAnimation extends TacticBoardGame {
       await add(EquipmentComponent(object: item));
     } else if (item is LineModelV2) {
       await add(LineDrawerComponentV2(lineModelV2: item));
-    } else if (item is FreeDrawModelV2) {
-      await add(FreeDrawerComponentV2(freeDrawModelV2: item));
     }
     await lifecycleEventsProcessed;
   }
@@ -73,19 +84,31 @@ class TacticBoardGameAnimation extends TacticBoardGame {
   Future<void> startAnimation() async {
     List<AnimationItemModel> animations = animationModel.animationScenes;
 
-    // animations = adjustAnimationItemsForFieldSize(
-    //   originalAnimations: animations,
-    //   currentGameFieldSize: gameFieldSize,
-    // );
-
-    // *** Key Change: Collect effects, don't apply them immediately ***
-
     for (AnimationItemModel animationItem in animations) {
       List<FieldItemModel> items = animationItem.components;
-      zlog(
-        data:
-            "Adding effect to component ${animationItem.fieldSize} - ${gameFieldSize}",
-      );
+      List<FreeDrawModelV2> freeLines =
+          items.whereType<FreeDrawModelV2>().toList();
+
+      List<FreeDrawModelV2> duplicateLines =
+          freeLines.map((e) => e.clone()).toList();
+
+      duplicateLines =
+          duplicateLines.map((l) {
+            List<Vector2> points = l.points;
+            points =
+                points
+                    .map(
+                      (p) => SizeHelper.getBoardActualVector(
+                        gameScreenSize: gameField.size,
+                        actualPosition: p,
+                      ),
+                    )
+                    .toList();
+            l.points = points;
+            return l;
+          }).toList();
+
+      drawingBoard.loadLines(duplicateLines, suppressNotification: true);
       for (var i in items) {
         int fieldItemIndex = _components.indexWhere((e) => e.id == i.id);
         if (fieldItemIndex == -1) {
@@ -113,11 +136,12 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               component = children.query<LineDrawerComponentV2>().firstWhere(
                 (element) => element.lineModelV2.id == i.id,
               );
-            } else if (i is FreeDrawModelV2) {
-              component = children.query<FreeDrawerComponentV2>().firstWhere(
-                (element) => element.freeDrawModelV2.id == i.id,
-              );
             }
+            // else if (i is FreeDrawModelV2) {
+            //   component = children.query<FreeDrawerComponentV2>().firstWhere(
+            //     (element) => element.freeDrawModelV2.id == i.id,
+            //   );
+            // }
           } catch (e) {
             zlog(
               data:
@@ -133,11 +157,13 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               if (i is LineModelV2) {
                 component.lineModelV2 = i;
               }
-            } else if (component is FreeDrawerComponentV2) {
-              if (i is FreeDrawModelV2) {
-                component.freeDrawModelV2 = i;
-              }
-            } else if (component is FieldComponent) {
+            }
+            // else if (component is FreeDrawerComponentV2) {
+            //   if (i is FreeDrawModelV2) {
+            //     component.freeDrawModelV2 = i;
+            //   }
+            // }
+            else if (component is FieldComponent) {
               component.object = i;
             }
 
@@ -148,11 +174,13 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               zlog(data: "Line drawer component stat ${i.toJson()}");
               remove(component);
               addItem(i);
-            } else if (component is FreeDrawerComponentV2) {
-              zlog(data: "Free drawer component stat ${i.toJson()}");
-              remove(component);
-              addItem(i);
-            } else {
+            }
+            // else if (component is FreeDrawerComponentV2) {
+            //   zlog(data: "Free drawer component stat ${i.toJson()}");
+            //   remove(component);
+            //   addItem(i);
+            // }
+            else {
               final effect = MoveToEffect(
                 SizeHelper.getBoardActualVector(
                   gameScreenSize: gameFieldSize,

@@ -3,7 +3,8 @@ import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 
 class LineUtils {
   static final List<LineModelV2> _lines = [

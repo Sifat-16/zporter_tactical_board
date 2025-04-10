@@ -1,10 +1,11 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
@@ -45,7 +46,7 @@ class BoardState {
     this.moveDown = false,
     this.moveUp = false,
     this.copyItem,
-    this.boardColor = ColorManager.grey,
+    this.boardColor = BoardConstant.field_color,
     this.fieldSize,
     this.tabController,
     this.tacticBoardGame,

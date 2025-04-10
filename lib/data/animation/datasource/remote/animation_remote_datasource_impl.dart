@@ -1,304 +1,399 @@
-// 1. Modify AnimationCollectionModel FIRST
-// (Will provide this code separately)
-
-// 2. Rewrite AnimationDatasourceImpl
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:logger/logger.dart';
 import 'package:zporter_tactical_board/app/core/constants/firestore_constant.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
-// Remove MongoDB imports
-// Keep datasource interface and model imports
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 
 class AnimationRemoteDatasourceImpl implements AnimationDatasource {
-  // Get Firestore instance (can be injected)
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Reference to the Firestore collection
   late final CollectionReference<Map<String, dynamic>> _animationCollectionRef;
-
-  // Reference to the Firestore collection
+  // Collection for user-specific "default" animation items
   late final CollectionReference<Map<String, dynamic>> _defaultAnimationItemRef;
 
-  // Constructor initializes the collection reference
   AnimationRemoteDatasourceImpl() {
     _animationCollectionRef = _firestore.collection(
       FirestoreConstant.ANIMATION_COLLECTIONS,
     );
     _defaultAnimationItemRef = _firestore.collection(
-      FirestoreConstant.DEFAULT_ANIMATION_ITEMS,
+      FirestoreConstant
+          .DEFAULT_ANIMATION_ITEMS, // Still used, but now userId scoped
     );
   }
 
+  // --- Animation Collection Methods (User-Specific) ---
+  // (saveAnimationCollection and getAllAnimationCollection remain the same as previous version)
   @override
   Future<AnimationCollectionModel> saveAnimationCollection({
     required AnimationCollectionModel animationCollectionModel,
   }) async {
     try {
-      // Assume animationCollectionModel.id is a non-null String ID
-      // generated before calling this method (e.g., using _animationCollectionRef.doc().id)
-      if (animationCollectionModel.id.isEmpty) {
-        // If ID is somehow missing, we either throw or generate one now.
-        // Let's generate one for robustness, although ideally it comes in set.
+      String docId = animationCollectionModel.id;
+      final String userId = animationCollectionModel.userId;
+      if (docId.isEmpty) {
         final newDocRef = _animationCollectionRef.doc();
-        animationCollectionModel = animationCollectionModel.copyWith(
-          id: newDocRef.id,
-        ); // Update model with new ID
+        docId = newDocRef.id;
+        animationCollectionModel = animationCollectionModel.copyWith(id: docId);
         zlog(
-          level: Level.warning,
-          data: "Generated new ID during save: ${animationCollectionModel.id}",
+          level: Level.info,
+          data:
+              "Firestore: Generated new document ID for animation collection: $docId for user: $userId",
         );
       }
-
-      // Convert model to JSON (ensure toJson is updated for Firestore compatibility)
       final jsonData = animationCollectionModel.toJson();
-
-      // Use set with the specific document ID. This performs an UPSERT (update or insert).
-      await _animationCollectionRef
-          .doc(animationCollectionModel.id)
-          .set(jsonData);
-
-      // Firestore doesn't return the saved data directly on set.
-      // We assume the operation was successful and return the model passed in
-      // (potentially updated with a newly generated ID if it was missing).
-      // If confirmation from DB is needed, add a .get() call after .set().
+      await _animationCollectionRef.doc(docId).set(jsonData);
+      zlog(
+        level: Level.debug,
+        data:
+            "Firestore: Saved/Updated animation collection ID: $docId for user: $userId",
+      );
       return animationCollectionModel;
     } on FirebaseException catch (e) {
       zlog(
         level: Level.error,
         data:
-            "Firebase error saving animation collection: ${e.code} - ${e.message}",
+            "Firebase error saving animation collection for user ${animationCollectionModel.userId}: ${e.code} - ${e.message}",
       );
       throw Exception("Error saving animation collection: ${e.message}");
     } catch (e) {
-      zlog(level: Level.error, data: "Error saving animation collection: $e");
+      zlog(
+        level: Level.error,
+        data:
+            "Error saving animation collection for user ${animationCollectionModel.userId}: $e",
+      );
       throw Exception("Error saving animation collection: $e");
     }
   }
 
   @override
-  Future<List<AnimationCollectionModel>> getAllAnimationCollection() async {
+  Future<List<AnimationCollectionModel>> getAllAnimationCollection({
+    required String userId,
+  }) async {
     try {
-      // Get all documents from the collection
       final QuerySnapshot<Map<String, dynamic>> snapshot =
-          await _animationCollectionRef.get();
-
+          await _animationCollectionRef
+              .where('userId', isEqualTo: userId)
+              .get();
       List<AnimationCollectionModel> animationCollections = [];
-
       if (snapshot.docs.isEmpty) {
-        return animationCollections; // Return empty list if no documents
+        zlog(
+          level: Level.debug,
+          data: "Firestore: No animation collections found for user: $userId.",
+        );
+        return animationCollections;
       }
 
-      // Iterate through the document snapshots
+      zlog(data: "Animation collection found ${snapshot.docs}");
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
           in snapshot.docs) {
         try {
-          final data = doc.data();
-          // --- Call your MODIFIED fromJson(Map) ---
-          // Pass the data map directly. It expects '_id' and handles Timestamps.
-          animationCollections.add(AnimationCollectionModel.fromJson(data));
+          animationCollections.add(
+            AnimationCollectionModel.fromJson(doc.data()),
+          );
         } catch (e, stackTrace) {
           zlog(
             level: Level.error,
             data:
-                "Error parsing animation collection document ${doc.id}: $e\n$stackTrace",
-          ); // Use LogLevel
+                "Firestore: Error parsing animation collection document ${doc.id} for user $userId: $e\n$stackTrace",
+          );
         }
       }
-
+      zlog(
+        level: Level.debug,
+        data:
+            "Firestore: Fetched ${animationCollections.length} animation collections for user: $userId.",
+      );
       return animationCollections;
     } on FirebaseException catch (e) {
       zlog(
         level: Level.error,
         data:
-            "Firebase error getting all animation collections: ${e.code} - ${e.message}",
+            "Firebase error getting animation collections for user $userId: ${e.code} - ${e.message}",
       );
-      throw Exception("Error getting animation collections: ${e.message}");
+      throw Exception(
+        "Error getting animation collections for user $userId: ${e.message}",
+      );
     } catch (e) {
       zlog(
         level: Level.error,
-        data: "Error getting all animation collections: $e",
+        data: "Error getting animation collections for user $userId: $e",
       );
-      throw Exception("Error getting all animation collections: $e");
+      throw Exception(
+        "Error getting all animation collections for user $userId: $e",
+      );
     }
   }
 
+  // --- Default Animation Item Methods (NOW User-Specific) ---
+
   @override
-  Future<List<AnimationItemModel>> getDefaultAnimations() async {
+  Future<List<AnimationItemModel>> getDefaultAnimations({
+    required String userId, // <-- Takes userId
+  }) async {
     try {
-      // Get all documents from the collection
+      // --- ADDED: Filter by userId ---
       final QuerySnapshot<Map<String, dynamic>> snapshot =
-          await _defaultAnimationItemRef.get();
+          await _defaultAnimationItemRef
+              .where('userId', isEqualTo: userId)
+              .get();
 
       List<AnimationItemModel> animationItems = [];
-
       if (snapshot.docs.isEmpty) {
-        return animationItems; // Return empty list if no documents
+        zlog(
+          level: Level.debug,
+          data: "Firestore: No default animations found for user: $userId.",
+        );
+        return animationItems;
       }
-
-      // Iterate through the document snapshots
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc
           in snapshot.docs) {
         try {
-          final data = doc.data();
-          // --- Call your MODIFIED fromJson(Map) ---
-          // Pass the data map directly. It expects '_id' and handles Timestamps.
-          animationItems.add(AnimationItemModel.fromJson(data));
+          // Ensure fromJson handles userId correctly
+          animationItems.add(AnimationItemModel.fromJson(doc.data()));
         } catch (e, stackTrace) {
           zlog(
             level: Level.error,
             data:
-                "Error parsing default animation items document ${doc.id}: $e\n$stackTrace",
-          ); // Use LogLevel
+                "Firestore: Error parsing default animation items document ${doc.id} for user $userId: $e\n$stackTrace",
+          );
         }
       }
-
+      zlog(
+        level: Level.debug,
+        data:
+            "Firestore: Fetched ${animationItems.length} default animations for user: $userId.",
+      );
       return animationItems;
     } on FirebaseException catch (e) {
       zlog(
         level: Level.error,
         data:
-            "Firebase error getting all default animations : ${e.code} - ${e.message}",
+            "Firebase error getting default animations for user $userId: ${e.code} - ${e.message}",
       );
-      throw Exception("Error getting default animation : ${e.message}");
+      throw Exception(
+        "Error getting default animations for user $userId: ${e.message}",
+      );
     } catch (e) {
       zlog(
         level: Level.error,
-        data: "Error getting all default animation : $e",
+        data: "Error getting default animations for user $userId: $e",
       );
-      throw Exception("Error getting all default animation : $e");
+      throw Exception("Error getting default animations for user $userId: $e");
     }
   }
 
   @override
   Future<List<AnimationItemModel>> saveDefaultAnimations({
     required List<AnimationItemModel> animationItems,
+    required String userId, // <-- Takes userId
   }) async {
-    // Create a WriteBatch instance from Firestore
     final WriteBatch batch = _firestore.batch();
-    // List to hold models potentially updated with new IDs (returned value)
     final List<AnimationItemModel> savedOrUpdatedItems = [];
-    // Set to keep track of the IDs present in the input list
     final Set<String> inputItemIds = {};
 
     try {
-      // --- Step 1: Fetch existing document IDs from Firestore ---
+      // --- MODIFIED: Fetch existing IDs ONLY for this user ---
       zlog(
         level: Level.debug,
-        data: "Fetching existing default animation IDs...",
+        data: "Fetching existing default animation IDs for user $userId...",
       );
       final QuerySnapshot<Map<String, dynamic>> existingSnapshot =
-          await _defaultAnimationItemRef.get();
-      // Store existing IDs in a Set for efficient lookup
+          await _defaultAnimationItemRef
+              .where('userId', isEqualTo: userId)
+              .get();
       final Set<String> existingFirestoreIds =
           existingSnapshot.docs.map((doc) => doc.id).toSet();
       zlog(
         level: Level.debug,
         data:
-            "Found ${existingFirestoreIds.length} existing default animations in Firestore.",
+            "Found ${existingFirestoreIds.length} existing default animations for user $userId in Firestore.",
       );
 
-      // --- Step 2: Process input items and prepare SET operations ---
       zlog(
         level: Level.debug,
         data:
-            "Processing ${animationItems.length} input default animations for saving/updating...",
+            "Processing ${animationItems.length} input default animations for saving/updating for user $userId...",
       );
       for (var item in animationItems) {
         DocumentReference<Map<String, dynamic>> docRef;
-        String currentItemId = item.id; // Use a local var for the definite ID
+        String currentItemId = item.id;
 
-        // Ensure each item has an ID, generating one if necessary
-        if (currentItemId.isNotEmpty) {
-          docRef = _defaultAnimationItemRef.doc(currentItemId);
-        } else {
-          // Generate a new document reference (which includes a new ID)
-          docRef = _defaultAnimationItemRef.doc();
-          currentItemId = docRef.id; // Get the newly generated ID
-          // Update the item model instance with the new ID
-          item = item.copyWith(id: currentItemId);
+        // --- IMPORTANT: Ensure item has the correct userId before saving ---
+        item = item.copyWith(userId: userId); // Assign the target userId
+
+        if (currentItemId.isEmpty || currentItemId == null) {
+          // Check for empty or null ID
+          docRef = _defaultAnimationItemRef.doc(); // Generate Firestore ID
+          currentItemId = docRef.id;
+          item = item.copyWith(
+            id: currentItemId,
+          ); // Update ID along with userId
           zlog(
             level: Level.info,
             data:
-                "Generated new Firestore ID for default animation: $currentItemId",
+                "Generated new Firestore ID for default animation: $currentItemId for user $userId",
           );
+        } else {
+          // If ID exists, ensure we are using the one from the potentially updated item
+          currentItemId = item.id;
+          docRef = _defaultAnimationItemRef.doc(currentItemId);
         }
 
-        // Track the ID of this input item
         inputItemIds.add(currentItemId);
-
-        // Convert the item model (with definite ID) to JSON
-        final jsonData = item.toJson();
-
-        // Add a 'set' operation to the batch (creates or overwrites)
-        batch.set(docRef, jsonData);
-
-        // Add the item (potentially updated with ID) to our result list
-        savedOrUpdatedItems.add(item);
+        final jsonData = item.toJson(); // toJson includes the correct userId
+        batch.set(
+          docRef,
+          jsonData,
+        ); // Set operation for the specific user's item
+        savedOrUpdatedItems.add(item); // Add the item with correct userId
       }
       zlog(
         level: Level.debug,
-        data: "Prepared SET operations for ${inputItemIds.length} items.",
+        data:
+            "Prepared SET operations for ${inputItemIds.length} items for user $userId.",
       );
 
-      // --- Step 3: Determine which existing IDs need to be deleted ---
-      // Find IDs that are in Firestore but NOT in the input list
+      // Determine IDs to delete (only those belonging to this user)
       final Set<String> idsToDelete = existingFirestoreIds.difference(
         inputItemIds,
       );
-      // This is equivalent to:
-      // final idsToDelete = existingFirestoreIds.where((id) => !inputItemIds.contains(id)).toSet();
 
-      // --- Step 4: Add DELETE operations to the batch ---
       if (idsToDelete.isNotEmpty) {
         zlog(
           level: Level.info,
           data:
-              "Identified ${idsToDelete.length} default animations in Firestore to DELETE (not in input list): ${idsToDelete.join(', ')}",
+              "Identified ${idsToDelete.length} default animations for user $userId to DELETE: ${idsToDelete.join(', ')}",
         );
         for (final idToDelete in idsToDelete) {
+          // Deleting by doc ID is safe as idsToDelete was derived from a userId-filtered query
           batch.delete(_defaultAnimationItemRef.doc(idToDelete));
         }
       } else {
         zlog(
           level: Level.debug,
-          data: "No existing default animations need deletion.",
+          data:
+              "No existing default animations need deletion for user $userId.",
         );
       }
 
-      // --- Step 5: Commit all operations (sets and deletes) atomically ---
-      zlog(level: Level.debug, data: "Committing batch operations...");
+      zlog(
+        level: Level.debug,
+        data: "Committing batch operations for user $userId...",
+      );
       await batch.commit();
 
       zlog(
         level: Level.info,
         data:
-            "Successfully synchronized default animations. Saved/Updated: ${savedOrUpdatedItems.length}, Deleted: ${idsToDelete.length}.",
+            "Successfully synchronized default animations for user $userId. Saved/Updated: ${savedOrUpdatedItems.length}, Deleted: ${idsToDelete.length}.",
       );
-
-      // --- Step 6: Return the list of items that were saved or updated ---
       return savedOrUpdatedItems;
     } on FirebaseException catch (e) {
       zlog(
         level: Level.error,
         data:
-            "Firebase error synchronizing default animations: ${e.code} - ${e.message}",
+            "Firebase error synchronizing default animations for user $userId: ${e.code} - ${e.message}",
       );
-      throw Exception("Error synchronizing default animations: ${e.message}");
+      throw Exception(
+        "Error synchronizing default animations for user $userId: ${e.message}",
+      );
     } catch (e, stackTrace) {
       zlog(
         level: Level.error,
-        data: "Error synchronizing default animations: $e\n$stackTrace",
+        data:
+            "Error synchronizing default animations for user $userId: $e\n$stackTrace",
       );
-      throw Exception("Error synchronizing default animations: $e");
+      throw Exception(
+        "Error synchronizing default animations for user $userId: $e",
+      );
     }
   }
 
   @override
-  Future<AnimationItemModel> getDefaultSceneFromId({required String id}) {
-    // TODO: implement getDefaultSceneFromId
+  Future<AnimationItemModel?> getDefaultSceneFromId({
+    required String id,
+    required String userId, // <-- Takes userId
+  }) async {
+    try {
+      final DocumentSnapshot<Map<String, dynamic>> doc =
+          await _defaultAnimationItemRef.doc(id).get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          final fetchedUserId = data['userId'] as String?;
+          // --- ADDED: Verify userId match ---
+          if (fetchedUserId == userId) {
+            zlog(
+              level: Level.debug,
+              data:
+                  "Firestore: Found default scene ID: $id belonging to user $userId.",
+            );
+            // Ensure fromJson handles userId and potential Timestamps
+            return AnimationItemModel.fromJson(data);
+          } else {
+            zlog(
+              data:
+                  "Firestore: Default scene ID: $id found, but belongs to different user (expected $userId, found $fetchedUserId).",
+            );
+            return null; // Found, but not for this user
+          }
+        } else {
+          zlog(
+            data:
+                "Firestore: Default scene document $id exists but data is null (user $userId).",
+          );
+          return null; // Document exists but no data
+        }
+      } else {
+        zlog(
+          level: Level.debug,
+          data: "Firestore: Default scene ID: $id not found for user $userId.",
+        );
+        return null; // Not found at all
+      }
+    } on FirebaseException catch (e) {
+      zlog(
+        level: Level.error,
+        data:
+            "Firebase error getting default scene by ID $id for user $userId: ${e.code} - ${e.message}",
+      );
+      throw Exception(
+        "Error getting default scene $id for user $userId: ${e.message}",
+      );
+    } catch (e) {
+      zlog(
+        level: Level.error,
+        data: "Error getting default scene by ID $id for user $userId: $e",
+      );
+      throw Exception("Error getting default scene $id for user $userId: $e");
+    }
+  }
+
+  @override
+  Future<void> deleteHistory({required String id}) {
+    // TODO: implement deleteHistory
     throw UnimplementedError();
   }
-} // End of AnimationDatasourceImpl class
+
+  @override
+  Future<HistoryModel?> getHistory({required String id}) {
+    // TODO: implement getHistory
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> saveHistory({required HistoryModel historyModel}) {
+    // TODO: implement saveHistory
+    throw UnimplementedError();
+  }
+
+  @override
+  Stream<HistoryModel?> getHistoryStream({required String id}) {
+    // TODO: implement getHistoryStream
+    throw UnimplementedError();
+  }
+}

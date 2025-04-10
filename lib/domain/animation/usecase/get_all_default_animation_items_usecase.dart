@@ -3,11 +3,11 @@ import 'package:zporter_tactical_board/data/animation/repository/animation_repos
 import 'package:zporter_tactical_board/domain/common/usecase.dart';
 
 class GetAllDefaultAnimationItemsUseCase
-    extends UseCase<List<AnimationItemModel>, dynamic> {
+    extends UseCase<List<AnimationItemModel>, String> {
   final AnimationRepository animationRepository;
   GetAllDefaultAnimationItemsUseCase({required this.animationRepository});
   @override
   Future<List<AnimationItemModel>> call(param) async {
-    return await animationRepository.getDefaultAnimations();
+    return await animationRepository.getDefaultAnimations(userId: param);
   }
 }

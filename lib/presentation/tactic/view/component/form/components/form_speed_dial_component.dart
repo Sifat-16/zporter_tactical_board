@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/get_history_stream_usecase.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_utils.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
@@ -11,7 +16,9 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/
 import 'line/form_line_item.dart';
 
 class FormSpeedDialComponent extends ConsumerStatefulWidget {
-  const FormSpeedDialComponent({super.key});
+  const FormSpeedDialComponent({super.key, required this.tacticBoardGame});
+
+  final TacticBoardGame tacticBoardGame;
 
   @override
   ConsumerState<FormSpeedDialComponent> createState() =>
@@ -114,6 +121,8 @@ class _FormSpeedDialComponentState
     final lp = ref.watch(lineProvider);
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
+    final GetHistoryStreamUseCase _historyStream =
+        sl.get<GetHistoryStreamUseCase>();
     return Row(
       mainAxisSize: MainAxisSize.min,
       spacing: 20,
@@ -173,7 +182,7 @@ class _FormSpeedDialComponentState
             FontAwesomeIcons.eraser,
             color:
                 lp.isEraserActivated
-                    ? ColorManager.white
+                    ? ColorManager.red
                     : ColorManager.white.withValues(
                       alpha:
                           lp.isFreeDrawingActive ||
@@ -183,6 +192,29 @@ class _FormSpeedDialComponentState
                     ),
           ),
         ),
+        if (selectedScene != null)
+          StreamBuilder(
+            stream: _historyStream.call(selectedScene.id),
+            builder: (context, snapshot) {
+              HistoryModel? history = snapshot.data;
+
+              zlog(data: "History data ${history?.history}");
+
+              if (history == null) {
+                return SizedBox.shrink();
+              } else {
+                return GestureDetector(
+                  onTap: () {
+                    ref.read(animationProvider.notifier).performUndoOperation();
+                  },
+                  child: Icon(
+                    FontAwesomeIcons.arrowRotateLeft,
+                    color: ColorManager.white,
+                  ),
+                );
+              }
+            },
+          ),
       ],
     );
   }

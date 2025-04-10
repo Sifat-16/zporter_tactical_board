@@ -8,8 +8,8 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 
 class GameField extends PositionComponent
     with HasGameReference, RiverpodComponentMixin {
-  GameField({required Vector2 size}) : super(size: size);
-
+  GameField({required Vector2 size, this.initialColor}) : super(size: size);
+  final Color? initialColor;
   // Measurements
   late double centerCircleRadius;
   late double penaltyBoxWidth;
@@ -33,6 +33,9 @@ class GameField extends PositionComponent
         _fieldPaint.color = current.boardColor;
       });
     });
+
+    _fieldPaint.color = initialColor ?? ColorManager.grey;
+
     _initializePosition();
     _initializeMeasurements();
     size.y -= 20;

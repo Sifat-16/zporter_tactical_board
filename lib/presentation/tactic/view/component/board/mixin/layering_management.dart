@@ -27,10 +27,10 @@ mixin LayeringManagement on TacticBoardGame {
             component.lineModelV2.id == modelId) {
           return true;
         }
-        if (component is FreeDrawerComponentV2 &&
-            component.freeDrawModelV2.id == modelId) {
-          return true;
-        }
+        // if (component is FreeDrawerComponentV2 &&
+        //     component.freeDrawModelV2.id == modelId) {
+        //   return true;
+        // }
         // Add other component type checks if necessary...
         // e.g., FreeDrawerComponent
         return false;
@@ -108,10 +108,8 @@ mixin LayeringManagement on TacticBoardGame {
       if (otherComp == selectedComp) continue;
       // Check if 'otherComp' is a type relevant for layering
       bool isRelevant =
-          (otherComp is FieldComponent ||
-              otherComp is LineDrawerComponentV2 ||
-              otherComp
-                  is FreeDrawerComponentV2 /* Add other relevant types */ ) &&
+          (otherComp is FieldComponent || otherComp is LineDrawerComponentV2
+          /* Add other relevant types */ ) &&
           otherComp != gameField; // gameField is available via TacticBoardGame
 
       // If not relevant, skip to the next component in the loop
@@ -211,9 +209,8 @@ mixin LayeringManagement on TacticBoardGame {
       // Check if 'otherComp' is a type relevant for layering
       bool isRelevant =
           (otherComp is FieldComponent ||
-              otherComp is LineDrawerComponentV2 ||
               otherComp
-                  is FreeDrawerComponentV2 /* Add other relevant types */ ) &&
+                  is LineDrawerComponentV2 /* Add other relevant types */ ) &&
           otherComp != gameField; // gameField is available via TacticBoardGame
 
       // If not relevant, skip to the next component in the loop

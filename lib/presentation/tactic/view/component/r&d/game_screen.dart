@@ -58,9 +58,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   updateTacticBoardIfNecessary(AnimationItemModel? selectedScene) {
     WidgetsBinding.instance.addPostFrameCallback((t) {
       setState(() {
+        boardComparator = null;
         tacticBoardGame = TacticBoard(scene: selectedScene);
         zlog(data: "Build new tactic board");
         ref.read(boardProvider.notifier).updateGameBoard(tacticBoardGame);
+        ref
+            .read(boardProvider.notifier)
+            .updateBoardColor(
+              ref.read(animationProvider.notifier).getFieldColor(),
+            );
         gameInitialized = true;
       });
     });
@@ -161,7 +167,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   decoration: BoxDecoration(),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [FormSpeedDialComponent()],
+                    children: [
+                      FormSpeedDialComponent(tacticBoardGame: tacticBoardGame),
+                    ],
                   ),
                 ),
               ),
@@ -172,75 +180,3 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 }
-
-// class LargeGameScreen extends ConsumerStatefulWidget {
-//   const LargeGameScreen({super.key, required this.scene});
-//   final AnimationItemModel? scene;
-//   @override
-//   ConsumerState<LargeGameScreen> createState() => _LargeGameScreenState();
-// }
-//
-// class _LargeGameScreenState extends ConsumerState<LargeGameScreen> {
-//   late LargeGameBoard tacticBoardGame;
-//   bool gameInitialized = false;
-//   int previousAngle = 0;
-//
-//   @override
-//   void initState() {
-//     // TODO: implement initState
-//     super.initState();
-//     updateTacticBoardIfNecessary(widget.scene);
-//   }
-//
-//   @override
-//   void didUpdateWidget(covariant LargeGameScreen oldWidget) {
-//     // TODO: implement didUpdateWidget
-//     super.didUpdateWidget(oldWidget);
-//     if (oldWidget.scene?.id == widget.scene?.id) {
-//       WidgetsBinding.instance.addPostFrameCallback((t) {
-//         if (ref.read(animationProvider).isPerformingUndo == true) {
-//           updateTacticBoardIfNecessary(widget.scene);
-//           ref.read(animationProvider.notifier).toggleUndo(undo: false);
-//         }
-//       });
-//     } else {
-//       updateTacticBoardIfNecessary(widget.scene);
-//     }
-//   }
-//
-//   updateTacticBoardIfNecessary(AnimationItemModel? selectedScene) {
-//     WidgetsBinding.instance.addPostFrameCallback((t) {
-//       setState(() {
-//         tacticBoardGame = LargeGameBoard(scene: selectedScene);
-//         zlog(data: "Build new tactic board");
-//         ref.read(boardProvider.notifier).updateGameBoard(tacticBoardGame);
-//         gameInitialized = true;
-//       });
-//     });
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final ap = ref.watch(animationProvider);
-//     return gameInitialized == false
-//         ? Center(child: CircularProgressIndicator())
-//         : Stack(
-//           children: [
-//             RiverpodAwareGameWidget(
-//               game: tacticBoardGame,
-//               key: largeGameWidgetKey,
-//             ),
-//             Align(
-//               alignment: Alignment.topRight,
-//               child: IconButton(
-//                 onPressed: () {
-//                   boardComparator = null;
-//                   Navigator.of(context).pop();
-//                 },
-//                 icon: Icon(Icons.cancel_outlined),
-//               ),
-//             ),
-//           ],
-//         );
-//   }
-// }

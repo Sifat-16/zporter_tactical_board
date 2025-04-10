@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -27,6 +28,7 @@ String? boardComparator;
 abstract class TacticBoardGame extends FlameGame
     with DragCallbacks, TapDetector, RiverpodGameMixin {
   late GameField gameField;
+  late DrawingBoardComponent drawingBoard;
 }
 
 // ---- The Refactored TacticBoard Class ----
@@ -50,17 +52,20 @@ class TacticBoard extends TacticBoardGame
   @override
   FutureOr<void> onLoad() async {
     await super.onLoad();
-
-    _initiateField(); // Field setup specific to this game
     setupBoardListeners(); // Call the listener setup method from the mixin
+    _initiateField(); // Field setup specific to this game
   }
 
   // Methods specific to TacticBoard remain here
   _initiateField() {
-    gameField = GameField(size: Vector2(size.x - 20, size.y - 20));
+    gameField = GameField(
+      size: Vector2(size.x - 20, size.y - 20),
+      initialColor: scene?.fieldColor,
+    );
     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
     add(gameField); // add() is available via FlameGame
     addInitialItems(scene?.components ?? []);
+    // initiateFieldColor();
   }
 
   @override
@@ -104,9 +109,6 @@ class TacticBoard extends TacticBoardGame
     // Check if the accumulated time has reached or exceeded the interval
     if (_timerAccumulator >= _checkInterval) {
       // --- Your change detection logic goes here ---
-      zlog(
-        data: "[TacticBoard] Running 1-second check...",
-      ); // Log that the check is running
 
       // Assuming FieldItemModel is the correct type here
       List<FieldItemModel> items =
@@ -118,8 +120,10 @@ class TacticBoard extends TacticBoardGame
           .join(
             ',',
           ); // Use join for a more stable string representation if order matters
+      current =
+          "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()}";
 
-      zlog(data: "[TacticBoard] Running 1-second check... ${current}");
+      zlog(data: "[TacticBoard] Running 1-second check... $items");
       // zlog(data: "Updated database... ${current}");
 
       if (boardComparator == null) {
@@ -147,7 +151,9 @@ class TacticBoard extends TacticBoardGame
 
   updateDatabase() {
     zlog(data: "Updated database..."); // Log that the check is running
-    ref.read(animationProvider.notifier).updateDatabaseOnChange();
+    ref.read(animationProvider.notifier).updateDatabaseOnChange().then((a) {
+      ref.read(animationProvider.notifier).saveHistory(scene: a);
+    });
   }
 
   void redrawLines() {

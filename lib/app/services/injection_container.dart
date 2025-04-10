@@ -8,11 +8,15 @@ import 'package:zporter_tactical_board/data/animation/datasource/remote/animatio
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_cache_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_repository_impl.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/delete_history_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_default_animation_items_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_default_scene_from_id_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/get_history_stream_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/get_history_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/save_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/save_default_animation_usecase.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/save_history_usecase.dart';
 import 'package:zporter_tactical_board/firebase_options.dart';
 
 import 'connectivity_service.dart';
@@ -86,6 +90,30 @@ Future<void> init() async {
 
   sl.registerLazySingleton<GetDefaultSceneFromIdUseCase>(
     () => GetDefaultSceneFromIdUseCase(
+      animationRepository: sl.get<AnimationRepository>(instanceName: "local"),
+    ),
+  );
+
+  sl.registerLazySingleton<GetHistoryUseCase>(
+    () => GetHistoryUseCase(
+      animationRepository: sl.get<AnimationRepository>(instanceName: "local"),
+    ),
+  );
+
+  sl.registerLazySingleton<DeleteHistoryUseCase>(
+    () => DeleteHistoryUseCase(
+      animationRepository: sl.get<AnimationRepository>(instanceName: "local"),
+    ),
+  );
+
+  sl.registerLazySingleton<SaveHistoryUseCase>(
+    () => SaveHistoryUseCase(
+      animationRepository: sl.get<AnimationRepository>(instanceName: "local"),
+    ),
+  );
+
+  sl.registerLazySingleton<GetHistoryStreamUseCase>(
+    () => GetHistoryStreamUseCase(
       animationRepository: sl.get<AnimationRepository>(instanceName: "local"),
     ),
   );

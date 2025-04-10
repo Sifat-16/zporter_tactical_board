@@ -5,6 +5,7 @@ import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
 
 class AnimationCacheRepositoryImpl implements AnimationRepository {
@@ -20,14 +21,18 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   // --- READ OPERATIONS ---
   // ... (Keep the previous Read implementations with fallback) ...
   @override
-  Future<List<AnimationCollectionModel>> getAllAnimationCollection() async {
+  Future<List<AnimationCollectionModel>> getAllAnimationCollection({
+    required String userId,
+  }) async {
     zlog(
       level: Level.debug,
       data:
           "[Repo] GET All Collections: Attempting REMOTE first (Firestore may use cache)...",
     );
     try {
-      final remoteCollections = await _remoteDs.getAllAnimationCollection();
+      final remoteCollections = await _remoteDs.getAllAnimationCollection(
+        userId: userId,
+      );
       zlog(
         level: Level.info,
         data:
@@ -47,7 +52,9 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         data:
             "[Repo] Reading updated collections from LOCAL Sembast to return.",
       );
-      final localCollections = await _localDs.getAllAnimationCollection();
+      final localCollections = await _localDs.getAllAnimationCollection(
+        userId: userId,
+      );
       zlog(
         level: Level.info,
         data:
@@ -61,7 +68,9 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
             "[Repo] Remote fetch/sync failed for All Collections: $e. FALLING BACK TO LOCAL Sembast cache.",
       );
       try {
-        final localCollections = await _localDs.getAllAnimationCollection();
+        final localCollections = await _localDs.getAllAnimationCollection(
+          userId: userId,
+        );
         zlog(
           level: Level.info,
           data:
@@ -100,14 +109,16 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   }
 
   @override
-  Future<List<AnimationItemModel>> getDefaultAnimations() async {
+  Future<List<AnimationItemModel>> getDefaultAnimations({
+    required String userId,
+  }) async {
     zlog(
       level: Level.debug,
       data:
           "[Repo] GET Default Animations: Attempting REMOTE first (Firestore may use cache)...",
     );
     try {
-      final remoteItems = await _remoteDs.getDefaultAnimations();
+      final remoteItems = await _remoteDs.getDefaultAnimations(userId: userId);
       zlog(
         level: Level.info,
         data:
@@ -117,7 +128,10 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         level: Level.debug,
         data: "[Repo] Updating LOCAL Sembast cache (Default Animations)...",
       );
-      await _localDs.saveDefaultAnimations(animationItems: remoteItems);
+      await _localDs.saveDefaultAnimations(
+        animationItems: remoteItems,
+        userId: userId,
+      );
       zlog(
         level: Level.debug,
         data: "[Repo] LOCAL Sembast cache (Default Animations) updated.",
@@ -127,7 +141,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         data:
             "[Repo] Reading updated default animations from LOCAL Sembast to return.",
       );
-      final localItems = await _localDs.getDefaultAnimations();
+      final localItems = await _localDs.getDefaultAnimations(userId: userId);
       zlog(
         level: Level.info,
         data:
@@ -141,7 +155,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
             "[Repo] Remote fetch/sync failed for Default Animations: $e. FALLING BACK TO LOCAL Sembast cache.",
       );
       try {
-        final localItems = await _localDs.getDefaultAnimations();
+        final localItems = await _localDs.getDefaultAnimations(userId: userId);
         zlog(
           level: Level.info,
           data:
@@ -280,6 +294,8 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   @override
   Future<List<AnimationItemModel>> saveDefaultAnimations({
     required List<AnimationItemModel> animationItems,
+
+    required String userId,
   }) async {
     // 1. Check Connectivity Status
     bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
@@ -303,6 +319,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         // 2a. Save Locally First (Await this)
         final savedLocalItemsResult = await _localDs.saveDefaultAnimations(
           animationItems: itemsToSaveLocally,
+          userId: userId,
         );
         // Note: saveDefaultAnimations might return void or the saved items. Adjust based on its signature.
         // Assuming it returns the list for consistency:
@@ -322,6 +339,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         _remoteDs
             .saveDefaultAnimations(
               animationItems: savedLocalItems,
+              userId: userId,
             ) // Use locally saved items
             .then((_) {
               zlog(
@@ -341,7 +359,9 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
             });
 
         // 2c. Read back from Local to return consistent state
-        final currentLocalItems = await _localDs.getDefaultAnimations();
+        final currentLocalItems = await _localDs.getDefaultAnimations(
+          userId: userId,
+        );
         return currentLocalItems;
       } catch (localError, localStack) {
         zlog(
@@ -364,6 +384,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         // 3a. Save/Sync to Remote First (Await this)
         final savedRemoteItems = await _remoteDs.saveDefaultAnimations(
           animationItems: animationItems,
+          userId: userId,
         );
         zlog(
           level: Level.info,
@@ -378,6 +399,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         );
         await _localDs.saveDefaultAnimations(
           animationItems: savedRemoteItems, // Use list confirmed by remote
+          userId: userId,
         );
         zlog(
           level: Level.debug,
@@ -385,7 +407,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         );
 
         // 3c. Read back from Local Cache and return
-        final localItems = await _localDs.getDefaultAnimations();
+        final localItems = await _localDs.getDefaultAnimations(userId: userId);
         zlog(
           level: Level.info,
           data:
@@ -407,7 +429,29 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   @override
   Future<AnimationItemModel?> getDefaultSceneFromId({
     required String id,
+
+    required String userId,
   }) async {
-    return await _localDs.getDefaultSceneFromId(id: id);
+    return await _localDs.getDefaultSceneFromId(id: id, userId: userId);
+  }
+
+  @override
+  Future<void> deleteHistory({required String id}) async {
+    return await _localDs.deleteHistory(id: id);
+  }
+
+  @override
+  Future<HistoryModel?> getHistory({required String id}) async {
+    return await _localDs.getHistory(id: id);
+  }
+
+  @override
+  Future<void> saveHistory({required HistoryModel historyModel}) async {
+    return await _localDs.saveHistory(historyModel: historyModel);
+  }
+
+  @override
+  Stream<HistoryModel?> getHistoryStream({required String id}) {
+    return _localDs.getHistoryStream(id: id);
   }
 } // End of class AnimationCacheRepositoryImpl

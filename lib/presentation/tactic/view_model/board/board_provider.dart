@@ -8,7 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/form_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
@@ -27,9 +28,11 @@ class BoardController extends StateNotifier<BoardState> {
       state = state.copyWith(players: [...state.players, fieldItemModel]);
     } else if (fieldItemModel is EquipmentModel) {
       state = state.copyWith(equipments: [...state.equipments, fieldItemModel]);
-    } else if (fieldItemModel is FreeDrawModelV2) {
-      state = state.copyWith(freeDraws: [...state.freeDraw, fieldItemModel]);
-    } else if (fieldItemModel is LineModelV2) {
+    }
+    // else if (fieldItemModel is FreeDrawModelV2) {
+    //   state = state.copyWith(freeDraws: [...state.freeDraw, fieldItemModel]);
+    // }
+    else if (fieldItemModel is LineModelV2) {
       state = state.copyWith(lines: [...state.lines, fieldItemModel]);
     }
   }
@@ -45,6 +48,7 @@ class BoardController extends StateNotifier<BoardState> {
 
   List<FieldItemModel> onAnimationSave() {
     Vector2? gameSize = fetchFieldSize();
+
     return [
       ...state.players.map((e) => e.clone()),
       ...state.equipments.map((e) => e.clone()),
@@ -179,13 +183,6 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(boardAngle: angle);
   }
 
-  void clearFreeDrawItem(FreeDrawModelV2 freeDrawModelV2) {
-    List<FreeDrawModelV2> freeDraw = [...state.freeDraw];
-    freeDraw.removeWhere((f) => f.id == freeDrawModelV2.id);
-    state = state.copyWith(freeDraws: freeDraw);
-
-  }
-
   void updateLine({required LineModelV2 line}) {
     List<LineModelV2> lines = state.lines;
     int index = lines.indexWhere((l) => l.id == line.id);
@@ -195,21 +192,13 @@ class BoardController extends StateNotifier<BoardState> {
     }
   }
 
-  void updateFreeDraw({required FreeDrawModelV2 freeDraw}) {
-    List<FreeDrawModelV2> freeDraws = state.freeDraw;
-    int index = freeDraws.indexWhere((l) => l.id == freeDraw.id);
-    if (index != -1) {
-      freeDraws[index] = freeDraw;
-      state = state.copyWith(freeDraws: freeDraws);
-    }
-  }
-
   void toggleFullScreen() {
     boardComparator = null;
     state = state.copyWith(showFullScreen: !state.showFullScreen);
   }
 
-  // void eraseComparator() {
-  //   (state.tacticBoardGame as TacticBoard).eraseComparator();
-  // }
+  void updateFreeDraws({required List<FreeDrawModelV2> lines}) {
+    zlog(data: "Update free draws called $lines");
+    state = state.copyWith(freeDraws: [...lines]);
+  }
 }
