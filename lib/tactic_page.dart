@@ -10,39 +10,41 @@ class TacticApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ProviderScope(
-      child: ScreenUtilInit(
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (_, child) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'Zporter Board',
-            builder: BotToastInit(),
-            navigatorObservers: [BotToastNavigatorObserver()],
-            themeMode: ThemeMode.system,
-            home: HomePage(),
-            // home: GameScreen(),
-          );
-        },
-      ),
+    return ScreenUtilInit(
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (_, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Zporter Board',
+          builder: BotToastInit(),
+          navigatorObservers: [BotToastNavigatorObserver()],
+          themeMode: ThemeMode.system,
+          home: Scaffold(
+            backgroundColor: ColorManager.black,
+            body: TacticPage(userId: "DUMMY_USER_ID"),
+          ),
+          // home: GameScreen(),
+        );
+      },
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class TacticPage extends StatefulWidget {
+  const TacticPage({super.key, required this.userId});
+
+  final String userId;
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<TacticPage> createState() => _TacticPageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _TacticPageState extends State<TacticPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: ColorManager.black,
-      body: TacticboardScreen(userId: "DUMMY_USER_ID"),
+    return ProviderScope(
+      child: TacticboardScreen(userId: widget.userId),
       // body: DrawingScreen(),
     );
   }
