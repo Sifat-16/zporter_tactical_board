@@ -79,6 +79,23 @@ class AnimationController extends StateNotifier<AnimationState> {
 
     try {
       collections = await _getAllAnimationCollectionUseCase.call(_getUserId());
+
+      if (collections.isEmpty) {
+        await _saveAnimationCollectionUseCase.call(
+          AnimationCollectionModel(
+            id: RandomGenerator.generateId(),
+            name: "General",
+            animations: [],
+            userId: ref.read(authProvider).userId ?? "",
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        );
+        collections = await _getAllAnimationCollectionUseCase.call(
+          _getUserId(),
+        );
+      }
+
       AnimationCollectionModel? selectedAnimation =
           state.selectedAnimationCollectionModel ?? collections.firstOrNull;
       state = state.copyWith(
