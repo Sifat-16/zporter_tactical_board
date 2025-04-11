@@ -105,13 +105,13 @@ class _TacticboardScreenTabletState
                       : asp.showQuickSave
                       ? ShowQuickSaveComponent()
                       : SingleChildScrollView(
-                        physics: NeverScrollableScrollPhysics(),
+                        // physics: NeverScrollableScrollPhysics(),
                         child: Column(
                           spacing: 10,
                           children: [
                             // Flexible(flex: 7, child: GameScreen(key: _gameScreenKey)),
                             SizedBox(
-                              height: context.heightPercent(80),
+                              height: context.heightPercent(75),
                               child: GameScreen(scene: selectedScene),
                             ),
 
