@@ -83,7 +83,7 @@ mixin DrawingInputHandler on TacticBoardGame {
         lp.isLineActiveToAddIntoGameField &&
         lineStartPoint != null &&
         _currentStraightLine != null) {
-      final currentPoint = event.localPosition;
+      final currentPoint = event.localStartPosition;
       _currentStraightLine!.updateEnd(currentPoint);
       _currentStraightLine!.updateLine();
       eventHandled = true;
