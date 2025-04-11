@@ -23,7 +23,7 @@ import 'connectivity_service.dart';
 
 final sl = GetIt.instance;
 
-Future<void> init() async {
+Future<void> initializeTacticBoardDependencies() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
