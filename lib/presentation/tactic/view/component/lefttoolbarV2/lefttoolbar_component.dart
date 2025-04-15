@@ -4,7 +4,6 @@ import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/players_toolbar_component.dart';
 
 import 'equipment_toolbar_component.dart';
-import 'forms_toolbar_component.dart';
 
 class LefttoolbarComponent extends StatefulWidget {
   const LefttoolbarComponent({super.key});
@@ -21,7 +20,7 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
   // List of tab names and content to display
   final List<Map<String, dynamic>> _tabs = [
     {'title': 'Players', 'content': PlayersToolbarComponent()},
-    {'title': 'Forms', 'content': FormsToolbarComponent()},
+    // {'title': 'Forms', 'content': FormsToolbarComponent()},
     {'title': 'Equipment', 'content': EquipmentToolbarComponent()},
   ];
 

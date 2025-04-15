@@ -1,13 +1,15 @@
 import 'dart:async';
 
 import 'package:flame/components.dart';
+import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/tactic_board_game.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class GameField extends PositionComponent
-    with HasGameReference<TacticBoardGame> {
-  GameField({required Vector2 size}) : super(size: size);
-
+    with HasGameReference, RiverpodComponentMixin {
+  GameField({required Vector2 size, this.initialColor}) : super(size: size);
+  final Color? initialColor;
   // Measurements
   late double centerCircleRadius;
   late double penaltyBoxWidth;
@@ -18,17 +20,25 @@ class GameField extends PositionComponent
 
   final Paint _borderPaint =
       Paint()
-        ..color = Colors.white
+        ..color = ColorManager.black
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
+        ..strokeWidth = 1;
 
-  final Paint _fieldPaint =
-      Paint()..color = const Color(0xFF4CAF50); // Green Field
+  final Paint _fieldPaint = Paint()..color = ColorManager.grey; // Green Field
 
   @override
   FutureOr<void> onLoad() {
+    addToGameWidgetBuild(() {
+      ref.listen(boardProvider, (previous, current) {
+        _fieldPaint.color = current.boardColor;
+      });
+    });
+
+    _fieldPaint.color = initialColor ?? ColorManager.grey;
+
     _initializePosition();
     _initializeMeasurements();
+    size.y -= 20;
     return super.onLoad();
   }
 
@@ -166,26 +176,4 @@ class GameField extends PositionComponent
       _borderPaint,
     );
   }
-
-  /// Draws the corner arcs
-  // void _drawCornerArcs(Canvas canvas) {
-  //   final double cornerRadius = 10;
-  //
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(0, 0), radius: cornerRadius),
-  //     1.5*1.57, -3.14, false, _borderPaint,
-  //   );
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(size.x, 0), radius: cornerRadius),
-  //     3.14, 1.57, false, _borderPaint,
-  //   );
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(0, size.y), radius: cornerRadius),
-  //     0, 1.57, false, _borderPaint,
-  //   );
-  //   canvas.drawArc(
-  //     Rect.fromCircle(center: Offset(size.x, size.y), radius: cornerRadius),
-  //     4.71, 1.57, false, _borderPaint,
-  //   );
-  // }
 }

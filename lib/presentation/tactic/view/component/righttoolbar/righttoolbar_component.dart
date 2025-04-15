@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/saved_animation_toolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/settings_toolbar_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 import 'animation_toolbar_component.dart';
 import 'design_toolbar_component.dart';
 
-class RighttoolbarComponent extends StatefulWidget {
+class RighttoolbarComponent extends ConsumerStatefulWidget {
   const RighttoolbarComponent({super.key});
 
   @override
-  State<RighttoolbarComponent> createState() => _RighttoolbarComponentState();
+  ConsumerState<RighttoolbarComponent> createState() =>
+      _RighttoolbarComponentState();
 }
 
-class _RighttoolbarComponentState extends State<RighttoolbarComponent>
+class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late PageController _pageController;
@@ -24,21 +26,30 @@ class _RighttoolbarComponentState extends State<RighttoolbarComponent>
     {'title': 'Design', 'content': DesignToolbarComponent()},
     {'title': 'Animation', 'content': AnimationToolbarComponent()},
     {'title': 'Settings', 'content': SettingsToolbarComponent()},
-    {'title': 'Saved Animation', 'content': SavedAnimationToolbarComponent()},
   ];
 
   @override
   void initState() {
     super.initState();
     // Initialize the TabController
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _pageController = PageController();
+    _tabController = TabController(
+      initialIndex: 1,
+      length: _tabs.length,
+      vsync: this,
+    );
+    _pageController = PageController(initialPage: 1);
 
     // Sync TabBar with PageView swipe
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         _pageController.jumpToPage(_tabController.index);
       }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      ref
+          .read(boardProvider.notifier)
+          .updateTabController(controller: _tabController);
     });
   }
 
