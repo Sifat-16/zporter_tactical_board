@@ -79,13 +79,26 @@ mixin DrawingInputHandler on TacticBoardGame {
     }
 
     // --- Priority 2: Straight Line Drawing ---
+    // if (!eventHandled &&
+    //     lp.isLineActiveToAddIntoGameField &&
+    //     lineStartPoint != null &&
+    //     _currentStraightLine != null) {
+    //   final currentPoint = event.localStartPosition;
+    //   _currentStraightLine!.updateEnd(currentPoint);
+    //   _currentStraightLine!.updateLine();
+    //   eventHandled = true;
+    // }
+
     if (!eventHandled &&
         lp.isLineActiveToAddIntoGameField &&
         lineStartPoint != null &&
         _currentStraightLine != null) {
-      final currentPoint = event.localStartPosition;
+      final currentPoint = event.localStartPosition; // Use current position
       _currentStraightLine!.updateEnd(currentPoint);
-      _currentStraightLine!.updateLine();
+
+      // *** Tell updateLine to recalculate control points during creation: ***
+      _currentStraightLine!.updateLine(recalculateControlPoints: true);
+
       eventHandled = true;
     }
 

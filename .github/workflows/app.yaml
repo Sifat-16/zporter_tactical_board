@@ -2,7 +2,7 @@ name: App-Deploy
 
 on:
   push:
-    branches: [app]
+    branches: [master-2]
 
 jobs:
   build:
