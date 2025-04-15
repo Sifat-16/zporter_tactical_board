@@ -1,37 +1,37 @@
 {
   "project_info": {
-    "project_number": "623338569626",
-    "project_id": "zporter-board",
-    "storage_bucket": "zporter-board.firebasestorage.app"
+    "project_number": "134085653898",
+    "project_id": "zporter-board-dev",
+    "storage_bucket": "zporter-board-dev.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:623338569626:android:62fb14ba7a2a69ef120423",
+        "mobilesdk_app_id": "1:134085653898:android:c6778df57e903ba61b8473",
         "android_client_info": {
           "package_name": "com.example.zporter_tactical_board"
         }
       },
       "oauth_client": [
         {
-          "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+          "client_id": "134085653898-ioj34cmu5ldpmuqr6b1qo70gdpt2hl05.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBiXs0KM7tNLjAB9UVKb-D1DDevaASEaRQ"
+          "current_key": "AIzaSyBB1l3bCAdbTeY5K994umyWdOhSk_H9rKw"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+              "client_id": "134085653898-ioj34cmu5ldpmuqr6b1qo70gdpt2hl05.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "623338569626-bcgqsjoncdn99ttgldebae78k7j91mcp.apps.googleusercontent.com",
+              "client_id": "134085653898-6k0eqd7vnami56425tqqtfp3jvqk0js7.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
                 "bundle_id": "com.zporter.zporterBoard"
@@ -43,39 +43,31 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:623338569626:android:7ccaf1f6ec4ab51b120423",
+        "mobilesdk_app_id": "1:134085653898:android:6e92b5f71281d1431b8473",
         "android_client_info": {
           "package_name": "com.zporter.zporter_board"
         }
       },
       "oauth_client": [
         {
-          "client_id": "623338569626-nrlj49a6dglc3qof13lufm0ne9d1kjhu.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.zporter.zporter_board",
-            "certificate_hash": "bce7564cd1778394c94a8284a6af646b48a42fb0"
-          }
-        },
-        {
-          "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+          "client_id": "134085653898-ioj34cmu5ldpmuqr6b1qo70gdpt2hl05.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBiXs0KM7tNLjAB9UVKb-D1DDevaASEaRQ"
+          "current_key": "AIzaSyBB1l3bCAdbTeY5K994umyWdOhSk_H9rKw"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "623338569626-0h6cvv0lvr85i2te7f7hc1puqrftpbk3.apps.googleusercontent.com",
+              "client_id": "134085653898-ioj34cmu5ldpmuqr6b1qo70gdpt2hl05.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "623338569626-bcgqsjoncdn99ttgldebae78k7j91mcp.apps.googleusercontent.com",
+              "client_id": "134085653898-6k0eqd7vnami56425tqqtfp3jvqk0js7.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
                 "bundle_id": "com.zporter.zporterBoard"

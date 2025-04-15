@@ -3,23 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>623338569626-u9c8pecbp2uct6bk3vlg7p0movusio74.apps.googleusercontent.com</string>
+	<string>134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.623338569626-u9c8pecbp2uct6bk3vlg7p0movusio74</string>
-	<key>ANDROID_CLIENT_ID</key>
-	<string>623338569626-nrlj49a6dglc3qof13lufm0ne9d1kjhu.apps.googleusercontent.com</string>
+	<string>com.googleusercontent.apps.134085653898-i4ok6frvearr4bmj635988of676isjt8</string>
 	<key>API_KEY</key>
-	<string>AIzaSyBMIAOYa-sqbdLTCYhp3YucRloN_Lur0jE</string>
+	<string>AIzaSyAgpJWBk_Na0E3xBcas1DBEBRmuvHW4el8</string>
 	<key>GCM_SENDER_ID</key>
-	<string>623338569626</string>
+	<string>134085653898</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>com.example.zporterTacticalBoard</string>
 	<key>PROJECT_ID</key>
-	<string>zporter-board</string>
+	<string>zporter-board-dev</string>
 	<key>STORAGE_BUCKET</key>
-	<string>zporter-board.firebasestorage.app</string>
+	<string>zporter-board-dev.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -31,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:623338569626:ios:7aca690410804179120423</string>
+	<string>1:134085653898:ios:10b8f4c871d4a2a41b8473</string>
 </dict>
 </plist>
