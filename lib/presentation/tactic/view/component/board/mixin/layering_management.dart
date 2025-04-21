@@ -7,7 +7,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
 
 mixin LayeringManagement on TacticBoardGame {
   // Helper methods moved from TacticBoard (Code inside unchanged)

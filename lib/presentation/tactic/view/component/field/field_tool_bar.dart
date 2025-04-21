@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
-import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
@@ -33,10 +32,7 @@ class _FieldToolBarState extends ConsumerState<FieldToolBar> {
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
     final ap = ref.watch(animationProvider);
-    zlog(
-      data:
-          "Animation scene updated {widget.selectedScene?.componentHistory.length}",
-    );
+
     return Container(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,

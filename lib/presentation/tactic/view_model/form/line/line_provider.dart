@@ -3,6 +3,7 @@ import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart';
 
 final lineProvider = StateNotifierProvider<LineController, LineState>(
@@ -21,19 +22,31 @@ class LineController extends StateNotifier<LineState> {
     newLine.id = RandomGenerator.generateId();
     state = state.copyWith(
       isLineActiveToAddIntoGameField: true,
-      activatedLineForm: newLine,
-      activatedLineId: newLine.id,
+      activeForm: newLine,
+      activatedFormId: newLine.id,
       // isFreeDrawingActive: (formModel.formItemModel is FreeDrawModel),
     );
   }
 
-  dismissActiveLineModelToAddIntoGameFieldEvent() {
+  void dismissActiveFormItem() {
     state = state.copyWith(
       isLineActiveToAddIntoGameField: false,
-      activatedLineForm: null,
+      isShapeActiveToAddIntoGameField: false, // Reset shape flag too
       isFreeDrawingActive: false,
+      isEraserActivated: false, // Also turn off eraser if dismissing
+      activeForm: null,
+      activatedFormId: null, // Use generic ID field
     );
+    zlog(data: "Dismissed active form item.");
   }
+
+  // dismissActiveLineModelToAddIntoGameFieldEvent() {
+  //   state = state.copyWith(
+  //     isLineActiveToAddIntoGameField: false,
+  //     activeForm: null,
+  //     isFreeDrawingActive: false,
+  //   );
+  // }
 
   unLoadActiveLineModelToAddIntoGameFieldEvent({required LineModelV2 line}) {
     List<LineModelV2> lines = state.availableLines;
@@ -44,8 +57,8 @@ class LineController extends StateNotifier<LineState> {
     state = state.copyWith(
       isLineActiveToAddIntoGameField: false,
       availableLines: lines,
-      activatedLineForm: null,
-      activatedLineId: null,
+      activeForm: null,
+      activatedFormId: null,
       // activatedLineForm: null,
       // isFreeDrawingActive: false,
     );
@@ -58,7 +71,7 @@ class LineController extends StateNotifier<LineState> {
     if (isEraserActivated) {
       state = state.copyWith(isEraserActivated: false);
     } else {
-      dismissActiveLineModelToAddIntoGameFieldEvent();
+      dismissActiveFormItem();
       state = state.copyWith(isEraserActivated: true);
     }
   }
@@ -66,8 +79,8 @@ class LineController extends StateNotifier<LineState> {
   void loadActiveFreeDrawModelToAddIntoGameFieldEvent() {
     state = state.copyWith(
       isLineActiveToAddIntoGameField: false,
-      activatedLineForm: null,
-      activatedLineId: null,
+      activeForm: null,
+      activatedFormId: null,
       isFreeDrawingActive: true,
       // isFreeDrawingActive: (formModel.formItemModel is FreeDrawModel),
     );
@@ -83,11 +96,33 @@ class LineController extends StateNotifier<LineState> {
     } catch (e) {}
     state = state.copyWith(
       isLineActiveToAddIntoGameField: false,
-      activatedLineForm: null,
-      activatedLineId: null,
+      activeForm: null,
+      activatedFormId: null,
       isFreeDrawingActive: false,
       availableFreeDraws: freeDraws,
       // isFreeDrawingActive: (formModel.formItemModel is FreeDrawModel),
     );
+  }
+
+  void loadActiveShapeModelToAddIntoGameFieldEvent({
+    required ShapeModel shapeModel,
+  }) {
+    dismissActiveFormItem();
+
+    ShapeModel newShape = shapeModel.clone(); // Assuming ShapeModel has clone()
+    newShape.id = RandomGenerator.generateId(); // Ensure unique ID
+    state = state.copyWith(
+      isShapeActiveToAddIntoGameField: true, // Set shape flag
+      activeForm: newShape, // Set generic form
+      activatedFormId: newShape.id, // Set generic ID
+    );
+    zlog(data: "Loaded active Shape: ${newShape.id}");
+  }
+
+  /// Call this when a shape drawing is completed and added to the board
+  void unLoadActiveShapeModelToAddIntoGameFieldEvent({
+    required ShapeModel shape,
+  }) {
+    dismissActiveFormItem();
   }
 }

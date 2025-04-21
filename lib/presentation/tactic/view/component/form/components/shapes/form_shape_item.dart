@@ -3,55 +3,51 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
-import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 
-class FormLineItem extends ConsumerStatefulWidget {
-  const FormLineItem({
+class FormShapeItem extends ConsumerStatefulWidget {
+  const FormShapeItem({
     super.key,
-    required this.lineModelV2,
+    required this.shapeModel,
     required this.onTap,
   });
-  final LineModelV2 lineModelV2;
+  final ShapeModel shapeModel;
   final VoidCallback onTap;
 
   @override
-  ConsumerState<FormLineItem> createState() => _FormLineItemState();
+  ConsumerState<FormShapeItem> createState() => _FormShapeItemState();
 }
 
-class _FormLineItemState extends ConsumerState<FormLineItem> {
+class _FormShapeItemState extends ConsumerState<FormShapeItem> {
   @override
   Widget build(BuildContext context) {
     final lp = ref.watch(lineProvider);
     return GestureDetector(
       onTap: () {
-        if (lp.isLineActiveToAddIntoGameField) {
+        if (lp.isShapeActiveToAddIntoGameField) {
           ref.read(lineProvider.notifier).dismissActiveFormItem();
         } else {
           ref
               .read(lineProvider.notifier)
-              .loadActiveLineModelToAddIntoGameFieldEvent(
-                lineModelV2: widget.lineModelV2,
+              .loadActiveShapeModelToAddIntoGameFieldEvent(
+                shapeModel: widget.shapeModel,
               );
         }
 
         widget.onTap();
       },
-      child: _buildLineComponent(
-        isFocused:
-            lp.isLineActiveToAddIntoGameField &&
-            lp.activatedFormId == widget.lineModelV2.id,
-      ),
+      child: _buildShapeComponent(),
     );
   }
 
-  Widget _buildLineComponent({required bool isFocused}) {
+  Widget _buildShapeComponent() {
     return RepaintBoundary(
       key: UniqueKey(),
       child: Center(
         child: Image.asset(
-          "assets/images/${widget.lineModelV2.imagePath}",
-          color: isFocused ? ColorManager.yellowLight : ColorManager.white,
+          "assets/images/${widget.shapeModel.imagePath}",
+          color: ColorManager.white,
           height: AppSize.s32,
           width: AppSize.s32,
         ),

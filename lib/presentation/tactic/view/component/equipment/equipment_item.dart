@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-class EquipmentItem extends StatefulWidget {
+class EquipmentItem extends ConsumerStatefulWidget {
   const EquipmentItem({super.key, required this.equipmentModel});
 
   final EquipmentModel equipmentModel;
 
   @override
-  State<EquipmentItem> createState() => _EquipmentItemState();
+  ConsumerState<EquipmentItem> createState() => _EquipmentItemState();
 }
 
-class _EquipmentItemState extends State<EquipmentItem> {
+class _EquipmentItemState extends ConsumerState<EquipmentItem> {
   bool _isFocused = false;
 
   void _setFocus(bool focus) {
@@ -27,7 +29,12 @@ class _EquipmentItemState extends State<EquipmentItem> {
       onTap: () => _setFocus(!_isFocused),
       child: Draggable<EquipmentModel>(
         data: widget.equipmentModel,
-        onDragStarted: () => _setFocus(true),
+        onDragStarted: () {
+          _setFocus(true);
+          ref
+              .read(boardProvider.notifier)
+              .updateDraggingToBoard(isDragging: true);
+        },
         onDragEnd: (DraggableDetails details) {
           _setFocus(false);
         },

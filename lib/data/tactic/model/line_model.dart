@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart'; // For describeEnum, listEquals
 import 'package:flutter/material.dart'; // For Color
 
 // Assuming FieldItemModel and its helpers are defined correctly and imported
-import 'field_item_model.dart';
+import 'field_item_model.dart'; // Make sure this path is correct
 
 // --- FormItemModel Hierarchy (Keep as provided) ---
 
@@ -27,21 +27,22 @@ class LineModelV2 extends FieldItemModel {
   LineType lineType;
   String name;
   String imagePath;
-  //   imagePath: "diagonal-line.png",
+  // NEW: Optional fields for control points
+  Vector2? controlPoint1;
+  Vector2? controlPoint2;
 
   LineModelV2({
     // FieldItemModel required properties
     required super.id,
-    super.fieldItemType = FieldItemType.LINE, // Set the type
-    // FieldItemModel optional properties (pass them to super)
+    super.fieldItemType = FieldItemType.LINE,
+    // FieldItemModel optional properties
     super.angle,
     super.canBeCopied = true,
-    super.scaleSymmetrically =
-        false, // Lines typically don't scale symmetrically
+    super.scaleSymmetrically = false,
     super.createdAt,
     super.updatedAt,
-    super.size, // Size might be calculated from start/end or ignored for lines
-    super.color, // Base color (optional, maybe unused for Line)
+    super.size,
+    super.color, // Base color (can store line color here too now)
     super.opacity,
     super.offset,
 
@@ -52,96 +53,114 @@ class LineModelV2 extends FieldItemModel {
     this.thickness = 2.0,
     required this.name,
     required this.imagePath,
-  }); // Call super constructor
+    // NEW: Add control points to constructor (optional)
+    this.controlPoint1,
+    this.controlPoint2,
+  });
 
   // --- Updated fromJson Static Factory Method ---
   static LineModelV2 fromJson(Map<String, dynamic> json) {
-    // // --- Parse Base Class Properties ---
-    // final baseModel = FieldItemModel.fromJson(json); // Use base factory
-    //
-    // zlog(data: "Line mode basemodel ${baseModel.fieldItemType}");
-    //
-    // --- Parse LineModel Specific Properties ---
-    // 'start' is handled by baseModel.offset
-    final start =
-        FieldItemModel.vector2FromJson(json['start']) ?? Vector2.zero();
-    final end = FieldItemModel.vector2FromJson(json['end']) ?? Vector2.zero();
-    final lineColor = Color(
-      json['lineColor'] as int? ?? Colors.black.value,
-    ); // Use specific key 'lineColor'
-    final thickness = (json['thickness'] as num?)?.toDouble() ?? 2.0;
-    final lineType = LineType.values.firstWhere(
-      (e) => describeEnum(e) == (json['lineType'] as String?),
-      orElse: () => LineType.UNKNOWN,
-    );
-    final name = json['name'];
-    final imagePath = json['imagePath'];
+    // --- Parse Base FieldItemModel Properties ---
 
-    final id = json['_id']; // Use helper
+    final id =
+        json['_id'] as String? ?? ''; // Example: handle potential null id
     final offset =
-        FieldItemModel.offsetFromJson(json['offset']) ??
-        Vector2.zero(); // Use helper + Default
-    final scaleSymmetrically =
-        json['scaleSymmetrically'] as bool? ?? true; // Default from constructor
-    final angle = json['angle'] as double?;
-    final canBeCopied =
-        json['canBeCopied'] as bool? ?? false; // Default from constructor
+        FieldItemModel.offsetFromJson(json['offset']) ?? Vector2.zero();
+    final scaleSymmetrically = json['scaleSymmetrically'] as bool? ?? false;
+    final angle =
+        (json['angle'] as num?)?.toDouble(); // Allow num for flexibility
+    final canBeCopied = json['canBeCopied'] as bool? ?? true;
     final createdAt =
         json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
     final updatedAt =
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
-    final size = FieldItemModel.vector2FromJson(json['size']); // Use helper
-    final color = json['color'] != null ? Color(json['color']) : null;
+    final size = FieldItemModel.vector2FromJson(json['size']);
+    final color =
+        json['color'] != null
+            ? Color(json['color'])
+            : null; // Use base 'color' for line color
     final opacity =
-        json['opacity'] == null
-            ? null
-            : double.parse(json['opacity'].toString());
+        (json['opacity'] as num?)?.toDouble() ?? 1.0; // Default opacity to 1.0
+    final fieldItemType = FieldItemType.values.firstWhere(
+      (e) => e.name == (json['fieldItemType'] as String?),
+      orElse: () => FieldItemType.LINE, // Default to LINE if missing/invalid
+    );
 
-    // --- Construct and Return LineModel Instance ---
+    // --- Parse LineModel Specific Properties ---
+    final start =
+        FieldItemModel.vector2FromJson(json['start']) ??
+        offset; // Use offset as fallback for start
+    final end = FieldItemModel.vector2FromJson(json['end']) ?? Vector2.zero();
+    final thickness = (json['thickness'] as num?)?.toDouble() ?? 2.0;
+    final lineType = LineType.values.firstWhere(
+      (e) => describeEnum(e) == (json['lineType'] as String?),
+      orElse:
+          () =>
+              LineType
+                  .STRAIGHT_LINE, // Default to straight line if missing/invalid
+    );
+    final name = json['name'] as String? ?? '';
+    final imagePath = json['imagePath'] as String? ?? '';
+
+    // --- NEW: Parse Control Points (Optional) ---
+    final controlPoint1 = FieldItemModel.vector2FromJson(json['controlPoint1']);
+    final controlPoint2 = FieldItemModel.vector2FromJson(json['controlPoint2']);
+
     return LineModelV2(
-      // Pass base properties from parsed FieldItemModel
+      // Base properties
       id: id,
-      offset: offset ?? Vector2.zero(), // Use offset as start
+      offset:
+          offset, // Keep original offset behavior if needed, or sync with start
       angle: angle,
       canBeCopied: canBeCopied,
       scaleSymmetrically: scaleSymmetrically,
       createdAt: createdAt,
       updatedAt: updatedAt,
       size: size,
-      color: color, // Base color
+      color: color, // Set base color as line color
       opacity: opacity,
-      fieldItemType: FieldItemType.LINE, // Explicitly set type
-      // Pass LineModel specific properties
+      fieldItemType: fieldItemType,
+      // LineModel specific properties
       start: start,
       end: end,
       lineType: lineType,
       thickness: thickness,
       name: name,
       imagePath: imagePath,
+      // NEW: Assign parsed control points
+      controlPoint1: controlPoint1,
+      controlPoint2: controlPoint2,
     );
   }
 
   // --- Updated toJson Method ---
   @override
-  Map<String, dynamic> toJson() => {
-    ...super
-        .toJson(), // Includes base fields (id, offset (as start), type=LINE, etc.)
-    // Add LineModel specific fields
-    'start': FieldItemModel.vector2ToJson(start),
-    'end': FieldItemModel.vector2ToJson(end),
-    'name': name,
-    'lineColor':
-        color
-            ?.value, // Use specific key 'lineColor' to avoid clash with base color
-    'thickness': thickness,
-    'lineType': lineType.toString().split('.').last,
-    'imagePath': imagePath,
-    // Note: 'start' is implicitly saved as 'offset' in super.toJson()
-  };
+  Map<String, dynamic> toJson() {
+    // Ensure base offset matches start if that's the convention
+    // super.offset = start; // Uncomment if offset should always be start
+
+    return {
+      ...super.toJson(), // Includes base fields (id, offset, type=LINE, etc.)
+      // Add/Override LineModel specific fields
+      'start': FieldItemModel.vector2ToJson(start), // Explicitly save start
+      'end': FieldItemModel.vector2ToJson(end),
+      'name': name,
+      // 'color' is handled by super.toJson() now for line color
+      'thickness': thickness,
+      'lineType': describeEnum(lineType), // Use describeEnum for safety
+      'imagePath': imagePath,
+      // NEW: Conditionally add control points if they exist
+      if (controlPoint1 != null)
+        'controlPoint1': FieldItemModel.vector2ToJson(controlPoint1!),
+      if (controlPoint2 != null)
+        'controlPoint2': FieldItemModel.vector2ToJson(controlPoint2!),
+    };
+  }
 
   // --- Updated copyWith Method ---
   @override
   LineModelV2 copyWith({
+    // FieldItemModel parameters
     String? id,
     Vector2? offset,
     bool? scaleSymmetrically,
@@ -151,34 +170,66 @@ class LineModelV2 extends FieldItemModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     Vector2? size,
-    Color? color,
+    Color? color, // Handles line color now
     double? opacity,
-    // LineModel properties
+    // LineModel parameters
     Vector2? start,
     Vector2? end,
-    Color? lineColor, // Parameter for line color
+    // Removed lineColor param as base 'color' is used
     double? thickness,
     LineType? lineType,
-  }) => LineModelV2(
-    // Base properties
-    id: id ?? this.id,
-    start: start ?? this.start.clone(), // Pass 'start' which sets 'offset'
-    scaleSymmetrically: scaleSymmetrically ?? this.scaleSymmetrically,
-    angle: angle ?? this.angle,
-    canBeCopied: canBeCopied ?? this.canBeCopied,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    size: size ?? this.size?.clone(),
-    color: color ?? this.color, // Base color
-    opacity: opacity ?? this.opacity,
-    fieldItemType: this.fieldItemType, // Keep original type
-    // LineModel properties
-    end: end ?? this.end.clone(),
-    thickness: thickness ?? this.thickness,
-    lineType: lineType ?? this.lineType,
-    name: name,
-    imagePath: imagePath,
-  );
+    String? name, // Added missing name/imagePath
+    String? imagePath,
+    // NEW: Control point parameters
+    Vector2? controlPoint1,
+    Vector2? controlPoint2,
+    // Add a flag to explicitly clear control points if needed
+    bool clearControlPoints = false,
+  }) {
+    // Handle clearing control points
+    Vector2? cp1 =
+        clearControlPoints
+            ? null
+            : (controlPoint1 ?? this.controlPoint1?.clone());
+    Vector2? cp2 =
+        clearControlPoints
+            ? null
+            : (controlPoint2 ?? this.controlPoint2?.clone());
+
+    // If start is provided, update offset accordingly if they should match
+    Vector2 finalOffset =
+        offset ??
+        (start != null
+            ? start.clone()
+            : this.offset?.clone() ?? Vector2.zero());
+
+    return LineModelV2(
+      // Base properties
+      id: id ?? this.id,
+      offset: finalOffset, // Use updated offset logic
+      scaleSymmetrically: scaleSymmetrically ?? this.scaleSymmetrically,
+      angle: angle ?? this.angle,
+      canBeCopied: canBeCopied ?? this.canBeCopied,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      size: size ?? this.size?.clone(),
+      color: color ?? this.color, // Use base color
+      opacity: opacity ?? this.opacity,
+      fieldItemType:
+          fieldItemType ??
+          this.fieldItemType, // Allow changing type? Usually no.
+      // LineModel properties
+      start: start ?? this.start.clone(), // Ensure start is updated
+      end: end ?? this.end.clone(),
+      thickness: thickness ?? this.thickness,
+      lineType: lineType ?? this.lineType,
+      name: name ?? this.name,
+      imagePath: imagePath ?? this.imagePath,
+      // NEW: Control points
+      controlPoint1: cp1,
+      controlPoint2: cp2,
+    );
+  }
 
   // --- Updated clone Method ---
   @override
@@ -189,27 +240,33 @@ class LineModelV2 extends FieldItemModel {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is LineModelV2 &&
-          // Check base properties (important ones like id, offset/start)
           super == other && // Use FieldItemModel's equality check
-          // Check LineModel specific properties
-          other.start == start &&
           other.end == end &&
-          other.color == color && // Line color
+          other.start ==
+              start && // Ensure start is compared (part of super== if offset==start)
           other.thickness == thickness &&
-          other.lineType == lineType;
+          other.lineType == lineType &&
+          other.name == name &&
+          other.imagePath == imagePath &&
+          other.controlPoint1 == controlPoint1 && // NEW
+          other.controlPoint2 == controlPoint2; // NEW
 
   @override
   int get hashCode =>
-      // Combine base hash code with specific properties
       super.hashCode ^ // Use FieldItemModel's hashCode
       end.hashCode ^
-      start.hashCode ^
-      color.hashCode ^ // Line color
+      start.hashCode ^ // Ensure start is included
       thickness.hashCode ^
-      lineType.hashCode;
+      lineType.hashCode ^
+      name.hashCode ^
+      imagePath.hashCode ^
+      controlPoint1.hashCode ^ // NEW
+      controlPoint2.hashCode; // NEW
 
   // --- Updated toString Method ---
   @override
-  String toString() =>
-      'LineModel(id: $id, start: $start, end: $end, lineColor: $color, thickness: $thickness, lineType: $lineType, ${super.toString().replaceFirst("FieldItemModel(", "")}'; // Include some base info
+  String toString() {
+    String baseString = super.toString().replaceFirst("FieldItemModel(", "");
+    return 'LineModelV2(id: $id, start: $start, end: $end, color: $color, thickness: $thickness, lineType: $lineType, name: $name, cp1: $controlPoint1, cp2: $controlPoint2, $baseString';
+  }
 }

@@ -1,9 +1,7 @@
-import 'dart:ui';
-
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flame/src/game/notifying_vector2.dart';
-import 'package:flutter/src/material/tab_controller.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
@@ -11,6 +9,7 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
@@ -34,6 +33,8 @@ class BoardController extends StateNotifier<BoardState> {
     // }
     else if (fieldItemModel is LineModelV2) {
       state = state.copyWith(lines: [...state.lines, fieldItemModel]);
+    } else if (fieldItemModel is ShapeModel) {
+      state = state.copyWith(shapes: [...state.shapes, fieldItemModel]);
     }
   }
 
@@ -43,6 +44,7 @@ class BoardController extends StateNotifier<BoardState> {
       ...state.equipments,
       ...state.freeDraw,
       ...state.lines,
+      ...state.shapes,
     ];
   }
 
@@ -56,6 +58,9 @@ class BoardController extends StateNotifier<BoardState> {
         return e.clone();
       }),
       ...state.lines.map((e) {
+        return e.clone();
+      }),
+      ...state.shapes.map((e) {
         return e.clone();
       }),
     ];
@@ -96,6 +101,7 @@ class BoardController extends StateNotifier<BoardState> {
     List<EquipmentModel> equipments = state.equipments;
     List<FreeDrawModelV2> freeDraws = state.freeDraw;
     List<LineModelV2> lines = state.lines;
+    List<ShapeModel> shapes = state.shapes;
     if (selectedItem is PlayerModel) {
       players.removeWhere((t) => t.id == selectedItem.id);
     } else if (selectedItem is EquipmentModel) {
@@ -104,6 +110,8 @@ class BoardController extends StateNotifier<BoardState> {
       freeDraws.removeWhere((t) => t.id == selectedItem.id);
     } else if (selectedItem is LineModelV2) {
       lines.removeWhere((t) => t.id == selectedItem.id);
+    } else if (selectedItem is ShapeModel) {
+      shapes.removeWhere((t) => t.id == selectedItem.id);
     }
     state = state.copyWith(
       forceItemToDeleteNull: true,
@@ -149,6 +157,7 @@ class BoardController extends StateNotifier<BoardState> {
       equipments: [],
       freeDraws: [],
       lines: [],
+      shapes: [],
     );
   }
 
@@ -192,6 +201,15 @@ class BoardController extends StateNotifier<BoardState> {
     }
   }
 
+  void updateShape({required ShapeModel shape}) {
+    List<ShapeModel> shapes = state.shapes;
+    int index = shapes.indexWhere((l) => l.id == shape.id);
+    if (index != -1) {
+      shapes[index] = shape;
+      state = state.copyWith(shapes: shapes);
+    }
+  }
+
   void toggleFullScreen() {
     boardComparator = null;
     state = state.copyWith(showFullScreen: !state.showFullScreen);
@@ -200,5 +218,9 @@ class BoardController extends StateNotifier<BoardState> {
   void updateFreeDraws({required List<FreeDrawModelV2> lines}) {
     zlog(data: "Update free draws called $lines");
     state = state.copyWith(freeDraws: [...lines]);
+  }
+
+  void updateDraggingToBoard({required bool isDragging}) {
+    state = state.copyWith(isDraggingElementToBoard: isDragging);
   }
 }

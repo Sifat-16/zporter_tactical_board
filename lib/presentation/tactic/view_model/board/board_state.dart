@@ -7,6 +7,7 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
 const Object _sentinel = Object();
@@ -15,6 +16,7 @@ class BoardState {
   final List<PlayerModel> players;
   final List<EquipmentModel> equipments;
   final List<LineModelV2> lines;
+  final List<ShapeModel> shapes;
   final FieldItemModel? itemToDelete;
   final List<FreeDrawModelV2> freeDraw;
   final AnimationModel? animationModel;
@@ -31,11 +33,13 @@ class BoardState {
   final int boardAngle;
   final Vector2? fieldSize;
   final bool showFullScreen;
+  final bool isDraggingElementToBoard;
 
   const BoardState({
     this.players = const [],
     this.equipments = const [],
     this.lines = const [],
+    this.shapes = const [],
     this.itemToDelete,
     this.freeDraw = const [],
     this.animationModelJson = const {},
@@ -52,12 +56,14 @@ class BoardState {
     this.tacticBoardGame,
     this.boardAngle = 0,
     this.showFullScreen = false,
+    this.isDraggingElementToBoard = false,
   });
 
   BoardState copyWith({
     List<PlayerModel>? players,
     List<EquipmentModel>? equipments,
     List<LineModelV2>? lines,
+    List<ShapeModel>? shapes,
     List<FreeDrawModelV2>? freeDraws,
     AnimationModel? animationModel,
     bool? showAnimation,
@@ -75,10 +81,12 @@ class BoardState {
     Object? tacticBoardGame = _sentinel,
     int? boardAngle,
     bool? showFullScreen,
+    bool? isDraggingElementToBoard,
   }) {
     return BoardState(
       players: players ?? this.players,
       equipments: equipments ?? this.equipments,
+      shapes: shapes ?? this.shapes,
       freeDraw: freeDraws ?? this.freeDraw,
       animationModel: animationModel ?? this.animationModel,
       showAnimation: showAnimation ?? this.showAnimation,
@@ -104,6 +112,8 @@ class BoardState {
       boardAngle: boardAngle ?? this.boardAngle,
       lines: lines ?? this.lines,
       showFullScreen: showFullScreen ?? this.showFullScreen,
+      isDraggingElementToBoard:
+          isDraggingElementToBoard ?? this.isDraggingElementToBoard,
     );
   }
 

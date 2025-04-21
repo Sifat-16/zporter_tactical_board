@@ -84,10 +84,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (prev?.showFullScreen != current.showFullScreen) {
         tacticBoardGame.redrawLines();
       }
-      zlog(
-        data:
-            "Listen to show fullscreen change ${prev?.showFullScreen != current.showFullScreen}",
-      );
     });
     previousAngle = quarterTurns;
     return DragTarget<FieldItemModel>(

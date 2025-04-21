@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-class PlayerComponentV2 extends StatefulWidget {
+class PlayerComponentV2 extends ConsumerStatefulWidget {
   const PlayerComponentV2({
     super.key,
     required this.playerModel,
@@ -14,10 +17,10 @@ class PlayerComponentV2 extends StatefulWidget {
   final bool activateFocus;
 
   @override
-  State<PlayerComponentV2> createState() => _PlayerComponentV2State();
+  ConsumerState<PlayerComponentV2> createState() => _PlayerComponentV2State();
 }
 
-class _PlayerComponentV2State extends State<PlayerComponentV2> {
+class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
   bool _isFocused = false;
 
   void _setFocus(bool focus) {
@@ -32,9 +35,21 @@ class _PlayerComponentV2State extends State<PlayerComponentV2> {
       onTap: () => _setFocus(!_isFocused),
       child: Draggable<PlayerModel>(
         data: widget.playerModel,
-        onDragStarted: () => _setFocus(true),
+        rootOverlay: true,
+
+        onDragStarted: () {
+          _setFocus(true);
+          ref
+              .read(boardProvider.notifier)
+              .updateDraggingToBoard(isDragging: true);
+        },
+        hitTestBehavior: HitTestBehavior.translucent,
         onDragEnd: (DraggableDetails details) {
           _setFocus(false);
+          zlog(
+            data:
+                "Drag ended overlay ${details.wasAccepted} - ${details.offset}",
+          );
         },
         childWhenDragging: Opacity(
           opacity: 0.5,

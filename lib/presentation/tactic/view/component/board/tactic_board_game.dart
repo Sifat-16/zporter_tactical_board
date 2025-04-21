@@ -11,7 +11,7 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
@@ -65,6 +65,7 @@ class TacticBoard extends TacticBoardGame
     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
     add(gameField); // add() is available via FlameGame
     addInitialItems(scene?.components ?? []);
+
     // initiateFieldColor();
   }
 

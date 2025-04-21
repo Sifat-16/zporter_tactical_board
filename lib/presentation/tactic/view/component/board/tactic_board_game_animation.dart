@@ -17,7 +17,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/form_line_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
