@@ -59,8 +59,6 @@ class LineController extends StateNotifier<LineState> {
       availableLines: lines,
       activeForm: null,
       activatedFormId: null,
-      // activatedLineForm: null,
-      // isFreeDrawingActive: false,
     );
   }
 

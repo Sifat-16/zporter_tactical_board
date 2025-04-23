@@ -87,4 +87,22 @@ class SizeHelper {
 
     return convertedPosition;
   }
+
+  static double getBoardRelativeDimension({
+    required Vector2 gameScreenSize,
+    required double actualSize,
+  }) {
+    double avgDim = (gameScreenSize.x + gameScreenSize.y) / 2.0;
+
+    return actualSize / avgDim;
+  }
+
+  static double getBoardActualDimension({
+    required Vector2 gameScreenSize,
+    required double relativeSize,
+  }) {
+    double avgDim = (gameScreenSize.x + gameScreenSize.y) / 2.0;
+
+    return relativeSize * avgDim;
+  }
 }

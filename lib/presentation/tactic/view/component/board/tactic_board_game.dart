@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
@@ -88,7 +89,9 @@ class TacticBoard extends TacticBoardGame
     if (components.isNotEmpty) {
       if (!components.any((t) => t is FieldComponent) &&
           !components.any((t) => t is DraggableCircleComponent) &&
-          !components.any((t) => t is LineDrawerComponentV2)) {
+          !components.any((t) => t is LineDrawerComponentV2) &&
+          !components.any((t) => t is CircleShapeDrawerComponent) &&
+          !components.any((t) => t is CircleRadiusDraggableDot)) {
         ref // ref is available via RiverpodGameMixin
             .read(boardProvider.notifier)
             .toggleSelectItemEvent(fieldItemModel: null);
@@ -124,7 +127,7 @@ class TacticBoard extends TacticBoardGame
       current =
           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()}";
 
-      zlog(data: "[TacticBoard] Running 1-second check... $items");
+      // zlog(data: "[TacticBoard] Running 1-second check... $items");
       // zlog(data: "Updated database... ${current}");
 
       if (boardComparator == null) {
@@ -151,7 +154,10 @@ class TacticBoard extends TacticBoardGame
   }
 
   updateDatabase() {
-    zlog(data: "Updated database..."); // Log that the check is running
+    zlog(
+      data:
+          "Updated database... ${ref.read(boardProvider.notifier).onAnimationSave()}",
+    ); // Log that the check is running
     ref.read(animationProvider.notifier).updateDatabaseOnChange().then((a) {
       ref.read(animationProvider.notifier).saveHistory(scene: a);
     });

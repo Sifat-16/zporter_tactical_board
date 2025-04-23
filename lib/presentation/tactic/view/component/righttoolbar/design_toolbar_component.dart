@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
@@ -127,7 +128,6 @@ class _DesignToolbarComponentState
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       spacing: 10,
-
       children: [
         Text(
           title,
@@ -187,7 +187,7 @@ class _DesignToolbarComponentState
     if (
     // item is FormModel && item.formItemModel is LineModel
     //     ||
-    item is LineModelV2 || item is FreeDrawModelV2) {
+    item is LineModelV2 || item is FreeDrawModelV2 || item is ShapeModel) {
       return SizedBox.shrink();
     }
     return Column(

@@ -2,12 +2,13 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart'; // Import for Color
 import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
 
 import 'equipment_model.dart';
 import 'free_draw_model.dart';
 import 'line_model.dart';
 
-enum FieldItemType { PLAYER, EQUIPMENT, LINE, FREEDRAW, CIRCLE }
+enum FieldItemType { PLAYER, EQUIPMENT, LINE, FREEDRAW, CIRCLE, SQUARE }
 
 abstract class FieldItemModel {
   String id;
@@ -99,7 +100,10 @@ abstract class FieldItemModel {
         return FreeDrawModelV2.fromJson(json);
       case FieldItemType.CIRCLE:
         // TODO: Handle this case.
-        throw CircleShapeModel.fromJson(json);
+        return CircleShapeModel.fromJson(json);
+      case FieldItemType.SQUARE:
+        // TODO: Handle this case.
+        return SquareShapeModel.fromJson(json);
     }
   }
 

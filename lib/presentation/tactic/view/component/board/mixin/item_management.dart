@@ -4,6 +4,7 @@ import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
+import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
@@ -12,6 +13,7 @@ import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
@@ -29,6 +31,8 @@ mixin ItemManagement on TacticBoardGame {
       add(EquipmentComponent(object: item)); // add() is available via FlameGame
     } else if (item is LineModelV2) {
       await add(LineDrawerComponentV2(lineModelV2: item));
+    } else if (item is CircleShapeModel) {
+      await add(CircleShapeDrawerComponent(circleModel: item));
     }
     // else if (item is FreeDrawModelV2) {
     //   await add(FreeDrawerComponentV2(freeDrawModelV2: item));

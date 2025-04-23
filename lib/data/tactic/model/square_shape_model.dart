@@ -1,40 +1,38 @@
-import 'dart:ui';
+import 'package:flame/components.dart'; // For Vector2
+import 'package:flutter/material.dart'; // For Color
+import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart'; // For base class, FieldItemType and helpers
+import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart'; // Assuming Shape is here
 
-import 'package:flame/components.dart';
-import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
+/// Data model representing a square shape on the tactical board.
+class SquareShapeModel extends ShapeModel {
+  /// The length of each side of the square.
+  /// It's recommended to store this as a *relative* value (e.g., a fraction
+  /// of the minimum game field dimension) to ensure responsiveness.
+  double side;
 
-import 'field_item_model.dart';
-
-class CircleShapeModel extends ShapeModel {
-  /// The radius of the circle.
-  double radius;
-
-  CircleShapeModel({
+  SquareShapeModel({
     // FieldItemModel properties
     required super.id,
     required Vector2 center, // Use 'center' for clarity, maps to 'offset'
-    super.angle, // Usually circles don't rotate visually unless textured
+    super.angle = 0.0, // Squares can rotate
     Color? strokeColor, // Use base 'color' for stroke
     super.opacity,
     required super.canBeCopied,
     super.createdAt,
     super.updatedAt,
+
+    // Shape properties
+    super.fillColor,
+    super.strokeWidth,
     required super.name,
     required super.imagePath,
 
-    // Shape properties
-    super.fillColor, // Pass fillColor to Shape constructor
-    super.strokeWidth, // Pass strokeWidth to Shape constructor
-    // Circle specific properties
-    required this.radius,
+    required this.side, // Store the relative side length
   }) : super(
          offset: center, // Map center to the base 'offset' property
          color: strokeColor, // Map strokeColor to the base 'color' property
-         fieldItemType:
-             FieldItemType.CIRCLE, // Set the specific type for this model
-         // Circles scale symmetrically, size is related to radius
-         scaleSymmetrically: true,
-         size: Vector2(radius * 2, radius * 2), // Set size based on radius
+         fieldItemType: FieldItemType.SQUARE, // Set the specific type
+         scaleSymmetrically: true, // Squares scale symmetrically
        );
 
   /// Gets the center position (same as offset).
@@ -55,41 +53,36 @@ class CircleShapeModel extends ShapeModel {
 
   // --- Serialization ---
 
-  /// Creates a CircleShapeModel instance from a JSON map.
-  static CircleShapeModel fromJson(Map<String, dynamic> json) {
-    // Parse base FieldItemModel properties first
+  /// Creates a SquareShapeModel instance from a JSON map.
+  static SquareShapeModel fromJson(Map<String, dynamic> json) {
+    // Parse base FieldItemModel & Shape properties
     final id = json['_id'] as String? ?? '';
     final offset =
         FieldItemModel.offsetFromJson(json['offset']) ??
         Vector2.zero(); // Center
-    final angle = (json['angle'] as num?)?.toDouble();
-    final strokeColor =
-        json['color'] != null
-            ? Color(json['color'])
-            : null; // Stroke from base color
+    final angle = (json['angle'] as num?)?.toDouble() ?? 0.0;
+    final strokeColor = json['color'] != null ? Color(json['color']) : null;
     final opacity = (json['opacity'] as num?)?.toDouble() ?? 1.0;
     final canBeCopied = json['canBeCopied'] as bool? ?? true;
     final createdAt =
         json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
     final updatedAt =
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
-
-    // Parse Shape specific properties
     final fillColor =
         json['fillColor'] != null ? Color(json['fillColor']) : null;
     final strokeWidth = (json['strokeWidth'] as num?)?.toDouble() ?? 2.0;
 
-    // Parse Circle specific properties
-    final radius =
-        (json['radius'] as num?)?.toDouble() ??
-        10.0; // Default radius if missing
-
+    // Parse Square specific properties
+    // Assume 'side' is stored as a relative value (double)
+    final side =
+        (json['side'] as num?)?.toDouble() ??
+        0.1; // Default relative side length
     final name = json['name'] as String? ?? '';
     final imagePath = json['imagePath'] as String? ?? '';
 
-    return CircleShapeModel(
+    return SquareShapeModel(
       id: id,
-      center: offset, // Use offset as center
+      center: offset,
       angle: angle,
       strokeColor: strokeColor,
       opacity: opacity,
@@ -98,60 +91,58 @@ class CircleShapeModel extends ShapeModel {
       updatedAt: updatedAt,
       fillColor: fillColor,
       strokeWidth: strokeWidth,
-      radius: radius,
+      side: side,
       name: name,
-      imagePath: imagePath,
+      imagePath: imagePath, // Assign the relative side length
     );
   }
 
-  /// Converts this CircleShapeModel instance to a JSON map.
+  /// Converts this SquareShapeModel instance to a JSON map.
   @override
   Map<String, dynamic> toJson() => {
     ...super.toJson(), // Include base Shape and FieldItemModel fields
-    'radius': radius,
+    'side': side, // Save the relative side length
     // 'center' is saved as 'offset' in super.toJson()
     // 'strokeColor' is saved as 'color' in super.toJson()
-    // 'fillColor' and 'strokeWidth' are saved in super.toJson() from Shape
+    // 'fillColor', 'strokeWidth', 'angle' are saved in super.toJson()
   };
 
   // --- CopyWith, Clone, Equality ---
 
   /// Creates a copy of this instance with potentially modified properties.
   @override
-  CircleShapeModel copyWith({
+  SquareShapeModel copyWith({
     // FieldItemModel fields
     String? id,
     Vector2? offset, // Represents center
-    bool? scaleSymmetrically, // Usually true for circles
-    FieldItemType? fieldItemType, // Should remain CIRCLE
+    bool? scaleSymmetrically, // Usually true for squares
+    FieldItemType? fieldItemType, // Should remain SQUARE
     double? angle,
     bool? canBeCopied,
     DateTime? createdAt,
     DateTime? updatedAt,
-    Vector2? size, // Ignored, calculated from radius
+    Vector2? size, // Ignored
     Color? color, // Represents strokeColor
     double? opacity,
     // Shape fields
     Color? fillColor,
     double? strokeWidth,
-    bool clearFillColor = false, // Flag from Shape copyWith
-    // Circle fields
-    double? radius,
+    bool clearFillColor = false,
+    // Square fields
+    double? side, // Relative side length
   }) {
-    return CircleShapeModel(
+    return SquareShapeModel(
       id: id ?? this.id,
-      center: offset ?? this.center.clone(), // Use center getter/setter logic
+      center: offset ?? this.center.clone(),
       angle: angle ?? this.angle,
-      strokeColor: color ?? this.strokeColor, // Use color getter/setter logic
+      strokeColor: color ?? this.strokeColor,
       opacity: opacity ?? this.opacity,
       canBeCopied: canBeCopied ?? this.canBeCopied,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      // Pass shape fields to super
       fillColor: clearFillColor ? null : (fillColor ?? this.fillColor),
       strokeWidth: strokeWidth ?? this.strokeWidth,
-      // Pass circle field
-      radius: radius ?? this.radius,
+      side: side ?? this.side, // Copy the relative side length
       name: name,
       imagePath: imagePath,
     );
@@ -159,25 +150,24 @@ class CircleShapeModel extends ShapeModel {
 
   /// Creates a deep copy of this instance.
   @override
-  CircleShapeModel clone() => copyWith();
+  SquareShapeModel clone() => copyWith();
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       super == other && // Check Shape and FieldItemModel equality
-          other is CircleShapeModel &&
+          other is SquareShapeModel &&
           runtimeType == other.runtimeType &&
-          radius == other.radius;
+          side == other.side;
 
   @override
   int get hashCode =>
       super.hashCode ^ // Combine Shape and FieldItemModel hash code
-      radius.hashCode;
+      side.hashCode;
 
   @override
   String toString() {
-    // Remove "Shape(" from super.toString() for cleaner output
     String baseStr = super.toString().replaceFirst("Shape(", "");
-    return 'CircleShapeModel(radius: $radius, $baseStr';
+    return 'SquareShapeModel(side: $side, $baseStr';
   }
 }

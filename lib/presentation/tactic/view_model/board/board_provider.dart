@@ -204,8 +204,12 @@ class BoardController extends StateNotifier<BoardState> {
   void updateShape({required ShapeModel shape}) {
     List<ShapeModel> shapes = state.shapes;
     int index = shapes.indexWhere((l) => l.id == shape.id);
+    zlog(data: "Updating shape in ${index}");
     if (index != -1) {
       shapes[index] = shape;
+      state = state.copyWith(shapes: shapes);
+    } else {
+      shapes.add(shape);
       state = state.copyWith(shapes: shapes);
     }
   }
