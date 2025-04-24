@@ -13,6 +13,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/field/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
@@ -91,10 +92,13 @@ class TacticBoard extends TacticBoardGame
           !components.any((t) => t is DraggableCircleComponent) &&
           !components.any((t) => t is LineDrawerComponentV2) &&
           !components.any((t) => t is CircleShapeDrawerComponent) &&
-          !components.any((t) => t is CircleRadiusDraggableDot)) {
+          !components.any((t) => t is CircleRadiusDraggableDot) &&
+          !components.any((t) => t is SquareShapeDrawerComponent) &&
+          !components.any((t) => t is SquareRadiusDraggableDot)) {
         ref // ref is available via RiverpodGameMixin
             .read(boardProvider.notifier)
             .toggleSelectItemEvent(fieldItemModel: null);
+        zlog(data: "Tapped components ${components}");
       } else {
         zlog(data: "Animate to design tab called");
         ref.read(boardProvider.notifier).animateToDesignTab();

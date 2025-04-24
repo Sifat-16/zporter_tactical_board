@@ -82,7 +82,7 @@ class CircleShapeDrawerComponent extends PositionComponent
         DragCallbacks,
         RiverpodComponentMixin,
         HasGameReference<TacticBoardGame> {
-  final CircleShapeModel circleModel; // The initial model data
+  CircleShapeModel circleModel; // The initial model data
   late CircleShapeModel _internalCircle; // Internal mutable copy
   bool isActive = false;
   bool _isDragging = false; // For dragging the whole circle

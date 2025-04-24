@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 // Circle Integration here
 import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
@@ -33,9 +32,8 @@ mixin DrawingInputHandler on TacticBoardGame {
   CircleShapeDrawerComponent?
   _currentCircleShape; // The circle component being drawn
 
-  // --- Square Integration here ---
-  // State variables for drawing square (drag defines diagonal)
-  Vector2? squareStartPoint; // Corner where square drag starts (actual coords)
+  Vector2?
+  squareCenterPoint; // FIXED Center where square drag starts (actual coords)
   SquareShapeDrawerComponent? _currentSquareShape;
 
   // --- Centralized Drag Handlers ---
@@ -106,19 +104,23 @@ mixin DrawingInputHandler on TacticBoardGame {
         );
         add(_currentCircleShape!);
         eventHandled = true;
-      } else if (item is SquareShapeModel) {
-        // Check if it's a Square
-        squareStartPoint =
-            event.localPosition; // Store drag start corner (actual coords)
+      }
+      // --- Square Integration here ---
+      // Check for square moved inside the shape check
+      // --- Square Integration here --- (Moved check inside shape block)
+      else if (item is SquareShapeModel) {
+        // Handle Square Start
+        squareCenterPoint = event.localPosition; // Store FIXED actual center
         SquareShapeModel squareModel = item.copyWith(
-          // Initial center and side don't matter much yet
           offset: SizeHelper.getBoardRelativeVector(
+            // Set relative center
             gameScreenSize: gameField.size,
-            actualPosition: squareStartPoint!, // Temp center
+            actualPosition: squareCenterPoint!,
           ),
           side: 0.1, // Start tiny (relative side)
-          angle: 0, // Start unrotated
+          angle: 0,
         );
+        // Component's onLoad will set position based on model's offset
         _currentSquareShape = SquareShapeDrawerComponent(
           squareModel: squareModel,
         );
@@ -190,26 +192,53 @@ mixin DrawingInputHandler on TacticBoardGame {
     }
 
     // --- Square Integration here ---
-    // --- Priority 4: Square Shape Drawing ---
+    // --- Priority 4: Square Shape Drawing (Center Fixed) --- (MODIFIED BLOCK)
     if (!eventHandled &&
-        lp.isShapeActiveToAddIntoGameField && // Assuming same flag
-        squareStartPoint != null &&
+        lp.isShapeActiveToAddIntoGameField &&
+        squareCenterPoint != null &&
         _currentSquareShape != null) {
-      zlog(data: "Item type check coming here");
-      final currentPoint = event.localStartPosition; // Use current position
+      // **** ENSURE THIS USES event.eventPosition.widget ****
+      final currentPoint = event.localStartPosition;
+      // ****************************************************
 
-      // Calculate properties based on bounding box defined by diagonal
-      final double width = (squareStartPoint!.x - currentPoint.x).abs();
-      final double height = (squareStartPoint!.y - currentPoint.y).abs();
-      final double actualSide = math.max(width, height); // Side of the square
-      final Vector2 actualCenter =
-          (squareStartPoint! + currentPoint) / 2.0; // Center of diagonal
+      // --- REPLACE LOGIC BELOW ---
+      // Calculate dimensions relative to the fixed start corner
+      final double dx = currentPoint.x - squareCenterPoint!.x;
+      final double dy = currentPoint.y - squareCenterPoint!.y;
+      final double width = dx.abs();
+      final double height = dy.abs();
+
+      // Side length is the max dimension to maintain square shape
+      final double actualSide = math.max(width, height);
+
+      // Calculate the center based on start corner and side length/direction
+      final double signX = dx.sign; // Direction X (+1.0, -1.0, or 0.0)
+      final double signY = dy.sign; // Direction Y (+1.0, -1.0, or 0.0)
+      // Center is offset from the start corner by half the side, in the drag direction
+      final Vector2 actualCenter = Vector2(
+        squareCenterPoint!.x + (signX * actualSide / 2.0),
+        squareCenterPoint!.y + (signY * actualSide / 2.0),
+      );
 
       // Update the component's position (center)
       _currentSquareShape!.position = actualCenter;
-      // Update the component's side length (needs method in SquareShapeDrawerComponent)
-      // *** Assumes updateSideAndSave exists in SquareShapeDrawerComponent ***
-      _currentSquareShape!.updateSideAndSave(actualSide);
+
+      _currentSquareShape
+          ?.squareModel
+          .side = SizeHelper.getBoardRelativeDimension(
+        gameScreenSize: gameField.size,
+        actualSize: actualSide,
+      );
+      _currentSquareShape
+          ?.squareModel
+          .offset = SizeHelper.getBoardRelativeVector(
+        gameScreenSize: gameField.size,
+        actualPosition: actualCenter,
+      );
+
+      // Update the component's side length
+      _currentSquareShape!.updateSideInternally(actualSide);
+      // --- END OF LOGIC TO REPLACE/ADD ---
 
       eventHandled = true;
     }
@@ -278,12 +307,11 @@ mixin DrawingInputHandler on TacticBoardGame {
     }
 
     // --- Square Integration here ---
-    // --- Priority 4: Square Shape Drawing ---
+    // --- Priority 4: Square Shape Drawing (Fixed Corner) --- (MODIFIED BLOCK)
     if (!eventHandled &&
         lp.isShapeActiveToAddIntoGameField && // Assuming same flag
-        squareStartPoint != null &&
+        squareCenterPoint != null && // Center is fixed
         _currentSquareShape != null) {
-      // Retrieve final model state
       SquareShapeModel finalSquareModel = _currentSquareShape!.squareModel;
 
       // Add component to board state
@@ -291,7 +319,6 @@ mixin DrawingInputHandler on TacticBoardGame {
           .read(boardProvider.notifier)
           .addBoardComponent(fieldItemModel: finalSquareModel);
       // Unload the tool from the provider
-      // *** Assumes specific unload method exists, or use generic dismiss ***
       ref
           .read(lineProvider.notifier)
           .unLoadActiveShapeModelToAddIntoGameFieldEvent(
@@ -300,7 +327,7 @@ mixin DrawingInputHandler on TacticBoardGame {
 
       // Clean up state
       _currentSquareShape = null;
-      squareStartPoint = null;
+      squareCenterPoint = null; // Clear fixed center point
       eventHandled = true;
     }
 
@@ -325,16 +352,13 @@ mixin DrawingInputHandler on TacticBoardGame {
       ref.read(lineProvider.notifier).dismissActiveFormItem();
     }
 
-    // --- Cleanup temporary components if drag ended unexpectedly ---
-    // ... existing cleanup logic for lines and circles ...
     // --- Square Integration here ---
     if (_currentSquareShape != null && !eventHandled) {
-      // Add cleanup for square
       if (children.contains(_currentSquareShape!)) {
         remove(_currentSquareShape!);
       }
       _currentSquareShape = null;
-      squareStartPoint = null;
+      squareCenterPoint = null;
       ref.read(lineProvider.notifier).dismissActiveFormItem();
     }
 
@@ -389,20 +413,17 @@ mixin DrawingInputHandler on TacticBoardGame {
     }
 
     // --- Square Integration here ---
-    // --- Priority 4: Square Shape Drawing ---
+    // --- Priority 4: Square Shape Drawing --- (MODIFIED BLOCK)
     if (!eventHandled && _currentSquareShape != null) {
       remove(_currentSquareShape!);
       _currentSquareShape = null;
-      squareStartPoint = null;
-      // Reset provider state if the cancelled shape was the active one
+      squareCenterPoint = null; // Clear fixed center point
       if (lp.isShapeActiveToAddIntoGameField &&
           lp.activeForm is SquareShapeModel) {
-        // Check type
-        // *** Assumes specific unload method exists, or use generic dismiss ***
         ref
             .read(lineProvider.notifier)
             .unLoadActiveShapeModelToAddIntoGameFieldEvent(
-              shape: lp.activeForm as SquareShapeModel, // Cast needed
+              shape: lp.activeForm as SquareShapeModel,
             );
       }
       eventHandled = true;
