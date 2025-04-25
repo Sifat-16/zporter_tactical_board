@@ -12,7 +12,7 @@ enum PlayerType { HOME, OTHER, AWAY, UNKNOWN }
 class PlayerModel extends FieldItemModel {
   String role;
   String? imagePath;
-  int index;
+  int jerseyNumber;
   PlayerType playerType;
 
   PlayerModel({
@@ -31,7 +31,7 @@ class PlayerModel extends FieldItemModel {
     super.opacity,
     // --- PlayerModel specific properties ---
     required this.role,
-    required this.index,
+    required this.jerseyNumber,
     required this.playerType,
     this.imagePath,
   });
@@ -43,10 +43,9 @@ class PlayerModel extends FieldItemModel {
       ...super.toJson(), // Includes base fields + fieldItemType='PLAYER'
       'role': role,
       'imagePath': imagePath,
-      'index': index,
-      'playerType': describeEnum(
-        playerType,
-      ), // Use describeEnum for serialization
+      'jerseyNumber': jerseyNumber,
+      'playerType': playerType.name,
+      // Use describeEnum for serialization
     };
   }
 
@@ -85,7 +84,7 @@ class PlayerModel extends FieldItemModel {
       orElse: () => PlayerType.UNKNOWN, // Default if null or invalid
     );
     final role = json['role'] as String? ?? 'Unknown'; // Default if null
-    final index = json['index'] as int? ?? -1; // Default if null
+    final jerseyNumber = json['jerseyNumber'] as int? ?? -1; // Default if null
     final imagePath = json['imagePath'] as String?;
 
     // --- Construct and Return PlayerModel Instance ---
@@ -105,7 +104,7 @@ class PlayerModel extends FieldItemModel {
 
       // Pass parsed PlayerModel specific properties
       role: role,
-      index: index,
+      jerseyNumber: jerseyNumber,
       imagePath: imagePath,
       playerType: playerType,
     );
@@ -128,7 +127,7 @@ class PlayerModel extends FieldItemModel {
     double? opacity,
     // --- PlayerModel properties ---
     String? role,
-    int? index,
+    int? jerseyNumber,
     String? imagePath,
     PlayerType? playerType,
   }) {
@@ -152,7 +151,7 @@ class PlayerModel extends FieldItemModel {
       opacity: opacity ?? this.opacity,
       // --- Use new or existing values for PlayerModel properties ---
       role: role ?? this.role,
-      index: index ?? this.index,
+      jerseyNumber: jerseyNumber ?? this.jerseyNumber,
       imagePath:
           imagePath ?? this.imagePath, // Handles null assignment correctly
       playerType: playerType ?? this.playerType,

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class TacticApp extends StatelessWidget {
   const TacticApp({super.key});
@@ -32,9 +33,10 @@ class TacticApp extends StatelessWidget {
 }
 
 class TacticPage extends StatefulWidget {
-  const TacticPage({super.key, required this.userId});
+  const TacticPage({super.key, required this.userId, this.onFullScreenChanged});
 
   final String userId;
+  final ValueChanged<bool>? onFullScreenChanged;
 
   @override
   State<TacticPage> createState() => _TacticPageState();
@@ -44,7 +46,15 @@ class _TacticPageState extends State<TacticPage> {
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      child: TacticboardScreen(userId: widget.userId),
+      child: Consumer(
+        builder: (context, ref, _) {
+          final bp = ref.watch(boardProvider);
+          WidgetsBinding.instance.addPostFrameCallback((t) {
+            widget.onFullScreenChanged?.call(bp.showFullScreen);
+          });
+          return TacticboardScreen(userId: widget.userId);
+        },
+      ),
       // body: DrawingScreen(),
     );
   }

@@ -101,6 +101,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
 
   // --- Updated _buildHeader method ---
   Widget _buildHeader() {
+    return SizedBox.shrink();
     // Key is important for AnimatedSwitcher to differentiate widgets
     if (_isSearching) {
       return Padding(

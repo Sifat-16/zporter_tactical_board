@@ -13,6 +13,16 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 class PlayerComponent extends FieldComponent<PlayerModel> {
   PlayerComponent({required super.object});
 
+  final Paint _backgroundPaint = Paint();
+  final Paint _trianglePaint = Paint()..style = PaintingStyle.fill;
+
+  final TextPainter _textPainter = TextPainter(
+    textDirection: TextDirection.ltr,
+  );
+  final TextPainter _jerseyTextPainter = TextPainter(
+    textDirection: TextDirection.ltr,
+  );
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -61,61 +71,73 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    // Assuming super.render(canvas) is correctly called if needed
-    // Assuming 'object' and 'opacity' are defined and available in this scope
-    // YourObject object = YourObject(); // Example instance
-    // double opacity = 1.0; // Example opacity
+    size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
 
-    size = object.size ?? Vector2(32, 32);
-    Color circleColor = object.color ?? Colors.transparent; // Away color
+    // --- Shared calculations ---
+    final double baseOpacity = (object.opacity ?? 1.0).clamp(0.0, 1.0);
+    final Color baseColor =
+        object.color ??
+        (object.playerType == PlayerType.HOME
+            ? ColorManager.blue
+            : (object.playerType == PlayerType.AWAY
+                ? ColorManager.red
+                : ColorManager.grey));
+    final Color effectiveColor = baseColor.withOpacity(baseOpacity);
 
-    // --- Draw the rounded rectangle (existing code - UNCHANGED) ---
-    final rectPaint = Paint()..color = circleColor.withValues(alpha: opacity);
-    final Rect rect = size.toRect(); // Using your existing method
-    const double cornerRadiusValue = 8.0;
+    // --- 1. Draw Rounded Rectangle Background ---
+    _backgroundPaint.color = effectiveColor;
+    _backgroundPaint.style = PaintingStyle.fill;
+
+    const double cornerRadiusValue = 6.0;
     final Radius cornerRadius = Radius.circular(cornerRadiusValue);
+    final Rect rect = size.toRect();
     final RRect roundedRect = RRect.fromRectAndRadius(rect, cornerRadius);
-    canvas.drawRRect(roundedRect, rectPaint);
 
-    // --- Draw the Triangle at the Top Center ---
-    // 1. Define triangle properties (UNCHANGED)
-    final double triangleBaseWidth = size.x * 0.3;
-    final double triangleHeight = size.y * 0.2;
-    final Color triangleColor = ColorManager.yellowLight;
+    canvas.drawRRect(roundedRect, _backgroundPaint);
 
-    // 2. Define triangle paint (UNCHANGED)
-    final trianglePaint =
-        Paint()
-          ..color = triangleColor.withValues(
-            alpha: opacity,
-          ) // Using your existing method
-          ..style = PaintingStyle.fill;
+    // --- 2. Draw Indicator Triangle (Conditional - POINTING OUTWARD) ---
+    if (object.playerType == PlayerType.HOME ||
+        object.playerType == PlayerType.AWAY) {
+      // Triangle Geometry (adjust size as needed)
+      final double tHeight =
+          size.x * 0.18; // How far the triangle points OUTWARD
+      final double tBase =
+          size.y * 0.35; // The width of the triangle's base along the edge
+      _trianglePaint.color = ColorManager.white.withOpacity(
+        baseOpacity,
+      ); // White for visibility
 
-    // 3. Define triangle path (>>> CHANGED AS REQUESTED <<<)
-    //    Draws an UPWARD pointing triangle with its BASE centered on the TOP edge.
-    final path = Path();
-    final double topCenterX = size.x / 2;
-    final double topEdgeY = 0; // Y-coordinate of the top edge is 0
-    // Calculate the Y coordinate of the peak (negative value means above the top edge)
-    final double peakY = topEdgeY - triangleHeight;
+      final path = Path();
+      final double halfWidth = size.x;
+      double centerY = size.y / 2; // Y center in local coords (Anchor.center)
 
-    // Move to the left vertex of the base (on the top edge)
-    path.moveTo(topCenterX - triangleBaseWidth / 2, topEdgeY);
+      if (object.playerType == PlayerType.HOME) {
+        // HOME: Draw on RIGHT edge, pointing RIGHT
+        final double edgeX = halfWidth;
+        path.moveTo(edgeX, centerY - tBase / 2); // Top base point on edge
+        path.lineTo(
+          edgeX + tHeight,
+          centerY,
+        ); // Peak point OUTSIDE (to the right)
+        path.lineTo(edgeX, centerY + tBase / 2); // Bottom base point on edge
+        path.close(); // Connect back to start
+      } else {
+        // AWAY
+        // AWAY: Draw on LEFT edge, pointing LEFT
+        final double edgeX = 0;
 
-    // Line to the top peak vertex (above the rectangle)
-    path.lineTo(topCenterX, peakY);
+        path.moveTo(edgeX, centerY - tBase / 2); // Top base point on edge
+        path.lineTo(
+          edgeX - tHeight,
+          centerY,
+        ); // Peak point OUTSIDE (to the left)
+        path.lineTo(edgeX, centerY + tBase / 2); // Bottom base point on edge
+        path.close(); // Connect back to start
+      }
+      canvas.drawPath(path, _trianglePaint);
+    }
 
-    // Line to the right vertex of the base (on the top edge)
-    path.lineTo(topCenterX + triangleBaseWidth / 2, topEdgeY);
-
-    // Close the path (draws the base line along the top edge)
-    path.close();
-
-    // 4. Draw the triangle (UNCHANGED)
-    canvas.drawPath(path, trianglePaint);
-
-    // --- Draw the jersey number (existing code - UNCHANGED) ---
-    final fontSize = (size.x / 2) * 0.5; // Using your existing calculation
+    final fontSize = (size.x / 2) * 0.7; // Using your existing calculation
     final textPainter = TextPainter(
       text: TextSpan(
         text: object.role,
@@ -124,6 +146,7 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
             alpha: opacity,
           ), // Using your existing method
           fontSize: fontSize,
+          fontWeight: FontWeight.bold,
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -134,6 +157,51 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
       (size.toOffset() / 2) - // Using your existing offset calculation
           Offset(textPainter.width / 2, textPainter.height / 2),
     );
+
+    // --- 4. Draw Jersey Number (Top Right, slightly outside) ---
+    final String jerseyNumber =
+        object.jerseyNumber.toString(); // Get number as string
+
+    if (jerseyNumber.isNotEmpty) {
+      final double jerseyFontSize =
+          size.x * 0.3; // Adjust size for jersey number
+      // Use a fixed contrasting color, e.g., white with a black outline/bg
+      final jerseyTextColor = Colors.white.withValues(alpha: baseOpacity);
+      const double nudge =
+          3.0; // How far outside the corner to place the number's center
+
+      // Prepare jersey number text style
+      _jerseyTextPainter.text = TextSpan(
+        text: jerseyNumber,
+        style: TextStyle(
+          color: jerseyTextColor,
+          fontSize: jerseyFontSize,
+          fontWeight: FontWeight.w900, // Make it very bold
+        ),
+      );
+      _jerseyTextPainter.layout();
+
+      // Calculate the target center position for the number text block
+      final Offset cornerPos = Offset(
+        size.x / 2,
+        -size.y / 2,
+      ); // Top-right corner in local coords
+      final Offset numberCenterTarget = Offset(
+        cornerPos.dx +
+            nudge +
+            (_jerseyTextPainter.width /
+                2), // Nudge right based on text width too
+        cornerPos.dy -
+            nudge -
+            (_jerseyTextPainter.height / 2), // Nudge up based on text height
+      );
+
+      // Calculate the drawing offset (top-left) for the text painter relative to canvas origin (0,0)
+      final Offset numberTextDrawOffset = Offset(size.x, -5);
+
+      // Draw the number
+      _jerseyTextPainter.paint(canvas, numberTextDrawOffset);
+    }
   }
 
   void moveTo(Vector2 newPosition) {

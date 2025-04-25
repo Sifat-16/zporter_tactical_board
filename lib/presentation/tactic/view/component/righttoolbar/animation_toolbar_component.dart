@@ -190,7 +190,7 @@ class _AnimationToolbarComponentState
       child: Container(
         // Add background color so list doesn't show through
         // Use your app's background color or a specific one
-        color: ColorManager.black, // Example
+        color: ColorManager.transparent, // Example
         padding: const EdgeInsets.symmetric(
           horizontal: 8.0,
           vertical: 8,
@@ -269,7 +269,7 @@ class _AnimationToolbarComponentState
       child: Container(
         // Add background color so list doesn't show through
         // Use your app's background color or a specific one
-        color: ColorManager.black, // Example
+        color: ColorManager.transparent, // Example
         padding: const EdgeInsets.symmetric(
           horizontal: 8.0,
           vertical: 8,

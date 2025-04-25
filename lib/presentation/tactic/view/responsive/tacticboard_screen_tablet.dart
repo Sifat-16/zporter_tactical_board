@@ -224,12 +224,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Imports for your project components and providers
 import 'package:zporter_tactical_board/app/core/component/pagination_component.dart';
+import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/show_quick_save_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_tool_bar.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
@@ -317,27 +317,56 @@ class _TacticboardScreenTabletState
           }
         },
         // Simplified Fullscreen: Just the GameScreen + Close Button
-        child: Scaffold(
-          backgroundColor: ColorManager.black, // Match background if needed
-          body: Padding(
-            padding: const EdgeInsets.all(20.0), // Keep padding
-            child: Stack(
+        child: SafeArea(
+          child: Scaffold(
+            key: _scaffoldKey,
+            onDrawerChanged: (b) {
+              if (b) {
+                ref
+                    .read(boardProvider.notifier)
+                    .updateDraggingToBoard(isDragging: false);
+              }
+            },
+            onEndDrawerChanged: (b) {},
+            drawer: Drawer(
+              backgroundColor:
+                  ColorManager.black, // Make drawer background transparent
+              child: LefttoolbarComponent(),
+            ),
+
+            // Right Drawer with transparent background
+            endDrawer: Drawer(
+              backgroundColor:
+                  ColorManager.black, // Make drawer background transparent
+              child: RighttoolbarComponent(),
+            ),
+            backgroundColor: ColorManager.black, // Match background if needed
+            body: Stack(
               children: [
-                GameScreen(scene: selectedScene), // Directly use GameScreen
-                Align(
-                  // Keep the close button
-                  alignment: Alignment.topRight,
-                  child: IconButton(
-                    onPressed: () {
-                      ref.read(boardProvider.notifier).toggleFullScreen();
+                Padding(
+                  padding: const EdgeInsets.all(5.0), // Keep padding
+                  child: GameScreen(scene: selectedScene),
+                ),
+
+                Positioned(
+                  left: 0, // Adjust position as needed
+                  top: context.heightPercent(45),
+                  child: GestureDetector(
+                    onTap: () {
+                      _scaffoldKey.currentState?.openDrawer();
                     },
-                    icon: Icon(
-                      Icons.fullscreen_exit, // Changed icon for clarity
-                      color:
-                          ColorManager.dark2 ??
-                          Colors.grey, // Provide fallback color
-                      size: 30,
-                    ),
+                    child: Icon(Icons.chevron_right, color: Colors.white),
+                  ),
+                ),
+
+                Positioned(
+                  right: 0, // Adjust position as needed
+                  top: context.heightPercent(45),
+                  child: GestureDetector(
+                    onTap: () {
+                      _scaffoldKey.currentState?.openEndDrawer();
+                    },
+                    child: Icon(Icons.chevron_left, color: Colors.white),
                   ),
                 ),
               ],
@@ -362,14 +391,14 @@ class _TacticboardScreenTabletState
       onEndDrawerChanged: (b) {},
       drawer: Drawer(
         backgroundColor:
-            Colors.transparent, // Make drawer background transparent
+            ColorManager.black, // Make drawer background transparent
         child: LefttoolbarComponent(),
       ),
 
       // Right Drawer with transparent background
       endDrawer: Drawer(
         backgroundColor:
-            Colors.transparent, // Make drawer background transparent
+            ColorManager.black, // Make drawer background transparent
         child: RighttoolbarComponent(),
       ),
 
@@ -458,60 +487,58 @@ class _TacticboardScreenTabletState
               ? AnimationDataInputComponent()
               : asp.showQuickSave
               ? ShowQuickSaveComponent()
-              : SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment:
-                      MainAxisAlignment.start, // Align content to top
-                  children: [
-                    SizedBox(
-                      height:
-                          MediaQuery.of(context).size.height *
-                          0.75, // Adjust height as needed
-                      child: GameScreen(scene: selectedScene),
-                    ),
-                    const SizedBox(height: 10),
-                    FieldToolBar(
-                      selectedCollection: collectionModel,
-                      selectedAnimation: animationModel,
-                      selectedScene: selectedScene,
-                    ),
-                    const SizedBox(height: 10),
-                    if (animationModel == null)
-                      Row(
-                        children: [
-                          if (asp.defaultAnimationItems.isNotEmpty)
-                            Expanded(
-                              child: PaginationComponent(
-                                totalPages: asp.defaultAnimationItems.length,
-                                initialPage: asp.defaultAnimationItemIndex,
-                                currentPage: asp.defaultAnimationItemIndex,
-                                onIndexChange: (index) {
-                                  ref
-                                      .read(animationProvider.notifier)
-                                      .changeDefaultAnimationIndex(index);
-                                },
-                              ),
+              : Column(
+                mainAxisAlignment:
+                    MainAxisAlignment.start, // Align content to top
+                children: [
+                  SizedBox(
+                    height:
+                        MediaQuery.of(context).size.height *
+                        0.85, // Adjust height as needed
+                    child: GameScreen(scene: selectedScene),
+                  ),
+                  // const SizedBox(height: 10),
+                  // FieldToolBar(
+                  //   selectedCollection: collectionModel,
+                  //   selectedAnimation: animationModel,
+                  //   selectedScene: selectedScene,
+                  // ),
+                  // const SizedBox(height: 10),
+                  if (animationModel == null)
+                    Row(
+                      children: [
+                        if (asp.defaultAnimationItems.isNotEmpty)
+                          Expanded(
+                            child: PaginationComponent(
+                              totalPages: asp.defaultAnimationItems.length,
+                              initialPage: asp.defaultAnimationItemIndex,
+                              currentPage: asp.defaultAnimationItemIndex,
+                              onIndexChange: (index) {
+                                ref
+                                    .read(animationProvider.notifier)
+                                    .changeDefaultAnimationIndex(index);
+                              },
                             ),
-                          IconButton(
-                            onPressed: () {
-                              ref
-                                  .read(animationProvider.notifier)
-                                  .createNewDefaultAnimationItem();
-                            },
-                            icon: Icon(Icons.add, color: ColorManager.white),
                           ),
-                          IconButton(
-                            onPressed: () {
-                              ref
-                                  .read(animationProvider.notifier)
-                                  .deleteDefaultAnimation();
-                            },
-                            icon: Icon(Icons.delete, color: ColorManager.white),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
+                        IconButton(
+                          onPressed: () {
+                            ref
+                                .read(animationProvider.notifier)
+                                .createNewDefaultAnimationItem();
+                          },
+                          icon: Icon(Icons.add, color: ColorManager.white),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            ref
+                                .read(animationProvider.notifier)
+                                .deleteDefaultAnimation();
+                          },
+                          icon: Icon(Icons.delete, color: ColorManager.white),
+                        ),
+                      ],
+                    ),
+                ],
               ),
     );
   }

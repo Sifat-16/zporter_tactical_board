@@ -74,7 +74,7 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
             labelPadding: EdgeInsets.symmetric(
               horizontal: AppSize.s8,
             ), // Remove padding between tab labels
-            isScrollable: true,
+            isScrollable: false,
             dividerHeight: 0,
             tabs:
                 _tabs.map((tab) {
@@ -88,6 +88,7 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
                 color: ColorManager.grey.withValues(alpha: 0.1),
               ),
               child: PageView(
+                physics: NeverScrollableScrollPhysics(),
                 controller: _pageController,
                 onPageChanged: (index) {
                   _tabController.animateTo(index); // Sync TabBar with PageView

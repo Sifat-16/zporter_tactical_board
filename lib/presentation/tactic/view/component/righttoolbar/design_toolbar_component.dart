@@ -1,7 +1,7 @@
 import 'package:flame/components.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/core/component/color_picker_slider.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_slider.dart';
 import 'package:zporter_tactical_board/app/core/component/opacity_slider.dart';
@@ -83,7 +83,10 @@ class _DesignToolbarComponentState
                   onTap: () {
                     ref.read(boardProvider.notifier).copyElement();
                   },
-                  child: Icon(Icons.copy, color: ColorManager.grey),
+                  child: Transform.scale(
+                    scale: 0.7,
+                    child: Icon(Icons.copy, color: ColorManager.grey),
+                  ),
                 ),
               ),
             ),
@@ -113,7 +116,10 @@ class _DesignToolbarComponentState
                 onTap: () {
                   ref.read(boardProvider.notifier).removeElement();
                 },
-                child: Icon(CupertinoIcons.delete, color: ColorManager.grey),
+                child: Transform.scale(
+                  scale: 0.7,
+                  child: Icon(FontAwesomeIcons.trash, color: ColorManager.grey),
+                ),
               ),
             ),
           ),

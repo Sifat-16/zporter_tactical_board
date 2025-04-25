@@ -133,7 +133,7 @@ class EquipmentUtils {
   static List<EquipmentModel> generateEquipments() {
     return _equipments
         .map(
-          (e) => e.copyWith(color: ColorManager.yellow, size: Vector2(32, 32)),
+          (e) => e.copyWith(color: ColorManager.white, size: Vector2(32, 32)),
         )
         .toList();
   }
