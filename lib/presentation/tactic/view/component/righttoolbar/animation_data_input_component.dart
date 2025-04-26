@@ -43,7 +43,7 @@ class _AnimationDataInputComponentState
     _animationCollectionNameController = TextEditingController();
     // Now uses the controller and key from the State class
     return SizedBox(
-      width: context.widthPercent(30),
+      width: context.widthPercent(100),
       // Wrap content in a Form widget
       child: Form(
         key: _newCollectionFormKey, // Assign the key to the Form
@@ -140,7 +140,7 @@ class _AnimationDataInputComponentState
     _animationNameController = TextEditingController();
     // Now uses the controller and key from the State class
     return Container(
-      width: context.widthPercent(30),
+      width: context.widthPercent(100),
       // Wrap content in a Form widget
       child: Form(
         key: _newCollectionFormKey, // Assign the key to the Form
