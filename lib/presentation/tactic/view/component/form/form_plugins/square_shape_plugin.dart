@@ -114,7 +114,7 @@ class SquareShapeDrawerComponent
 
   final double _tapTolerance = 5.0;
   double _actualSide = 0.0; // Still useful for min/max checks maybe
-  final double _minSide = 10.0;
+  final double _minSide = 8.0;
   late Paint _strokePaint;
   Paint?
   _fillPaint; // Keep for data model consistency, but won't be used in render
@@ -176,7 +176,7 @@ class SquareShapeDrawerComponent
         dotIndex: 100 + i,
         initialPosition: initialRotatedPosition, // Set rotated position
         radius: dotRadius,
-        color: Colors.green.withValues(alpha: 0.8),
+        color: Colors.blue,
         onPositionChanged: (newPos, isIncreasingFirstDot) {
           final cornerPositions = [
             Vector2(-_minSide, _minSide),

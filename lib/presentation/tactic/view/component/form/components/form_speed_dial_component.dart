@@ -17,6 +17,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/shapes/form_shape_item.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
@@ -303,7 +304,35 @@ class _FormSpeedDialComponentState
           ),
 
           Row(
+            spacing: 10,
             children: [
+              if (animationModel != null)
+                Builder(
+                  builder: (context) {
+                    final Object heroTag =
+                        'anim_${animationModel.id.toString()}';
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
+                          MaterialPageRoute(
+                            builder:
+                                (context) => AnimationScreen(
+                                  // Pass the necessary data AND the hero tag
+                                  animationModel: animationModel,
+                                  heroTag: heroTag, // Pass the SAME tag
+                                ),
+                          ),
+                        );
+                      },
+                      child: Icon(
+                        Icons.play_circle_outline,
+                        color: ColorManager.white,
+                      ),
+                    );
+                  },
+                ),
               _buildAddNewScene(
                 selectedCollection: collectionModel,
                 selectedAnimation: animationModel,

@@ -159,7 +159,7 @@ class CircleShapeDrawerComponent extends PositionComponent
       // Position slightly above the top edge
       initialPosition: Vector2(0, -_internalCircle.radius - _dotOffsetAbove),
       radius: 6.0, // Fixed size handle
-      color: _internalCircle.strokeColor ?? ColorManager.blue,
+      color: Colors.blue,
       canModifyLine: true, // Flag might not be relevant here
       onDotDragEnd: () {
         // --- Save final state AFTER dot drag ends ---
@@ -236,18 +236,19 @@ class CircleShapeDrawerComponent extends PositionComponent
 
   @override
   bool containsLocalPoint(Vector2 point) {
-    // Use ACTUAL radius for hit testing
-    final double radius = _internalCircle.radius;
-    final double strokeWidth = _internalCircle.strokeWidth;
-
-    if (radius <= 0 || strokeWidth <= 0) return false;
-
-    final double distance = point.length;
-    final double hitThreshold = (strokeWidth / 2) + _tapTolerance;
-    final bool isOnEdge = (distance - radius).abs() <= hitThreshold;
-
-    // zlog(data: "Circle ${circleModel.id}: containsLocalPoint($point): isOnEdge=$isOnEdge (Dist: $distance, Radius: $radius, Thresh: $hitThreshold)");
-    return isOnEdge;
+    // // Use ACTUAL radius for hit testing
+    // final double radius = _internalCircle.radius;
+    // final double strokeWidth = _internalCircle.strokeWidth;
+    //
+    // if (radius <= 0 || strokeWidth <= 0) return false;
+    //
+    // final double distance = point.length;
+    // final double hitThreshold = (strokeWidth / 2) + _tapTolerance;
+    // final bool isOnEdge = (distance - radius).abs() <= hitThreshold;
+    //
+    // // zlog(data: "Circle ${circleModel.id}: containsLocalPoint($point): isOnEdge=$isOnEdge (Dist: $distance, Radius: $radius, Thresh: $hitThreshold)");
+    // return isOnEdge;
+    return point.length <= _internalCircle.radius + _tapTolerance;
   }
 
   // --- Tap Handling ---

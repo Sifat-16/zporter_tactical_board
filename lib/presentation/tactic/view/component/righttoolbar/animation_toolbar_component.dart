@@ -9,7 +9,6 @@ import 'package:zporter_tactical_board/data/animation/model/animation_collection
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_list_item.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_scene_item.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 
@@ -332,33 +331,6 @@ class _AnimationToolbarComponentState
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Builder(
-                    builder: (context) {
-                      final Object heroTag =
-                          'anim_${selectedAnimation.id.toString()}';
-                      return IconButton(
-                        onPressed: () {
-                          AnimationModel? animationModel = selectedAnimation;
-                          Navigator.push(
-                            context,
-                            // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => AnimationScreen(
-                                    // Pass the necessary data AND the hero tag
-                                    animationModel: animationModel,
-                                    heroTag: heroTag, // Pass the SAME tag
-                                  ),
-                            ),
-                          );
-                        },
-                        icon: Icon(
-                          Icons.play_circle_outline,
-                          color: ColorManager.green,
-                        ),
-                      );
-                    },
-                  ),
                   CustomButton(
                     onTap: () {
                       ref.read(animationProvider.notifier).clearAnimation();
