@@ -23,6 +23,9 @@ class CircleRadiusDraggableDot extends CircleComponent with DragCallbacks {
   final bool canModifyLine;
   final int dotIndex;
 
+  static const double _hitRadiusPadding =
+      15.0; // Extra space around dot for tapping/dragging
+
   CircleRadiusDraggableDot({
     required this.onPositionChanged,
     required this.initialPosition,
@@ -71,6 +74,14 @@ class CircleRadiusDraggableDot extends CircleComponent with DragCallbacks {
     // Optionally call onDotDragEnd() or a specific cancel handler if needed
     super.onDragCancel(event);
     event.continuePropagation = true;
+  }
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    // Check distance against the visual radius PLUS the extra padding
+    final double effectiveHitRadius = radius + _hitRadiusPadding;
+    // point.length is the distance from the component's anchor (center)
+    return point.length <= effectiveHitRadius;
   }
 }
 

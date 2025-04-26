@@ -358,6 +358,9 @@ class _FormSpeedDialComponentState
       onTap: () {
         if (selectedCollection == null || selectedAnimation == null) {
           // no collection or animation is chosen, so show a overlay to add or select item
+          if (ref.read(boardProvider).showFullScreen) {
+            ref.read(boardProvider.notifier).toggleFullScreen();
+          }
 
           ref.read(animationProvider.notifier).showQuickSave();
         } else {

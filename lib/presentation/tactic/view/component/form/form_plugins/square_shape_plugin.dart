@@ -43,7 +43,7 @@ class SquareRadiusDraggableDot extends CircleComponent
        );
 
   Vector2? _dragStartLocalPosition;
-  final double extraTapRadius = 4.0; // Increased tap area tolerance
+  final double extraTapRadius = 15.0; // Increased tap area tolerance
 
   @override
   void onTapDown(TapDownEvent event) {
