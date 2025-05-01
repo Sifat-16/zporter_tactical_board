@@ -34,6 +34,7 @@ class BoardState {
   final Vector2? fieldSize;
   final bool showFullScreen;
   final bool isDraggingElementToBoard;
+  final bool refreshBoard;
 
   const BoardState({
     this.players = const [],
@@ -54,6 +55,7 @@ class BoardState {
     this.fieldSize,
     this.tabController,
     this.tacticBoardGame,
+    this.refreshBoard = false,
     this.boardAngle = 0,
     this.showFullScreen = false,
     this.isDraggingElementToBoard = false,
@@ -80,6 +82,7 @@ class BoardState {
     TabController? tabController,
     Object? tacticBoardGame = _sentinel,
     int? boardAngle,
+    bool? refreshBoard,
     bool? showFullScreen,
     bool? isDraggingElementToBoard,
   }) {
@@ -114,6 +117,7 @@ class BoardState {
       showFullScreen: showFullScreen ?? this.showFullScreen,
       isDraggingElementToBoard:
           isDraggingElementToBoard ?? this.isDraggingElementToBoard,
+      refreshBoard: refreshBoard ?? this.refreshBoard,
     );
   }
 

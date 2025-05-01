@@ -159,8 +159,11 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     );
 
     // --- 4. Draw Jersey Number (Top Right, slightly outside) ---
-    final String jerseyNumber =
+    String jerseyNumber =
         object.jerseyNumber.toString(); // Get number as string
+    if (jerseyNumber == "-1") {
+      jerseyNumber = "";
+    }
 
     if (jerseyNumber.isNotEmpty) {
       final double jerseyFontSize =

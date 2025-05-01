@@ -84,6 +84,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (prev?.showFullScreen != current.showFullScreen) {
         tacticBoardGame.redrawLines();
       }
+      if (current.refreshBoard == true) {
+        tacticBoardGame.redrawLines();
+        ref.read(boardProvider.notifier).toggleRefreshBoard(false);
+      }
     });
     previousAngle = quarterTurns;
     return DragTarget<FieldItemModel>(

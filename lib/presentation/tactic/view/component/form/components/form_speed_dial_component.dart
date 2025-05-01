@@ -1,4 +1,5 @@
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -195,10 +196,10 @@ class _FormSpeedDialComponentState
                 ),
               ),
 
-              GestureDetector(
-                onTap: () {},
-                child: Icon(Icons.threed_rotation, color: ColorManager.white),
-              ),
+              // GestureDetector(
+              //   onTap: () {},
+              //   child: Icon(Icons.threed_rotation, color: ColorManager.white),
+              // ),
               GestureDetector(
                 onTap: () {},
                 child: Icon(Icons.share, color: ColorManager.grey),
@@ -212,7 +213,9 @@ class _FormSpeedDialComponentState
             children: [
               GestureDetector(
                 onTap:
-                    lp.isFreeDrawingActive || lp.isEraserActivated
+                    lp.isFreeDrawingActive ||
+                            lp.isEraserActivated ||
+                            lp.isTrashActive
                         ? null
                         : () {
                           _showActionGrid(context);
@@ -228,7 +231,9 @@ class _FormSpeedDialComponentState
                             FontAwesomeIcons.arrowPointer,
                             color: ColorManager.white.withValues(
                               alpha:
-                                  lp.isFreeDrawingActive || lp.isEraserActivated
+                                  lp.isFreeDrawingActive ||
+                                          lp.isEraserActivated ||
+                                          lp.isTrashActive
                                       ? 0.3
                                       : 0.9,
                             ),
@@ -238,7 +243,9 @@ class _FormSpeedDialComponentState
 
               GestureDetector(
                 onTap:
-                    lp.isLineActiveToAddIntoGameField || lp.isEraserActivated
+                    lp.isLineActiveToAddIntoGameField ||
+                            lp.isEraserActivated ||
+                            lp.isTrashActive
                         ? null
                         : () {
                           if (lp.isFreeDrawingActive) {
@@ -258,7 +265,9 @@ class _FormSpeedDialComponentState
 
               GestureDetector(
                 onTap:
-                    lp.isFreeDrawingActive || lp.isLineActiveToAddIntoGameField
+                    lp.isFreeDrawingActive ||
+                            lp.isLineActiveToAddIntoGameField ||
+                            lp.isTrashActive
                         ? null
                         : () {
                           ref.read(lineProvider.notifier).toggleEraser();
@@ -300,6 +309,19 @@ class _FormSpeedDialComponentState
                     }
                   },
                 ),
+
+              GestureDetector(
+                onTap:
+                    lp.isFreeDrawingActive ||
+                            lp.isLineActiveToAddIntoGameField ||
+                            lp.isEraserActivated ||
+                            lp.isShapeActiveToAddIntoGameField
+                        ? null
+                        : () {
+                          ref.read(lineProvider.notifier).toggleTrash();
+                        },
+                child: _buildTrashComponent(isFocused: lp.isTrashActive),
+              ),
             ],
           ),
 
@@ -419,5 +441,14 @@ class _FormSpeedDialComponentState
         ),
       );
     }
+  }
+
+  _buildTrashComponent({required isFocused}) {
+    return Center(
+      child: Icon(
+        CupertinoIcons.trash,
+        color: isFocused ? ColorManager.red : ColorManager.white,
+      ),
+    );
   }
 }

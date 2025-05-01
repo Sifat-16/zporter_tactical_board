@@ -227,4 +227,8 @@ class BoardController extends StateNotifier<BoardState> {
   void updateDraggingToBoard({required bool isDragging}) {
     state = state.copyWith(isDraggingElementToBoard: isDragging);
   }
+
+  void toggleRefreshBoard(bool refresh) {
+    state = state.copyWith(refreshBoard: refresh);
+  }
 }

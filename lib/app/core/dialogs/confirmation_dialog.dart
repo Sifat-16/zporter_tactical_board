@@ -94,7 +94,7 @@ Future<bool?> showConfirmationDialog({
           ),
           title: Text(
             title,
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.left,
             // Inherits onSurface color (white) from theme, applies specific weight/size
             style: const TextStyle(
               fontWeight: FontWeight.w600,

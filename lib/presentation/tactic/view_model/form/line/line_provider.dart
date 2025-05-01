@@ -123,4 +123,19 @@ class LineController extends StateNotifier<LineState> {
   }) {
     dismissActiveFormItem();
   }
+
+  void toggleTrash() {
+    bool isActive = state.isTrashActive;
+    if (isActive) {
+      state = state.copyWith(isTrashActive: false);
+    } else {
+      state = state.copyWith(
+        isTrashActive: true,
+        isFreeDrawingActive: false,
+        isShapeActiveToAddIntoGameField: false,
+        isEraserActivated: false,
+        isLineActiveToAddIntoGameField: false,
+      );
+    }
+  }
 }

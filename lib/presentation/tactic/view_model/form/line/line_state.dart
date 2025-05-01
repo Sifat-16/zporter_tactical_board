@@ -15,6 +15,8 @@ class LineState {
 
   final bool isEraserActivated;
 
+  final bool isTrashActive;
+
   const LineState({
     this.availableLines = const [],
     this.availableFreeDraws = const [],
@@ -23,6 +25,7 @@ class LineState {
     this.isFreeDrawingActive = false,
     this.activatedFormId,
     this.isEraserActivated = false,
+    this.isTrashActive = false,
     this.isShapeActiveToAddIntoGameField = false,
   });
 
@@ -34,6 +37,7 @@ class LineState {
     bool? isFreeDrawingActive,
     Object? activatedFormId = _sentinel,
     bool? isEraserActivated,
+    bool? isTrashActive,
     bool? isShapeActiveToAddIntoGameField,
   }) {
     return LineState(
@@ -55,6 +59,7 @@ class LineState {
       isShapeActiveToAddIntoGameField:
           isShapeActiveToAddIntoGameField ??
           this.isShapeActiveToAddIntoGameField,
+      isTrashActive: isTrashActive ?? this.isTrashActive,
     );
   }
 

@@ -236,7 +236,7 @@ class PlayerUtilsV2 {
         case PlayerType.OTHER:
           // TODO: Handle this case.
           if (p.item3 == -1) {
-            color = ColorManager.yellow;
+            color = ColorManager.blue;
           } else {
             color = ColorManager.black;
           }

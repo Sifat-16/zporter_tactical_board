@@ -16,6 +16,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/f
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 
 // Assuming GameField is defined in 'game_field.dart' as per your import
 import 'game_field.dart';
@@ -81,7 +82,6 @@ class TacticBoard extends TacticBoardGame
 
   @override
   void onTapDown(TapDownInfo info) {
-    // TODO: implement onTapDown // Keep original comment
     super.onTapDown(info);
     final tapPosition = info.raw.localPosition; // Position in game coordinates
 
@@ -101,7 +101,19 @@ class TacticBoard extends TacticBoardGame
         zlog(data: "Tapped components ${components}");
       } else {
         zlog(data: "Animate to design tab called");
-        ref.read(boardProvider.notifier).animateToDesignTab();
+
+        /// detect the trash mode is on or not, if on then remove that widget
+
+        bool isTrashModeActive = false;
+        try {
+          isTrashModeActive = ref.read(lineProvider).isTrashActive;
+        } catch (e) {}
+
+        if (isTrashModeActive) {
+          ref.read(boardProvider.notifier).removeElement();
+        } else {
+          ref.read(boardProvider.notifier).animateToDesignTab();
+        }
       }
     }
   }

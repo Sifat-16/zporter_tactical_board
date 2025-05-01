@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class GameField extends PositionComponent
@@ -18,16 +20,24 @@ class GameField extends PositionComponent
   late double goalBoxHeight;
   late double penaltySpotRadius;
 
+  ui.Image? _logoImage;
+
   final Paint _borderPaint =
       Paint()
         ..color = ColorManager.black
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1;
 
+  final Paint _fillPaint =
+      Paint()
+        ..color = ColorManager.black
+        ..style = PaintingStyle.fill
+        ..strokeWidth = 1;
+
   final Paint _fieldPaint = Paint()..color = ColorManager.grey; // Green Field
 
   @override
-  FutureOr<void> onLoad() {
+  FutureOr<void> onLoad() async {
     addToGameWidgetBuild(() {
       ref.listen(boardProvider, (previous, current) {
         _fieldPaint.color = current.boardColor;
@@ -39,6 +49,8 @@ class GameField extends PositionComponent
     _initializePosition();
     _initializeMeasurements();
     size.y -= 20;
+    _logoImage = await game.images.load("logo.png");
+
     return super.onLoad();
   }
 
@@ -68,6 +80,52 @@ class GameField extends PositionComponent
     _drawPenaltySpots(canvas);
     // _drawCornerArcs(canvas);
     _drawCenterSpots(canvas);
+    _drawLogo(canvas);
+  }
+
+  void _drawLogo(Canvas canvas) {
+    if (_logoImage != null) {
+      // Check if the image has been loaded
+      // Calculate desired logo dimensions (e.g., 20% of field width)
+      final double logoWidth = AppSize.s40; // Adjust size factor as needed
+      // Calculate height maintaining original aspect ratio
+      final double logoHeight = AppSize.s40;
+      // Find the center coordinates of the GameField component
+      final double centerX = size.x / 2;
+      final double centerY = size.y / 2;
+
+      // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+      // --- logoPosition is defined and calculated HERE ---
+      final Offset logoPosition = Offset(
+        centerX - logoWidth / 2, // Calculate top-left X to center horizontally
+        centerY - logoHeight / 2, // Calculate top-left Y to center vertically
+      );
+      // --- End of logoPosition definition ---
+      // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+      // Define the source rectangle (the whole image)
+      final Rect sourceRect = Rect.fromLTWH(
+        0,
+        0,
+        _logoImage!.width.toDouble(),
+        _logoImage!.height.toDouble(),
+      );
+      // Define the destination rectangle on the canvas using calculated position and size
+      final Rect destinationRect = Rect.fromLTWH(
+        logoPosition.dx,
+        logoPosition.dy,
+        logoWidth,
+        logoHeight,
+      );
+
+      // Draw the image
+      canvas.drawImageRect(
+        _logoImage!,
+        sourceRect,
+        destinationRect,
+        Paint(), // Use a default Paint or customize if needed (e.g., for opacity)
+      );
+    }
   }
 
   /// Draws the green background of the field
@@ -173,7 +231,7 @@ class GameField extends PositionComponent
     canvas.drawCircle(
       Offset(size.x / 2, size.y / 2),
       penaltySpotRadius,
-      _borderPaint,
+      _fillPaint,
     );
   }
 }
