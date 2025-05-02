@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
@@ -94,7 +95,8 @@ class TacticBoard extends TacticBoardGame
           !components.any((t) => t is CircleShapeDrawerComponent) &&
           !components.any((t) => t is CircleRadiusDraggableDot) &&
           !components.any((t) => t is SquareShapeDrawerComponent) &&
-          !components.any((t) => t is SquareRadiusDraggableDot)) {
+          !components.any((t) => t is SquareRadiusDraggableDot) &&
+          !components.any((t) => t is ScalingHandle)) {
         ref // ref is available via RiverpodGameMixin
             .read(boardProvider.notifier)
             .toggleSelectItemEvent(fieldItemModel: null);

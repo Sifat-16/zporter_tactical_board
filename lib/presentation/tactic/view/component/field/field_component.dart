@@ -71,16 +71,6 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
     super.onMount();
   }
 
-  // @override
-  // void onTapDown(TapDownEvent event) {
-  //   super.onTapDown(event);
-  //
-  //
-  //
-  //   // _isSelected = !_isSelected;
-  //   // updateSelectionBorder();
-  // }
-
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
@@ -119,7 +109,6 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
 
       selectionBorder!.size = size + Vector2.all(20);
       selectionBorder!.position.setFrom(Vector2(size.x / 2, size.y / 2));
-      selectionBorder!.updateHandlePositions();
     }
   }
 
@@ -197,4 +186,6 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
 
     return false;
   }
+
+  void onComponentScale(Vector2 size) {}
 }

@@ -66,4 +66,11 @@ class EquipmentComponent extends FieldComponent<EquipmentModel> {
     size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
     opacity = object.opacity ?? 1;
   }
+
+  @override
+  void onComponentScale(Vector2 size) {
+    // TODO: implement onComponentScale
+    super.onComponentScale(size);
+    object.size = size;
+  }
 }

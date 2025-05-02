@@ -1,19 +1,34 @@
+import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/cupertino.dart';
 
 import 'field_component.dart';
 
+enum ScalingHandlePosition { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
+
 class ScalingHandle extends CircleComponent with DragCallbacks {
   final FieldComponent component;
 
+  final ScalingHandlePosition scalingHandlePosition;
+
   final Color color;
+  final double interactionRadius = 15.0;
 
   ScalingHandle({
     required this.component,
     required super.anchor,
+    required this.scalingHandlePosition,
     this.color = const Color(0xFF00FF00),
-  }) : super(radius: 6, paint: Paint()..color = color);
+  }) : super(radius: 6.0, paint: Paint()..color = color) {
+    add(
+      CircleHitbox(
+        radius: interactionRadius,
+        anchor: Anchor.center,
+        isSolid: true,
+      ),
+    );
+  }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
@@ -23,17 +38,16 @@ class ScalingHandle extends CircleComponent with DragCallbacks {
     double scaleX = 1.0;
     double scaleY = 1.0;
 
-    if (anchor == Anchor.topLeft || anchor == Anchor.bottomLeft) {
-      scaleX -= delta.x / component.size.x;
-    } else {
-      scaleX += delta.x / component.size.x;
+    if (scalingHandlePosition == ScalingHandlePosition.TOP_RIGHT) {
+      delta.y *= -1;
+    } else if (scalingHandlePosition == ScalingHandlePosition.BOTTOM_LEFT) {
+      delta.x *= -1;
+    } else if (scalingHandlePosition == ScalingHandlePosition.TOP_LEFT) {
+      delta *= -1;
     }
 
-    if (anchor == Anchor.topLeft || anchor == Anchor.topRight) {
-      scaleY -= delta.y / component.size.y;
-    } else {
-      scaleY += delta.y / component.size.y;
-    }
+    scaleX += delta.x / component.size.x;
+    scaleY += delta.y / component.size.y;
 
     // Apply scaling to the player component
     component.size.x *= scaleX;
@@ -50,8 +64,6 @@ class ScalingHandle extends CircleComponent with DragCallbacks {
     component.selectionBorder?.position.setFrom(
       Vector2(component.size.x / 2, component.size.y / 2),
     );
-
-    // Update handle positions
-    component.selectionBorder?.updateHandlePositions();
+    component.onComponentScale(component.size);
   }
 }
