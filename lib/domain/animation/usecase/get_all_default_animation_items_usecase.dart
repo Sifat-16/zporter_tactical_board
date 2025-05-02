@@ -8,6 +8,7 @@ class GetAllDefaultAnimationItemsUseCase
   GetAllDefaultAnimationItemsUseCase({required this.animationRepository});
   @override
   Future<List<AnimationItemModel>> call(param) async {
+    print("Getting all the default from tactics board ${param}");
     return await animationRepository.getDefaultAnimations(userId: param);
   }
 }
