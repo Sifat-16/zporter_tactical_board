@@ -58,6 +58,9 @@ dependencies:
   flutter_speed_dial: ^7.0.0
   hero_here: ^1.0.1
   sidebarx: ^0.17.1
+  firebase_performance: ^0.10.1+5
+  firebase_crashlytics: ^4.3.5
+  firebase_analytics: ^11.4.5
 
 
 dev_dependencies:

@@ -50,6 +50,22 @@
       },
       "oauth_client": [
         {
+          "client_id": "134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zporter.zporter_board",
+            "certificate_hash": "4d9cf20800b7e68a0ef21f65912a272ecc7aa928"
+          }
+        },
+        {
+          "client_id": "134085653898-g615q2vbc2ukprhecnfoa2oiecjciu9c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zporter.zporter_board",
+            "certificate_hash": "bce7564cd1778394c94a8284a6af646b48a42fb0"
+          }
+        },
+        {
           "client_id": "134085653898-ioj34cmu5ldpmuqr6b1qo70gdpt2hl05.apps.googleusercontent.com",
           "client_type": 3
         }

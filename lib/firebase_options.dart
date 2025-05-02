@@ -64,6 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '134085653898',
     projectId: 'zporter-board-dev',
     storageBucket: 'zporter-board-dev.firebasestorage.app',
+    androidClientId: '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
     iosClientId: '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
     iosBundleId: 'com.example.zporterTacticalBoard',
   );
@@ -74,6 +75,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '134085653898',
     projectId: 'zporter-board-dev',
     storageBucket: 'zporter-board-dev.firebasestorage.app',
+    androidClientId: '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
     iosClientId: '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
     iosBundleId: 'com.example.zporterTacticalBoard',
   );
