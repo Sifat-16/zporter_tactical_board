@@ -7,6 +7,7 @@ import 'package:zporter_tactical_board/app/core/component/custom_slider.dart';
 import 'package:zporter_tactical_board/app/core/component/opacity_slider.dart';
 import 'package:zporter_tactical_board/app/core/component/switcher_component.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
@@ -193,7 +194,10 @@ class _DesignToolbarComponentState
     if (
     // item is FormModel && item.formItemModel is LineModel
     //     ||
-    item is LineModelV2 || item is FreeDrawModelV2 || item is ShapeModel) {
+    item is LineModelV2 ||
+        item is FreeDrawModelV2 ||
+        item is ShapeModel ||
+        item is EquipmentModel) {
       return SizedBox.shrink();
     }
     return Column(
