@@ -326,8 +326,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// --- Assuming Your Imports Are Correct ---
-import 'package:zporter_tactical_board/app/core/component/pagination_component.dart';
+import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart'; // Assuming zlog exists
@@ -708,15 +707,25 @@ class _TacticboardScreenTabletState
                         children: [
                           if (asp.defaultAnimationItems.isNotEmpty)
                             Expanded(
-                              child: PaginationComponent(
+                              child:
+                              // PaginationComponent(
+                              //   totalPages: asp.defaultAnimationItems.length,
+                              //   initialPage: asp.defaultAnimationItemIndex,
+                              //   currentPage: asp.defaultAnimationItemIndex,
+                              //   onIndexChange: (index) {
+                              //     ref
+                              //         .read(animationProvider.notifier)
+                              //         .changeDefaultAnimationIndex(index);
+                              //   },
+                              // ),
+                              CompactPaginator(
                                 totalPages: asp.defaultAnimationItems.length,
-                                initialPage: asp.defaultAnimationItemIndex,
-                                currentPage: asp.defaultAnimationItemIndex,
-                                onIndexChange: (index) {
+                                onPageChanged: (index) {
                                   ref
                                       .read(animationProvider.notifier)
                                       .changeDefaultAnimationIndex(index);
                                 },
+                                initialPage: asp.defaultAnimationItemIndex,
                               ),
                             ),
                           IconButton(

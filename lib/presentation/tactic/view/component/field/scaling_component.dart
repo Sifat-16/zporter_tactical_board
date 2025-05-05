@@ -1,4 +1,3 @@
-import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/cupertino.dart';
@@ -21,13 +20,18 @@ class ScalingHandle extends CircleComponent with DragCallbacks {
     required this.scalingHandlePosition,
     this.color = const Color(0xFF00FF00),
   }) : super(radius: 6.0, paint: Paint()..color = color) {
-    add(
-      CircleHitbox(
-        radius: interactionRadius,
-        anchor: Anchor.center,
-        isSolid: true,
-      ),
-    );
+    // add(
+    //   CircleHitbox(
+    //     radius: interactionRadius,
+    //     anchor: Anchor.center,
+    //     isSolid: true,
+    //   ),
+    // );
+  }
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return point.length <= interactionRadius;
   }
 
   @override
