@@ -129,7 +129,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           gameScreenSize: gameScreenSize,
           actualPosition: actualPosition,
         );
-
         tacticBoardGame.addItem(fieldItemModel);
       },
       builder: (

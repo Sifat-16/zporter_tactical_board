@@ -32,6 +32,7 @@ class DraggableCircleComponent extends CircleComponent with DragCallbacks {
     if (!component.isSelected) return;
     super.onDragStart(event);
     component.setRotationHandleDragged(true);
+    event.continuePropagation = false;
   }
 
   @override
@@ -41,6 +42,7 @@ class DraggableCircleComponent extends CircleComponent with DragCallbacks {
     double angle = delta.screenAngle();
     component.angle += angle * rotationSpeed;
     component.onRotationUpdate();
+    event.continuePropagation = false;
   }
 
   @override
@@ -48,6 +50,7 @@ class DraggableCircleComponent extends CircleComponent with DragCallbacks {
     if (!component.isSelected) return;
     super.onDragEnd(event);
     component.setRotationHandleDragged(false);
+    event.continuePropagation = false;
   }
 
   @override
@@ -55,6 +58,7 @@ class DraggableCircleComponent extends CircleComponent with DragCallbacks {
     if (!component.isSelected) return;
     super.onDragCancel(event);
     component.setRotationHandleDragged(false);
+    event.continuePropagation = false;
   }
 
   @override

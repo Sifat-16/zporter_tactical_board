@@ -22,6 +22,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/an
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart'; // Ensure ActiveTool is here or imported
 
 import 'form_item_speed_dial.dart';
 import 'line/form_line_item.dart';
@@ -41,43 +42,37 @@ class _FormSpeedDialComponentState
   List<LineModelV2> lines = [];
   List<ShapeModel> shapes = [];
 
+  final GetHistoryStreamUseCase _historyStream =
+      sl.get<GetHistoryStreamUseCase>();
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((t) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       setupForms();
     });
   }
 
-  setupForms() {
+  void setupForms() {
     setState(() {
       lines = LineUtils.generateLines();
       shapes = ShapeUtils.generateShapes();
     });
   }
 
-  // Not needed if SpeedDial doesn't manage open/close state itself
-  // var isDialOpen = ValueNotifier<bool>(false);
-
-  // --- Function to show the grid in a bottom sheet ---
   void _showActionGrid(BuildContext context) {
-    // Ensure lists are initialized (although initState should handle this)
     if (lines.isEmpty && shapes.isEmpty) {
-      setupForms(); // Recalculate if empty, safety check
+      setupForms();
     }
 
-    // Calculate total items
     final totalItems = lines.length + shapes.length;
+    final lineNotifier = ref.read(lineProvider.notifier); // Get notifier
 
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: ColorManager.dark2.withValues(
-        alpha: 0.8, // Assuming ColorValues extension exists
-      ),
+      backgroundColor: ColorManager.dark2.withValues(alpha: 0.8),
       builder: (BuildContext bottomSheetContext) {
         final screenHeight = MediaQuery.of(context).size.height;
 
@@ -87,7 +82,6 @@ class _FormSpeedDialComponentState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Drag Handle
               Container(
                 width: 40,
                 height: 5,
@@ -97,7 +91,6 @@ class _FormSpeedDialComponentState
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              // Title
               Text(
                 'Select Action',
                 style: Theme.of(context).textTheme.labelLarge!.copyWith(
@@ -106,10 +99,8 @@ class _FormSpeedDialComponentState
                 ),
               ),
               const SizedBox(height: 16),
-              // --- GridView with Combined Items ---
               Expanded(
                 child: GridView.builder(
-                  // *** MODIFIED: itemCount is now the total count ***
                   itemCount: totalItems,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
@@ -117,39 +108,36 @@ class _FormSpeedDialComponentState
                     mainAxisSpacing: 10.0,
                     childAspectRatio: 1.0,
                   ),
-                  // *** MODIFIED: itemBuilder handles both lines and shapes ***
                   itemBuilder: (BuildContext gridContext, int index) {
                     if (index < lines.length) {
-                      // --- Build Line Item ---
                       final lineModel = lines[index];
                       return FormLineItem(
-                        // Assuming FormLineItem exists
                         lineModelV2: lineModel,
                         onTap: () {
-                          Navigator.pop(
-                            bottomSheetContext,
-                          ); // Close bottom sheet
+                          // Use the lineNotifier to load the selected line
+                          lineNotifier
+                              .loadActiveLineModelToAddIntoGameFieldEvent(
+                                lineModelV2: lineModel,
+                              );
+                          Navigator.pop(bottomSheetContext);
                         },
                       );
                     } else {
-                      // --- Build Shape Item ---
-                      // Calculate the index within the shapes list
                       final shapeIndex = index - lines.length;
                       if (shapeIndex < shapes.length) {
-                        // Safety check
                         final shapeModel = shapes[shapeIndex];
-                        // TODO: Replace Placeholder with your actual FormShapeItem widget
                         return FormShapeItem(
-                          // Assuming FormLineItem exists
                           shapeModel: shapeModel,
                           onTap: () {
-                            Navigator.pop(
-                              bottomSheetContext,
-                            ); // Close bottom sheet
+                            // Use the lineNotifier to load the selected shape
+                            lineNotifier
+                                .loadActiveShapeModelToAddIntoGameFieldEvent(
+                                  shapeModel: shapeModel,
+                                );
+                            Navigator.pop(bottomSheetContext);
                           },
                         );
                       } else {
-                        // Should not happen if itemCount is correct, but return empty container as fallback
                         return Container(color: Colors.red); // Error indicator
                       }
                     }
@@ -165,23 +153,34 @@ class _FormSpeedDialComponentState
 
   @override
   Widget build(BuildContext context) {
-    final lp = ref.watch(lineProvider);
+    final lpState = ref.watch(lineProvider);
+    final lpNotifier = ref.read(lineProvider.notifier);
     final ap = ref.watch(animationProvider);
     final bp = ref.watch(boardProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
     AnimationCollectionModel? collectionModel =
         ap.selectedAnimationCollectionModel;
     AnimationModel? animationModel = ap.selectedAnimationModel;
-    final GetHistoryStreamUseCase _historyStream =
+    final GetHistoryStreamUseCase historyStream =
         sl.get<GetHistoryStreamUseCase>();
+
+    final currentActiveTool = lpState.activeTool;
+    final bool isPlacingItem =
+        lpState.activeForm != null && currentActiveTool == ActiveTool.pointer;
+
+    // Define colors for active, inactive, and dimmed states
+    Color activeColor = ColorManager.white;
+    Color defaultInactiveColor = ColorManager.white;
+    Color dimmedInactiveColor = ColorManager.white;
+
     return Container(
       width: context.widthPercent(90),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         mainAxisSize: MainAxisSize.max,
         children: [
+          // --- LEFT SIDE BUTTONS ---
           Row(
-            spacing: 10,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               GestureDetector(
@@ -195,97 +194,87 @@ class _FormSpeedDialComponentState
                   color: ColorManager.white,
                 ),
               ),
-
-              // GestureDetector(
-              //   onTap: () {},
-              //   child: Icon(Icons.threed_rotation, color: ColorManager.white),
-              // ),
+              const SizedBox(width: 10), // Spacing
               GestureDetector(
-                onTap: () {},
+                onTap: () {
+                  // TODO: Implement share functionality
+                },
                 child: Icon(Icons.share, color: ColorManager.grey),
               ),
             ],
           ),
 
+          // --- CENTER TOOL BUTTONS ---
           Row(
             mainAxisSize: MainAxisSize.min,
-            spacing: 20,
+            // spacing: 20, // Use SizedBox for spacing
             children: [
+              // --- Pointer / Select Item Button ---
               GestureDetector(
-                onTap:
-                    lp.isFreeDrawingActive ||
-                            lp.isEraserActivated ||
-                            lp.isTrashActive
-                        ? null
-                        : () {
-                          _showActionGrid(context);
-                        },
+                onTap: () {
+                  if (isPlacingItem) {
+                    lpNotifier.dismissActiveFormItem();
+                  } else if (currentActiveTool == ActiveTool.pointer) {
+                    _showActionGrid(context);
+                  } else {
+                    lpNotifier.setActiveTool(ActiveTool.pointer);
+                    _showActionGrid(context);
+                  }
+                },
                 child:
-                    lp.activeForm !=
-                            null // Assuming lp is available in this scope
-                        ? _buildFormWidget(
-                          fieldItemModel: lp.activeForm!,
-                        ) // Assuming this exists
+                    lpState.activeForm != null &&
+                            currentActiveTool == ActiveTool.pointer
+                        ? _buildFormWidget(fieldItemModel: lpState.activeForm!)
                         : Center(
                           child: Icon(
                             FontAwesomeIcons.arrowPointer,
-                            color: ColorManager.white.withValues(
-                              alpha:
-                                  lp.isFreeDrawingActive ||
-                                          lp.isEraserActivated ||
-                                          lp.isTrashActive
-                                      ? 0.3
-                                      : 0.9,
-                            ),
+                            color:
+                                (currentActiveTool == ActiveTool.pointer &&
+                                        !isPlacingItem)
+                                    ? activeColor
+                                    : isPlacingItem
+                                    ? activeColor // Highlight if pointer is busy placing an item
+                                    : defaultInactiveColor,
                           ),
                         ),
               ),
+              const SizedBox(width: 20),
 
+              // --- Free Draw Button ---
               GestureDetector(
-                onTap:
-                    lp.isLineActiveToAddIntoGameField ||
-                            lp.isEraserActivated ||
-                            lp.isTrashActive
-                        ? null
-                        : () {
-                          if (lp.isFreeDrawingActive) {
-                            ref
-                                .read(lineProvider.notifier)
-                                .dismissActiveFormItem();
-                          } else {
-                            ref
-                                .read(lineProvider.notifier)
-                                .loadActiveFreeDrawModelToAddIntoGameFieldEvent();
-                          }
-                        },
+                onTap: () {
+                  lpNotifier.toggleFreeDraw();
+                },
                 child: _buildFreeDrawComponent(
-                  isFocused: lp.isFreeDrawingActive,
+                  isFocused: currentActiveTool == ActiveTool.freeDraw,
+                  isDimmed:
+                      (currentActiveTool != ActiveTool.freeDraw &&
+                          currentActiveTool != ActiveTool.pointer) ||
+                      isPlacingItem,
                 ),
               ),
+              const SizedBox(width: 20),
 
+              // --- Eraser Button ---
               GestureDetector(
-                onTap:
-                    lp.isFreeDrawingActive ||
-                            lp.isLineActiveToAddIntoGameField ||
-                            lp.isTrashActive
-                        ? null
-                        : () {
-                          ref.read(lineProvider.notifier).toggleEraser();
-                        },
+                onTap: () {
+                  lpNotifier.toggleEraser();
+                },
                 child: Icon(
                   FontAwesomeIcons.eraser,
                   color:
-                      lp.isEraserActivated
+                      currentActiveTool == ActiveTool.eraser
                           ? ColorManager.red
-                          : ColorManager.white.withValues(
-                            alpha:
-                                lp.isFreeDrawingActive ||
-                                        lp.isLineActiveToAddIntoGameField
-                                    ? 0.3
-                                    : 0.7,
-                          ),
+                          : (currentActiveTool != ActiveTool.eraser &&
+                                  currentActiveTool != ActiveTool.pointer) ||
+                              isPlacingItem
+                          ? dimmedInactiveColor
+                          : defaultInactiveColor,
                 ),
               ),
+              const SizedBox(width: 20),
+
+              // --- Undo Button ---
               if (selectedScene != null)
                 StreamBuilder(
                   stream: _historyStream.call(selectedScene.id),
@@ -309,24 +298,27 @@ class _FormSpeedDialComponentState
                     }
                   },
                 ),
+              if (selectedScene != null) const SizedBox(width: 20),
 
+              // --- Trash Button ---
               GestureDetector(
-                onTap:
-                    lp.isFreeDrawingActive ||
-                            lp.isLineActiveToAddIntoGameField ||
-                            lp.isEraserActivated ||
-                            lp.isShapeActiveToAddIntoGameField
-                        ? null
-                        : () {
-                          ref.read(lineProvider.notifier).toggleTrash();
-                        },
-                child: _buildTrashComponent(isFocused: lp.isTrashActive),
+                onTap: () {
+                  ref.read(boardProvider.notifier).removeElement();
+                },
+                child: _buildTrashComponent(
+                  isFocused: currentActiveTool == ActiveTool.trash,
+                  isDimmed:
+                      (currentActiveTool != ActiveTool.trash &&
+                          currentActiveTool != ActiveTool.pointer) ||
+                      isPlacingItem,
+                ),
               ),
             ],
           ),
 
+          // --- RIGHT SIDE BUTTONS ---
           Row(
-            spacing: 10,
+            // spacing: 10, // Use SizedBox
             children: [
               if (animationModel != null)
                 Builder(
@@ -337,13 +329,11 @@ class _FormSpeedDialComponentState
                       onTap: () {
                         Navigator.push(
                           context,
-                          // Use MaterialPageRoute for standard transitions, or PageRouteBuilder for custom ones
                           MaterialPageRoute(
                             builder:
                                 (context) => AnimationScreen(
-                                  // Pass the necessary data AND the hero tag
                                   animationModel: animationModel,
-                                  heroTag: heroTag, // Pass the SAME tag
+                                  heroTag: heroTag,
                                 ),
                           ),
                         );
@@ -355,6 +345,7 @@ class _FormSpeedDialComponentState
                     );
                   },
                 ),
+              if (animationModel != null) const SizedBox(width: 10),
               _buildAddNewScene(
                 selectedCollection: collectionModel,
                 selectedAnimation: animationModel,
@@ -367,11 +358,11 @@ class _FormSpeedDialComponentState
     );
   }
 
-  _buildFormWidget({required FieldItemModel fieldItemModel}) {
+  Widget _buildFormWidget({required FieldItemModel fieldItemModel}) {
     return FormItemSpeedDial(formItem: fieldItemModel);
   }
 
-  _buildAddNewScene({
+  Widget _buildAddNewScene({
     required AnimationCollectionModel? selectedCollection,
     required AnimationModel? selectedAnimation,
     required AnimationItemModel? selectedScene,
@@ -379,23 +370,28 @@ class _FormSpeedDialComponentState
     return GestureDetector(
       onTap: () {
         if (selectedCollection == null || selectedAnimation == null) {
-          // no collection or animation is chosen, so show a overlay to add or select item
           if (ref.read(boardProvider).showFullScreen) {
             ref.read(boardProvider.notifier).toggleFullScreen();
           }
-
           ref.read(animationProvider.notifier).showQuickSave();
         } else {
           try {
-            ref
-                .read(animationProvider.notifier)
-                .addNewScene(
-                  selectedCollection: selectedCollection,
-                  selectedAnimation: selectedAnimation,
-                  selectedScene: selectedScene!,
-                );
+            // Ensure selectedScene is not null before calling addNewScene if it's required
+            if (selectedScene != null) {
+              ref
+                  .read(animationProvider.notifier)
+                  .addNewScene(
+                    selectedCollection: selectedCollection,
+                    selectedAnimation: selectedAnimation,
+                    selectedScene: selectedScene,
+                  );
+            } else {
+              BotToast.showText(
+                text: "Cannot add new scene: No current scene selected.",
+              );
+            }
           } catch (e) {
-            BotToast.showText(text: "Error $e !!!");
+            BotToast.showText(text: "Error adding new scene: $e");
           }
         }
       },
@@ -403,51 +399,63 @@ class _FormSpeedDialComponentState
     );
   }
 
-  Widget _buildFreeDrawComponent({required bool isFocused}) {
-    if (!isFocused) {
-      return Center(
+  Widget _buildFreeDrawComponent({
+    required bool isFocused,
+    required bool isDimmed,
+  }) {
+    Color activeColor = ColorManager.red;
+    Color defaultColor = ColorManager.white;
+    Color dimmedColor = ColorManager.white;
+
+    Color colorToUse;
+    BoxBorder? borderToUse;
+
+    if (isFocused) {
+      colorToUse = activeColor;
+      borderToUse = Border.all(color: activeColor);
+    } else if (isDimmed) {
+      colorToUse = dimmedColor;
+      borderToUse = null;
+    } else {
+      colorToUse = defaultColor;
+      borderToUse = null;
+    }
+
+    return RepaintBoundary(
+      key: UniqueKey(), // If performance dictates or specific repaint is needed
+      child: Center(
         child: Container(
-          padding: EdgeInsets.all(5),
-          decoration: BoxDecoration(),
+          padding: const EdgeInsets.all(5), // Original padding
+          decoration: BoxDecoration(
+            shape: BoxShape.circle, // Keep original shape for consistency
+            border: borderToUse,
+          ),
           child: Stack(
+            // Original Stack structure
             children: [
               Image.asset(
                 "assets/images/free-draw.png",
-                color: ColorManager.white,
+                color: colorToUse,
+                width: 24, // Example size, adjust as needed
+                height: 24, // Example size, adjust as needed
               ),
             ],
           ),
         ),
-      );
-    } else {
-      return RepaintBoundary(
-        key: UniqueKey(),
-        child: Center(
-          child: Container(
-            padding: EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: ColorManager.red),
-            ),
-            child: Stack(
-              children: [
-                Image.asset(
-                  "assets/images/free-draw.png",
-                  color: ColorManager.red,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+      ),
+    );
   }
 
-  _buildTrashComponent({required isFocused}) {
+  Widget _buildTrashComponent({
+    required bool isFocused,
+    required bool isDimmed,
+  }) {
+    Color defaultColor = ColorManager.white;
     return Center(
       child: Icon(
         CupertinoIcons.trash,
-        color: isFocused ? ColorManager.red : ColorManager.white,
+        color: defaultColor,
+        size: 24, // Example size, adjust as needed
       ),
     );
   }

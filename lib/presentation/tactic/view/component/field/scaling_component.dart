@@ -69,5 +69,7 @@ class ScalingHandle extends CircleComponent with DragCallbacks {
       Vector2(component.size.x / 2, component.size.y / 2),
     );
     component.onComponentScale(component.size);
+
+    event.continuePropagation = false;
   }
 }

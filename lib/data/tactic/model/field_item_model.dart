@@ -2,13 +2,24 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart'; // Import for Color
 import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/triangle_shape_model.dart';
 
 import 'equipment_model.dart';
 import 'free_draw_model.dart';
 import 'line_model.dart';
 
-enum FieldItemType { PLAYER, EQUIPMENT, LINE, FREEDRAW, CIRCLE, SQUARE }
+enum FieldItemType {
+  PLAYER,
+  EQUIPMENT,
+  LINE,
+  FREEDRAW,
+  CIRCLE,
+  SQUARE,
+  TRIANGLE,
+  POLYGON,
+}
 
 abstract class FieldItemModel {
   String id;
@@ -104,6 +115,12 @@ abstract class FieldItemModel {
       case FieldItemType.SQUARE:
         // TODO: Handle this case.
         return SquareShapeModel.fromJson(json);
+      case FieldItemType.TRIANGLE:
+        // TODO: Handle this case.
+        return TriangleShapeModel.fromJson(json);
+      case FieldItemType.POLYGON:
+        // TODO: Handle this case.
+        return PolygonShapeModel.fromJson(json);
     }
   }
 

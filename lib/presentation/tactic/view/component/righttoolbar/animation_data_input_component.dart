@@ -42,70 +42,73 @@ class _AnimationDataInputComponentState
   Widget _buildNewAnimationCollectionWidget() {
     _animationCollectionNameController = TextEditingController();
     // Now uses the controller and key from the State class
-    return SizedBox(
-      width: context.widthPercent(100),
-      // Wrap content in a Form widget
-      child: Form(
-        key: _newCollectionFormKey, // Assign the key to the Form
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CustomTextFormField(
-              // Use the controller from the State
-              controller: _animationCollectionNameController,
-              label: "Collection Name....",
-              textInputAction: TextInputAction.done, // Set appropriate action
-              // Add the validator
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a collection name.'; // Error message
-                }
-                return null; // Return null if valid
-              },
-              // Optional: Submit form when 'done' action is pressed on keyboard
-              onFieldSubmitted: (_) {
-                _submitNewCollection();
-              },
-            ),
-            const SizedBox(height: 20), // Add spacing
-            SizedBox(
-              width: context.widthPercent(20),
-              child: Row(
-                children: [
-                  CustomButton(
-                    borderRadius: 2,
-                    onTap: () {
-                      ref
-                          .read(animationProvider.notifier)
-                          .toggleNewCollectionInputShow(false);
-                    }, // Call separate submit method
-                    fillColor: ColorManager.red,
-                    child: Text(
-                      "Cancel",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: ColorManager.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(width: 10),
-                  CustomButton(
-                    borderRadius: 2,
-                    onTap: _submitNewCollection, // Call separate submit method
-                    fillColor: ColorManager.blue,
-                    child: Text(
-                      "Add new Collection",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: ColorManager.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+    return Center(
+      child: SizedBox(
+        width: context.widthPercent(90),
+        // Wrap content in a Form widget
+        child: Form(
+          key: _newCollectionFormKey, // Assign the key to the Form
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CustomTextFormField(
+                // Use the controller from the State
+                controller: _animationCollectionNameController,
+                label: "Collection Name....",
+                textInputAction: TextInputAction.done, // Set appropriate action
+                // Add the validator
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a collection name.'; // Error message
+                  }
+                  return null; // Return null if valid
+                },
+                // Optional: Submit form when 'done' action is pressed on keyboard
+                onFieldSubmitted: (_) {
+                  _submitNewCollection();
+                },
               ),
-            ),
-          ],
+              const SizedBox(height: 20), // Add spacing
+              SizedBox(
+                width: context.widthPercent(20),
+                child: Row(
+                  children: [
+                    CustomButton(
+                      borderRadius: 2,
+                      onTap: () {
+                        ref
+                            .read(animationProvider.notifier)
+                            .toggleNewCollectionInputShow(false);
+                      }, // Call separate submit method
+                      fillColor: ColorManager.red,
+                      child: Text(
+                        "Cancel",
+                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                          color: ColorManager.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(width: 10),
+                    CustomButton(
+                      borderRadius: 2,
+                      onTap:
+                          _submitNewCollection, // Call separate submit method
+                      fillColor: ColorManager.blue,
+                      child: Text(
+                        "Add new Collection",
+                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                          color: ColorManager.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -139,77 +142,79 @@ class _AnimationDataInputComponentState
   Widget _buildNewAnimationWidget({required AnimationState ap}) {
     _animationNameController = TextEditingController();
     // Now uses the controller and key from the State class
-    return Container(
-      width: context.widthPercent(100),
-      // Wrap content in a Form widget
-      child: Form(
-        key: _newCollectionFormKey, // Assign the key to the Form
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Animation Collection : ${ap.selectedAnimationCollectionModel?.name ?? "Error"}",
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge!.copyWith(color: ColorManager.white),
-            ),
-            CustomTextFormField(
-              // Use the controller from the State
-              controller: _animationNameController,
-              label: "Animation Name....",
-              textInputAction: TextInputAction.done, // Set appropriate action
-              // Add the validator
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a Animation Name.'; // Error message
-                }
-                return null; // Return null if valid
-              },
-              // Optional: Submit form when 'done' action is pressed on keyboard
-              onFieldSubmitted: (_) {
-                _submitNewAnimation();
-              },
-            ),
-            const SizedBox(height: 20), // Add spacing
-            SizedBox(
-              width: context.widthPercent(20),
-
-              child: Row(
-                children: [
-                  CustomButton(
-                    borderRadius: 2,
-                    onTap: () {
-                      ref
-                          .read(animationProvider.notifier)
-                          .toggleNewAnimationInputShow(false);
-                    }, // Call separate submit method
-                    fillColor: ColorManager.red,
-                    child: Text(
-                      "Cancel",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: ColorManager.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(width: 10),
-                  CustomButton(
-                    borderRadius: 2,
-                    onTap: _submitNewAnimation, // Call separate submit method
-                    fillColor: ColorManager.blue,
-                    child: Text(
-                      "Add new Animation",
-                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                        color: ColorManager.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+    return Center(
+      child: SizedBox(
+        width: context.widthPercent(90),
+        // Wrap content in a Form widget
+        child: Form(
+          key: _newCollectionFormKey, // Assign the key to the Form
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Animation Collection : ${ap.selectedAnimationCollectionModel?.name ?? "Error"}",
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge!.copyWith(color: ColorManager.white),
               ),
-            ),
-          ],
+              CustomTextFormField(
+                // Use the controller from the State
+                controller: _animationNameController,
+                label: "Animation Name....",
+                textInputAction: TextInputAction.done, // Set appropriate action
+                // Add the validator
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a Animation Name.'; // Error message
+                  }
+                  return null; // Return null if valid
+                },
+                // Optional: Submit form when 'done' action is pressed on keyboard
+                onFieldSubmitted: (_) {
+                  _submitNewAnimation();
+                },
+              ),
+              const SizedBox(height: 20), // Add spacing
+              SizedBox(
+                width: context.widthPercent(20),
+
+                child: Row(
+                  children: [
+                    CustomButton(
+                      borderRadius: 2,
+                      onTap: () {
+                        ref
+                            .read(animationProvider.notifier)
+                            .toggleNewAnimationInputShow(false);
+                      }, // Call separate submit method
+                      fillColor: ColorManager.red,
+                      child: Text(
+                        "Cancel",
+                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                          color: ColorManager.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(width: 10),
+                    CustomButton(
+                      borderRadius: 2,
+                      onTap: _submitNewAnimation, // Call separate submit method
+                      fillColor: ColorManager.blue,
+                      child: Text(
+                        "Add new Animation",
+                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                          color: ColorManager.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

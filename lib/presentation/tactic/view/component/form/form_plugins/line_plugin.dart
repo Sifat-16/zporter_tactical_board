@@ -39,7 +39,7 @@ class DraggableDot extends CircleComponent with DragCallbacks {
   @override
   void onDragStart(DragStartEvent event) {
     _dragStartLocalPosition = event.localPosition;
-    event.continuePropagation = true;
+    event.continuePropagation = false;
     super.onDragStart(event);
   }
 
@@ -48,20 +48,20 @@ class DraggableDot extends CircleComponent with DragCallbacks {
     if (_dragStartLocalPosition != null) {
       onPositionChanged(position + event.localDelta);
     }
-    event.continuePropagation = true;
+    event.continuePropagation = false;
   }
 
   @override
   void onDragEnd(DragEndEvent event) {
     _dragStartLocalPosition = null;
-    event.continuePropagation = true;
+    event.continuePropagation = false;
     super.onDragEnd(event);
   }
 
   @override
   void onDragCancel(DragCancelEvent event) {
     _dragStartLocalPosition = null;
-    event.continuePropagation = true;
+    event.continuePropagation = false;
     super.onDragCancel(event);
   }
 }
@@ -380,30 +380,29 @@ class LineDrawerComponentV2 extends PositionComponent
         break;
 
       case LineType.STRAIGHT_LINE_ARROW_DOUBLE:
-        // Draw plain middle segment, arrows on first and last
-        // Need a helper to draw arrow at the *start* of a segment
         _drawArrowHead(
           canvas,
-          start,
-          cp1 - start,
+          start, // Tip of the arrow remains at 'start'
+          start - cp1, // REVERSED Direction: from 'cp1' towards 'start'
           paint,
-        ); // Arrow head at start
+        );
+        // --- PROPOSED CHANGE END ---
+
         canvas.drawLine(
           start.toOffset(),
           cp1.toOffset(),
           paint,
         ); // Line segment 1
+
         canvas.drawLine(
           cp1.toOffset(),
           cp2.toOffset(),
           paint,
         ); // Line segment 2
-        _drawStraightLineWithArrow(
-          canvas,
-          cp2,
-          end,
-          paint,
-        ); // Line segment 3 + Arrow head at end
+
+        // This part is correct as per your clarification
+        _drawStraightLineWithArrow(canvas, cp2, end, paint);
+
         break;
 
       case LineType.STRAIGHT_LINE_ZIGZAG:
@@ -590,33 +589,6 @@ class LineDrawerComponentV2 extends PositionComponent
     canvas.drawLine(start.toOffset(), end.toOffset(), paint);
     // Add arrowhead at the end
     _drawArrowHead(canvas, end, end - start, paint);
-  }
-
-  // _drawStraightLineWithDoubleArrow is now handled differently in main render method
-  // We keep the helper just in case, but it's not directly used for bent lines.
-  void _drawStraightLineWithDoubleArrow(
-    Canvas canvas,
-    Vector2 start,
-    Vector2 end,
-    Paint paint,
-  ) {
-    final distance = start.distanceTo(end);
-    if (distance < 0.1) return;
-
-    final arrowSize = _duplicateLine.thickness * 4;
-
-    if (distance < 2 * arrowSize) {
-      canvas.drawLine(start.toOffset(), end.toOffset(), paint);
-      return;
-    }
-    canvas.drawLine(start.toOffset(), end.toOffset(), paint);
-    _drawArrowHead(canvas, end, end - start, paint);
-    _drawArrowHead(
-      canvas,
-      start,
-      start - end,
-      paint,
-    ); // Arrow pointing backward
   }
 
   void _drawRightTurnArrow(

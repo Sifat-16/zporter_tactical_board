@@ -210,4 +210,11 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   void moveTo(Vector2 newPosition) {
     position.setFrom(newPosition); // Directly update the position
   }
+
+  @override
+  void onComponentScale(Vector2 size) {
+    // TODO: implement onComponentScale
+    super.onComponentScale(size);
+    object.size = size;
+  }
 }

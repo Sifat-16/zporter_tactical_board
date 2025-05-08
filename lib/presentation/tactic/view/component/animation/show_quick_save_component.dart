@@ -106,31 +106,6 @@ class _ShowQuickSaveComponentState
         ), // Optional padding above dropdowns
         child: Column(
           children: [
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //   children: [
-            //     Text(
-            //       "Collection",
-            //       style: Theme.of(context).textTheme.labelMedium!.copyWith(
-            //         color: ColorManager.white,
-            //         fontWeight: FontWeight.bold,
-            //       ),
-            //     ),
-            //     // TextButton(
-            //     //   onPressed: () {
-            //     //     ref
-            //     //         .read(animationProvider.notifier)
-            //     //         .toggleNewCollectionInputShow(true);
-            //     //   },
-            //     //   child: Text(
-            //     //     "+ New Collection",
-            //     //     style: Theme.of(context).textTheme.labelMedium!.copyWith(
-            //     //       color: ColorManager.green,
-            //     //     ),
-            //     //   ),
-            //     // ),
-            //   ],
-            // ),
             Row(
               mainAxisSize: MainAxisSize.max,
               children: [
@@ -166,38 +141,40 @@ class _ShowQuickSaveComponentState
   }) {
     _animationNameController = TextEditingController();
     // Now uses the controller and key from the State class
-    return Container(
-      width: context.widthPercent(30),
-      // Wrap content in a Form widget
-      child: Form(
-        key: _newCollectionFormKey, // Assign the key to the Form
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Animation Collection : ${selectedAnimationCollectionModel?.name ?? "Error"}",
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge!.copyWith(color: ColorManager.white),
-            ),
-            CustomTextFormField(
-              // Use the controller from the State
-              controller: _animationNameController,
-              label: "New Animation Name....",
-              textInputAction: TextInputAction.done, // Set appropriate action
-              // Add the validator
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Please enter a Animation Name.'; // Error message
-                }
-                return null; // Return null if valid
-              },
-              // Optional: Submit form when 'done' action is pressed on keyboard
-              onFieldSubmitted: (_) {
-                _submitNewAnimation();
-              },
-            ),
-          ],
+    return Center(
+      child: SizedBox(
+        width: context.widthPercent(90),
+        // Wrap content in a Form widget
+        child: Form(
+          key: _newCollectionFormKey, // Assign the key to the Form
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Animation Collection : ${selectedAnimationCollectionModel?.name ?? "Error"}",
+                style: Theme.of(
+                  context,
+                ).textTheme.labelLarge!.copyWith(color: ColorManager.white),
+              ),
+              CustomTextFormField(
+                // Use the controller from the State
+                controller: _animationNameController,
+                label: "New Animation Name....",
+                textInputAction: TextInputAction.done, // Set appropriate action
+                // Add the validator
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a Animation Name.'; // Error message
+                  }
+                  return null; // Return null if valid
+                },
+                // Optional: Submit form when 'done' action is pressed on keyboard
+                onFieldSubmitted: (_) {
+                  _submitNewAnimation();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

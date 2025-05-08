@@ -75,7 +75,10 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(showAnimation: false);
   }
 
-  toggleSelectItemEvent({required FieldItemModel? fieldItemModel}) {
+  toggleSelectItemEvent({
+    required FieldItemModel? fieldItemModel,
+    String? camefrom,
+  }) {
     FieldItemModel? previousSelectedModel = state.selectedItemOnTheBoard;
     if (fieldItemModel == null) {
       state = state.copyWith(forceItemModelNull: true);
@@ -87,7 +90,8 @@ class BoardController extends StateNotifier<BoardState> {
       }
     }
     zlog(
-      data: "Selected item to work ${state.selectedItemOnTheBoard.runtimeType}",
+      data:
+          "Selected item to work ${state.selectedItemOnTheBoard.runtimeType} - ${camefrom}",
     );
   }
 
@@ -230,5 +234,67 @@ class BoardController extends StateNotifier<BoardState> {
 
   void toggleRefreshBoard(bool refresh) {
     state = state.copyWith(refreshBoard: refresh);
+  }
+
+  void removeFieldItems(List<FieldItemModel> itemsToRemove) {
+    if (itemsToRemove.isEmpty) {
+      zlog(
+        data:
+            'BoardController.removeFieldItems called with an empty list. No state change needed.',
+      );
+      return;
+    }
+
+    // 1. Create a set of IDs from the input list for efficient lookup.
+    final Set<String> idsToRemove =
+        itemsToRemove.map((item) => item.id).toSet();
+
+    // 2. Filter State Lists: Create new lists for each type by excluding items
+    //    whose IDs are present in the `idsToRemove` set.
+    final List<PlayerModel> updatedPlayers =
+        state.players
+            .where((player) => !idsToRemove.contains(player.id))
+            .toList();
+    final List<EquipmentModel> updatedEquipments =
+        state.equipments.where((eq) => !idsToRemove.contains(eq.id)).toList();
+    final List<LineModelV2> updatedLines =
+        state.lines.where((line) => !idsToRemove.contains(line.id)).toList();
+    final List<ShapeModel> updatedShapes =
+        state.shapes.where((shape) => !idsToRemove.contains(shape.id)).toList();
+    // Assuming FreeDrawModelV2 instances also have a unique 'id' property.
+    final List<FreeDrawModelV2> updatedFreeDraws =
+        state.freeDraw
+            .where(
+              (draw) => !idsToRemove.contains(draw.id),
+            ) // Ensure FreeDrawModelV2 has an 'id'
+            .toList();
+
+    // Calculate if any items were actually removed from the state to avoid unnecessary updates.
+    int removedCount =
+        (state.players.length - updatedPlayers.length) +
+        (state.equipments.length - updatedEquipments.length) +
+        (state.lines.length - updatedLines.length) +
+        (state.shapes.length - updatedShapes.length) +
+        (state.freeDraw.length - updatedFreeDraws.length);
+
+    if (removedCount > 0) {
+      zlog(
+        data:
+            "$removedCount item(s) removed from BoardState based on the provided list of models.",
+      );
+
+      state = state.copyWith(
+        players: updatedPlayers,
+        equipments: updatedEquipments,
+        lines: updatedLines,
+        shapes: updatedShapes,
+        freeDraws: updatedFreeDraws,
+      );
+    } else {
+      zlog(
+        data:
+            "No items from the provided list were found in the current BoardState for removal. State remains unchanged regarding item lists.",
+      );
+    }
   }
 }

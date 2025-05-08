@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
+import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
+import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/team_formation_config_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -20,10 +26,15 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
+  List<TeamFormationConfig> teamFormation = [];
+  TeamFormationConfig? selectedFormation;
+  LineupDetails? selectedLineUp;
+
   @override
   void initState() {
     super.initState();
     initiatePlayerLocally();
+    initiateTeamFormationLocally();
     // Add listener to rebuild on search text changes if filtering in build
     _searchController.addListener(() {
       if (mounted) {
@@ -45,6 +56,15 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
       playerType: PlayerType.HOME,
     );
     // No need to set _duplicatePlayers here if filtering in build
+  }
+
+  initiateTeamFormationLocally() {
+    teamFormation = PlayerUtilsV2.getAllConfigurations(
+      playerType: PlayerType.HOME,
+    );
+
+    selectedFormation = teamFormation.firstOrNull;
+    selectedLineUp = selectedFormation?.availableLineups.firstOrNull;
   }
 
   List<PlayerModel> generateActivePlayers({
@@ -110,6 +130,10 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
           ),
           // --- End Scrollbar Wrapper ---
         ),
+
+        SizedBox(height: 10),
+
+        _buildFooter(),
       ],
     );
   }
@@ -225,6 +249,85 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     //     ),
     //   );
     // }
+  }
+
+  Widget _buildFooter() {
+    return Column(
+      children: [
+        DropdownSelector<TeamFormationConfig>(
+          label: "Players",
+          items: teamFormation,
+          initialValue: selectedFormation,
+          onChanged: (s) {
+            setState(() {
+              selectedFormation = s;
+              selectedLineUp = selectedFormation?.availableLineups.firstOrNull;
+            });
+          },
+          itemAsString: (TeamFormationConfig item) {
+            return item.numberOfPlayers.toString();
+          },
+        ),
+
+        SizedBox(height: 10),
+
+        DropdownSelector<LineupDetails>(
+          label: "Line Up",
+          items: selectedFormation?.availableLineups ?? [],
+          initialValue: selectedLineUp,
+          onChanged: (s) {
+            setState(() {
+              selectedLineUp = s;
+            });
+          },
+          itemAsString: (LineupDetails item) {
+            return item.name;
+          },
+        ),
+        SizedBox(height: 10),
+        CustomButton(
+          onTap: () async {
+            bool? proceed = await showConfirmationDialog(
+              context: context,
+              title: "Confirm New Lineup Setup",
+              content:
+                  "This action will remove all home players currently on the field to apply the new lineup. Are you sure you want to proceed?",
+            );
+            if (proceed == true) {
+              TacticBoard? tacticBoard =
+                  (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;
+
+              List<PlayerFormationSlot> slots =
+                  selectedLineUp?.playerSlots ?? [];
+              List<PlayerModel> playersToAdd =
+                  slots.map((p) {
+                    return players
+                        .firstWhere(
+                          (player) => player.id == p.designatedPlayerId,
+                        )
+                        .copyWith(offset: p.relativePosition);
+                  }).toList();
+
+              tacticBoard?.removeFieldItems(players);
+
+              if (tacticBoard != null) {
+                for (var pd in playersToAdd) {
+                  tacticBoard.addItem(pd);
+                }
+              }
+            }
+          },
+          fillColor: ColorManager.blue,
+          child: Text(
+            "ADD",
+            style: Theme.of(context).textTheme.labelLarge!.copyWith(
+              color: ColorManager.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   // Helper Methods for Toggling Search State

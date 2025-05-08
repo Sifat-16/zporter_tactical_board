@@ -1,13 +1,15 @@
 import 'dart:math' as math;
 
-import 'package:flame/components.dart';
 import 'package:flame/events.dart';
+import 'package:flame/extensions.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 // Circle Integration here
 import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
 // Import models
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
 // Import components
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
@@ -15,6 +17,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart'; // Assuming CircleShapeDrawerComponent is here
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart'; // Keep if used
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Keep LineDrawerComponentV2
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
 // Import providers
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -36,7 +39,11 @@ mixin DrawingInputHandler on TacticBoardGame {
   squareCenterPoint; // FIXED Center where square drag starts (actual coords)
   SquareShapeDrawerComponent? _currentSquareShape;
 
-  // --- Centralized Drag Handlers ---
+  PolygonShapeDrawerComponent?
+  _currentPolygonComponent; // Ref to the component being drawn
+  final double _polygonCloseThreshold =
+      15.0; // Pixel distance to tap near start vertex to close
+  // --- End Polygon Integration ---
 
   @override
   void onDragStart(DragStartEvent event) {
@@ -432,6 +439,173 @@ mixin DrawingInputHandler on TacticBoardGame {
     // --- If not handled, call super ---
     if (!eventHandled) {
       super.onDragCancel(event);
+    }
+  }
+
+  // Add this method inside your DrawingInputHandler mixin
+  // Or replace the existing onTapDown if you have one at the TacticBoardGame level
+
+  // @override
+  // void onTapDown(TapDownInfo event) {
+  //   final lp = ref.read(lineProvider);
+  //   bool eventHandled = false;
+  //
+  //   if (!eventHandled &&
+  //       lp.isShapeActiveToAddIntoGameField &&
+  //       lp.activeForm is PolygonShapeModel) {
+  //     final tapPosition =
+  //         event.raw.localPosition
+  //             .toVector2(); // Actual coordinate relative to game/board
+  //     zlog(
+  //       data:
+  //           "Polygon Tool Active - Tap Detected. Vertices placed: ${_polygonVerticesInProgress.length} at $tapPosition",
+  //     );
+  //
+  //     // Check if tapping near the first vertex to close the polygon
+  //     if (_polygonVerticesInProgress.length >=
+  //             3 && // Need at least 3 vertices to close
+  //         _polygonVerticesInProgress[0].distanceTo(tapPosition) <
+  //             _polygonCloseThreshold) {
+  //       // --- Close Polygon ---
+  //       zlog(data: "Polygon Tap: Closing polygon by tapping near start.");
+  //
+  //       // 1. Get all actual vertices (A, B, C... Last)
+  //       List<Vector2> actualVertices = List.from(_polygonVerticesInProgress);
+  //
+  //       // 2. Calculate the final actual geometric center
+  //       Vector2 finalActualCenter = Vector2.zero();
+  //       for (var v in actualVertices) {
+  //         finalActualCenter += v;
+  //       }
+  //       finalActualCenter /= actualVertices.length.toDouble();
+  //
+  //       // 3. Calculate final vertices relative to this final actual center
+  //       List<Vector2> finalRelativeVertices =
+  //           actualVertices.map((v) => v - finalActualCenter).toList();
+  //
+  //       // 4. Convert final center to relative coordinates for saving
+  //       Vector2 finalRelativeCenter = SizeHelper.getBoardRelativeVector(
+  //         gameScreenSize: gameField.size,
+  //         actualPosition: finalActualCenter,
+  //       );
+  //
+  //       // 5. Create the final model
+  //       PolygonShapeModel finalModel = (lp.activeForm as PolygonShapeModel)
+  //           .copyWith(
+  //             id: _polygonModelInProgress!.id, // Use temp ID or generate new
+  //             offset: finalRelativeCenter,
+  //             relativeVertices: finalRelativeVertices,
+  //             // Inherit style properties
+  //           );
+  //
+  //       // 6. Remove the temporary component
+  //       if (_currentPolygonComponent != null &&
+  //           children.contains(_currentPolygonComponent!)) {
+  //         remove(_currentPolygonComponent!);
+  //       }
+  //
+  //       add(PolygonShapeDrawerComponent(initialModel: finalModel));
+  //
+  //       // 7. Add the final component via the board provider
+  //       ref
+  //           .read(boardProvider.notifier)
+  //           .addBoardComponent(fieldItemModel: finalModel);
+  //
+  //       // 8. Reset state
+  //       _polygonVerticesInProgress.clear();
+  //       _polygonModelInProgress = null;
+  //       _currentPolygonComponent = null;
+  //       ref.read(lineProvider.notifier).dismissActiveFormItem();
+  //
+  //       zlog(
+  //         data:
+  //             "Polygon Finalized. Center: $finalActualCenter, Vertices: ${finalRelativeVertices.length} - ${finalRelativeVertices}",
+  //       );
+  //       eventHandled = true;
+  //     } else {
+  //       // --- Add a new vertex ---
+  //       _polygonVerticesInProgress.add(tapPosition.clone());
+  //
+  //       if (_polygonVerticesInProgress.length == 1) {
+  //         // --- First Tap: Create Temporary Component ---
+  //         _polygonModelInProgress = (lp.activeForm as PolygonShapeModel)
+  //             .copyWith(
+  //               id: RandomGenerator.generateId(), // Temp ID
+  //               offset: Vector2.zero(), // Position (0,0), anchor topLeft
+  //               relativeVertices: [], // Vertices stored separately for now
+  //             );
+  //         _currentPolygonComponent = PolygonShapeDrawerComponent(
+  //           initialModel: _polygonModelInProgress!,
+  //           isCreating: true, // Set creation flag
+  //         );
+  //         _currentPolygonComponent!.addCreationVertex(tapPosition.clone());
+  //         add(_currentPolygonComponent!);
+  //         zlog(
+  //           data:
+  //               "Polygon Tap 1: Placed vertex A at $tapPosition. Temp Component added.",
+  //         );
+  //       } else {
+  //         // --- Subsequent Taps (not closing): Add vertex to component ---
+  //         _currentPolygonComponent?.addCreationVertex(tapPosition.clone());
+  //         zlog(
+  //           data:
+  //               "Polygon Tap ${_polygonVerticesInProgress.length}: Placed vertex at $tapPosition.",
+  //         );
+  //       }
+  //       eventHandled = true; // Consume the tap
+  //     }
+  //   }
+  //   // --- End Polygon Integration ---
+  //
+  //   // --- If not handled by any drawing logic, call super ---
+  //   if (!eventHandled) {
+  //     super.onTapDown(event);
+  //   }
+  // }
+
+  @override
+  void onTapDown(TapDownInfo event) async {
+    final lp = ref.read(lineProvider);
+    bool eventHandled = false;
+
+    if (!eventHandled &&
+        lp.isShapeActiveToAddIntoGameField &&
+        lp.activeForm is PolygonShapeModel) {
+      final tapPosition =
+          event.raw.localPosition
+              .toVector2(); // Actual coordinate relative to game/board
+      zlog(
+        data:
+            "Polygon Tool Active - Tap Detected. Vertices placed: at $tapPosition",
+      );
+      PolygonShapeModel shapeModel = lp.activeForm as PolygonShapeModel;
+
+      if (_currentPolygonComponent == null ||
+          shapeModel.id != _currentPolygonComponent?.polygonModel.id) {
+        shapeModel = shapeModel.copyWith(relativeVertices: []);
+        _currentPolygonComponent = PolygonShapeDrawerComponent(
+          polygonModel: shapeModel,
+        );
+        await add(_currentPolygonComponent!);
+
+        await Future.delayed(Duration(seconds: 0));
+        _currentPolygonComponent?.insertVertex(
+          SizeHelper.getBoardRelativeVector(
+            gameScreenSize: gameField.size,
+            actualPosition: tapPosition,
+          ),
+        );
+      } else {
+        _currentPolygonComponent?.insertVertex(
+          SizeHelper.getBoardRelativeVector(
+            gameScreenSize: gameField.size,
+            actualPosition: tapPosition,
+          ),
+        );
+      }
+    }
+    if (!eventHandled) {
+      super.onTapDown(event);
     }
   }
 }

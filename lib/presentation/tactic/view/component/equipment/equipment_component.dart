@@ -33,6 +33,7 @@ class EquipmentComponent extends FieldComponent<EquipmentModel> {
       gameScreenSize: game.gameField.size,
       actualPosition: position,
     );
+    event.continuePropagation = false;
   }
 
   @override

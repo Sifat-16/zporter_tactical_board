@@ -7,7 +7,7 @@ import 'field_component.dart';
 
 class RotationHandle extends PositionComponent {
   final FieldComponent component;
-  final double rotationSpeed = 0.15;
+  final double rotationSpeed = 0.08;
 
   RotationHandle(this.component)
     : super(anchor: Anchor.bottomCenter, priority: 3) {

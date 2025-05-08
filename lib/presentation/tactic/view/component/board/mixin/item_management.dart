@@ -10,14 +10,18 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/triangle_shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/triangle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
@@ -37,6 +41,12 @@ mixin ItemManagement on TacticBoardGame {
       await add(CircleShapeDrawerComponent(circleModel: item));
     } else if (item is SquareShapeModel) {
       await add(SquareShapeDrawerComponent(squareModel: item));
+    } else if (item is TriangleShapeModel) {
+      await add(
+        TriangleShapeDrawerComponent(initialModel: item, isCreating: false),
+      );
+    } else if (item is PolygonShapeModel) {
+      await add(PolygonShapeDrawerComponent(polygonModel: item));
     }
     // else if (item is FreeDrawModelV2) {
     //   await add(FreeDrawerComponentV2(freeDrawModelV2: item));
@@ -104,6 +114,7 @@ mixin ItemManagement on TacticBoardGame {
   void checkAndRemoveComponent(BoardState? previous, BoardState current) async {
     // --- Exact code from original TacticBoard._checkAndRemoveComponent ---
     FieldItemModel? itemToDelete = current.itemToDelete;
+
     zlog(data: "Item to delete ${itemToDelete.runtimeType}");
     // children and firstWhereOrNull are available via FlameGame/Component
     Component? component = children.firstWhereOrNull((t) {
@@ -116,6 +127,10 @@ mixin ItemManagement on TacticBoardGame {
         return t.squareModel.id == itemToDelete?.id;
       } else if (t is CircleShapeDrawerComponent) {
         return t.circleModel.id == itemToDelete?.id;
+      } else if (t is TriangleShapeDrawerComponent) {
+        return t.triangleModel.id == itemToDelete?.id;
+      } else if (t is PolygonShapeDrawerComponent) {
+        return t.polygonModel.id == itemToDelete?.id;
       }
       // Add check for FreeDrawerComponent if it was handled previously
       // else if (t is FreeDrawerComponent) { return t.freeDrawModel.id == itemToDelete?.id }
@@ -173,5 +188,37 @@ mixin ItemManagement on TacticBoardGame {
               .map((e) => e.clone())
               .toList(),
     );
+  }
+
+  List<FieldComponent> findMatchingFieldComponents(
+    List<FieldItemModel> itemsToMatch,
+  ) {
+    if (itemsToMatch.isEmpty) {
+      return []; // Return an empty list if there's nothing to match.
+    }
+
+    // Create a set of IDs from the input list for efficient lookup.
+    final Set<String> idsToMatch = itemsToMatch.map((item) => item.id).toSet();
+
+    // Filter the children:
+    // 1. Only consider components that are of type FieldComponent.
+    // 2. From those, select ones where the component's object.id is in our set of IDs.
+    final List<FieldComponent> matchingComponents =
+        children
+            .whereType<FieldComponent>() // Filters for FieldComponent instances
+            .where((fieldComp) {
+              // fieldComp.object is the FieldItemModel (e.g., PlayerModel, EquipmentModel)
+              return idsToMatch.contains(fieldComp.object.id);
+            })
+            .toList(); // Convert the resulting Iterable to a List.
+
+    return matchingComponents;
+  }
+
+  void removeFieldItems(List<FieldItemModel> items) {
+    List<FieldComponent> itemsToRemove = findMatchingFieldComponents(items);
+
+    removeAll(itemsToRemove);
+    ref.read(boardProvider.notifier).removeFieldItems(items);
   }
 }

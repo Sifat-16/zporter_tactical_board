@@ -337,6 +337,7 @@ class SquareShapeDrawerComponent
   bool containsLocalPoint(Vector2 point) {
     // Use the RectangleComponent's built-in hit detection.
     final bool contains = super.containsLocalPoint(point);
+
     return contains;
   }
 
@@ -345,6 +346,7 @@ class SquareShapeDrawerComponent
   void onTapDown(TapDownEvent event) {
     // ... (Tap logic remains the same) ...
     zlog(data: "Square ${squareModel.id}: onTapDown at ${event.localPosition}");
+
     bool handledByDot = false;
     if (isActive && _resizeDots.isNotEmpty) {
       handledByDot = _resizeDots.any(

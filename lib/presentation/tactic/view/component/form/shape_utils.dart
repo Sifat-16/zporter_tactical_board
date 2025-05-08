@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
 
@@ -21,6 +22,26 @@ class ShapeUtils {
       center: Vector2.zero(),
       canBeCopied: false,
       side: 1,
+    ),
+
+    PolygonShapeModel(
+      id: RandomGenerator.generateId(),
+      name: "POLYGON",
+      imagePath: "triangle.png",
+      center: Vector2.zero(),
+      canBeCopied: false,
+      relativeVertices: [],
+      maxVertices: 3,
+    ),
+
+    PolygonShapeModel(
+      id: RandomGenerator.generateId(),
+      name: "POLYGON",
+      imagePath: "polygon.png",
+      center: Vector2.zero(),
+      canBeCopied: false,
+      relativeVertices: [],
+      maxVertices: null,
     ),
   ];
   static List<ShapeModel> generateShapes() {

@@ -10,9 +10,11 @@ import 'package:uuid/uuid.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart';
 
@@ -130,6 +132,10 @@ class DrawingBoardComponent extends PositionComponent
               : initialState.isEraserActivated
               ? DrawingTool.erase
               : null;
+
+      ref.listen<BoardState>((boardProvider), (previous, current) {
+        _checkAndDeleteLine(previous, current);
+      });
     });
     assert(
       size.x > 0 && size.y > 0,
@@ -212,7 +218,6 @@ class DrawingBoardComponent extends PositionComponent
   // onTapDown and related helpers remain the same
   @override
   bool onTapDown(TapDownEvent event) {
-    /* ... same as before ... */
     if (currentTool != null || _isMovingLine) return false;
     final tapPosition = event.localPosition.toOffset();
     int? newlySelectedLineIndex;
@@ -266,29 +271,33 @@ class DrawingBoardComponent extends PositionComponent
   }
 
   void _selectLine(int index) {
-    /* ... */
     if (index >= 0 && index < _drawnLines.length) {
       _selectedLineIndex = index;
+      ref
+          .read(boardProvider.notifier)
+          .toggleSelectItemEvent(
+            fieldItemModel: _drawnLines[_selectedLineIndex!],
+            camefrom: "Drawing board select",
+          );
       print("Selected line index: $index");
     }
   }
 
   void _deselectLine() {
-    /* ... */
     _isMovingLine = false;
     _lineMoveStartPos = null;
     _originalMovingLinePoints = null;
     if (_selectedLineIndex != null) {
       print("Deselected line index: $_selectedLineIndex");
+      ref
+          .read(boardProvider.notifier)
+          .toggleSelectItemEvent(
+            fieldItemModel: _drawnLines[_selectedLineIndex!],
+            camefrom: "Drawing board deselect",
+          );
       _selectedLineIndex = null;
     }
   }
-
-  // --- REMOVE DragCallbacks implementations (onDragStart, onDragUpdate, onDragEnd, onDragCancel) ---
-  // @override bool onDragStart(DragStartEvent event) { ... } // REMOVE
-  // @override bool onDragUpdate(DragUpdateEvent event) { ... } // REMOVE
-  // @override bool onDragCancel(DragCancelEvent event) { ... } // REMOVE
-  // @override bool onDragEnd(DragEndEvent event) { ... } // REMOVE
 
   // --- ADD Public Handlers for Drag Events ---
   bool handleDragStart(DragStartEvent event) {
@@ -599,4 +608,23 @@ class DrawingBoardComponent extends PositionComponent
       );
     }
   }
-} // End of DrawingBoardComponent class
+
+  void _checkAndDeleteLine(BoardState? previous, BoardState current) {
+    FieldItemModel? c = current.itemToDelete;
+    if (c is FreeDrawModelV2) {
+      int index = _drawnLines.indexWhere((t) => t.id == c.id);
+      zlog(
+        data:
+            "Items to delete here check delete line ${current.itemToDelete.runtimeType} - $index - ${_drawnLines} -${current.itemToDelete?.id}",
+      );
+      if (index == -1) return;
+      final lineToRemove =
+          _drawnLines[index]; // Get a reference for logging, if needed.
+      _drawnLines.removeAt(index);
+      _selectedLineIndex = null;
+      _notifyDrawingChanged(
+        "Remove Line (ID: ${lineToRemove.id} via tap-select-delete)",
+      );
+    }
+  }
+}

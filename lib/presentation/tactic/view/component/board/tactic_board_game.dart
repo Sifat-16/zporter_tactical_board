@@ -8,12 +8,15 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -96,10 +99,25 @@ class TacticBoard extends TacticBoardGame
           !components.any((t) => t is CircleRadiusDraggableDot) &&
           !components.any((t) => t is SquareShapeDrawerComponent) &&
           !components.any((t) => t is SquareRadiusDraggableDot) &&
-          !components.any((t) => t is ScalingHandle)) {
-        ref // ref is available via RiverpodGameMixin
-            .read(boardProvider.notifier)
-            .toggleSelectItemEvent(fieldItemModel: null);
+          !components.any((t) => t is ScalingHandle) &&
+          !components.any((t) => t is PolygonShapeDrawerComponent) &&
+          !components.any((t) => t is PolygonVertexDotComponent) &&
+          ref.read(lineProvider).activeForm is! PolygonShapeModel) {
+        bool deselect = true;
+
+        try {
+          FieldItemModel? f = ref.read(boardProvider).selectedItemOnTheBoard;
+          if (f is FreeDrawModelV2) {
+            deselect = false;
+          }
+        } catch (e) {}
+
+        if (deselect) {
+          ref
+              .read(boardProvider.notifier)
+              .toggleSelectItemEvent(fieldItemModel: null);
+        }
+
         zlog(data: "Tapped components ${components}");
       } else {
         zlog(data: "Animate to design tab called");
@@ -112,7 +130,7 @@ class TacticBoard extends TacticBoardGame
         } catch (e) {}
 
         if (isTrashModeActive) {
-          ref.read(boardProvider.notifier).removeElement();
+          // ref.read(boardProvider.notifier).removeElement();
         } else {
           ref.read(boardProvider.notifier).animateToDesignTab();
         }

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
@@ -31,7 +32,9 @@ class _FormShapeItemState extends ConsumerState<FormShapeItem> {
           ref
               .read(lineProvider.notifier)
               .loadActiveShapeModelToAddIntoGameFieldEvent(
-                shapeModel: widget.shapeModel,
+                shapeModel: widget.shapeModel.copyWith(
+                  id: RandomGenerator.generateId(),
+                ),
               );
         }
 
