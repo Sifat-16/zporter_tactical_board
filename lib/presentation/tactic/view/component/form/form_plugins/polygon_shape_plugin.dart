@@ -112,7 +112,7 @@ class PolygonShapeDrawerComponent extends PositionComponent
         RiverpodComponentMixin,
         TapCallbacks,
         DragCallbacks {
-  final PolygonShapeModel
+  PolygonShapeModel
   polygonModel; // This model can be pre-populated with the first vertex
   late PolygonShapeModel _internalModel;
   List<Vector2> actualVertices = [];

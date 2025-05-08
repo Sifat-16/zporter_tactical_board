@@ -14,6 +14,7 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
@@ -21,6 +22,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/field/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -81,6 +83,8 @@ class TacticBoardGameAnimation extends TacticBoardGame {
       await add(SquareShapeDrawerComponent(squareModel: item));
     } else if (item is CircleShapeModel) {
       await add(CircleShapeDrawerComponent(circleModel: item));
+    } else if (item is PolygonShapeModel) {
+      await add(PolygonShapeDrawerComponent(polygonModel: item));
     }
     await lifecycleEventsProcessed;
   }
@@ -152,6 +156,10 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               component = children
                   .query<SquareShapeDrawerComponent>()
                   .firstWhere((element) => element.squareModel.id == i.id);
+            } else if (i is PolygonShapeModel) {
+              component = children
+                  .query<PolygonShapeDrawerComponent>()
+                  .firstWhere((element) => element.polygonModel.id == i.id);
             }
             // else if (i is FreeDrawModelV2) {
             //   component = children.query<FreeDrawerComponentV2>().firstWhere(
@@ -181,6 +189,10 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               if (i is CircleShapeModel) {
                 component.circleModel = i;
               }
+            } else if (component is PolygonShapeDrawerComponent) {
+              if (i is PolygonShapeModel) {
+                component.polygonModel = i;
+              }
             }
             // else if (component is FreeDrawerComponentV2) {
             //   if (i is FreeDrawModelV2) {
@@ -196,7 +208,8 @@ class TacticBoardGameAnimation extends TacticBoardGame {
             // collectedEffects.add((component: component, effect: effect));
             if (component is LineDrawerComponentV2 ||
                 component is SquareShapeDrawerComponent ||
-                component is CircleShapeDrawerComponent) {
+                component is CircleShapeDrawerComponent ||
+                component is PolygonShapeDrawerComponent) {
               zlog(data: "Line drawer component stat ${i.toJson()}");
               remove(component);
               addItem(i);

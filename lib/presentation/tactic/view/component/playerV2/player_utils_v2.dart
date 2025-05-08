@@ -106,6 +106,9 @@ class PlayerUtilsV2 {
     Tuple3("SD", "F1XED0THERPLAYERID00015", -1), // Sporting Director / Other
   ];
 
+  static getKickoffX(double originalFullFieldX) =>
+      _getKickoffX(originalFullFieldX);
+
   static double _getKickoffX(double originalFullFieldX) {
     const double gkPos = 0.05;
     // Define the typical range of outfield players in your *original* full-field layouts

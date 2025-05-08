@@ -21,6 +21,7 @@ import 'package:zporter_tactical_board/domain/animation/usecase/save_animation_c
 import 'package:zporter_tactical_board/domain/animation/usecase/save_default_animation_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/save_history_usecase.dart';
 import 'package:zporter_tactical_board/presentation/auth/view_model/auth_controller.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/default_animation_utils.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
@@ -95,6 +96,28 @@ class AnimationController extends StateNotifier<AnimationState> {
           _getUserId(),
         );
       }
+
+      try {
+        int index = collections.indexWhere(
+          (t) => t.id.toLowerCase() == 'default_animation_id',
+        );
+
+        if (index == -1) {
+          AnimationCollectionModel animationCollectionModel =
+              AnimationCollectionModel(
+                id: 'default_animation_id',
+                name: "Default Animation",
+                animations: [
+                  ...DefaultAnimationUtils.getAllDefaultAnimations(),
+                ],
+                userId: ref.read(authProvider).userId ?? "",
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              );
+
+          collections.insert(0, animationCollectionModel);
+        }
+      } catch (e) {}
 
       AnimationCollectionModel? selectedAnimation =
           state.selectedAnimationCollectionModel ?? collections.firstOrNull;
