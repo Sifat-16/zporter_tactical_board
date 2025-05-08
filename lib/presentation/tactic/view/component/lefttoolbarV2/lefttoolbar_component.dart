@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/players_toolbar_component.dart';
 
 import 'equipment_toolbar_component.dart';
-import 'forms_toolbar_component.dart';
 
 class LefttoolbarComponent extends StatefulWidget {
   const LefttoolbarComponent({super.key});
@@ -21,7 +19,7 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
   // List of tab names and content to display
   final List<Map<String, dynamic>> _tabs = [
     {'title': 'Players', 'content': PlayersToolbarComponent()},
-    {'title': 'Forms', 'content': FormsToolbarComponent()},
+    // {'title': 'Forms', 'content': FormsToolbarComponent()},
     {'title': 'Equipment', 'content': EquipmentToolbarComponent()},
   ];
 
@@ -54,14 +52,15 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
         children: [
           TabBar(
             controller: _tabController,
+
             labelColor: ColorManager.yellow,
+
             padding: EdgeInsets.zero,
             unselectedLabelColor: ColorManager.white,
+            tabAlignment: TabAlignment.fill,
             indicatorColor: ColorManager.yellow, // Remove the indicator line
-            labelPadding: EdgeInsets.symmetric(
-              horizontal: AppSize.s8,
-            ), // Remove padding between tab labels
-            isScrollable: true,
+            labelPadding: EdgeInsets.zero, // Remove padding between tab labels
+            isScrollable: false,
             dividerHeight: 0,
             tabs:
                 _tabs.map((tab) {
@@ -75,6 +74,7 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
                 color: ColorManager.grey.withValues(alpha: 0.1),
               ),
               child: PageView(
+                physics: NeverScrollableScrollPhysics(),
                 controller: _pageController,
                 onPageChanged: (index) {
                   _tabController.animateTo(index); // Sync TabBar with PageView

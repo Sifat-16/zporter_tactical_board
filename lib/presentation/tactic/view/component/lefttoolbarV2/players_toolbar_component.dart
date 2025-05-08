@@ -44,6 +44,7 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
   void dispose() {
     _tabController.dispose();
     _pageController.dispose();
+
     super.dispose();
   }
 
@@ -71,7 +72,7 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
               labelPadding: EdgeInsets.symmetric(
                 horizontal: AppSize.s8,
               ), // Remove padding between tab labels
-              isScrollable: true,
+              isScrollable: false,
               dividerHeight: 0,
               tabs:
                   _tabs.map((tab) {
@@ -79,54 +80,33 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
                   }).toList(),
             ),
           ),
-          _buildHeader(),
 
-          Container(
-            child: Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  _tabController.animateTo(index); // Sync TabBar with PageView
-                },
-                children:
-                    _tabs.map((tab) {
-                      dynamic type = tab['content'];
-                      if (type is Widget) {
-                        return type;
-                      }
-                      return Center(
-                        child: Text(
-                          tab['content'],
-                          style: TextStyle(color: ColorManager.white),
-                        ),
-                      );
-                    }).toList(),
-              ),
+          // SizedBox(height: AppSize.s8), // Add some space if needed
+          Expanded(
+            // Ensure PageView gets available space
+            child: PageView(
+              physics: NeverScrollableScrollPhysics(),
+              controller: _pageController,
+              onPageChanged: (index) {
+                _tabController.animateTo(index); // Sync TabBar with PageView
+              },
+              children:
+                  _tabs.map((tab) {
+                    dynamic type = tab['content'];
+                    if (type is Widget) {
+                      return type;
+                    }
+                    return Center(
+                      child: Text(
+                        tab['content'],
+                        style: TextStyle(color: ColorManager.white),
+                      ),
+                    );
+                  }).toList(),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          "0 Players",
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
-        ),
-        Row(
-          children: [
-            Icon(Icons.search, color: ColorManager.grey),
-            Icon(Icons.arrow_drop_down_outlined, color: ColorManager.grey),
-            Icon(Icons.filter_list_outlined, color: ColorManager.grey),
-          ],
-        ),
-      ],
     );
   }
 }
