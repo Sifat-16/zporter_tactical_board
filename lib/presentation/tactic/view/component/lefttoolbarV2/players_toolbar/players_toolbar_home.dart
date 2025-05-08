@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -51,10 +52,12 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   }
 
   initiatePlayerLocally() {
+    zlog(data: "Comming to here to initiate players");
     // Removed WidgetsBinding, setState will trigger build anyway
     players = PlayerUtilsV2.generatePlayerModelList(
       playerType: PlayerType.HOME,
     );
+
     // No need to set _duplicatePlayers here if filtering in build
   }
 

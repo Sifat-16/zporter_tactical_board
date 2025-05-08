@@ -8,187 +8,79 @@ import 'package:zporter_tactical_board/data/tactic/model/team_formation_config_m
 
 class PlayerUtilsV2 {
   static List<Tuple3<String, String, int>> homePlayers = [
-    Tuple3("GK", "660211dca1b2c3d4e5f6a810", 1), // Hex will vary
-    Tuple3("RB", "660211dca1b2c3d4e5f6a811", 2), // Hex will vary
-    Tuple3("LB", "660211dca1b2c3d4e5f6a812", 3), // Hex will vary
-    Tuple3("CB", "660211dca1b2c3d4e5f6a813", 4), // Hex will vary
-    Tuple3("CM", "660211dca1b2c3d4e5f6a814", 5), // Hex will vary
-    Tuple3("AM", "660211dca1b2c3d4e5f6a815", 6), // Hex will vary
+    Tuple3("GK", "663b8a00a1b2c3d4e5f6a001", 1), // GK Goal Keeper
+    Tuple3("RB", "663b8a00a1b2c3d4e5f6a002", 2), // RB Right Back
+    Tuple3("LB", "663b8a00a1b2c3d4e5f6a003", 3), // LB Left Back
+    Tuple3("CB", "663b8a00a1b2c3d4e5f6a004", 4), // CB Center Back
+    Tuple3("CB", "663b8a00a1b2c3d4e5f6a005", 5), // CB Center Back
     Tuple3(
-      "AM",
-      "660211dca1b2c3d4e5f6a816",
-      7,
-    ), // Hex will vary (different from previous AM)
-    Tuple3("S", "660211dca1b2c3d4e5f6a817", 8), // Hex will vary
-    Tuple3("RW", "660211dca1b2c3d4e5f6a818", 9), // Hex will vary
-    Tuple3("LW", "660211dca1b2c3d4e5f6a819", 10), // Hex will vary
-    Tuple3("FW", "660211dca1b2c3d4e5f6a81a", 11), // Hex will vary
-    Tuple3("CAM", "660211dca1b2c3d4e5f6a81b", 12), // Hex will vary
-    Tuple3("CDM", "660211dca1b2c3d4e5f6a81c", 13), // Hex will vary
-    Tuple3("RM", "660211dca1b2c3d4e5f6a81d", 14), // Hex will vary
+      "CDM",
+      "663b8a00a1b2c3d4e5f6a006",
+      6,
+    ), // CDM Central Defending Midfielder
+    Tuple3("RW", "663b8a00a1b2c3d4e5f6a007", 7), // RW Right Wing
+    Tuple3("CM", "663b8a00a1b2c3d4e5f6a008", 8), // CM Central Midfield
+    Tuple3("ST", "663b8a00a1b2c3d4e5f6a009", 9), // ST Striker
     Tuple3(
-      "GK",
-      "660211dca1b2c3d4e5f6a81e",
-      15,
-    ), // Hex will vary (different from previous GK)
+      "CAM",
+      "663b8a00a1b2c3d4e5f6a010",
+      10,
+    ), // CAM Central Attacking Midfield
+    Tuple3("LW", "663b8a00a1b2c3d4e5f6a011", 11), // LW Left Wing
+    Tuple3("WB", "663b8a00a1b2c3d4e5f6a012", 12), // WB Wing Back (Right?)
+    Tuple3("WB", "663b8a00a1b2c3d4e5f6a013", 13), // WB Wing Back (Left?)
+    Tuple3("CB", "663b8a00a1b2c3d4e5f6a014", 14), // CB Center Back
+    Tuple3("CB", "663b8a00a1b2c3d4e5f6a015", 15), // CB Center Back
     Tuple3(
-      "RB",
-      "660211dca1b2c3d4e5f6a81f",
+      "CDM",
+      "663b8a00a1b2c3d4e5f6a016",
       16,
-    ), // Hex will vary (different from previous RB)
-    Tuple3(
-      "LB",
-      "660211dca1b2c3d4e5f6a820",
-      17,
-    ), // Hex will vary (different from previous LB)
-    Tuple3(
-      "CB",
-      "660211dca1b2c3d4e5f6a821",
-      18,
-    ), // Hex will vary (different from previous CB)
-    Tuple3(
-      "CB",
-      "660211dca1b2c3d4e5f6a822",
-      19,
-    ), // Hex will vary (different from previous CBs)
-    Tuple3(
-      "CM",
-      "660211dca1b2c3d4e5f6a823",
-      20,
-    ), // Hex will vary (different from previous CM)
-    Tuple3(
-      "AM",
-      "660211dca1b2c3d4e5f6a824",
-      21,
-    ), // Hex will vary (different from previous AMs)
-    Tuple3(
-      "AM",
-      "660211dca1b2c3d4e5f6a825",
-      22,
-    ), // Hex will vary (different from previous AMs)
-    Tuple3(
-      "S",
-      "660211dca1b2c3d4e5f6a826",
-      23,
-    ), // Hex will vary (different from previous S)
+    ), // CDM Central Defending Midfielder
+    Tuple3("RM", "663b8a00a1b2c3d4e5f6a017", 17), // RM Right Midfield
+    Tuple3("LM", "663b8a00a1b2c3d4e5f6a018", 18), // LM Left Midfield
+    Tuple3("CF", "663b8a00a1b2c3d4e5f6a019", 19), // CF Center Forward
+    Tuple3("F", "663b8a00a1b2c3d4e5f6a020", 20), // F Forward
+    Tuple3("GK", "663b8a00a1b2c3d4e5f6a021", 21), // GK Goalkeeper
+    Tuple3("W", "663b8a00a1b2c3d4e5f6a022", 22), // W Winger (Right?)
+    Tuple3("W", "663b8a00a1b2c3d4e5f6a023", 23), // W Winger (Left?)
   ];
 
   static List<Tuple3<String, String, int>> awayPlayers = [
-    Tuple3(
-      "GK",
-      "660212e8a1b2c3d4e5f6a830",
-      1,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "RB",
-      "660212e8a1b2c3d4e5f6a831",
-      2,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "LB",
-      "660212e8a1b2c3d4e5f6a832",
-      3,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "CB",
-      "660212e8a1b2c3d4e5f6a833",
-      4,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "CM",
-      "660212e8a1b2c3d4e5f6a834",
-      5,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "AM",
-      "660212e8a1b2c3d4e5f6a835",
-      6,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "AM",
-      "660212e8a1b2c3d4e5f6a836",
-      7,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "S",
-      "660212e8a1b2c3d4e5f6a837",
-      8,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "RW",
-      "660212e8a1b2c3d4e5f6a838",
-      9,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "LW",
-      "660212e8a1b2c3d4e5f6a839",
-      10,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "FW",
-      "660212e8a1b2c3d4e5f6a83a",
-      11,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "CAM",
-      "660212e8a1b2c3d4e5f6a83b",
-      12,
-    ), // Hex will vary & differ from home
+    Tuple3("GK", "663b8a99a1b2c3d4e5f6b001", 1), // GK Goal Keeper
+    Tuple3("RB", "663b8a99a1b2c3d4e5f6b002", 2), // RB Right Back
+    Tuple3("LB", "663b8a99a1b2c3d4e5f6b003", 3), // LB Left Back
+    Tuple3("CB", "663b8a99a1b2c3d4e5f6b004", 4), // CB Center Back
+    Tuple3("CB", "663b8a99a1b2c3d4e5f6b005", 5), // CB Center Back
     Tuple3(
       "CDM",
-      "660212e8a1b2c3d4e5f6a83c",
-      13,
-    ), // Hex will vary & differ from home
+      "663b8a99a1b2c3d4e5f6b006",
+      6,
+    ), // CDM Central Defending Midfielder
+    Tuple3("RW", "663b8a99a1b2c3d4e5f6b007", 7), // RW Right Wing
+    Tuple3("CM", "663b8a99a1b2c3d4e5f6b008", 8), // CM Central Midfield
+    Tuple3("ST", "663b8a99a1b2c3d4e5f6b009", 9), // ST Striker
     Tuple3(
-      "RM",
-      "660212e8a1b2c3d4e5f6a83d",
-      14,
-    ), // Hex will vary & differ from home
+      "CAM",
+      "663b8a99a1b2c3d4e5f6b010",
+      10,
+    ), // CAM Central Attacking Midfield
+    Tuple3("LW", "663b8a99a1b2c3d4e5f6b011", 11), // LW Left Wing
+    Tuple3("WB", "663b8a99a1b2c3d4e5f6b012", 12), // WB Wing Back (Right?)
+    Tuple3("WB", "663b8a99a1b2c3d4e5f6b013", 13), // WB Wing Back (Left?)
+    Tuple3("CB", "663b8a99a1b2c3d4e5f6b014", 14), // CB Center Back
+    Tuple3("CB", "663b8a99a1b2c3d4e5f6b015", 15), // CB Center Back
     Tuple3(
-      "GK",
-      "660212e8a1b2c3d4e5f6a83e",
-      15,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "RB",
-      "660212e8a1b2c3d4e5f6a83f",
+      "CDM",
+      "663b8a99a1b2c3d4e5f6b016",
       16,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "LB",
-      "660212e8a1b2c3d4e5f6a840",
-      17,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "CB",
-      "660212e8a1b2c3d4e5f6a841",
-      18,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "CB",
-      "660212e8a1b2c3d4e5f6a842",
-      19,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "CM",
-      "660212e8a1b2c3d4e5f6a843",
-      20,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "AM",
-      "660212e8a1b2c3d4e5f6a844",
-      21,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "AM",
-      "660212e8a1b2c3d4e5f6a845",
-      22,
-    ), // Hex will vary & differ from home
-    Tuple3(
-      "S",
-      "660212e8a1b2c3d4e5f6a846",
-      23,
-    ), // Hex will vary & differ from home
+    ), // CDM Central Defending Midfielder
+    Tuple3("RM", "663b8a99a1b2c3d4e5f6b017", 17), // RM Right Midfield
+    Tuple3("LM", "663b8a99a1b2c3d4e5f6b018", 18), // LM Left Midfield
+    Tuple3("CF", "663b8a99a1b2c3d4e5f6b019", 19), // CF Center Forward
+    Tuple3("F", "663b8a99a1b2c3d4e5f6b020", 20), // F Forward
+    Tuple3("GK", "663b8a99a1b2c3d4e5f6b021", 21), // GK Goalkeeper
+    Tuple3("W", "663b8a99a1b2c3d4e5f6b022", 22), // W Winger (Right?)
+    Tuple3("W", "663b8a99a1b2c3d4e5f6b023", 23), // W Winger (Left?)
   ];
 
   static List<Tuple3<String, String, int>> otherPlayers = [
@@ -218,7 +110,7 @@ class PlayerUtilsV2 {
     const double gkPos = 0.05;
     // Define the typical range of outfield players in your *original* full-field layouts
     const double minOrigOutfieldX =
-        0.15; // Adjust if your deepest player is different
+        0.18; // Adjust if your deepest player is different
     const double maxOrigOutfieldX =
         0.75; // Adjust if your most advanced player is different
 
@@ -253,10 +145,6 @@ class PlayerUtilsV2 {
     return kickoffX.clamp(minKickoffOutfieldX, maxKickoffX);
   }
 
-  /// Calculates the final away player's position for kick-off.
-  /// Takes the HOME player's KICK-OFF position as input.
-  /// Ensures Away X is exactly opposite Home X relative to the midline (X=0.5).
-  /// Away Y is identical to Home Y.
   static Vector2 _getProcessedAwayPosition(
     Vector2
     homePlayerKickoffPos, // Input is the KICK-OFF position of the home player
@@ -278,436 +166,431 @@ class PlayerUtilsV2 {
         LineupDetails(
           name: "4-3-3",
           playerSlots: [
-            // Kick-off positions calculated using _getKickoffX logic
+            // Roles and IDs updated
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
-            ), // K: 0.05
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
+            ), // GK #1
             PlayerFormationSlot(
               roleInFormation: "RB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.85),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
-            ), // O: 0.25 -> K: 0.223
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a002",
+            ), // RB #2 -> K: 0.223
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // O: 0.20 -> K: 0.200
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ), // CB #4 -> K: 0.200
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
-            ), // O: 0.20 -> K: 0.200
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
+            ), // CB #5 -> K: 0.200
             PlayerFormationSlot(
               roleInFormation: "LB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.15),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
-            ), // O: 0.25 -> K: 0.223
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a003",
+            ), // LB #3 -> K: 0.223
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // O: 0.50 -> K: 0.336
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ), // CM #8 -> K: 0.336
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.45), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
-            ), // O: 0.45 -> K: 0.314
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ), // CDM #6 -> K: 0.314
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "CAM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a815",
-            ), // O: 0.50 -> K: 0.336
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a010",
+            ), // CAM #10 -> K: 0.336
             PlayerFormationSlot(
               roleInFormation: "RW",
               relativePosition: Vector2(_getKickoffX(0.75), 0.80),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a818",
-            ), // O: 0.75 -> K: 0.450
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a007",
+            ), // RW #7 -> K: 0.450
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.80), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // O: 0.80 -> K: 0.472
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ), // ST #9 -> K: 0.472
             PlayerFormationSlot(
               roleInFormation: "LW",
               relativePosition: Vector2(_getKickoffX(0.75), 0.20),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a819",
-            ), // O: 0.75 -> K: 0.450
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a011",
+            ), // LW #11 -> K: 0.450
           ],
         ),
         LineupDetails(
           name: "4-4-2",
           playerSlots: [
-            // Recalculated Kick-off positions
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(0.05, 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "RB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a002",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "LB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a003",
             ),
             PlayerFormationSlot(
               roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.85),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
+            ), // RM #17 -> K: 0.359
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ), // CM #8
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a823",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ), // CDM #6 as other CM
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.15),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
+            ), // LM #18 -> K: 0.359
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.80), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ), // ST #9
             PlayerFormationSlot(
-              roleInFormation: "FW",
+              roleInFormation: "CF",
               relativePosition: Vector2(_getKickoffX(0.80), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81a",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a019",
+            ), // CF #19
           ],
         ),
         LineupDetails(
-          // Existing + Adjusted Kickoff X
           name: "4-2-3-1",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "RB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a002",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "LB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a003",
             ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.40), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
             ),
             PlayerFormationSlot(
-              roleInFormation: "CM",
+              roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.40), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a016",
+            ), // CDM #16
             PlayerFormationSlot(
               roleInFormation: "RW",
               relativePosition: Vector2(_getKickoffX(0.65), 0.80),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a818",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a007",
+            ), // RW #7 as RAM -> K: 0.404
             PlayerFormationSlot(
               roleInFormation: "CAM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81b",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a010",
+            ), // CAM #10 -> K: 0.381
             PlayerFormationSlot(
               roleInFormation: "LW",
               relativePosition: Vector2(_getKickoffX(0.65), 0.20),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a819",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a011",
+            ), // LW #11 as LAM -> K: 0.404
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.85), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ), // ST #9 -> Max K: 0.495
           ],
         ),
         LineupDetails(
-          // Existing + Adjusted Kickoff X
           name: "3-5-2",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.18), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a014",
+            ), // CB #14
             PlayerFormationSlot(
-              roleInFormation: "RM",
+              roleInFormation: "WB",
               relativePosition: Vector2(_getKickoffX(0.50), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a012",
+            ), // WB #12 as RWB -> K: 0.336
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
             ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.45), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
             ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a823",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a010",
+            ), // CAM #10 as CM
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "WB",
               relativePosition: Vector2(_getKickoffX(0.50), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a013",
+            ), // WB #13 as LWB -> K: 0.336
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.80), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
             ),
             PlayerFormationSlot(
-              roleInFormation: "FW",
+              roleInFormation: "CF",
               relativePosition: Vector2(_getKickoffX(0.80), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81a",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a019",
+            ), // CF #19
           ],
         ),
         // --- NEW 11v11 FORMATIONS ---
         LineupDetails(
           name: "4-5-1",
           playerSlots: [
-            // GK, 4 DEF, 5 MID (CDM, LM, RM, 2 CM), 1 S
+            // GK, 4 DEF, 5 MID (CDM, LM, RM, CM, CAM), 1 ST
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "RB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a002",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "LB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a003",
             ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.40), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
-            ), // K: ~0.29
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ),
             PlayerFormationSlot(
               roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.85),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
-            ), // O: 0.60 -> K: ~0.38
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
+            ), // K: 0.381
             PlayerFormationSlot(
               roleInFormation: "CM",
-              relativePosition: Vector2(_getKickoffX(0.60), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // O: 0.60 -> K: ~0.38
+              relativePosition: Vector2(_getKickoffX(0.58), 0.65),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ), // K: 0.372
             PlayerFormationSlot(
-              roleInFormation: "CM",
-              relativePosition: Vector2(_getKickoffX(0.60), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a823",
-            ), // O: 0.60 -> K: ~0.38
+              roleInFormation: "CAM",
+              relativePosition: Vector2(_getKickoffX(0.60), 0.50),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a010",
+            ), // K: 0.381
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.15),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
-            ), // AM as LM, O: 0.60 -> K: ~0.38
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
+            ), // K: 0.381
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.80), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // O: 0.80 -> K: ~0.47
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ), // K: 0.472
           ],
         ),
         LineupDetails(
           name: "3-4-3",
           playerSlots: [
-            // GK, 3 CB, 4 MID (RM, LM, 2 CM), 3 FWD (RW, LW, S)
+            // GK, 3 CB, 4 MID (RM, LM, CM, CDM), 3 FWD (RW, LW, ST)
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.75),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
-            ), // RB as RCB
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.18), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // K: 0.20 (Min)
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.25),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
-            ), // LB as LCB
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a014",
+            ),
             PlayerFormationSlot(
               roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
-            ), // K: ~0.34
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // K: ~0.34
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "CM",
+              roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
-            ), // CDM as CM, K: ~0.34
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
-            ), // AM as LM, K: ~0.34
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
+            ),
             PlayerFormationSlot(
               roleInFormation: "RW",
               relativePosition: Vector2(_getKickoffX(0.70), 0.80),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a818",
-            ), // K: ~0.42
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a007",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.75), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // K: ~0.45
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ),
             PlayerFormationSlot(
               roleInFormation: "LW",
               relativePosition: Vector2(_getKickoffX(0.70), 0.20),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a819",
-            ), // K: ~0.42
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a011",
+            ),
           ],
         ),
-        // Note: 4-1-4-1 is essentially the same structure as 4-5-1, just terminology.
-        // Adding it for completeness if the user wants the explicit name.
         LineupDetails(
-          name:
-              "4-1-4-1", // Same structure as 4-5-1 but potentially different player types/positioning nuance
+          name: "4-1-4-1", // GK, 4 DEF, 1 CDM, 4 MID (RM, LM, CM, CAM), 1 ST
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
+            ), // K: 0.05
             PlayerFormationSlot(
               roleInFormation: "RB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a002",
+            ), // O: 0.25 -> K: 0.223
             PlayerFormationSlot(
               roleInFormation: "CB",
-              relativePosition: Vector2(_getKickoffX(0.22), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ),
+              relativePosition: Vector2(_getKickoffX(0.22), 0.65),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ), // O: 0.22 -> K: 0.209
             PlayerFormationSlot(
               roleInFormation: "CB",
-              relativePosition: Vector2(_getKickoffX(0.22), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
-            ),
+              relativePosition: Vector2(_getKickoffX(0.22), 0.35),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
+            ), // O: 0.22 -> K: 0.209
             PlayerFormationSlot(
               roleInFormation: "LB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
-            ),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a003",
+            ), // O: 0.25 -> K: 0.223
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.38), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
-            ), // K: ~0.28 (Slightly deeper than 4-5-1)
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ), // O: 0.38 -> K: 0.281
             PlayerFormationSlot(
               roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.85),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
-            ), // K: ~0.38
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
+            ), // O: 0.60 -> K: 0.381
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.58), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // K: ~0.37
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ), // O: 0.58 -> K: 0.372
             PlayerFormationSlot(
-              roleInFormation: "CM",
+              roleInFormation: "CAM",
               relativePosition: Vector2(_getKickoffX(0.58), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a823",
-            ), // K: ~0.37
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a010",
+            ), // CAM as 2nd CM -> K: 0.372
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.15),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
-            ), // K: ~0.38
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
+            ), // O: 0.60 -> K: 0.381
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.80), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // K: ~0.47
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ), // O: 0.80 -> K: 0.472
           ],
-        ),
+        ), // Re-use 4-5-1 slots for 4-1-4-1 name
       ],
     ),
     TeamFormationConfig(
+      // 7 Players - Updated
       numberOfPlayers: 7,
       defaultLineupName: "2-3-1",
       availableLineups: [
@@ -717,37 +600,37 @@ class PlayerUtilsV2 {
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(0.05, 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
-              roleInFormation: "RB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
-              roleInFormation: "LB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
-              roleInFormation: "RW",
+              roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.85),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a818",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
             ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
             ),
             PlayerFormationSlot(
-              roleInFormation: "LW",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.15),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a819",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
             ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.85), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
             ),
           ],
         ),
@@ -757,124 +640,125 @@ class PlayerUtilsV2 {
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(0.05, 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
-              roleInFormation: "RB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.75),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
-              roleInFormation: "LB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.25),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a014",
             ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
             ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
             ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.80), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
             ),
           ],
         ),
         // --- NEW 7v7 FORMATIONS ---
         LineupDetails(
-          name: "3-1-2", // GK, 3 DEF, 1 MID, 2 FWD
+          name: "3-1-2",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.80),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
-            ), // RB as RCB
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // Central CB
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.20),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
-            ), // LB as LCB
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a014",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
-            ), // Single Mid (CDM) K:~0.34
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.75), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // K:~0.45
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "FW",
+              roleInFormation: "CF",
               relativePosition: Vector2(_getKickoffX(0.75), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81a",
-            ), // K:~0.45
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a019",
+            ),
           ],
         ),
         LineupDetails(
-          name: "2-1-3", // GK, 2 DEF, 1 MID, 3 FWD
+          name: "2-1-3",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // R Def
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
-            ), // L Def
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.45), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // Single Mid (CM) K:~0.31
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ),
             PlayerFormationSlot(
               roleInFormation: "RW",
               relativePosition: Vector2(_getKickoffX(0.70), 0.80),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a818",
-            ), // K:~0.42
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a007",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.75), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // K:~0.45
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ),
             PlayerFormationSlot(
               roleInFormation: "LW",
               relativePosition: Vector2(_getKickoffX(0.70), 0.20),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a819",
-            ), // K:~0.42
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a011",
+            ),
           ],
         ),
       ],
     ),
     TeamFormationConfig(
+      // 9 Players - Updated
       numberOfPlayers: 9,
       defaultLineupName: "3-3-2",
       availableLineups: [
@@ -884,204 +768,205 @@ class PlayerUtilsV2 {
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(0.05, 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.75),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.25),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a014",
             ),
             PlayerFormationSlot(
               roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
             ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.48), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
             ),
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
             ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.72), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
             ),
             PlayerFormationSlot(
-              roleInFormation: "FW",
+              roleInFormation: "CF",
               relativePosition: Vector2(_getKickoffX(0.72), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81a",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a019",
             ),
           ],
         ),
         // --- NEW 9v9 FORMATIONS ---
         LineupDetails(
-          name: "2-4-2", // GK, 2 DEF, 4 MID, 2 FWD
+          name: "2-4-2",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // R Def
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
-            ), // L Def
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
+            ),
             PlayerFormationSlot(
               roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
-            ), // K:~0.36
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.60),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // K:~0.34
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.40),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
-            ), // CDM as CM, K:~0.34
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a016",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
-            ), // AM as LM, K:~0.36
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.78), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // K:~0.46
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "CF",
               relativePosition: Vector2(_getKickoffX(0.78), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a826",
-            ), // K:~0.46
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a019",
+            ),
           ],
         ),
         LineupDetails(
-          name: "4-3-1", // GK, 4 DEF, 3 MID, 1 FWD
+          name: "4-3-1",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "RB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.90),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a002",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.22), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a821",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "LB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.10),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a003",
             ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
             ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.48), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
-            ), // K:~0.33
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.50), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a823",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a010",
             ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.75), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
             ),
           ],
         ),
         LineupDetails(
-          name: "3-2-3", // GK, 3 DEF, 2 MID, 3 FWD
+          name: "3-2-3",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.75),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.18), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.20), 0.25),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a014",
             ),
             PlayerFormationSlot(
               roleInFormation: "CDM",
               relativePosition: Vector2(_getKickoffX(0.45), 0.65),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81c",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
             ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.45), 0.35),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
             ),
             PlayerFormationSlot(
               roleInFormation: "RW",
               relativePosition: Vector2(_getKickoffX(0.70), 0.85),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a818",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a007",
             ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.75), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
             ),
             PlayerFormationSlot(
               roleInFormation: "LW",
               relativePosition: Vector2(_getKickoffX(0.70), 0.15),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a819",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a011",
             ),
           ],
         ),
       ],
     ),
     TeamFormationConfig(
+      // 5 Players - Updated
       numberOfPlayers: 5,
       defaultLineupName: "2-1-1",
       availableLineups: [
@@ -1091,119 +976,119 @@ class PlayerUtilsV2 {
             PlayerFormationSlot(
               roleInFormation: "GK",
               relativePosition: Vector2(0.05, 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
-              roleInFormation: "RB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.30), 0.70),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
             ),
             PlayerFormationSlot(
-              roleInFormation: "LB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.30), 0.30),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
             ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
             ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.75), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
             ),
           ],
         ),
         // --- NEW 5v5 FORMATIONS ---
         LineupDetails(
-          name: "1-2-1", // GK, 1 DEF, 2 MID, 1 FWD
+          name: "1-2-1",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // K:~0.22
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.75),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // K:~0.36
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.55), 0.25),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a823",
-            ), // K:~0.36
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a006",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "S",
+              roleInFormation: "ST",
               relativePosition: Vector2(_getKickoffX(0.78), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a817",
-            ), // K:~0.46
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a009",
+            ),
           ],
         ),
         LineupDetails(
-          name: "1-3", // GK, 1 DEF, 3 MID
+          name: "1-3",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // K:~0.22
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ),
             PlayerFormationSlot(
               roleInFormation: "RM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.80),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a81d",
-            ), // K:~0.38
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a017",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // K:~0.38
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "AM",
+              roleInFormation: "LM",
               relativePosition: Vector2(_getKickoffX(0.60), 0.20),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a816",
-            ), // AM as LM, K:~0.38
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a018",
+            ),
           ],
         ),
         LineupDetails(
-          name: "3-1", // GK, 3 DEF, 1 MID
+          name: "3-1",
           playerSlots: [
             PlayerFormationSlot(
               roleInFormation: "GK",
-              relativePosition: Vector2(_getKickoffX(0.05), 0.5),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a810",
+              relativePosition: Vector2(0.05, 0.5),
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a001",
             ),
             PlayerFormationSlot(
-              roleInFormation: "RB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.30), 0.80),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a811",
-            ), // K:~0.25
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a004",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.25), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a813",
-            ), // K:~0.22
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a005",
+            ),
             PlayerFormationSlot(
-              roleInFormation: "LB",
+              roleInFormation: "CB",
               relativePosition: Vector2(_getKickoffX(0.30), 0.20),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a812",
-            ), // K:~0.25
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a014",
+            ),
             PlayerFormationSlot(
               roleInFormation: "CM",
               relativePosition: Vector2(_getKickoffX(0.65), 0.50),
-              designatedPlayerId: "660211dca1b2c3d4e5f6a814",
-            ), // K:~0.40
+              designatedPlayerId: "663b8a00a1b2c3d4e5f6a008",
+            ),
           ],
         ),
       ],
