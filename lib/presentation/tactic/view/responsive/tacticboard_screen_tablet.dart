@@ -795,7 +795,7 @@ class _TacticboardScreenTabletState
                   duration: _panelAnimationDuration,
                   curve: Curves.easeInOut,
                   left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-                  top: MediaQuery.of(context).size.height / 2 - 25,
+                  top: (context.heightPercent(92) / 2) - 25,
                   // Assign the static key directly to the Material widget
                   child: Material(
                     key: TutorialKeys.leftPanelButtonKey,
@@ -832,7 +832,7 @@ class _TacticboardScreenTabletState
                   duration: _panelAnimationDuration,
                   curve: Curves.easeInOut,
                   right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
-                  top: MediaQuery.of(context).size.height / 2 - 25,
+                  top: (context.heightPercent(92) / 2) - 25,
                   child: Material(
                     color: ColorManager.grey.withOpacity(0.6),
                     borderRadius: const BorderRadius.only(
@@ -869,118 +869,7 @@ class _TacticboardScreenTabletState
       );
     } else {
       // Normal Mode
-      // screenContent = Scaffold(
-      //   backgroundColor: ColorManager.black,
-      //   body: SizedBox(
-      //     height: context.heightPercent(100),
-      //     width: context.widthPercent(100),
-      //     child: Stack(
-      //       children: [
-      //         Positioned.fill(
-      //           child: _buildCentralContent(context, ref, ap, selectedScene),
-      //         ),
-      //         AnimatedPositioned(
-      //           duration: _panelAnimationDuration,
-      //           curve: Curves.easeInOut,
-      //           left: _isLeftPanelOpen ? 0 : -_leftPanelWidth,
-      //           top: 0,
-      //           bottom: 0,
-      //           width: _leftPanelWidth,
-      //           child: Material(
-      //             elevation: 4.0,
-      //             color: ColorManager.dark2,
-      //             // LefttoolbarComponent no longer takes the key
-      //             child: const LefttoolbarComponent(),
-      //           ),
-      //         ),
-      //         AnimatedPositioned(
-      //           duration: _panelAnimationDuration,
-      //           curve: Curves.easeInOut,
-      //           right: _isRightPanelOpen ? 0 : -_rightPanelWidth,
-      //           top: 0,
-      //           bottom: 0,
-      //           width: _rightPanelWidth,
-      //           child: Material(
-      //             elevation: 4.0,
-      //             color: ColorManager.dark2,
-      //             child: RighttoolbarComponent(),
-      //           ),
-      //         ),
-      //         AnimatedPositioned(
-      //           duration: _panelAnimationDuration,
-      //           curve: Curves.easeInOut,
-      //           left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-      //           top: (context.heightPercent(90) / 2) - 25,
-      //           // Assign the static key directly to the Material widget
-      //           child: Material(
-      //             key: TutorialKeys.leftPanelButtonKey,
-      //             color: ColorManager.grey.withOpacity(0.6),
-      //             borderRadius: const BorderRadius.only(
-      //               topRight: Radius.circular(8),
-      //               bottomRight: Radius.circular(8),
-      //             ),
-      //             elevation: 6.0,
-      //             child: InkWell(
-      //               borderRadius: const BorderRadius.only(
-      //                 topRight: Radius.circular(8),
-      //                 bottomRight: Radius.circular(8),
-      //               ),
-      //               onTap: _toggleLeftPanel,
-      //               child: Padding(
-      //                 padding: const EdgeInsets.symmetric(
-      //                   vertical: 8.0,
-      //                   horizontal: 4.0,
-      //                 ),
-      //                 child: Icon(
-      //                   _isLeftPanelOpen
-      //                       ? Icons.chevron_left
-      //                       : Icons.chevron_right,
-      //                   color: Colors.white,
-      //                   size: 20,
-      //                 ),
-      //               ),
-      //             ),
-      //           ),
-      //         ),
-      //
-      //         AnimatedPositioned(
-      //           duration: _panelAnimationDuration,
-      //           curve: Curves.easeInOut,
-      //           right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
-      //           top: (context.heightPercent(90) / 2) - 25,
-      //           child: Material(
-      //             color: ColorManager.grey.withOpacity(0.6),
-      //             borderRadius: const BorderRadius.only(
-      //               topLeft: Radius.circular(8),
-      //               bottomLeft: Radius.circular(8),
-      //             ),
-      //             elevation: 6.0,
-      //             child: InkWell(
-      //               borderRadius: const BorderRadius.only(
-      //                 topLeft: Radius.circular(8),
-      //                 bottomLeft: Radius.circular(8),
-      //               ),
-      //               onTap: _toggleRightPanel,
-      //               child: Padding(
-      //                 padding: const EdgeInsets.symmetric(
-      //                   vertical: 8.0,
-      //                   horizontal: 4.0,
-      //                 ),
-      //                 child: Icon(
-      //                   _isRightPanelOpen
-      //                       ? Icons.chevron_right
-      //                       : Icons.chevron_left,
-      //                   color: Colors.white,
-      //                   size: 20,
-      //                 ),
-      //               ),
-      //             ),
-      //           ),
-      //         ),
-      //       ],
-      //     ),
-      //   ),
-      // );
+
       screenContent = Stack(
         children: [
           // 1. The Scaffold is now a child of the root Stack
