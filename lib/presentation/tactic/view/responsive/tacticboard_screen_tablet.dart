@@ -984,19 +984,16 @@ class _TacticboardScreenTabletState
       screenContent = Stack(
         children: [
           // 1. The Scaffold is now a child of the root Stack
-          Scaffold(
-            backgroundColor: ColorManager.black,
-            body: SizedBox(
-              // This SizedBox ensures _buildCentralContent still knows its bounds
-              // within the Scaffold's body.
-              height: context.heightPercent(100),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: SizedBox(
+              height: context.screenHeight * .92,
               width: context.widthPercent(100),
-              // The Stack previously here is removed, _buildCentralContent is placed directly.
-              // Positioned.fill is used to make _buildCentralContent fill the SizedBox.
-              child: _buildCentralContent(context, ref, ap, selectedScene),
+              child: Scaffold(
+                backgroundColor: ColorManager.black,
+                body: _buildCentralContent(context, ref, ap, selectedScene),
+              ),
             ),
-            // If you have an AppBar, FloatingActionButton, etc., for the Scaffold,
-            // they would remain here.
           ),
 
           // 2. AnimatedPositioned widgets are now direct children of the root Stack,
@@ -1033,7 +1030,7 @@ class _TacticboardScreenTabletState
             curve: Curves.easeInOut,
             left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
             top:
-                (context.heightPercent(90) / 2) -
+                (context.heightPercent(104) / 2) -
                 25, // Consider if context here refers to the correct one
             // It should be the context of the build method where screenContent is defined
             child: Material(
@@ -1069,7 +1066,7 @@ class _TacticboardScreenTabletState
             curve: Curves.easeInOut,
             right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
             top:
-                (context.heightPercent(90) / 2) -
+                (context.heightPercent(104) / 2) -
                 25, // Same consideration for context here
             child: Material(
               color: ColorManager.grey.withOpacity(0.6),
