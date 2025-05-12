@@ -993,10 +993,7 @@ class _TacticboardScreenTabletState
               width: context.widthPercent(100),
               // The Stack previously here is removed, _buildCentralContent is placed directly.
               // Positioned.fill is used to make _buildCentralContent fill the SizedBox.
-              child: Positioned.fill(
-                // Or simply child: _buildCentralContent if it handles its own filling
-                child: _buildCentralContent(context, ref, ap, selectedScene),
-              ),
+              child: _buildCentralContent(context, ref, ap, selectedScene),
             ),
             // If you have an AppBar, FloatingActionButton, etc., for the Scaffold,
             // they would remain here.
