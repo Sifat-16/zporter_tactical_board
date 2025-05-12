@@ -12,6 +12,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
 class PlayersToolbarHome extends ConsumerStatefulWidget {
   const PlayersToolbarHome({super.key});
@@ -128,7 +129,14 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
             children: List.generate(activeToolbarPlayers.length, (index) {
               // Use filtered list
               PlayerModel player = activeToolbarPlayers[index];
-              return PlayerComponentV2(playerModel: player);
+
+              Key? itemKey;
+              // Assign the static key to the first player component
+              if (index == 1) {
+                itemKey = TutorialKeys.firstPlayerKey; // Use static key
+                // zlog(data: "Assigning TutorialKeys.firstPlayerKey to player: ${player.id} at index 0");
+              }
+              return PlayerComponentV2(key: itemKey, playerModel: player);
             }),
           ),
           // --- End Scrollbar Wrapper ---
@@ -136,7 +144,9 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
 
         SizedBox(height: 10),
 
-        _buildFooter(),
+        _buildFooter(
+          needCleanup: activeToolbarPlayers.length != players.length,
+        ),
       ],
     );
   }
@@ -254,7 +264,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     // }
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter({required bool needCleanup}) {
     return Column(
       children: [
         DropdownSelector<TeamFormationConfig>(
@@ -290,12 +300,18 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
         SizedBox(height: 10),
         CustomButton(
           onTap: () async {
-            bool? proceed = await showConfirmationDialog(
-              context: context,
-              title: "Confirm New Lineup Setup",
-              content:
-                  "This action will remove all home players currently on the field to apply the new lineup. Are you sure you want to proceed?",
-            );
+            bool? proceed;
+            if (needCleanup) {
+              proceed = await showConfirmationDialog(
+                context: context,
+                title: "Confirm New Lineup Setup",
+                content:
+                    "This action will remove all home players currently on the field to apply the new lineup. Are you sure you want to proceed?",
+              );
+            } else {
+              proceed = true;
+            }
+
             if (proceed == true) {
               TacticBoard? tacticBoard =
                   (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;

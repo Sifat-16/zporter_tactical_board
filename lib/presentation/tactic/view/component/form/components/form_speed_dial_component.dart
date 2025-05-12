@@ -23,6 +23,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart'; // Ensure ActiveTool is here or imported
+import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
 import 'form_item_speed_dial.dart';
 import 'line/form_line_item.dart';
@@ -347,6 +348,7 @@ class _FormSpeedDialComponentState
                 ),
               if (animationModel != null) const SizedBox(width: 10),
               _buildAddNewScene(
+                keyForTutorial: TutorialKeys.addNewSceneButtonKey,
                 selectedCollection: collectionModel,
                 selectedAnimation: animationModel,
                 selectedScene: selectedScene,
@@ -362,13 +364,53 @@ class _FormSpeedDialComponentState
     return FormItemSpeedDial(formItem: fieldItemModel);
   }
 
+  // Widget _buildAddNewScene({
+  //   required AnimationCollectionModel? selectedCollection,
+  //   required AnimationModel? selectedAnimation,
+  //   required AnimationItemModel? selectedScene,
+  // }) {
+  //   return GestureDetector(
+  //     onTap: () {
+  //       if (selectedCollection == null || selectedAnimation == null) {
+  //         if (ref.read(boardProvider).showFullScreen) {
+  //           ref.read(boardProvider.notifier).toggleFullScreen();
+  //         }
+  //         ref.read(animationProvider.notifier).showQuickSave();
+  //       } else {
+  //         try {
+  //           // Ensure selectedScene is not null before calling addNewScene if it's required
+  //           if (selectedScene != null) {
+  //             ref
+  //                 .read(animationProvider.notifier)
+  //                 .addNewScene(
+  //                   selectedCollection: selectedCollection,
+  //                   selectedAnimation: selectedAnimation,
+  //                   selectedScene: selectedScene,
+  //                 );
+  //           } else {
+  //             BotToast.showText(
+  //               text: "Cannot add new scene: No current scene selected.",
+  //             );
+  //           }
+  //         } catch (e) {
+  //           BotToast.showText(text: "Error adding new scene: $e");
+  //         }
+  //       }
+  //     },
+  //     child: Icon(Icons.add_circle_outline, color: ColorManager.white),
+  //   );
+  // }
+
   Widget _buildAddNewScene({
     required AnimationCollectionModel? selectedCollection,
     required AnimationModel? selectedAnimation,
     required AnimationItemModel? selectedScene,
+    GlobalKey? keyForTutorial, // Add key parameter
   }) {
     return GestureDetector(
+      key: keyForTutorial, // Assign the key here
       onTap: () {
+        // This is the action we need to trigger from the tutorial
         if (selectedCollection == null || selectedAnimation == null) {
           if (ref.read(boardProvider).showFullScreen) {
             ref.read(boardProvider.notifier).toggleFullScreen();
@@ -376,7 +418,6 @@ class _FormSpeedDialComponentState
           ref.read(animationProvider.notifier).showQuickSave();
         } else {
           try {
-            // Ensure selectedScene is not null before calling addNewScene if it's required
             if (selectedScene != null) {
               ref
                   .read(animationProvider.notifier)

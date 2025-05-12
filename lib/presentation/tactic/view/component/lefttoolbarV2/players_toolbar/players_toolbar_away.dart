@@ -117,7 +117,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
 
         SizedBox(height: 10),
 
-        _buildFooter(),
+        _buildFooter(needCleanup: _duplicatePlayers.length != players.length),
       ],
     );
   }
@@ -253,7 +253,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
     }
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter({required bool needCleanup}) {
     return Column(
       children: [
         DropdownSelector<TeamFormationConfig>(
@@ -289,12 +289,18 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         SizedBox(height: 10),
         CustomButton(
           onTap: () async {
-            bool? proceed = await showConfirmationDialog(
-              context: context,
-              title: "Confirm New Lineup Setup",
-              content:
-                  "This action will remove all away players currently on the field to apply the new lineup. Are you sure you want to proceed?",
-            );
+            bool? proceed;
+            if (needCleanup) {
+              proceed = await showConfirmationDialog(
+                context: context,
+                title: "Confirm New Lineup Setup",
+                content:
+                    "This action will remove all away players currently on the field to apply the new lineup. Are you sure you want to proceed?",
+              );
+            } else {
+              proceed = true;
+            }
+
             if (proceed == true) {
               TacticBoard? tacticBoard =
                   (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;

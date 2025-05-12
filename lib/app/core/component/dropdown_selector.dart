@@ -105,6 +105,7 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
             fontWeight: FontWeight.bold,
           ),
         ),
+
         // Set width to expand if needed, otherwise it might take intrinsic width
         // width: MediaQuery.of(context).size.width - 32.0, // Example: Full width minus padding
         // Or rely on parent constraints if Padding is inside something that sizes it
@@ -158,8 +159,10 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
         // Style the text field part using InputDecorationTheme or directly
         inputDecorationTheme: const InputDecorationTheme(
           border: OutlineInputBorder(),
+
           // You might need to customize filled, fillColor etc. based on design
         ),
+        alignmentOffset: Offset(0, 15),
         // The text style within the TextField part (controlled by controller)
         textStyle: dropdownItemStyle, // Use same style for selected item text?
       ),

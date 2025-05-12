@@ -284,6 +284,11 @@ mixin DrawingInputHandler on TacticBoardGame {
       _currentStraightLine = null;
       lineStartPoint = null;
       eventHandled = true;
+      ref
+          .read(lineProvider.notifier)
+          .loadActiveLineModelToAddIntoGameFieldEvent(
+            lineModelV2: finalLineModel,
+          );
     }
 
     // Circle Integration here
@@ -311,6 +316,11 @@ mixin DrawingInputHandler on TacticBoardGame {
       _currentCircleShape = null; // Always clear the reference
       shapeCenterPoint = null; // Clear the fixed center point
       eventHandled = true;
+      ref
+          .read(lineProvider.notifier)
+          .loadActiveShapeModelToAddIntoGameFieldEvent(
+            shapeModel: finalCircleModel,
+          );
     }
 
     // --- Square Integration here ---
@@ -336,6 +346,11 @@ mixin DrawingInputHandler on TacticBoardGame {
       _currentSquareShape = null;
       squareCenterPoint = null; // Clear fixed center point
       eventHandled = true;
+      ref
+          .read(lineProvider.notifier)
+          .loadActiveShapeModelToAddIntoGameFieldEvent(
+            shapeModel: finalSquareModel,
+          );
     }
 
     // --- Cleanup temporary components if drag ended unexpectedly --- (User's version structure)
