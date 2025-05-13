@@ -19,6 +19,7 @@ class DraggableDot extends CircleComponent with DragCallbacks {
   final Vector2 initialPosition;
   final bool canModifyLine;
   final int dotIndex;
+  Color color;
 
   DraggableDot({
     required this.onPositionChanged,
@@ -26,7 +27,7 @@ class DraggableDot extends CircleComponent with DragCallbacks {
     required this.dotIndex,
     this.canModifyLine = true,
     super.radius = 8.0,
-    Color color = Colors.blue,
+    this.color = Colors.blue,
   }) : super(
          position: initialPosition,
          anchor: Anchor.center,
@@ -92,17 +93,17 @@ class LineDrawerComponentV2 extends PositionComponent
     _inactivePaint =
         Paint()
           ..color =
-              _duplicateLine.color?.withValues(alpha: _duplicateLine.opacity) ??
-              ColorManager.black.withValues(alpha: _duplicateLine.opacity)
-          ..strokeWidth = _duplicateLine.thickness
+              lineModelV2.color?.withValues(alpha: lineModelV2.opacity) ??
+              ColorManager.black.withValues(alpha: lineModelV2.opacity)
+          ..strokeWidth = lineModelV2.thickness
           ..style = PaintingStyle.stroke;
 
     _activePaint =
         Paint()
           ..color =
-              _duplicateLine.color?.withValues(alpha: _duplicateLine.opacity) ??
-              ColorManager.black.withValues(alpha: _duplicateLine.opacity)
-          ..strokeWidth = _duplicateLine.thickness
+              lineModelV2.color?.withValues(alpha: lineModelV2.opacity) ??
+              ColorManager.black.withValues(alpha: lineModelV2.opacity)
+          ..strokeWidth = lineModelV2.thickness
           ..style = PaintingStyle.stroke;
   }
 

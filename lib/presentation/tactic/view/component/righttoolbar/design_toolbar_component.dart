@@ -46,8 +46,8 @@ class _DesignToolbarComponentState
               _buildFillColorWidget("Fill Color", boardState: bp),
               SizedBox(height: 20),
               _buildOpacitySliderWidget(boardState: bp),
-              SizedBox(height: 20),
-              _buildSizeSliderWidget(boardState: bp),
+              // SizedBox(height: 20),
+              // _buildSizeSliderWidget(boardState: bp),
               // SizedBox(height: 20),
               // IncrementDecrementNumberField(
               //   label: "Border type",

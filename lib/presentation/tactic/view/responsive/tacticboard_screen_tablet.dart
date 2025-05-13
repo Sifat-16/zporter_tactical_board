@@ -638,85 +638,85 @@ class _TacticboardScreenTabletState
         await ref.read(animationProvider.notifier).getAllCollections();
         await ref.read(animationProvider.notifier).configureDefaultAnimations();
 
-        if (mounted) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) {
-              _tutorialManager.checkAndShowOpenLeftPanelTutorial(
-                context: context,
-                onLeftPanelButtonTutorialTap: _toggleLeftPanel,
-                onTutorialStepFinished: () {
-                  // Step 1 (Open Panel) Finished
-                  zlog(
-                    data:
-                        "TacticboardScreen: Left panel tutorial step finished.",
-                  );
-                  if (_isLeftPanelOpen && mounted) {
-                    Future.delayed(const Duration(milliseconds: 600), () {
-                      if (mounted) {
-                        if (TutorialKeys.firstPlayerKey.currentContext !=
-                            null) {
-                          zlog(
-                            data:
-                                "TacticboardScreen: Attempting to show drag player tutorial.",
-                          );
-                          _tutorialManager.showDragPlayerTutorial(
-                            context: context,
-                            onTutorialStepFinished: () {
-                              // Step 2 (Drag Player) IS NOW TRULY Finished
-                              zlog(
-                                data:
-                                    "TacticboardScreen: Drag player ACTION tutorial step finished.",
-                              );
-                              // Now, start the "Add New Scene" tutorial step
-                              Future.delayed(const Duration(milliseconds: 300), () {
-                                if (mounted &&
-                                    TutorialKeys
-                                            .addNewSceneButtonKey
-                                            .currentContext !=
-                                        null) {
-                                  zlog(
-                                    data:
-                                        "TacticboardScreen: Attempting to show Add New Scene tutorial.",
-                                  );
-                                  _tutorialManager.showAddNewSceneTutorial(
-                                    context: context,
-                                    onAddNewSceneButtonTutorialTap:
-                                        _performAddNewSceneAction,
-                                    onTutorialStepFinished: () {
-                                      zlog(
-                                        data:
-                                            "TacticboardScreen: Add New Scene tutorial step finished.",
-                                      );
-                                      zlog(data: "TUTORIAL SEQUENCE COMPLETE!");
-                                    },
-                                  );
-                                } else if (mounted) {
-                                  zlog(
-                                    data:
-                                        "TacticboardScreen: TutorialKeys.addNewSceneButtonKey.currentContext is NULL. Cannot start Add New Scene tutorial.",
-                                  );
-                                }
-                              });
-                            },
-                          );
-                        } else {
-                          /* ... log error ... */
-                          zlog(
-                            data:
-                                "TacticboardScreen: TutorialKeys.firstPlayerKey.currentContext is NULL.",
-                          );
-                        }
-                      }
-                    });
-                  } else if (mounted) {
-                    /* ... log error ... */
-                    zlog(data: "TacticboardScreen: Left panel is not open.");
-                  }
-                },
-              );
-            }
-          });
-        }
+        // if (mounted) {
+        //   Future.delayed(const Duration(milliseconds: 300), () {
+        //     if (mounted) {
+        //       _tutorialManager.checkAndShowOpenLeftPanelTutorial(
+        //         context: context,
+        //         onLeftPanelButtonTutorialTap: _toggleLeftPanel,
+        //         onTutorialStepFinished: () {
+        //           // Step 1 (Open Panel) Finished
+        //           zlog(
+        //             data:
+        //                 "TacticboardScreen: Left panel tutorial step finished.",
+        //           );
+        //           if (_isLeftPanelOpen && mounted) {
+        //             Future.delayed(const Duration(milliseconds: 600), () {
+        //               if (mounted) {
+        //                 if (TutorialKeys.firstPlayerKey.currentContext !=
+        //                     null) {
+        //                   zlog(
+        //                     data:
+        //                         "TacticboardScreen: Attempting to show drag player tutorial.",
+        //                   );
+        //                   _tutorialManager.showDragPlayerTutorial(
+        //                     context: context,
+        //                     onTutorialStepFinished: () {
+        //                       // Step 2 (Drag Player) IS NOW TRULY Finished
+        //                       zlog(
+        //                         data:
+        //                             "TacticboardScreen: Drag player ACTION tutorial step finished.",
+        //                       );
+        //                       // Now, start the "Add New Scene" tutorial step
+        //                       Future.delayed(const Duration(milliseconds: 300), () {
+        //                         if (mounted &&
+        //                             TutorialKeys
+        //                                     .addNewSceneButtonKey
+        //                                     .currentContext !=
+        //                                 null) {
+        //                           zlog(
+        //                             data:
+        //                                 "TacticboardScreen: Attempting to show Add New Scene tutorial.",
+        //                           );
+        //                           _tutorialManager.showAddNewSceneTutorial(
+        //                             context: context,
+        //                             onAddNewSceneButtonTutorialTap:
+        //                                 _performAddNewSceneAction,
+        //                             onTutorialStepFinished: () {
+        //                               zlog(
+        //                                 data:
+        //                                     "TacticboardScreen: Add New Scene tutorial step finished.",
+        //                               );
+        //                               zlog(data: "TUTORIAL SEQUENCE COMPLETE!");
+        //                             },
+        //                           );
+        //                         } else if (mounted) {
+        //                           zlog(
+        //                             data:
+        //                                 "TacticboardScreen: TutorialKeys.addNewSceneButtonKey.currentContext is NULL. Cannot start Add New Scene tutorial.",
+        //                           );
+        //                         }
+        //                       });
+        //                     },
+        //                   );
+        //                 } else {
+        //                   /* ... log error ... */
+        //                   zlog(
+        //                     data:
+        //                         "TacticboardScreen: TutorialKeys.firstPlayerKey.currentContext is NULL.",
+        //                   );
+        //                 }
+        //               }
+        //             });
+        //           } else if (mounted) {
+        //             /* ... log error ... */
+        //             zlog(data: "TacticboardScreen: Left panel is not open.");
+        //           }
+        //         },
+        //       );
+        //     }
+        //   });
+        // }
       } catch (e, s) {
         zlog(data: "Error during initial data load or tutorial setup: $e \n$s");
       }
