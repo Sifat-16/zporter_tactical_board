@@ -1,8 +1,8 @@
 import 'dart:async' as a;
+import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
-import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -68,7 +68,7 @@ class TacticBoardGameAnimation extends TacticBoardGame {
 
   @override
   Color backgroundColor() {
-    return ColorManager.white;
+    return ColorManager.white.withValues(alpha: 0.5);
   }
 
   Future<void> addItem(FieldItemModel item) async {
@@ -243,7 +243,9 @@ class TacticBoardGameAnimation extends TacticBoardGame {
     } // End of outer loop (animations)
 
     // After ALL AnimationItemModels and their effects are complete:
-    ref.read(boardProvider.notifier).completeAnimationEvent();
-    zlog(data: "All animations completed."); // Log completion.
+    try {
+      ref.read(boardProvider.notifier).completeAnimationEvent();
+      zlog(data: "All animations completed."); // Log completion.
+    } catch (e) {}
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/admin_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen.dart';
 
 class TacticApp extends StatelessWidget {
@@ -41,10 +42,11 @@ class TacticPage extends StatefulWidget {
 }
 
 class _TacticPageState extends State<TacticPage> {
+  bool isAdmin = false;
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      child: TacticboardScreen(userId: widget.userId),
+      child: isAdmin ? AdminScreen() : TacticboardScreen(userId: widget.userId),
       // body: DrawingScreen(),
     );
   }

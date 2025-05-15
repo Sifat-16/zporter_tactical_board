@@ -9,7 +9,11 @@ import 'animation_toolbar_component.dart';
 import 'design_toolbar_component.dart';
 
 class RighttoolbarComponent extends ConsumerStatefulWidget {
-  const RighttoolbarComponent({super.key});
+  const RighttoolbarComponent({
+    super.key,
+    this.animationToolbarConfig = AnimationToolbarConfig.full,
+  });
+  final AnimationToolbarConfig animationToolbarConfig;
 
   @override
   ConsumerState<RighttoolbarComponent> createState() =>
@@ -22,16 +26,22 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
   late PageController _pageController;
 
   // List of tab names and content to display
-  final List<Map<String, dynamic>> _tabs = [
-    {'title': 'Design', 'content': DesignToolbarComponent()},
-    {'title': 'Animation', 'content': AnimationToolbarComponent()},
-    {'title': 'Settings', 'content': SettingsToolbarComponent()},
-  ];
+  late List<Map<String, dynamic>> _tabs;
 
   @override
   void initState() {
     super.initState();
     // Initialize the TabController
+    _tabs = [
+      {'title': 'Design', 'content': DesignToolbarComponent()},
+      {
+        'title': 'Animation',
+        'content': AnimationToolbarComponent(
+          config: widget.animationToolbarConfig,
+        ),
+      },
+      {'title': 'Settings', 'content': SettingsToolbarComponent()},
+    ];
     _tabController = TabController(
       initialIndex: 1,
       length: _tabs.length,

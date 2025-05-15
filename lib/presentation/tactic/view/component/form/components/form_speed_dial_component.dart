@@ -3,35 +3,86 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
-import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/app/services/injection_container.dart';
-import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
-import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
-import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
-import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
-import 'package:zporter_tactical_board/domain/animation/usecase/get_history_stream_usecase.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/shapes/form_shape_item.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart'; // Ensure ActiveTool is here or imported
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
+import 'package:zporter_tactical_board/app/extensions/size_extension.dart'; // Adjust path
+import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjust path
+import 'package:zporter_tactical_board/app/services/injection_container.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/animation/model/history_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/tactic/model/line_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/domain/animation/usecase/get_history_stream_usecase.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/shapes/form_shape_item.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart'; // Adjust path
 
-import 'form_item_speed_dial.dart';
-import 'line/form_line_item.dart';
+import 'form_item_speed_dial.dart'; // Adjust path
+import 'line/form_line_item.dart'; // Adjust path
+
+// --- Configuration Class for Button Visibility ---
+class FormSpeedDialConfig {
+  final bool showFullScreenButton;
+  final bool showShareButton;
+  final bool showPointerActionsButton;
+  final bool showFreeDrawButton;
+  final bool showEraserButton;
+  final bool showUndoButton;
+  final bool showTrashButton;
+  final bool showPlayAnimationButton;
+  final bool showAddNewSceneButton;
+  final Function? addNewSceneForAdmin;
+  final bool showBackButton;
+
+  const FormSpeedDialConfig({
+    this.showFullScreenButton = true,
+    this.showShareButton = true,
+    this.showPointerActionsButton = true,
+    this.showFreeDrawButton = true,
+    this.showEraserButton = true,
+    this.showUndoButton = true,
+    this.showTrashButton = true,
+    this.showPlayAnimationButton = true,
+    this.showAddNewSceneButton = true,
+    this.addNewSceneForAdmin,
+    this.showBackButton = false,
+  });
+
+  // Example of a more restrictive config
+  static const viewOnly = FormSpeedDialConfig(
+    showFullScreenButton: true,
+    showShareButton: false,
+    showPointerActionsButton: false,
+    showFreeDrawButton: false,
+    showEraserButton: false,
+    showUndoButton:
+        true, // Assuming undo might still be relevant for view changes if any
+    showTrashButton: false,
+    showPlayAnimationButton: true,
+    showAddNewSceneButton: false,
+  );
+
+  static const fullEdit = FormSpeedDialConfig(); // All default to true
+}
+// --- End of Configuration Class ---
 
 class FormSpeedDialComponent extends ConsumerStatefulWidget {
-  const FormSpeedDialComponent({super.key, required this.tacticBoardGame});
+  const FormSpeedDialComponent({
+    super.key,
+    required this.tacticBoardGame,
+    this.config = const FormSpeedDialConfig(), // Add config parameter
+  });
 
   final TacticBoardGame tacticBoardGame;
+  final FormSpeedDialConfig config; // Store the config
 
   @override
   ConsumerState<FormSpeedDialComponent> createState() =>
@@ -44,7 +95,7 @@ class _FormSpeedDialComponentState
   List<ShapeModel> shapes = [];
 
   final GetHistoryStreamUseCase _historyStream =
-      sl.get<GetHistoryStreamUseCase>();
+      sl.get<GetHistoryStreamUseCase>(); // Assuming sl is your service locator
   @override
   void initState() {
     super.initState();
@@ -66,14 +117,16 @@ class _FormSpeedDialComponentState
     }
 
     final totalItems = lines.length + shapes.length;
-    final lineNotifier = ref.read(lineProvider.notifier); // Get notifier
+    final lineNotifier = ref.read(lineProvider.notifier);
 
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: ColorManager.dark2.withValues(alpha: 0.8),
+      backgroundColor: ColorManager.dark2.withOpacity(
+        0.8,
+      ), // Adjusted from withValues
       builder: (BuildContext bottomSheetContext) {
         final screenHeight = MediaQuery.of(context).size.height;
 
@@ -115,7 +168,6 @@ class _FormSpeedDialComponentState
                       return FormLineItem(
                         lineModelV2: lineModel,
                         onTap: () {
-                          // Use the lineNotifier to load the selected line
                           lineNotifier
                               .loadActiveLineModelToAddIntoGameFieldEvent(
                                 lineModelV2: lineModel,
@@ -130,7 +182,6 @@ class _FormSpeedDialComponentState
                         return FormShapeItem(
                           shapeModel: shapeModel,
                           onTap: () {
-                            // Use the lineNotifier to load the selected shape
                             lineNotifier
                                 .loadActiveShapeModelToAddIntoGameFieldEvent(
                                   shapeModel: shapeModel,
@@ -162,121 +213,139 @@ class _FormSpeedDialComponentState
     AnimationCollectionModel? collectionModel =
         ap.selectedAnimationCollectionModel;
     AnimationModel? animationModel = ap.selectedAnimationModel;
-    final GetHistoryStreamUseCase historyStream =
-        sl.get<GetHistoryStreamUseCase>();
+    // _historyStream is already an instance variable
 
     final currentActiveTool = lpState.activeTool;
     final bool isPlacingItem =
         lpState.activeForm != null && currentActiveTool == ActiveTool.pointer;
 
-    // Define colors for active, inactive, and dimmed states
     Color activeColor = ColorManager.white;
     Color defaultInactiveColor = ColorManager.white;
-    Color dimmedInactiveColor = ColorManager.white;
+    Color dimmedInactiveColor = ColorManager.white.withOpacity(0.5);
 
-    return Container(
-      width: context.widthPercent(90),
+    // Access the config from the widget property
+    final config = widget.config;
+
+    return SizedBox(
+      width: context.widthPercent(90), // Your original width
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween, // Your original alignment
+        mainAxisSize: MainAxisSize.max, // Your original mainAxisSize
         children: [
           // --- LEFT SIDE BUTTONS ---
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment:
+                MainAxisAlignment.spaceEvenly, // Your original alignment
             children: [
-              GestureDetector(
-                onTap: () {
-                  ref.read(boardProvider.notifier).toggleFullScreen();
-                },
-                child: Icon(
-                  bp.showFullScreen == false
-                      ? Icons.fullscreen
-                      : Icons.fullscreen_exit,
-                  color: ColorManager.white,
+              if (config.showBackButton)
+                GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Icon(Icons.arrow_back, color: ColorManager.white),
                 ),
-              ),
-              const SizedBox(width: 10), // Spacing
-              GestureDetector(
-                onTap: () {
-                  // TODO: Implement share functionality
-                },
-                child: Icon(Icons.share, color: ColorManager.grey),
-              ),
+              if (config.showFullScreenButton)
+                GestureDetector(
+                  onTap: () {
+                    ref.read(boardProvider.notifier).toggleFullScreen();
+                  },
+                  child: Icon(
+                    bp.showFullScreen == false
+                        ? Icons.fullscreen
+                        : Icons.fullscreen_exit,
+                    color: ColorManager.white,
+                  ),
+                ),
+              if (config.showFullScreenButton && config.showShareButton)
+                const SizedBox(width: 10), // Your original spacing
+              if (config.showShareButton)
+                GestureDetector(
+                  onTap: () {
+                    // TODO: Implement share functionality
+                    BotToast.showText(text: "Share: Not implemented");
+                  },
+                  child: Icon(
+                    Icons.share,
+                    color: ColorManager.grey,
+                  ), // Your original color
+                ),
             ],
           ),
 
           // --- CENTER TOOL BUTTONS ---
           Row(
-            mainAxisSize: MainAxisSize.min,
-            // spacing: 20, // Use SizedBox for spacing
+            mainAxisSize: MainAxisSize.min, // Your original mainAxisSize
+            spacing: 15,
             children: [
-              // --- Pointer / Select Item Button ---
-              GestureDetector(
-                onTap: () {
-                  if (isPlacingItem) {
-                    lpNotifier.dismissActiveFormItem();
-                  } else if (currentActiveTool == ActiveTool.pointer) {
-                    _showActionGrid(context);
-                  } else {
-                    lpNotifier.setActiveTool(ActiveTool.pointer);
-                    _showActionGrid(context);
-                  }
-                },
-                child:
-                    lpState.activeForm != null &&
-                            currentActiveTool == ActiveTool.pointer
-                        ? _buildFormWidget(fieldItemModel: lpState.activeForm!)
-                        : Center(
-                          child: Icon(
-                            FontAwesomeIcons.arrowPointer,
-                            color:
-                                (currentActiveTool == ActiveTool.pointer &&
-                                        !isPlacingItem)
-                                    ? activeColor
-                                    : isPlacingItem
-                                    ? activeColor // Highlight if pointer is busy placing an item
-                                    : defaultInactiveColor,
+              if (config.showPointerActionsButton)
+                GestureDetector(
+                  onTap: () {
+                    if (isPlacingItem) {
+                      lpNotifier.dismissActiveFormItem();
+                    } else if (currentActiveTool == ActiveTool.pointer) {
+                      _showActionGrid(context);
+                    } else {
+                      lpNotifier.setActiveTool(ActiveTool.pointer);
+                      _showActionGrid(context);
+                    }
+                  },
+                  child:
+                      lpState.activeForm != null &&
+                              currentActiveTool == ActiveTool.pointer
+                          ? _buildFormWidget(
+                            fieldItemModel: lpState.activeForm!,
+                          )
+                          : Center(
+                            // Your original Center widget
+                            child: Icon(
+                              FontAwesomeIcons.arrowPointer,
+                              color:
+                                  (currentActiveTool == ActiveTool.pointer &&
+                                          !isPlacingItem)
+                                      ? activeColor
+                                      : isPlacingItem
+                                      ? activeColor
+                                      : defaultInactiveColor,
+                            ),
                           ),
-                        ),
-              ),
-              const SizedBox(width: 20),
-
-              // --- Free Draw Button ---
-              GestureDetector(
-                onTap: () {
-                  lpNotifier.toggleFreeDraw();
-                },
-                child: _buildFreeDrawComponent(
-                  isFocused: currentActiveTool == ActiveTool.freeDraw,
-                  isDimmed:
-                      (currentActiveTool != ActiveTool.freeDraw &&
-                          currentActiveTool != ActiveTool.pointer) ||
-                      isPlacingItem,
                 ),
-              ),
-              const SizedBox(width: 20),
 
-              // --- Eraser Button ---
-              GestureDetector(
-                onTap: () {
-                  lpNotifier.toggleEraser();
-                },
-                child: Icon(
-                  FontAwesomeIcons.eraser,
-                  color:
-                      currentActiveTool == ActiveTool.eraser
-                          ? ColorManager.red
-                          : (currentActiveTool != ActiveTool.eraser &&
-                                  currentActiveTool != ActiveTool.pointer) ||
-                              isPlacingItem
-                          ? dimmedInactiveColor
-                          : defaultInactiveColor,
+              if (config.showFreeDrawButton)
+                GestureDetector(
+                  onTap: () {
+                    lpNotifier.toggleFreeDraw();
+                  },
+                  child: _buildFreeDrawComponent(
+                    // Your original component call
+                    isFocused: currentActiveTool == ActiveTool.freeDraw,
+                    isDimmed:
+                        (currentActiveTool != ActiveTool.freeDraw &&
+                            currentActiveTool != ActiveTool.pointer) ||
+                        isPlacingItem,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 20),
 
-              // --- Undo Button ---
-              if (selectedScene != null)
+              if (config.showEraserButton)
+                GestureDetector(
+                  onTap: () {
+                    lpNotifier.toggleEraser();
+                  },
+                  child: Icon(
+                    // Your original Icon
+                    FontAwesomeIcons.eraser,
+                    color:
+                        currentActiveTool == ActiveTool.eraser
+                            ? ColorManager.red
+                            : (currentActiveTool != ActiveTool.eraser &&
+                                    currentActiveTool != ActiveTool.pointer) ||
+                                isPlacingItem
+                            ? dimmedInactiveColor
+                            : defaultInactiveColor,
+                  ),
+                ),
+
+              if (config.showUndoButton && selectedScene != null)
                 StreamBuilder(
                   stream: _historyStream.call(selectedScene.id),
                   builder: (context, snapshot) {
@@ -299,29 +368,28 @@ class _FormSpeedDialComponentState
                     }
                   },
                 ),
-              if (selectedScene != null) const SizedBox(width: 20),
 
-              // --- Trash Button ---
-              GestureDetector(
-                onTap: () {
-                  ref.read(boardProvider.notifier).removeElement();
-                },
-                child: _buildTrashComponent(
-                  isFocused: currentActiveTool == ActiveTool.trash,
-                  isDimmed:
-                      (currentActiveTool != ActiveTool.trash &&
-                          currentActiveTool != ActiveTool.pointer) ||
-                      isPlacingItem,
+              if (config.showTrashButton)
+                GestureDetector(
+                  onTap: () {
+                    ref.read(boardProvider.notifier).removeElement();
+                  },
+                  child: _buildTrashComponent(
+                    // Your original component call
+                    isFocused: currentActiveTool == ActiveTool.trash,
+                    isDimmed:
+                        (currentActiveTool != ActiveTool.trash &&
+                            currentActiveTool != ActiveTool.pointer) ||
+                        isPlacingItem,
+                  ),
                 ),
-              ),
             ],
           ),
 
           // --- RIGHT SIDE BUTTONS ---
           Row(
-            // spacing: 10, // Use SizedBox
             children: [
-              if (animationModel != null)
+              if (config.showPlayAnimationButton && animationModel != null)
                 Builder(
                   builder: (context) {
                     final Object heroTag =
@@ -340,19 +408,25 @@ class _FormSpeedDialComponentState
                         );
                       },
                       child: Icon(
+                        // Your original Icon
                         Icons.play_circle_outline,
                         color: ColorManager.white,
                       ),
                     );
                   },
                 ),
-              if (animationModel != null) const SizedBox(width: 10),
-              _buildAddNewScene(
-                keyForTutorial: TutorialKeys.addNewSceneButtonKey,
-                selectedCollection: collectionModel,
-                selectedAnimation: animationModel,
-                selectedScene: selectedScene,
-              ),
+              if (config.showPlayAnimationButton &&
+                  animationModel != null &&
+                  config.showAddNewSceneButton)
+                const SizedBox(width: 10), // Your original spacing
+              if (config.showAddNewSceneButton)
+                _buildAddNewScene(
+                  // Your original component call
+                  keyForTutorial: TutorialKeys.addNewSceneButtonKey,
+                  selectedCollection: collectionModel,
+                  selectedAnimation: animationModel,
+                  selectedScene: selectedScene,
+                ),
             ],
           ),
         ],
@@ -364,53 +438,19 @@ class _FormSpeedDialComponentState
     return FormItemSpeedDial(formItem: fieldItemModel);
   }
 
-  // Widget _buildAddNewScene({
-  //   required AnimationCollectionModel? selectedCollection,
-  //   required AnimationModel? selectedAnimation,
-  //   required AnimationItemModel? selectedScene,
-  // }) {
-  //   return GestureDetector(
-  //     onTap: () {
-  //       if (selectedCollection == null || selectedAnimation == null) {
-  //         if (ref.read(boardProvider).showFullScreen) {
-  //           ref.read(boardProvider.notifier).toggleFullScreen();
-  //         }
-  //         ref.read(animationProvider.notifier).showQuickSave();
-  //       } else {
-  //         try {
-  //           // Ensure selectedScene is not null before calling addNewScene if it's required
-  //           if (selectedScene != null) {
-  //             ref
-  //                 .read(animationProvider.notifier)
-  //                 .addNewScene(
-  //                   selectedCollection: selectedCollection,
-  //                   selectedAnimation: selectedAnimation,
-  //                   selectedScene: selectedScene,
-  //                 );
-  //           } else {
-  //             BotToast.showText(
-  //               text: "Cannot add new scene: No current scene selected.",
-  //             );
-  //           }
-  //         } catch (e) {
-  //           BotToast.showText(text: "Error adding new scene: $e");
-  //         }
-  //       }
-  //     },
-  //     child: Icon(Icons.add_circle_outline, color: ColorManager.white),
-  //   );
-  // }
-
   Widget _buildAddNewScene({
     required AnimationCollectionModel? selectedCollection,
     required AnimationModel? selectedAnimation,
     required AnimationItemModel? selectedScene,
-    GlobalKey? keyForTutorial, // Add key parameter
+    GlobalKey? keyForTutorial,
   }) {
     return GestureDetector(
-      key: keyForTutorial, // Assign the key here
+      key: keyForTutorial,
       onTap: () {
-        // This is the action we need to trigger from the tutorial
+        if (widget.config.addNewSceneForAdmin != null) {
+          widget.config.addNewSceneForAdmin?.call();
+          return;
+        }
         if (selectedCollection == null || selectedAnimation == null) {
           if (ref.read(boardProvider).showFullScreen) {
             ref.read(boardProvider.notifier).toggleFullScreen();
@@ -446,7 +486,7 @@ class _FormSpeedDialComponentState
   }) {
     Color activeColor = ColorManager.red;
     Color defaultColor = ColorManager.white;
-    Color dimmedColor = ColorManager.white;
+    Color dimmedColor = ColorManager.white.withOpacity(0.5);
 
     Color colorToUse;
     BoxBorder? borderToUse;
@@ -463,22 +503,21 @@ class _FormSpeedDialComponentState
     }
 
     return RepaintBoundary(
-      key: UniqueKey(), // If performance dictates or specific repaint is needed
+      key: UniqueKey(),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.all(5), // Original padding
+          padding: const EdgeInsets.all(5),
           decoration: BoxDecoration(
-            shape: BoxShape.circle, // Keep original shape for consistency
+            shape: BoxShape.circle,
             border: borderToUse,
           ),
           child: Stack(
-            // Original Stack structure
             children: [
               Image.asset(
-                "assets/images/free-draw.png",
+                "assets/images/free-draw.png", // Ensure this path is correct
                 color: colorToUse,
-                width: 24, // Example size, adjust as needed
-                height: 24, // Example size, adjust as needed
+                width: 24,
+                height: 24,
               ),
             ],
           ),
@@ -492,11 +531,13 @@ class _FormSpeedDialComponentState
     required bool isDimmed,
   }) {
     Color defaultColor = ColorManager.white;
+    Color dimmedColor = ColorManager.white.withOpacity(0.5);
+
     return Center(
       child: Icon(
         CupertinoIcons.trash,
-        color: defaultColor,
-        size: 24, // Example size, adjust as needed
+        color: isDimmed ? dimmedColor : defaultColor,
+        size: 24,
       ),
     );
   }

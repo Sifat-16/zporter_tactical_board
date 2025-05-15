@@ -6,8 +6,10 @@ import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
+import 'package:zporter_tactical_board/data/admin/model/default_lineup_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/team_formation_config_model.dart';
+import 'package:zporter_tactical_board/presentation/admin/view_model/lineup_view_model/lineup_controller.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
@@ -15,7 +17,9 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
 class PlayersToolbarHome extends ConsumerStatefulWidget {
-  const PlayersToolbarHome({super.key});
+  const PlayersToolbarHome({super.key, this.showFooter = true});
+
+  final bool showFooter;
 
   @override
   ConsumerState<PlayersToolbarHome> createState() => _PlayersToolbarHomeState();
@@ -27,17 +31,15 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
 
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
-
-  List<TeamFormationConfig> teamFormation = [];
-  TeamFormationConfig? selectedFormation;
-  LineupDetails? selectedLineUp;
+  CategorizedFormationGroup? selectedFormation;
+  FormationTemplate? selectedLineUp;
+  List<CategorizedFormationGroup> teamFormation = [];
 
   @override
   void initState() {
     super.initState();
     initiatePlayerLocally();
-    initiateTeamFormationLocally();
-    // Add listener to rebuild on search text changes if filtering in build
+
     _searchController.addListener(() {
       if (mounted) {
         setState(() {}); // Rebuild to apply filter when text changes
@@ -62,13 +64,12 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     // No need to set _duplicatePlayers here if filtering in build
   }
 
-  initiateTeamFormationLocally() {
-    teamFormation = PlayerUtilsV2.getAllConfigurations(
-      playerType: PlayerType.HOME,
-    );
-
+  initiateTeamFormationLocally({
+    required List<CategorizedFormationGroup> lineups,
+  }) {
+    teamFormation = lineups;
     selectedFormation = teamFormation.firstOrNull;
-    selectedLineUp = selectedFormation?.availableLineups.firstOrNull;
+    selectedLineUp = selectedFormation?.templates.firstOrNull;
   }
 
   List<PlayerModel> generateActivePlayers({
@@ -91,6 +92,11 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
+    final lineup = ref.watch(lineupProvider);
+
+    if (lineup.categorizedGroups.isNotEmpty && teamFormation.isEmpty) {
+      initiateTeamFormationLocally(lineups: lineup.categorizedGroups);
+    }
 
     // --- Filtering Logic inside Build ---
     // 1. Get players not currently on the field
@@ -144,9 +150,12 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
 
         SizedBox(height: 10),
 
-        _buildFooter(
-          needCleanup: activeToolbarPlayers.length != players.length,
-        ),
+        if (widget.showFooter)
+          _buildFooter(
+            needCleanup: activeToolbarPlayers.length != players.length,
+          )
+        else
+          SizedBox.shrink(),
       ],
     );
   }
@@ -155,145 +164,38 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   // Takes the current count as parameter
   Widget _buildHeader(int currentCount) {
     return SizedBox.shrink();
-    // if (_isSearching) {
-    //   return Padding(
-    //     key: const ValueKey('searchHeader'),
-    //     padding: EdgeInsets.symmetric(vertical: AppSize.s4, horizontal: 2),
-    //     child: Row(
-    //       children: [
-    //         Expanded(
-    //           child: SizedBox(
-    //             height: AppSize.s32,
-    //             child: TextField(
-    //               controller: _searchController,
-    //               autofocus: true,
-    //               style: TextStyle(
-    //                 color: ColorManager.white,
-    //                 fontSize: AppSize.s14,
-    //               ),
-    //               cursorColor: ColorManager.yellow,
-    //               decoration: InputDecoration(
-    //                 hintText: "Search players...",
-    //                 hintStyle: TextStyle(
-    //                   color: ColorManager.grey,
-    //                   fontSize: AppSize.s14,
-    //                 ),
-    //                 filled: true,
-    //                 fillColor: ColorManager.black.withOpacity(0.3),
-    //                 contentPadding: EdgeInsets.symmetric(
-    //                   horizontal: AppSize.s8,
-    //                   vertical: AppSize.s4,
-    //                 ),
-    //                 border: OutlineInputBorder(
-    //                   borderRadius: BorderRadius.circular(AppSize.s4),
-    //                   borderSide: BorderSide.none,
-    //                 ),
-    //                 focusedBorder: OutlineInputBorder(
-    //                   borderRadius: BorderRadius.circular(AppSize.s4),
-    //                   borderSide: BorderSide(
-    //                     color: ColorManager.yellow,
-    //                     width: 1,
-    //                   ),
-    //                 ),
-    //                 isDense: true,
-    //               ),
-    //               // onChanged handled by listener added in initState now
-    //               // onChanged: (value) {
-    //               //   // Trigger rebuild via listener now
-    //               //   // setState(() {});
-    //               // },
-    //             ),
-    //           ),
-    //         ),
-    //         IconButton(
-    //           icon: Icon(Icons.close, color: ColorManager.grey),
-    //           tooltip: 'Close Search',
-    //           onPressed: () {
-    //             _searchController.clear(); // Clear text on close
-    //             _closeSearch(); // Updates _isSearching and triggers rebuild
-    //           },
-    //         ),
-    //       ],
-    //     ),
-    //   );
-    // } else {
-    //   // Original Header
-    //   return Padding(
-    //     key: const ValueKey('defaultHeader'),
-    //     padding: EdgeInsets.symmetric(vertical: AppSize.s4),
-    //     child: Row(
-    //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //       children: [
-    //         Padding(
-    //           // Add padding to player count text
-    //           padding: const EdgeInsets.only(left: AppSize.s8),
-    //           child: Text(
-    //             "$currentCount Players", // Show current filtered/active count
-    //             style: Theme.of(
-    //               context,
-    //             ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
-    //           ),
-    //         ),
-    //         Row(
-    //           children: [
-    //             IconButton(
-    //               icon: Icon(Icons.search, color: ColorManager.grey),
-    //               tooltip: 'Search Players',
-    //               onPressed: _openSearch,
-    //             ),
-    //             IconButton(
-    //               icon: Icon(
-    //                 Icons.arrow_drop_down_outlined,
-    //                 color: ColorManager.grey,
-    //               ),
-    //               tooltip: 'Sort Options',
-    //               onPressed: () {
-    //                 /* TODO: Implement sort */
-    //               },
-    //             ),
-    //             // IconButton(
-    //             //   icon: Icon(Icons.filter_list_outlined, color: ColorManager.grey),
-    //             //   tooltip: 'Filter Options',
-    //             //   onPressed: () { /* TODO: Implement filter */ },
-    //             // ),
-    //           ],
-    //         ),
-    //       ],
-    //     ),
-    //   );
-    // }
   }
 
   Widget _buildFooter({required bool needCleanup}) {
     return Column(
       children: [
-        DropdownSelector<TeamFormationConfig>(
+        DropdownSelector<CategorizedFormationGroup>(
           label: "Players",
           items: teamFormation,
           initialValue: selectedFormation,
           onChanged: (s) {
             setState(() {
               selectedFormation = s;
-              selectedLineUp = selectedFormation?.availableLineups.firstOrNull;
+              selectedLineUp = selectedFormation?.templates.firstOrNull;
             });
           },
-          itemAsString: (TeamFormationConfig item) {
-            return item.numberOfPlayers.toString();
+          itemAsString: (CategorizedFormationGroup item) {
+            return item.category.displayName.toString();
           },
         ),
 
         SizedBox(height: 10),
 
-        DropdownSelector<LineupDetails>(
+        DropdownSelector<FormationTemplate>(
           label: "Line Up",
-          items: selectedFormation?.availableLineups ?? [],
+          items: selectedFormation?.templates ?? [],
           initialValue: selectedLineUp,
           onChanged: (s) {
             setState(() {
               selectedLineUp = s;
             });
           },
-          itemAsString: (LineupDetails item) {
+          itemAsString: (FormationTemplate item) {
             return item.name;
           },
         ),
@@ -316,16 +218,14 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
               TacticBoard? tacticBoard =
                   (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;
 
-              List<PlayerFormationSlot> slots =
-                  selectedLineUp?.playerSlots ?? [];
+              AnimationItemModel? scene = selectedLineUp?.scene;
+              if (scene == null) return;
+
               List<PlayerModel> playersToAdd =
-                  slots.map((p) {
-                    return players
-                        .firstWhere(
-                          (player) => player.id == p.designatedPlayerId,
-                        )
-                        .copyWith(offset: p.relativePosition);
-                  }).toList();
+                  PlayerUtilsV2.generateHomePlayerFromScene(
+                    scene: scene,
+                    availablePlayers: players,
+                  );
 
               tacticBoard?.removeFieldItems(players);
 

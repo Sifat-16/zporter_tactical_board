@@ -11,7 +11,6 @@ class AnimationRemoteDatasourceImpl implements AnimationDatasource {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   late final CollectionReference<Map<String, dynamic>> _animationCollectionRef;
-  // Collection for user-specific "default" animation items
   late final CollectionReference<Map<String, dynamic>> _defaultAnimationItemRef;
 
   AnimationRemoteDatasourceImpl() {

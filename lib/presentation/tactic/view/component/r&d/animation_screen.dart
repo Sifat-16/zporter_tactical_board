@@ -40,12 +40,11 @@ class _AnimationScreenState extends ConsumerState<AnimationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    zlog(data: "Came here for animation showing ");
     return Scaffold(
       backgroundColor: ColorManager.black,
-      body: Center(
-        child: FractionallySizedBox(
-          widthFactor: 0.95,
-          heightFactor: 0.95,
+      body: SafeArea(
+        child: Center(
           child: Hero(
             tag: widget.heroTag,
             child: Stack(
@@ -62,7 +61,7 @@ class _AnimationScreenState extends ConsumerState<AnimationScreen> {
                   right: 10.0,
                   child: Material(
                     // Use Material for ink splash on tap
-                    color: Colors.transparent,
+                    color: Colors.black,
                     shape: const CircleBorder(),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(

@@ -111,7 +111,6 @@ class SquareShapeDrawerComponent
   late SquareShapeModel _internalSquare;
   bool isActive = false;
   bool _isDragging = false; // For dragging the whole square
-
   final double _tapTolerance = 5.0;
   double _actualSide = 0.0; // Still useful for min/max checks maybe
   final double _minSide = 8.0;
@@ -335,7 +334,18 @@ class SquareShapeDrawerComponent
   /// Contains local point check
   @override
   bool containsLocalPoint(Vector2 point) {
-    // Use the RectangleComponent's built-in hit detection.
+    if ((point.x >= 0 && point.x <= 5) ||
+        (point.y >= 0 && point.y <= 5) ||
+        ((point.x - size.x).abs() >= 0 && (point.x - size.x).abs() <= 5) ||
+        ((point.y - size.y).abs() >= 0 && (point.y - size.y).abs() <= 5)) {
+      return true;
+    } else {
+      return false;
+    }
+    zlog(
+      data: "Check the point is on the side of the square ${point} - ${size}",
+    );
+
     final bool contains = super.containsLocalPoint(point);
 
     return contains;
@@ -359,7 +369,6 @@ class SquareShapeDrawerComponent
       return;
     }
     if (containsLocalPoint(event.localPosition)) {
-      // Uses super.containsLocalPoint now
       _toggleActive();
       event.handled = true;
     } else {
@@ -369,7 +378,6 @@ class SquareShapeDrawerComponent
   }
 
   void _toggleActive() {
-    // ... (Toggle logic remains the same) ...
     zlog(data: "Square ${squareModel.id}: _toggleActive called.");
     ref
         .read(boardProvider.notifier)

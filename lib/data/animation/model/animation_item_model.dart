@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flame/components.dart'; // For Vector2
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 // Assuming FieldItemModel and its helpers are correctly imported
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
@@ -146,6 +147,36 @@ class AnimationItemModel {
       updatedAt: updatedAt,
       fieldSize:
           fieldSize.clone(), // <-- CHANGED: No '?.' needed, must clone Vector2
+    );
+  }
+
+  factory AnimationItemModel.createEmptyAnimationItem({
+    String? id,
+    String? userId,
+    List<FieldItemModel>? components,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Color? fieldColor,
+    Vector2? fieldSize,
+  }) {
+    final now = DateTime.now();
+
+    return AnimationItemModel(
+      id:
+          id ??
+          RandomGenerator.generateId(), // Generate a new UUID if no ID is provided
+      components:
+          components ??
+          [], // Start with an empty list of components if not provided
+      createdAt: createdAt ?? now,
+      updatedAt: updatedAt ?? now,
+      userId:
+          userId ??
+          "default_user_id", // Default placeholder if no userId is provided
+      fieldColor: fieldColor ?? ColorManager.grey, // Default field color
+      fieldSize:
+          fieldSize ??
+          Vector2(1280, 720), // Default field size (e.g., HD dimensions)
     );
   }
 }

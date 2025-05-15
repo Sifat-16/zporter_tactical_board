@@ -4,10 +4,19 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/default_animation_datasource.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/default_lineup_datasource.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/local/lineup_cache_datasource_impl.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/remote/default_animation_datasource_impl.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/remote/default_lineup_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/local/animation_local_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/remote/animation_remote_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
+import 'package:zporter_tactical_board/domain/admin/default_animation/default_animation_repository.dart';
+import 'package:zporter_tactical_board/domain/admin/default_animation/default_animation_repository_impl.dart';
+import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_repository.dart';
+import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_cache_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/delete_history_usecase.dart';
@@ -128,5 +137,25 @@ Future<void> initializeTacticBoardDependencies() async {
     ),
   );
 
-  // Board bloc
+  // default line up
+  sl.registerLazySingleton<DefaultLineupDatasource>(
+    () => DefaultLineupDatasourceImpl(),
+  );
+  sl.registerLazySingleton<LineupCacheDataSource>(
+    () => LineupCacheDataSourceImpl(),
+  );
+  sl.registerLazySingleton<DefaultLineupRepository>(
+    () => DefaultLineupRepositoryImpl(
+      localDataSource: sl.get(),
+      localCacheDataSource: sl.get(),
+    ),
+  );
+
+  //default animation
+  sl.registerLazySingleton<DefaultAnimationDatasource>(
+    () => DefaultAnimationDatasourceImpl(),
+  );
+  sl.registerLazySingleton<DefaultAnimationRepository>(
+    () => DefaultAnimationRepositoryImpl(datasource: sl.get()),
+  );
 }

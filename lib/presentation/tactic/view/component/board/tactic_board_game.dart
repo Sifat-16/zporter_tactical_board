@@ -47,7 +47,9 @@ class TacticBoard extends TacticBoardGame
         BoardRiverpodIntegration // Provides setupBoardListeners
         {
   AnimationItemModel? scene;
-  TacticBoard({required this.scene});
+  bool saveToDb;
+  Function(AnimationItemModel?)? onSceneSave;
+  TacticBoard({required this.scene, this.saveToDb = true, this.onSceneSave});
 
   // --- Variables for the 1-second timer ---
   double _timerAccumulator = 0.0; // Accumulates delta time
@@ -163,9 +165,6 @@ class TacticBoard extends TacticBoardGame
       current =
           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()}";
 
-      // zlog(data: "[TacticBoard] Running 1-second check... $items");
-      // zlog(data: "Updated database... ${current}");
-
       if (boardComparator == null) {
         boardComparator = current;
       } else {
@@ -177,13 +176,7 @@ class TacticBoard extends TacticBoardGame
           updateDatabase();
         } else {}
       }
-      // --- End of your change detection logic ---
-
-      // Reset the accumulator. Subtracting the interval handles cases where dt might be
-      // larger than the interval, keeping timing more consistent.
       _timerAccumulator -= _checkInterval;
-      // Alternatively, reset to zero if precise timing isn't critical:
-      // _timerAccumulator = 0.0;
     }
 
     // Other update logic can remain here and run every frame if needed
@@ -194,9 +187,15 @@ class TacticBoard extends TacticBoardGame
       data:
           "Updated database... ${ref.read(boardProvider.notifier).onAnimationSave()}",
     ); // Log that the check is running
-    ref.read(animationProvider.notifier).updateDatabaseOnChange().then((a) {
-      ref.read(animationProvider.notifier).saveHistory(scene: a);
-    });
+
+    ref
+        .read(animationProvider.notifier)
+        .updateDatabaseOnChange(saveToDb: saveToDb)
+        .then((a) {
+          zlog(data: "After save coming animation item model ${a?.toJson()}");
+          ref.read(animationProvider.notifier).saveHistory(scene: a);
+          onSceneSave?.call(a);
+        });
   }
 
   void redrawLines() {

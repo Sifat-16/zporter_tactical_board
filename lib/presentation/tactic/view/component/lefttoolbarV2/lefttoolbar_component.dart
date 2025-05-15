@@ -5,7 +5,8 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/leftto
 import 'equipment_toolbar_component.dart';
 
 class LefttoolbarComponent extends StatefulWidget {
-  const LefttoolbarComponent({super.key});
+  const LefttoolbarComponent({super.key, this.showFooter = true});
+  final bool showFooter;
 
   @override
   State<LefttoolbarComponent> createState() => _LefttoolbarComponentState();
@@ -17,16 +18,19 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
   late PageController _pageController;
 
   // List of tab names and content to display
-  final List<Map<String, dynamic>> _tabs = [
-    {'title': 'Players', 'content': PlayersToolbarComponent()},
-    // {'title': 'Forms', 'content': FormsToolbarComponent()},
-    {'title': 'Equipment', 'content': EquipmentToolbarComponent()},
-  ];
+  late List<Map<String, dynamic>> _tabs;
 
   @override
   void initState() {
     super.initState();
     // Initialize the TabController
+    _tabs = [
+      {
+        'title': 'Players',
+        'content': PlayersToolbarComponent(showFooter: widget.showFooter),
+      },
+      {'title': 'Equipment', 'content': EquipmentToolbarComponent()},
+    ];
     _tabController = TabController(length: _tabs.length, vsync: this);
     _pageController = PageController();
 

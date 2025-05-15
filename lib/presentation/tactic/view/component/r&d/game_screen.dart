@@ -20,8 +20,17 @@ final GlobalKey<RiverpodAwareGameWidgetState> largeGameWidgetKey =
     GlobalKey<RiverpodAwareGameWidgetState>();
 
 class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key, required this.scene});
+  const GameScreen({
+    super.key,
+    required this.scene,
+    this.config,
+    this.saveToDb = true,
+    this.onSceneSave,
+  });
   final AnimationItemModel? scene;
+  final FormSpeedDialConfig? config;
+  final bool saveToDb;
+  final Function(AnimationItemModel?)? onSceneSave;
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -59,7 +68,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     WidgetsBinding.instance.addPostFrameCallback((t) {
       setState(() {
         boardComparator = null;
-        tacticBoardGame = TacticBoard(scene: selectedScene);
+        tacticBoardGame = TacticBoard(
+          scene: selectedScene,
+          saveToDb: widget.saveToDb,
+          onSceneSave: widget.onSceneSave,
+        );
         zlog(data: "Build new tactic board");
         ref.read(boardProvider.notifier).updateGameBoard(tacticBoardGame);
         ref
@@ -167,7 +180,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FormSpeedDialComponent(tacticBoardGame: tacticBoardGame),
+                      FormSpeedDialComponent(
+                        tacticBoardGame: tacticBoardGame,
+                        config: widget.config ?? FormSpeedDialConfig(),
+                      ),
                     ],
                   ),
                 ),
