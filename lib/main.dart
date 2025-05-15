@@ -6,5 +6,6 @@ import 'package:zporter_tactical_board/tactic_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeTacticBoardDependencies();
+
   runApp(ProviderScope(child: const TacticApp()));
 }
