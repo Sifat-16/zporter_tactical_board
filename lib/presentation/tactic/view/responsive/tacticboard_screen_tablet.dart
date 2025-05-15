@@ -561,7 +561,11 @@ class _TacticboardScreenTabletState
               ? AnimationDataInputComponent()
               : asp.showQuickSave
               ? ShowQuickSaveComponent()
-              : GameScreen(scene: selectedScene),
+              : SafeArea(
+                top: false,
+                bottom: true,
+                child: GameScreen(scene: selectedScene),
+              ),
     );
   }
 }
