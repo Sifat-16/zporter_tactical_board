@@ -491,12 +491,7 @@ class _TacticboardScreenTabletState
               : Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: SafeArea(
-                      bottom: true,
-                      child: GameScreen(scene: selectedScene),
-                    ),
-                  ),
+                  Expanded(child: GameScreen(scene: selectedScene)),
                   if (animationModel == null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
@@ -546,7 +541,9 @@ class _TacticboardScreenTabletState
                           ),
                         ],
                       ),
-                    ),
+                    )
+                  else
+                    SizedBox(height: 5),
                 ],
               ),
     );
