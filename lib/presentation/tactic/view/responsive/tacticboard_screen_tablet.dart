@@ -491,7 +491,12 @@ class _TacticboardScreenTabletState
               : Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Expanded(child: GameScreen(scene: selectedScene)),
+                  Expanded(
+                    child: SafeArea(
+                      bottom: true,
+                      child: GameScreen(scene: selectedScene),
+                    ),
+                  ),
                   if (animationModel == null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
@@ -562,7 +567,7 @@ class _TacticboardScreenTabletState
               : asp.showQuickSave
               ? ShowQuickSaveComponent()
               : SafeArea(
-                top: false,
+                top: true,
                 bottom: true,
                 child: GameScreen(scene: selectedScene),
               ),
