@@ -229,14 +229,15 @@ class _FormSpeedDialComponentState
     return SizedBox(
       width: context.widthPercent(90), // Your original width
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween, // Your original alignment
         mainAxisSize: MainAxisSize.max, // Your original mainAxisSize
+        mainAxisAlignment: MainAxisAlignment.center,
+        spacing: 30,
         children: [
           // --- LEFT SIDE BUTTONS ---
           Row(
             mainAxisAlignment:
-                MainAxisAlignment.spaceEvenly, // Your original alignment
+                MainAxisAlignment.center, // Your original alignment
+            spacing: 10,
             children: [
               if (config.showBackButton)
                 GestureDetector(
@@ -257,8 +258,7 @@ class _FormSpeedDialComponentState
                     color: ColorManager.white,
                   ),
                 ),
-              if (config.showFullScreenButton && config.showShareButton)
-                const SizedBox(width: 10), // Your original spacing
+
               if (config.showShareButton)
                 GestureDetector(
                   onTap: () {
@@ -267,7 +267,7 @@ class _FormSpeedDialComponentState
                   },
                   child: Icon(
                     Icons.share,
-                    color: ColorManager.grey,
+                    color: ColorManager.white,
                   ), // Your original color
                 ),
             ],
@@ -276,7 +276,7 @@ class _FormSpeedDialComponentState
           // --- CENTER TOOL BUTTONS ---
           Row(
             mainAxisSize: MainAxisSize.min, // Your original mainAxisSize
-            spacing: 15,
+            spacing: 10,
             children: [
               if (config.showPointerActionsButton)
                 GestureDetector(
@@ -388,6 +388,8 @@ class _FormSpeedDialComponentState
 
           // --- RIGHT SIDE BUTTONS ---
           Row(
+            spacing: 10,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (config.showPlayAnimationButton && animationModel != null)
                 Builder(
@@ -415,10 +417,7 @@ class _FormSpeedDialComponentState
                     );
                   },
                 ),
-              if (config.showPlayAnimationButton &&
-                  animationModel != null &&
-                  config.showAddNewSceneButton)
-                const SizedBox(width: 10), // Your original spacing
+
               if (config.showAddNewSceneButton)
                 _buildAddNewScene(
                   // Your original component call

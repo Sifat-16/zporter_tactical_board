@@ -171,6 +171,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
       children: [
         DropdownSelector<CategorizedFormationGroup>(
           label: "Players",
+          hint: "Players",
           items: teamFormation,
           initialValue: selectedFormation,
           onChanged: (s) {
@@ -187,6 +188,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
         SizedBox(height: 10),
 
         DropdownSelector<FormationTemplate>(
+          hint: "Line Up",
           label: "Line Up",
           items: selectedFormation?.templates ?? [],
           initialValue: selectedLineUp,

@@ -7,6 +7,7 @@ class DropdownSelector<T> extends StatefulWidget {
   final String label;
   final List<T> items;
   final String? emptyItem;
+  final String? hint;
 
   final T? initialValue;
   final ValueChanged<T?> onChanged;
@@ -18,6 +19,7 @@ class DropdownSelector<T> extends StatefulWidget {
     required this.label,
     this.emptyItem,
     required this.items,
+    this.hint,
 
     this.initialValue,
     required this.onChanged,
@@ -33,6 +35,7 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
   T? _selectedValue;
   // Add TextEditingController for DropdownMenu display
   late final TextEditingController _controller;
+  bool _isMenuLikelyOpen = false; // Our manually managed flag
 
   @override
   void initState() {
@@ -72,6 +75,24 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
     super.dispose();
   }
 
+  void _assumeMenuOpened() {
+    if (!_isMenuLikelyOpen) {
+      setState(() {
+        _isMenuLikelyOpen = true;
+      });
+      print("Dropdown TAPPED - Assuming menu is OPENING");
+    }
+  }
+
+  void _assumeMenuClosed() {
+    if (_isMenuLikelyOpen) {
+      setState(() {
+        _isMenuLikelyOpen = false;
+      });
+      print("Dropdown event (selected/tap outside) - Assuming menu is CLOSING");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -80,91 +101,115 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
     );
     final dropdownHintStyle = TextStyle(color: ColorManager.white);
 
-    return Padding(
-      // Keep overall padding
-      padding: widget.padding ?? EdgeInsets.zero,
-      // Replace DropdownButtonFormField with DropdownMenu
-      child: DropdownMenu<T?>(
-        expandedInsets: EdgeInsets.zero,
-        enableSearch: true,
+    zlog(data: "Is menu open detection ${_isMenuLikelyOpen}");
+    return TapRegion(
+      onTapOutside: (PointerDownEvent event) {
+        // If a tap occurs outside AND we think the menu is open, close it.
+        if (_isMenuLikelyOpen) {
+          _assumeMenuClosed();
+        }
+      },
 
-        searchCallback: (items, query) {
-          return null;
-        },
+      onTapInside: (PointerDownEvent event) {
+        if (!_isMenuLikelyOpen) {
+          _assumeMenuOpened();
+        } else {
+          _assumeMenuClosed();
+        }
+      },
+      child: Padding(
+        // Keep overall padding
+        padding: widget.padding ?? EdgeInsets.zero,
+        // Replace DropdownButtonFormField with DropdownMenu
+        child: DropdownMenu<T?>(
+          hintText: widget.hint,
 
-        // Controller manages the text field's display
-        controller: _controller,
-        // Provide initial selection (DropdownMenu handles this internally too, but sync with controller)
-        initialSelection: _selectedValue,
+          expandedInsets: EdgeInsets.zero,
+          enableSearch: true,
 
-        // Label Widget
-        label: Text(
-          widget.label,
-          style: textTheme.labelLarge!.copyWith(
-            color: ColorManager.white,
-            fontWeight: FontWeight.bold,
+          searchCallback: (items, query) {
+            return null;
+          },
+
+          // Controller manages the text field's display
+          controller: _controller,
+          // Provide initial selection (DropdownMenu handles this internally too, but sync with controller)
+          initialSelection: _selectedValue,
+
+          // Label Widget
+          label: Text(
+            widget.label,
+            style: textTheme.labelLarge!.copyWith(
+              color: ColorManager.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+
+          // Set width to expand if needed, otherwise it might take intrinsic width
+          // width: MediaQuery.of(context).size.width - 32.0, // Example: Full width minus padding
+          // Or rely on parent constraints if Padding is inside something that sizes it
+
+          // Build the list of entries
+          dropdownMenuEntries: <DropdownMenuEntry<T?>>[
+            // // Null option entry - Use labelWidget for custom styling
+            // if (widget.emptyItem == null)
+            //   DropdownMenuEntry<T?>(
+            //     value: null,
+            //     label: "-", // Base label string
+            //     labelWidget: Text("-", style: dropdownHintStyle), // Styled widget
+            //   )
+            // else
+            //   DropdownMenuEntry<T?>(
+            //     value: null,
+            //     label: widget.emptyItem ?? "-", // Base label string
+            //     labelWidget: Text(
+            //       widget.emptyItem ?? "-",
+            //       style: dropdownHintStyle,
+            //     ), // Styled widget
+            //   ),
+            // // Map the List<T> items
+            ...widget.items.map<DropdownMenuEntry<T?>>((T item) {
+              return DropdownMenuEntry<T?>(
+                value: item,
+                labelWidget: Text(
+                  widget.itemAsString(item),
+                  style: dropdownHintStyle,
+                ),
+                label: widget.itemAsString(item), // Required label string
+                // Optional: Use labelWidget if specific styling per item is needed
+                // labelWidget: Text(widget.itemAsString(item), style: dropdownItemStyle),
+              );
+            }),
+          ],
+          // Callback when an item is selected
+          onSelected: (T? value) {
+            // Update internal state
+            setState(() {
+              _selectedValue = value;
+            });
+            widget.onChanged(value);
+          },
+
+          // Style the dropdown menu itself (background, text style for items)
+          menuStyle: MenuStyle(
+            backgroundColor: WidgetStatePropertyAll<Color>(ColorManager.dark1),
+          ),
+
+          // Style the text field part using InputDecorationTheme or directly
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(),
+            floatingLabelBehavior:
+                _isMenuLikelyOpen
+                    ? FloatingLabelBehavior.never
+                    : FloatingLabelBehavior.auto,
+
+            // You might need to customize filled, fillColor etc. based on design
+          ),
+
+          // The text style within the TextField part (controlled by controller)
+          textStyle:
+              dropdownItemStyle, // Use same style for selected item text?
         ),
-
-        // Set width to expand if needed, otherwise it might take intrinsic width
-        // width: MediaQuery.of(context).size.width - 32.0, // Example: Full width minus padding
-        // Or rely on parent constraints if Padding is inside something that sizes it
-
-        // Build the list of entries
-        dropdownMenuEntries: <DropdownMenuEntry<T?>>[
-          // // Null option entry - Use labelWidget for custom styling
-          // if (widget.emptyItem == null)
-          //   DropdownMenuEntry<T?>(
-          //     value: null,
-          //     label: "-", // Base label string
-          //     labelWidget: Text("-", style: dropdownHintStyle), // Styled widget
-          //   )
-          // else
-          //   DropdownMenuEntry<T?>(
-          //     value: null,
-          //     label: widget.emptyItem ?? "-", // Base label string
-          //     labelWidget: Text(
-          //       widget.emptyItem ?? "-",
-          //       style: dropdownHintStyle,
-          //     ), // Styled widget
-          //   ),
-          // // Map the List<T> items
-          ...widget.items.map<DropdownMenuEntry<T?>>((T item) {
-            return DropdownMenuEntry<T?>(
-              value: item,
-              labelWidget: Text(
-                widget.itemAsString(item),
-                style: dropdownHintStyle,
-              ),
-              label: widget.itemAsString(item), // Required label string
-              // Optional: Use labelWidget if specific styling per item is needed
-              // labelWidget: Text(widget.itemAsString(item), style: dropdownItemStyle),
-            );
-          }),
-        ],
-        // Callback when an item is selected
-        onSelected: (T? value) {
-          // Update internal state
-          setState(() {
-            _selectedValue = value;
-          });
-          widget.onChanged(value);
-        },
-
-        // Style the dropdown menu itself (background, text style for items)
-        menuStyle: MenuStyle(
-          backgroundColor: WidgetStatePropertyAll<Color>(ColorManager.dark1),
-        ),
-
-        // Style the text field part using InputDecorationTheme or directly
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
-
-          // You might need to customize filled, fillColor etc. based on design
-        ),
-        alignmentOffset: Offset(0, 15),
-        // The text style within the TextField part (controlled by controller)
-        textStyle: dropdownItemStyle, // Use same style for selected item text?
       ),
     );
   }

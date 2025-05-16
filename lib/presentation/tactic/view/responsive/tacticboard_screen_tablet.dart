@@ -5,7 +5,9 @@ import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/manager/asset_manager.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -355,10 +357,11 @@ class _TacticboardScreenTabletState
             child: SizedBox(
               height: context.screenHeight * .92,
               width: context.widthPercent(100),
-              child: Scaffold(
-                backgroundColor: ColorManager.black,
-                body: _buildCentralContent(context, ref, ap, selectedScene),
-              ),
+              child: _buildCentralContent(context, ref, ap, selectedScene),
+              // child: Scaffold(
+              //   backgroundColor: ColorManager.black,
+              //   body: _buildCentralContent(context, ref, ap, selectedScene),
+              // ),
             ),
           ),
 
@@ -495,55 +498,90 @@ class _TacticboardScreenTabletState
                   if (animationModel == null)
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
+                      child: Stack(
                         children: [
-                          if (asp.defaultAnimationItems.isNotEmpty)
-                            Expanded(
-                              child: CompactPaginator(
-                                totalPages: asp.defaultAnimationItems.length,
-                                onPageChanged: (index) {
-                                  ref
-                                      .read(animationProvider.notifier)
-                                      .changeDefaultAnimationIndex(index);
-                                },
-                                initialPage: asp.defaultAnimationItemIndex,
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 10.0),
+                              child: Image.asset(
+                                AssetsManager.logo,
+                                height: AppSize.s40,
+                                width: AppSize.s40,
                               ),
                             ),
-                          IconButton(
-                            onPressed:
-                                () =>
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Container(),
+                              if (asp.defaultAnimationItems.isNotEmpty)
+                                CompactPaginator(
+                                  totalPages: asp.defaultAnimationItems.length,
+                                  onPageChanged: (index) {
                                     ref
                                         .read(animationProvider.notifier)
-                                        .createNewDefaultAnimationItem(),
-                            icon: Icon(Icons.add, color: ColorManager.white),
-                            tooltip: "Add New Scene",
-                          ),
-                          IconButton(
-                            onPressed: () async {
-                              bool? confirm = await showConfirmationDialog(
-                                context: context,
-                                title: "Reset Board?",
-                                content:
-                                    "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
-                                confirmButtonText: "Reset",
-                              );
-                              if (confirm == true) {
-                                ref
-                                    .read(animationProvider.notifier)
-                                    .deleteDefaultAnimation();
-                              }
-                            },
-                            icon: Icon(
-                              Icons.delete_sweep_outlined,
-                              color: ColorManager.white,
-                            ),
-                            tooltip: "Clear Current Scene",
+                                        .changeDefaultAnimationIndex(index);
+                                  },
+                                  initialPage: asp.defaultAnimationItemIndex,
+                                ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    onPressed:
+                                        () =>
+                                            ref
+                                                .read(
+                                                  animationProvider.notifier,
+                                                )
+                                                .createNewDefaultAnimationItem(),
+                                    icon: Icon(
+                                      Icons.add,
+                                      color: ColorManager.white,
+                                    ),
+                                    tooltip: "Add New Scene",
+                                  ),
+                                  IconButton(
+                                    onPressed: () async {
+                                      bool?
+                                      confirm = await showConfirmationDialog(
+                                        context: context,
+                                        title: "Reset Board?",
+                                        content:
+                                            "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
+                                        confirmButtonText: "Reset",
+                                      );
+                                      if (confirm == true) {
+                                        ref
+                                            .read(animationProvider.notifier)
+                                            .deleteDefaultAnimation();
+                                      }
+                                    },
+                                    icon: Icon(
+                                      Icons.delete_sweep_outlined,
+                                      color: ColorManager.white,
+                                    ),
+                                    tooltip: "Clear Current Scene",
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     )
                   else
-                    SizedBox(height: 5),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 10.0),
+                        child: Image.asset(
+                          AssetsManager.logo,
+                          height: AppSize.s40,
+                          width: AppSize.s40,
+                        ),
+                      ),
+                    ),
                 ],
               ),
     );

@@ -193,19 +193,10 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               if (i is PolygonShapeModel) {
                 component.polygonModel = i;
               }
-            }
-            // else if (component is FreeDrawerComponentV2) {
-            //   if (i is FreeDrawModelV2) {
-            //     component.freeDrawModelV2 = i;
-            //   }
-            // }
-            else if (component is FieldComponent) {
+            } else if (component is FieldComponent) {
               component.object = i;
             }
 
-            // zlog(data: "Component added effect ${i.runtimeType} - ${i.offset}");
-            // *** Key Change:  COLLECT, don't add directly ***
-            // collectedEffects.add((component: component, effect: effect));
             if (component is LineDrawerComponentV2 ||
                 component is SquareShapeDrawerComponent ||
                 component is CircleShapeDrawerComponent ||
@@ -213,19 +204,13 @@ class TacticBoardGameAnimation extends TacticBoardGame {
               zlog(data: "Line drawer component stat ${i.toJson()}");
               remove(component);
               addItem(i);
-            }
-            // else if (component is FreeDrawerComponentV2) {
-            //   zlog(data: "Free drawer component stat ${i.toJson()}");
-            //   remove(component);
-            //   addItem(i);
-            // }
-            else {
+            } else {
               final effect = MoveToEffect(
                 SizeHelper.getBoardActualVector(
                   gameScreenSize: gameFieldSize,
                   actualPosition: i.offset ?? Vector2.zero(),
                 ),
-                EffectController(duration: 3), // Use your desired duration
+                EffectController(duration: 2), // Use your desired duration
                 onComplete: () {
                   // We don't need a Completer anymore!
                 },
@@ -238,7 +223,7 @@ class TacticBoardGameAnimation extends TacticBoardGame {
           _components[fieldItemIndex] = i;
         }
       }
-      await Future.delayed(Duration(seconds: 3));
+      await Future.delayed(Duration(seconds: 2));
       zlog(data: "Check lifecycleEventsProcessed effect is processed or not");
     } // End of outer loop (animations)
 

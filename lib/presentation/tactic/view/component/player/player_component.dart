@@ -96,46 +96,46 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     canvas.drawRRect(roundedRect, _backgroundPaint);
 
     // --- 2. Draw Indicator Triangle (Conditional - POINTING OUTWARD) ---
-    if (object.playerType == PlayerType.HOME ||
-        object.playerType == PlayerType.AWAY) {
-      // Triangle Geometry (adjust size as needed)
-      final double tHeight =
-          size.x * 0.18; // How far the triangle points OUTWARD
-      final double tBase =
-          size.y * 0.35; // The width of the triangle's base along the edge
-      _trianglePaint.color = ColorManager.white.withOpacity(
-        baseOpacity,
-      ); // White for visibility
-
-      final path = Path();
-      final double halfWidth = size.x;
-      double centerY = size.y / 2; // Y center in local coords (Anchor.center)
-
-      if (object.playerType == PlayerType.HOME) {
-        // HOME: Draw on RIGHT edge, pointing RIGHT
-        final double edgeX = halfWidth;
-        path.moveTo(edgeX, centerY - tBase / 2); // Top base point on edge
-        path.lineTo(
-          edgeX + tHeight,
-          centerY,
-        ); // Peak point OUTSIDE (to the right)
-        path.lineTo(edgeX, centerY + tBase / 2); // Bottom base point on edge
-        path.close(); // Connect back to start
-      } else {
-        // AWAY
-        // AWAY: Draw on LEFT edge, pointing LEFT
-        final double edgeX = 0;
-
-        path.moveTo(edgeX, centerY - tBase / 2); // Top base point on edge
-        path.lineTo(
-          edgeX - tHeight,
-          centerY,
-        ); // Peak point OUTSIDE (to the left)
-        path.lineTo(edgeX, centerY + tBase / 2); // Bottom base point on edge
-        path.close(); // Connect back to start
-      }
-      canvas.drawPath(path, _trianglePaint);
-    }
+    // if (object.playerType == PlayerType.HOME ||
+    //     object.playerType == PlayerType.AWAY) {
+    //   // Triangle Geometry (adjust size as needed)
+    //   final double tHeight =
+    //       size.x * 0.18; // How far the triangle points OUTWARD
+    //   final double tBase =
+    //       size.y * 0.35; // The width of the triangle's base along the edge
+    //   _trianglePaint.color = ColorManager.white.withOpacity(
+    //     baseOpacity,
+    //   ); // White for visibility
+    //
+    //   final path = Path();
+    //   final double halfWidth = size.x;
+    //   double centerY = size.y / 2; // Y center in local coords (Anchor.center)
+    //
+    //   if (object.playerType == PlayerType.HOME) {
+    //     // HOME: Draw on RIGHT edge, pointing RIGHT
+    //     final double edgeX = halfWidth;
+    //     path.moveTo(edgeX, centerY - tBase / 2); // Top base point on edge
+    //     path.lineTo(
+    //       edgeX + tHeight,
+    //       centerY,
+    //     ); // Peak point OUTSIDE (to the right)
+    //     path.lineTo(edgeX, centerY + tBase / 2); // Bottom base point on edge
+    //     path.close(); // Connect back to start
+    //   } else {
+    //     // AWAY
+    //     // AWAY: Draw on LEFT edge, pointing LEFT
+    //     final double edgeX = 0;
+    //
+    //     path.moveTo(edgeX, centerY - tBase / 2); // Top base point on edge
+    //     path.lineTo(
+    //       edgeX - tHeight,
+    //       centerY,
+    //     ); // Peak point OUTSIDE (to the left)
+    //     path.lineTo(edgeX, centerY + tBase / 2); // Bottom base point on edge
+    //     path.close(); // Connect back to start
+    //   }
+    //   canvas.drawPath(path, _trianglePaint);
+    // }
 
     final fontSize = (size.x / 2) * 0.7; // Using your existing calculation
     final textPainter = TextPainter(
@@ -200,7 +200,10 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
       );
 
       // Calculate the drawing offset (top-left) for the text painter relative to canvas origin (0,0)
-      final Offset numberTextDrawOffset = Offset(size.x, -5);
+      final Offset numberTextDrawOffset = Offset(
+        size.x - (size.x * .1),
+        -size.y * .15,
+      );
 
       // Draw the number
       _jerseyTextPainter.paint(canvas, numberTextDrawOffset);
