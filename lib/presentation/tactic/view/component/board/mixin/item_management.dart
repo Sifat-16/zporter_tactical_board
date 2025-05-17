@@ -12,7 +12,6 @@ import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/triangle_shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
@@ -21,7 +20,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/f
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/triangle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
@@ -41,10 +39,6 @@ mixin ItemManagement on TacticBoardGame {
       await add(CircleShapeDrawerComponent(circleModel: item));
     } else if (item is SquareShapeModel) {
       await add(SquareShapeDrawerComponent(squareModel: item));
-    } else if (item is TriangleShapeModel) {
-      await add(
-        TriangleShapeDrawerComponent(initialModel: item, isCreating: false),
-      );
     } else if (item is PolygonShapeModel) {
       await add(PolygonShapeDrawerComponent(polygonModel: item));
     }
@@ -127,8 +121,6 @@ mixin ItemManagement on TacticBoardGame {
         return t.squareModel.id == itemToDelete?.id;
       } else if (t is CircleShapeDrawerComponent) {
         return t.circleModel.id == itemToDelete?.id;
-      } else if (t is TriangleShapeDrawerComponent) {
-        return t.triangleModel.id == itemToDelete?.id;
       } else if (t is PolygonShapeDrawerComponent) {
         return t.polygonModel.id == itemToDelete?.id;
       }
