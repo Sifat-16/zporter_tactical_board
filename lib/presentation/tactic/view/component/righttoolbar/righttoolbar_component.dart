@@ -1,44 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/saved_animation_toolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/settings_toolbar_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 import 'animation_toolbar_component.dart';
 import 'design_toolbar_component.dart';
 
-class RighttoolbarComponent extends StatefulWidget {
-  const RighttoolbarComponent({super.key});
+class RighttoolbarComponent extends ConsumerStatefulWidget {
+  const RighttoolbarComponent({
+    super.key,
+    this.animationToolbarConfig = AnimationToolbarConfig.full,
+  });
+  final AnimationToolbarConfig animationToolbarConfig;
 
   @override
-  State<RighttoolbarComponent> createState() => _RighttoolbarComponentState();
+  ConsumerState<RighttoolbarComponent> createState() =>
+      _RighttoolbarComponentState();
 }
 
-class _RighttoolbarComponentState extends State<RighttoolbarComponent>
+class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   late PageController _pageController;
 
   // List of tab names and content to display
-  final List<Map<String, dynamic>> _tabs = [
-    {'title': 'Design', 'content': DesignToolbarComponent()},
-    {'title': 'Animation', 'content': AnimationToolbarComponent()},
-    {'title': 'Settings', 'content': SettingsToolbarComponent()},
-    {'title': 'Saved Animation', 'content': SavedAnimationToolbarComponent()},
-  ];
+  late List<Map<String, dynamic>> _tabs;
 
   @override
   void initState() {
     super.initState();
     // Initialize the TabController
-    _tabController = TabController(length: _tabs.length, vsync: this);
-    _pageController = PageController();
+    _tabs = [
+      {'title': 'Design', 'content': DesignToolbarComponent()},
+      {
+        'title': 'Animation',
+        'content': AnimationToolbarComponent(
+          config: widget.animationToolbarConfig,
+        ),
+      },
+      {'title': 'Settings', 'content': SettingsToolbarComponent()},
+    ];
+    _tabController = TabController(
+      initialIndex: 1,
+      length: _tabs.length,
+      vsync: this,
+    );
+    _pageController = PageController(initialPage: 1);
 
     // Sync TabBar with PageView swipe
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         _pageController.jumpToPage(_tabController.index);
       }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      ref
+          .read(boardProvider.notifier)
+          .updateTabController(controller: _tabController);
     });
   }
 
@@ -63,7 +84,7 @@ class _RighttoolbarComponentState extends State<RighttoolbarComponent>
             labelPadding: EdgeInsets.symmetric(
               horizontal: AppSize.s8,
             ), // Remove padding between tab labels
-            isScrollable: true,
+            isScrollable: false,
             dividerHeight: 0,
             tabs:
                 _tabs.map((tab) {
@@ -77,6 +98,7 @@ class _RighttoolbarComponentState extends State<RighttoolbarComponent>
                 color: ColorManager.grey.withValues(alpha: 0.1),
               ),
               child: PageView(
+                physics: NeverScrollableScrollPhysics(),
                 controller: _pageController,
                 onPageChanged: (index) {
                   _tabController.animateTo(index); // Sync TabBar with PageView
