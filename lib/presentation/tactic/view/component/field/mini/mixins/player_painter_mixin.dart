@@ -131,11 +131,6 @@ mixin PlayerPainterMixin {
           actualPosition: player.offset ?? Vector2.zero(),
         ).toOffset();
 
-    zlog(
-      data:
-          "Drawing Player ${player.id} at screen center: $centerOfPlayer, visualSize: $visualPlayerSize",
-    );
-
     final double baseOpacity = (player.opacity ?? 1.0).clamp(0.0, 1.0);
     final Color baseColor =
         player.color ??

@@ -36,6 +36,7 @@ abstract class TacticBoardGame extends FlameGame
     with DragCallbacks, TapDetector, RiverpodGameMixin {
   late GameField gameField;
   late DrawingBoardComponent drawingBoard;
+  addItem(FieldItemModel item, {bool save = true});
 }
 
 // ---- The Refactored TacticBoard Class ----

@@ -41,6 +41,7 @@ class FormSpeedDialConfig {
   final bool showAddNewSceneButton;
   final Function? addNewSceneForAdmin;
   final bool showBackButton;
+  final Function? onShare;
 
   const FormSpeedDialConfig({
     this.showFullScreenButton = true,
@@ -54,6 +55,7 @@ class FormSpeedDialConfig {
     this.showAddNewSceneButton = true,
     this.addNewSceneForAdmin,
     this.showBackButton = false,
+    this.onShare,
   });
 
   // Example of a more restrictive config
@@ -262,8 +264,7 @@ class _FormSpeedDialComponentState
               if (config.showShareButton)
                 GestureDetector(
                   onTap: () {
-                    // TODO: Implement share functionality
-                    BotToast.showText(text: "Share: Not implemented");
+                    widget.config.onShare?.call();
                   },
                   child: Icon(
                     Icons.share,

@@ -4,6 +4,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
+import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
@@ -321,6 +322,34 @@ class AnimationController extends StateNotifier<AnimationState> {
       return true;
     }
     return false;
+  }
+
+  Future<void> saveAnimationTime({
+    required Duration newDuration,
+    required String sceneId,
+  }) async {
+    AnimationCollectionModel? selectedCollection =
+        state.selectedAnimationCollectionModel;
+    AnimationModel? selectedAnimation = state.selectedAnimationModel;
+    int index =
+        selectedAnimation?.animationScenes.indexWhere((a) => a.id == sceneId) ??
+        -1;
+    if (index != -1) {
+      try {
+        AnimationItemModel scene = selectedAnimation!.animationScenes[index];
+        scene = scene.copyWith(sceneDuration: newDuration);
+        selectedAnimation.animationScenes[index] = scene;
+        int animationIndex = selectedCollection!.animations.indexWhere(
+          (a) => a.id == selectedAnimation.id,
+        );
+        if (animationIndex != -1) {
+          selectedCollection.animations[animationIndex] = selectedAnimation;
+          try {
+            _saveAnimationCollectionUseCase.call(selectedCollection);
+          } catch (e) {}
+        } else {}
+      } catch (e) {}
+    }
   }
 
   Future<AnimationItemModel?> _onAnimationSave({

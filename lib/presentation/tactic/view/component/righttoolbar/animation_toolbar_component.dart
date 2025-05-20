@@ -533,6 +533,12 @@ class _AnimationToolbarComponentState
   Widget _buildAnimationSceneList({required AnimationState ap}) {
     // No changes to the content of this method, visibility controlled by parent
     final scenes = ap.selectedAnimationModel?.animationScenes ?? [];
+
+    zlog(
+      data:
+          "Detected animation scence changes ${scenes.map((a) => a.sceneDuration.inMilliseconds).toList()}",
+    );
+
     return ListView.builder(
       itemCount: scenes.length,
       shrinkWrap: true,

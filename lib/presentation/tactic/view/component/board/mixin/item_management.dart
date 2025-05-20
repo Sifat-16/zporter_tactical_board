@@ -27,6 +27,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 mixin ItemManagement on TacticBoardGame {
   // Public method moved from TacticBoard (Code inside unchanged)
   // This 'addItem' handles adding the COMPONENT based on the model TYPE
+  @override
   addItem(FieldItemModel item, {bool save = true}) async {
     // --- Exact code from original TacticBoard.addItem ---
     if (item is PlayerModel) {

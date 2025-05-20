@@ -1,7 +1,6 @@
-// --- Create a new file: animation_list_item.dart ---
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart'; // Adjust path
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjust path
@@ -29,6 +28,14 @@ class AnimationListItem extends StatelessWidget {
     this.borderColor = ColorManager.black, // Default border color
   });
 
+  double calculateTime(AnimationModel animationModel) {
+    int seconds = 0;
+    for (var a in animationModel.animationScenes) {
+      seconds += a.sceneDuration.inMilliseconds;
+    }
+    return seconds / 1000;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Define styles based on image (adjust as needed)
@@ -49,7 +56,7 @@ class AnimationListItem extends StatelessWidget {
 
     // Calculate duration text (handle potential null)
     final String durationText =
-        "${animation.animationScenes.length * 3}s"; // Assuming durationSeconds exists
+        "${calculateTime(animation).toStringAsFixed(1)}s"; // Assuming durationSeconds exists
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -170,7 +177,7 @@ class AnimationListItem extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Icon(
-                        Icons.keyboard_arrow_up,
+                        FontAwesomeIcons.minus,
                         color: Colors.white,
                       ), // TODO: Add functionality
                       Padding(
@@ -178,7 +185,7 @@ class AnimationListItem extends StatelessWidget {
                         child: Text(durationText, style: durationStyle),
                       ),
                       const Icon(
-                        Icons.keyboard_arrow_down,
+                        FontAwesomeIcons.minus,
                         color: Colors.white,
                       ), // TODO: Add functionality// Use passed index string
                     ],
