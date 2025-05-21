@@ -489,14 +489,7 @@ class _TacticboardScreenTabletState
     AnimationModel? animationModel = asp.selectedAnimationModel;
     return Padding(
       padding: EdgeInsets.only(top: 50.0, left: 10, right: 10, bottom: 10),
-      child:
-      // asp.showNewCollectionInput == true ||
-      //         asp.showNewAnimationInput == true
-      //     ? AnimationDataInputComponent()
-      //     : asp.showQuickSave
-      //     ? ShowQuickSaveComponent()
-      //     :
-      Column(
+      child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Expanded(child: GameScreen(scene: selectedScene)),
@@ -594,17 +587,11 @@ class _TacticboardScreenTabletState
   ) {
     return Padding(
       padding: EdgeInsets.all(5),
-      child:
-          asp.showNewCollectionInput == true ||
-                  asp.showNewAnimationInput == true
-              ? AnimationDataInputComponent()
-              : asp.showQuickSave
-              ? ShowQuickSaveComponent()
-              : SafeArea(
-                top: true,
-                bottom: true,
-                child: GameScreen(scene: selectedScene),
-              ),
+      child: SafeArea(
+        top: true,
+        bottom: true,
+        child: GameScreen(scene: selectedScene),
+      ),
     );
   }
 }

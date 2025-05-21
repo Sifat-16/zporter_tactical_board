@@ -21,8 +21,9 @@ class _AnimationDataInputComponentState
   // Key for the "New Collection" form
   final _newCollectionFormKey = GlobalKey<FormState>();
   // Controller for the collection name input
-  late TextEditingController _animationCollectionNameController;
-  late TextEditingController _animationNameController;
+  TextEditingController _animationCollectionNameController =
+      TextEditingController();
+  TextEditingController _animationNameController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +41,6 @@ class _AnimationDataInputComponentState
 
   // --- UPDATED Method to build the "Add New Collection" section ---
   Widget _buildNewAnimationCollectionWidget() {
-    _animationCollectionNameController = TextEditingController();
-    // Now uses the controller and key from the State class
     return Center(
       child: SizedBox(
         width: context.widthPercent(50),
@@ -140,8 +139,6 @@ class _AnimationDataInputComponentState
   }
 
   Widget _buildNewAnimationWidget({required AnimationState ap}) {
-    _animationNameController = TextEditingController();
-    // Now uses the controller and key from the State class
     return Center(
       child: SizedBox(
         width: context.widthPercent(50),

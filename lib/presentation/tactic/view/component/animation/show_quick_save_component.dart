@@ -102,9 +102,7 @@ class _ShowQuickSaveComponentState
         vertical: 8,
       ), // Optional padding above dropdowns
       child: DropdownSelector<AnimationCollectionModel?>(
-        key: UniqueKey(),
         label: "Select Collection",
-        // emptyItem: "Add new Collection",
         items: collectionList,
         initialValue: selectedCollection,
         onChanged: (s) {
