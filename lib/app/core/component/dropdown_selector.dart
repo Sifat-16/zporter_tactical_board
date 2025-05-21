@@ -144,30 +144,7 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
               fontWeight: FontWeight.bold,
             ),
           ),
-
-          // Set width to expand if needed, otherwise it might take intrinsic width
-          // width: MediaQuery.of(context).size.width - 32.0, // Example: Full width minus padding
-          // Or rely on parent constraints if Padding is inside something that sizes it
-
-          // Build the list of entries
           dropdownMenuEntries: <DropdownMenuEntry<T?>>[
-            // // Null option entry - Use labelWidget for custom styling
-            // if (widget.emptyItem == null)
-            //   DropdownMenuEntry<T?>(
-            //     value: null,
-            //     label: "-", // Base label string
-            //     labelWidget: Text("-", style: dropdownHintStyle), // Styled widget
-            //   )
-            // else
-            //   DropdownMenuEntry<T?>(
-            //     value: null,
-            //     label: widget.emptyItem ?? "-", // Base label string
-            //     labelWidget: Text(
-            //       widget.emptyItem ?? "-",
-            //       style: dropdownHintStyle,
-            //     ), // Styled widget
-            //   ),
-            // // Map the List<T> items
             ...widget.items.map<DropdownMenuEntry<T?>>((T item) {
               return DropdownMenuEntry<T?>(
                 value: item,
