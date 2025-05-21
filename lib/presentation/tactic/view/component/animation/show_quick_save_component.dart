@@ -21,10 +21,9 @@ class ShowQuickSaveComponent extends ConsumerStatefulWidget {
 
 class _ShowQuickSaveComponentState
     extends ConsumerState<ShowQuickSaveComponent> {
-  // Key for the "New Collection" form
   final _newCollectionFormKey = GlobalKey<FormState>();
 
-  late TextEditingController _animationNameController;
+  TextEditingController _animationNameController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +35,12 @@ class _ShowQuickSaveComponentState
     final List<AnimationModel> animations = ap.animations;
     final AnimationModel? selectedAnimation = ap.selectedAnimationModel;
 
-    return Container(
+    return SizedBox(
+      width: context.widthPercent(50),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           _buildCollectionBox(
             collectionList: collectionList,
@@ -47,7 +49,6 @@ class _ShowQuickSaveComponentState
           _buildNewAnimationWidget(
             selectedAnimationCollectionModel: selectedCollection,
           ),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -93,45 +94,26 @@ class _ShowQuickSaveComponentState
     required AnimationCollectionModel? selectedCollection,
   }) {
     // Positioned container at the bottom for the selectors
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        // Add background color so list doesn't show through
-        // Use your app's background color or a specific one
-        color: ColorManager.black, // Example
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8.0,
-          vertical: 8,
-        ), // Optional padding above dropdowns
-        child: Column(
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                Expanded(
-                  child: DropdownSelector<AnimationCollectionModel?>(
-                    key: UniqueKey(),
-
-                    label: "Select Collection",
-                    // emptyItem: "Add new Collection",
-                    items: collectionList,
-                    initialValue: selectedCollection,
-                    onChanged: (s) {
-                      ref
-                          .read(animationProvider.notifier)
-                          .selectAnimationCollection(s);
-                      zlog(data: "Collection Chosen ${s}");
-                    },
-                    itemAsString: (AnimationCollectionModel? item) {
-                      return item?.name ?? "";
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      width: context.widthPercent(50),
+      color: ColorManager.black, // Example
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8.0,
+        vertical: 8,
+      ), // Optional padding above dropdowns
+      child: DropdownSelector<AnimationCollectionModel?>(
+        key: UniqueKey(),
+        label: "Select Collection",
+        // emptyItem: "Add new Collection",
+        items: collectionList,
+        initialValue: selectedCollection,
+        onChanged: (s) {
+          ref.read(animationProvider.notifier).selectAnimationCollection(s);
+          zlog(data: "Collection Chosen ${s}");
+        },
+        itemAsString: (AnimationCollectionModel? item) {
+          return item?.name ?? "";
+        },
       ),
     );
   }
@@ -139,11 +121,9 @@ class _ShowQuickSaveComponentState
   Widget _buildNewAnimationWidget({
     required AnimationCollectionModel? selectedAnimationCollectionModel,
   }) {
-    _animationNameController = TextEditingController();
-    // Now uses the controller and key from the State class
     return Center(
       child: SizedBox(
-        width: context.widthPercent(90),
+        width: context.widthPercent(50),
         // Wrap content in a Form widget
         child: Form(
           key: _newCollectionFormKey, // Assign the key to the Form

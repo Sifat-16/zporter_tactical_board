@@ -44,7 +44,7 @@ class _AnimationDataInputComponentState
     // Now uses the controller and key from the State class
     return Center(
       child: SizedBox(
-        width: context.widthPercent(90),
+        width: context.widthPercent(50),
         // Wrap content in a Form widget
         child: Form(
           key: _newCollectionFormKey, // Assign the key to the Form
@@ -144,7 +144,7 @@ class _AnimationDataInputComponentState
     // Now uses the controller and key from the State class
     return Center(
       child: SizedBox(
-        width: context.widthPercent(90),
+        width: context.widthPercent(50),
         // Wrap content in a Form widget
         child: Form(
           key: _newCollectionFormKey, // Assign the key to the Form

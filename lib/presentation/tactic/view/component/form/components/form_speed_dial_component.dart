@@ -452,9 +452,6 @@ class _FormSpeedDialComponentState
           return;
         }
         if (selectedCollection == null || selectedAnimation == null) {
-          if (ref.read(boardProvider).showFullScreen) {
-            ref.read(boardProvider.notifier).toggleFullScreen();
-          }
           ref.read(animationProvider.notifier).showQuickSave();
         } else {
           try {
