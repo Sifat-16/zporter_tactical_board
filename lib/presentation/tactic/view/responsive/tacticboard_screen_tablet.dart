@@ -220,7 +220,12 @@ class _TacticboardScreenTabletState
     }
 
     Widget screenContent;
-    if (bp.showFullScreen) {
+
+    if (ap.showNewCollectionInput == true || ap.showNewAnimationInput == true) {
+      screenContent = Center(child: AnimationDataInputComponent());
+    } else if (ap.showQuickSave) {
+      screenContent = Center(child: ShowQuickSaveComponent());
+    } else if (bp.showFullScreen) {
       screenContent = PopScope(
         canPop: false,
         onPopInvoked: (bool didPop) {
@@ -270,83 +275,78 @@ class _TacticboardScreenTabletState
                     ),
                   ),
                 ),
-                if (!((ap.showNewCollectionInput == true ||
-                        ap.showNewAnimationInput == true) ||
-                    (ap.showQuickSave)))
-                  AnimatedPositioned(
-                    duration: _panelAnimationDuration,
-                    curve: Curves.easeInOut,
-                    left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-                    top: (context.heightPercent(92) / 2) - 25,
-                    // Assign the static key directly to the Material widget
-                    child: Material(
-                      key: TutorialKeys.leftPanelButtonKey,
-                      color: ColorManager.grey.withOpacity(0.6),
+
+                AnimatedPositioned(
+                  duration: _panelAnimationDuration,
+                  curve: Curves.easeInOut,
+                  left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
+                  top: (context.heightPercent(92) / 2) - 25,
+                  // Assign the static key directly to the Material widget
+                  child: Material(
+                    key: TutorialKeys.leftPanelButtonKey,
+                    color: ColorManager.grey.withOpacity(0.6),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(8),
+                      bottomRight: Radius.circular(8),
+                    ),
+                    elevation: 6.0,
+                    child: InkWell(
                       borderRadius: const BorderRadius.only(
                         topRight: Radius.circular(8),
                         bottomRight: Radius.circular(8),
                       ),
-                      elevation: 6.0,
-                      child: InkWell(
-                        borderRadius: const BorderRadius.only(
-                          topRight: Radius.circular(8),
-                          bottomRight: Radius.circular(8),
+                      onTap: _toggleLeftPanel,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8.0,
+                          horizontal: 4.0,
                         ),
-                        onTap: _toggleLeftPanel,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8.0,
-                            horizontal: 4.0,
-                          ),
-                          child: Icon(
-                            _isLeftPanelOpen
-                                ? Icons.chevron_left
-                                : Icons.chevron_right,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                        child: Icon(
+                          _isLeftPanelOpen
+                              ? Icons.chevron_left
+                              : Icons.chevron_right,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                     ),
                   ),
+                ),
 
-                if (!((ap.showNewCollectionInput == true ||
-                        ap.showNewAnimationInput == true) ||
-                    (ap.showQuickSave)))
-                  AnimatedPositioned(
-                    duration: _panelAnimationDuration,
-                    curve: Curves.easeInOut,
-                    right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
-                    top: (context.heightPercent(92) / 2) - 25,
-                    child: Material(
-                      color: ColorManager.grey.withOpacity(0.6),
+                AnimatedPositioned(
+                  duration: _panelAnimationDuration,
+                  curve: Curves.easeInOut,
+                  right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
+                  top: (context.heightPercent(92) / 2) - 25,
+                  child: Material(
+                    color: ColorManager.grey.withOpacity(0.6),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(8),
+                      bottomLeft: Radius.circular(8),
+                    ),
+                    elevation: 6.0,
+                    child: InkWell(
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(8),
                         bottomLeft: Radius.circular(8),
                       ),
-                      elevation: 6.0,
-                      child: InkWell(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          bottomLeft: Radius.circular(8),
+                      onTap: _toggleRightPanel,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8.0,
+                          horizontal: 4.0,
                         ),
-                        onTap: _toggleRightPanel,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8.0,
-                            horizontal: 4.0,
-                          ),
-                          child: Icon(
-                            _isRightPanelOpen
-                                ? Icons.chevron_right
-                                : Icons.chevron_left,
-                            color: Colors.white,
-                            size: 20,
-                          ),
+                        child: Icon(
+                          _isRightPanelOpen
+                              ? Icons.chevron_right
+                              : Icons.chevron_left,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                     ),
                   ),
+                ),
               ],
             ),
           ),
@@ -364,10 +364,6 @@ class _TacticboardScreenTabletState
               height: context.screenHeight * .92,
               width: context.widthPercent(100),
               child: _buildCentralContent(context, ref, ap, selectedScene),
-              // child: Scaffold(
-              //   backgroundColor: ColorManager.black,
-              //   body: _buildCentralContent(context, ref, ap, selectedScene),
-              // ),
             ),
           ),
 
@@ -404,86 +400,80 @@ class _TacticboardScreenTabletState
               ),
             ),
           ),
-          if (!((ap.showNewCollectionInput == true ||
-                  ap.showNewAnimationInput == true) ||
-              (ap.showQuickSave)))
-            AnimatedPositioned(
-              duration: _panelAnimationDuration,
-              curve: Curves.easeInOut,
-              left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-              top:
-                  (context.heightPercent(104) / 2) -
-                  25, // Consider if context here refers to the correct one
-              // It should be the context of the build method where screenContent is defined
-              child: Material(
-                key: TutorialKeys.leftPanelButtonKey,
-                color: ColorManager.grey.withOpacity(0.6),
+
+          AnimatedPositioned(
+            duration: _panelAnimationDuration,
+            curve: Curves.easeInOut,
+            left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
+            top:
+                (context.heightPercent(104) / 2) -
+                25, // Consider if context here refers to the correct one
+            // It should be the context of the build method where screenContent is defined
+            child: Material(
+              key: TutorialKeys.leftPanelButtonKey,
+              color: ColorManager.grey.withOpacity(0.6),
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+              elevation: 6.0,
+              child: InkWell(
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(8),
                   bottomRight: Radius.circular(8),
                 ),
-                elevation: 6.0,
-                child: InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(8),
-                    bottomRight: Radius.circular(8),
+                onTap: _toggleLeftPanel,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 4.0,
                   ),
-                  onTap: _toggleLeftPanel,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8.0,
-                      horizontal: 4.0,
-                    ),
-                    child: Icon(
-                      _isLeftPanelOpen
-                          ? Icons.chevron_left
-                          : Icons.chevron_right,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                  child: Icon(
+                    _isLeftPanelOpen ? Icons.chevron_left : Icons.chevron_right,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
               ),
             ),
-          if (!((ap.showNewCollectionInput == true ||
-                  ap.showNewAnimationInput == true) ||
-              (ap.showQuickSave)))
-            AnimatedPositioned(
-              duration: _panelAnimationDuration,
-              curve: Curves.easeInOut,
-              right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
-              top:
-                  (context.heightPercent(104) / 2) -
-                  25, // Same consideration for context here
-              child: Material(
-                color: ColorManager.grey.withOpacity(0.6),
+          ),
+
+          AnimatedPositioned(
+            duration: _panelAnimationDuration,
+            curve: Curves.easeInOut,
+            right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
+            top:
+                (context.heightPercent(104) / 2) -
+                25, // Same consideration for context here
+            child: Material(
+              color: ColorManager.grey.withOpacity(0.6),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(8),
+                bottomLeft: Radius.circular(8),
+              ),
+              elevation: 6.0,
+              child: InkWell(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(8),
                   bottomLeft: Radius.circular(8),
                 ),
-                elevation: 6.0,
-                child: InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    bottomLeft: Radius.circular(8),
+                onTap: _toggleRightPanel,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 4.0,
                   ),
-                  onTap: _toggleRightPanel,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 8.0,
-                      horizontal: 4.0,
-                    ),
-                    child: Icon(
-                      _isRightPanelOpen
-                          ? Icons.chevron_right
-                          : Icons.chevron_left,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                  child: Icon(
+                    _isRightPanelOpen
+                        ? Icons.chevron_right
+                        : Icons.chevron_left,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
               ),
             ),
+          ),
         ],
       );
     }
@@ -500,104 +490,99 @@ class _TacticboardScreenTabletState
     return Padding(
       padding: EdgeInsets.only(top: 50.0, left: 10, right: 10, bottom: 10),
       child:
-          asp.showNewCollectionInput == true ||
-                  asp.showNewAnimationInput == true
-              ? AnimationDataInputComponent()
-              : asp.showQuickSave
-              ? ShowQuickSaveComponent()
-              : Column(
-                mainAxisAlignment: MainAxisAlignment.start,
+      // asp.showNewCollectionInput == true ||
+      //         asp.showNewAnimationInput == true
+      //     ? AnimationDataInputComponent()
+      //     : asp.showQuickSave
+      //     ? ShowQuickSaveComponent()
+      //     :
+      Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Expanded(child: GameScreen(scene: selectedScene)),
+          if (animationModel == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Stack(
                 children: [
-                  Expanded(child: GameScreen(scene: selectedScene)),
-                  if (animationModel == null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Stack(
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 10.0),
+                      child: Image.asset(
+                        AssetsManager.logo,
+                        height: AppSize.s40,
+                        width: AppSize.s40,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Container(),
+                      if (asp.defaultAnimationItems.isNotEmpty)
+                        CompactPaginator(
+                          totalPages: asp.defaultAnimationItems.length,
+                          onPageChanged: (index) {
+                            ref
+                                .read(animationProvider.notifier)
+                                .changeDefaultAnimationIndex(index);
+                          },
+                          initialPage: asp.defaultAnimationItemIndex,
+                        ),
+                      Row(
                         children: [
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 10.0),
-                              child: Image.asset(
-                                AssetsManager.logo,
-                                height: AppSize.s40,
-                                width: AppSize.s40,
-                              ),
-                            ),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Container(),
-                              if (asp.defaultAnimationItems.isNotEmpty)
-                                CompactPaginator(
-                                  totalPages: asp.defaultAnimationItems.length,
-                                  onPageChanged: (index) {
+                          IconButton(
+                            onPressed:
+                                () =>
                                     ref
                                         .read(animationProvider.notifier)
-                                        .changeDefaultAnimationIndex(index);
-                                  },
-                                  initialPage: asp.defaultAnimationItemIndex,
-                                ),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    onPressed:
-                                        () =>
-                                            ref
-                                                .read(
-                                                  animationProvider.notifier,
-                                                )
-                                                .createNewDefaultAnimationItem(),
-                                    icon: Icon(
-                                      Icons.add,
-                                      color: ColorManager.white,
-                                    ),
-                                    tooltip: "Add New Scene",
-                                  ),
-                                  IconButton(
-                                    onPressed: () async {
-                                      bool?
-                                      confirm = await showConfirmationDialog(
-                                        context: context,
-                                        title: "Reset Board?",
-                                        content:
-                                            "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
-                                        confirmButtonText: "Reset",
-                                      );
-                                      if (confirm == true) {
-                                        ref
-                                            .read(animationProvider.notifier)
-                                            .deleteDefaultAnimation();
-                                      }
-                                    },
-                                    icon: Icon(
-                                      Icons.delete_sweep_outlined,
-                                      color: ColorManager.white,
-                                    ),
-                                    tooltip: "Clear Current Scene",
-                                  ),
-                                ],
-                              ),
-                            ],
+                                        .createNewDefaultAnimationItem(),
+                            icon: Icon(Icons.add, color: ColorManager.white),
+                            tooltip: "Add New Scene",
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              bool? confirm = await showConfirmationDialog(
+                                context: context,
+                                title: "Reset Board?",
+                                content:
+                                    "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
+                                confirmButtonText: "Reset",
+                              );
+                              if (confirm == true) {
+                                ref
+                                    .read(animationProvider.notifier)
+                                    .deleteDefaultAnimation();
+                              }
+                            },
+                            icon: Icon(
+                              Icons.delete_sweep_outlined,
+                              color: ColorManager.white,
+                            ),
+                            tooltip: "Clear Current Scene",
                           ),
                         ],
                       ),
-                    )
-                  else
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: 10.0),
-                        child: Image.asset(
-                          AssetsManager.logo,
-                          height: AppSize.s40,
-                          width: AppSize.s40,
-                        ),
-                      ),
-                    ),
+                    ],
+                  ),
                 ],
               ),
+            )
+          else
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10.0),
+                child: Image.asset(
+                  AssetsManager.logo,
+                  height: AppSize.s40,
+                  width: AppSize.s40,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
