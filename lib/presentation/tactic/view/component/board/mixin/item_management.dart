@@ -12,9 +12,11 @@ import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
@@ -42,6 +44,8 @@ mixin ItemManagement on TacticBoardGame {
       await add(SquareShapeDrawerComponent(squareModel: item));
     } else if (item is PolygonShapeModel) {
       await add(PolygonShapeDrawerComponent(polygonModel: item));
+    } else if (item is TextModel) {
+      await add(TextFieldComponent(object: item));
     }
     // else if (item is FreeDrawModelV2) {
     //   await add(FreeDrawerComponentV2(freeDrawModelV2: item));
@@ -124,6 +128,8 @@ mixin ItemManagement on TacticBoardGame {
         return t.circleModel.id == itemToDelete?.id;
       } else if (t is PolygonShapeDrawerComponent) {
         return t.polygonModel.id == itemToDelete?.id;
+      } else if (t is TextFieldComponent) {
+        return t.object.id == itemToDelete?.id;
       }
       // Add check for FreeDrawerComponent if it was handled previously
       // else if (t is FreeDrawerComponent) { return t.freeDrawModel.id == itemToDelete?.id }
@@ -213,5 +219,16 @@ mixin ItemManagement on TacticBoardGame {
 
     removeAll(itemsToRemove);
     ref.read(boardProvider.notifier).removeFieldItems(items);
+  }
+
+  addNewTextOnTheField({required TextModel object}) {
+    object = object.copyWith(
+      offset: SizeHelper.getBoardRelativeVector(
+        gameScreenSize: gameField.size,
+        actualPosition: gameField.size / 2,
+      ),
+    );
+    add(TextFieldComponent(object: object));
+    ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: object);
   }
 }

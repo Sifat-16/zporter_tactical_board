@@ -4,6 +4,7 @@ import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/triangle_shape_model.dart';
 
 import 'equipment_model.dart';
@@ -19,6 +20,7 @@ enum FieldItemType {
   SQUARE,
   TRIANGLE,
   POLYGON,
+  TEXT,
 }
 
 abstract class FieldItemModel {
@@ -121,6 +123,9 @@ abstract class FieldItemModel {
       case FieldItemType.POLYGON:
         // TODO: Handle this case.
         return PolygonShapeModel.fromJson(json);
+      case FieldItemType.TEXT:
+        // TODO: Handle this case.
+        return TextModel.fromJson(json);
     }
   }
 

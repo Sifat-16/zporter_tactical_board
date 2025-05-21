@@ -8,6 +8,7 @@ import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
 const Object _sentinel = Object();
@@ -17,6 +18,7 @@ class BoardState {
   final List<EquipmentModel> equipments;
   final List<LineModelV2> lines;
   final List<ShapeModel> shapes;
+  final List<TextModel> texts;
   final FieldItemModel? itemToDelete;
   final List<FreeDrawModelV2> freeDraw;
   final AnimationModel? animationModel;
@@ -40,6 +42,8 @@ class BoardState {
     this.players = const [],
     this.equipments = const [],
     this.lines = const [],
+    this.texts = const [],
+
     this.shapes = const [],
     this.itemToDelete,
     this.freeDraw = const [],
@@ -66,6 +70,7 @@ class BoardState {
     List<EquipmentModel>? equipments,
     List<LineModelV2>? lines,
     List<ShapeModel>? shapes,
+    List<TextModel>? texts,
     List<FreeDrawModelV2>? freeDraws,
     AnimationModel? animationModel,
     bool? showAnimation,
@@ -90,7 +95,8 @@ class BoardState {
       players: players ?? this.players,
       equipments: equipments ?? this.equipments,
       shapes: shapes ?? this.shapes,
-      freeDraw: freeDraws ?? this.freeDraw,
+      freeDraw: freeDraws ?? freeDraw,
+      texts: texts ?? this.texts,
       animationModel: animationModel ?? this.animationModel,
       showAnimation: showAnimation ?? this.showAnimation,
       selectedItemOnTheBoard:

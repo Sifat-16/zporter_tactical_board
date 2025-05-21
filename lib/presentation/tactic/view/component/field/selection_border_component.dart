@@ -5,6 +5,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/rotation_handle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 
 import 'field_component.dart';
@@ -35,7 +36,9 @@ class SelectionBorder extends RectangleComponent {
           "Check the element type of the field component ${component.runtimeType}",
     );
 
-    if (component is EquipmentComponent || component is PlayerComponent) {
+    if (component is EquipmentComponent ||
+        component is PlayerComponent ||
+        component is TextFieldComponent) {
       add(
         ScalingHandle(
           component: component,
@@ -79,7 +82,9 @@ class SelectionBorder extends RectangleComponent {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.5;
     priority = 2;
-    if (component is EquipmentComponent || component is PlayerComponent) {
+    if (component is EquipmentComponent ||
+        component is PlayerComponent ||
+        component is TextFieldComponent) {
       updateHandlePositions();
     }
   }

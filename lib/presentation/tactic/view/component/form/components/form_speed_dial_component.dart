@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart'; // Adjust path
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjust path
 import 'package:zporter_tactical_board/app/services/injection_container.dart'; // Adjust path
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart'; // Adjust path
@@ -13,9 +14,12 @@ import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart'; // Adjust path
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart'; // Adjust path
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart'; // Adjust path
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_history_stream_usecase.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/shapes/form_shape_item.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/form_text_item.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_utils.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart'; // Adjust path
@@ -95,6 +99,7 @@ class _FormSpeedDialComponentState
     extends ConsumerState<FormSpeedDialComponent> {
   List<LineModelV2> lines = [];
   List<ShapeModel> shapes = [];
+  List<TextModel> texts = [];
 
   final GetHistoryStreamUseCase _historyStream =
       sl.get<GetHistoryStreamUseCase>(); // Assuming sl is your service locator
@@ -110,15 +115,16 @@ class _FormSpeedDialComponentState
     setState(() {
       lines = LineUtils.generateLines();
       shapes = ShapeUtils.generateShapes();
+      texts = TextFieldUtils.generateTexts();
     });
   }
 
   void _showActionGrid(BuildContext context) {
-    if (lines.isEmpty && shapes.isEmpty) {
+    if (lines.isEmpty && shapes.isEmpty && texts.isEmpty) {
       setupForms();
     }
 
-    final totalItems = lines.length + shapes.length;
+    final totalItems = lines.length + shapes.length + texts.length;
     final lineNotifier = ref.read(lineProvider.notifier);
 
     showModalBottomSheet(
@@ -165,8 +171,32 @@ class _FormSpeedDialComponentState
                     childAspectRatio: 1.0,
                   ),
                   itemBuilder: (BuildContext gridContext, int index) {
-                    if (index < lines.length) {
-                      final lineModel = lines[index];
+                    if (index < texts.length) {
+                      final textModel = texts[index];
+                      return FormTextItem(
+                        textModel: textModel,
+                        onTap: () async {
+                          Navigator.pop(bottomSheetContext);
+                          TextModel? textModel =
+                              await TextFieldUtils.insertTextDialog(context);
+                          if (textModel != null) {
+                            TacticBoardGame? tacticBoardGame =
+                                ref.read(boardProvider).tacticBoardGame;
+                            if (tacticBoardGame is TacticBoard) {
+                              tacticBoardGame.addNewTextOnTheField(
+                                object: textModel,
+                              );
+                            }
+                          }
+                          zlog(
+                            data:
+                                "The text model generated ${textModel?.toJson()}",
+                          );
+                        },
+                      );
+                    } else if (index < (lines.length + texts.length)) {
+                      final lineIndex = index - texts.length;
+                      final lineModel = lines[lineIndex];
                       return FormLineItem(
                         lineModelV2: lineModel,
                         onTap: () {
@@ -178,7 +208,7 @@ class _FormSpeedDialComponentState
                         },
                       );
                     } else {
-                      final shapeIndex = index - lines.length;
+                      final shapeIndex = index - lines.length - texts.length;
                       if (shapeIndex < shapes.length) {
                         final shapeModel = shapes[shapeIndex];
                         return FormShapeItem(

@@ -13,6 +13,7 @@ import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dar
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
@@ -105,6 +106,7 @@ class TacticBoard extends TacticBoardGame
           !components.any((t) => t is ScalingHandle) &&
           !components.any((t) => t is PolygonShapeDrawerComponent) &&
           !components.any((t) => t is PolygonVertexDotComponent) &&
+          !components.any((t) => t is TextFieldComponent) &&
           ref.read(lineProvider).activeForm is! PolygonShapeModel) {
         bool deselect = true;
 
