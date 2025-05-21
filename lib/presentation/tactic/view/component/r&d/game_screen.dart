@@ -226,9 +226,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     );
                                   } else if (animationShareType ==
                                       AnimationShareType.video) {
-                                    final GlobalKey captureKeyForExport =
-                                        GlobalKey();
-                                    List<Uint8List>? capturedFrames;
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder:
@@ -237,23 +234,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                 child: AnimationExportPreview(
                                                   animationModel:
                                                       selectedAnimation, // Pass the current animation model
-                                                  repaintBoundaryKey:
-                                                      captureKeyForExport, // Pass the key for capturing
+
                                                   onExportComplete: (
-                                                    List<Uint8List> frames,
+                                                    List<int>? gif,
                                                   ) {
                                                     zlog(
                                                       data:
-                                                          "AnimationScreen: Frame capture in dialog COMPLETE. ${frames.length} frames received.",
+                                                          "AnimationScreen: Frame capture in dialog COMPLETE. {frames.length} frames received.",
                                                     );
-                                                    capturedFrames = frames;
-                                                    if (Navigator.canPop(
-                                                      context,
-                                                    )) {
-                                                      Navigator.of(
-                                                        context,
-                                                      ).pop(); // Close the preview dialog
+                                                    if (gif != null) {
+                                                      Navigator.pop(context);
+                                                      AnimationSharer.createGifAndShare(
+                                                        Uint8List.fromList(gif),
+                                                      );
                                                     }
+
+                                                    // if (Navigator.canPop(
+                                                    //   context,
+                                                    // )) {
+                                                    //   Navigator.of(
+                                                    //     context,
+                                                    //   ).pop(); // Close the preview dialog
+                                                    // }
                                                   },
                                                   onExportCancelled: () {
                                                     zlog(
@@ -267,20 +269,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                             ),
                                       ),
                                     );
-                                    // After dialog closes, if frames were captured, proceed to encode and share
-                                    if (capturedFrames != null &&
-                                        capturedFrames!.isNotEmpty &&
-                                        mounted) {
-                                      await AnimationSharer.createGifAndShare(
-                                        capturedFrames!,
-                                      );
-                                    } else if (mounted) {
-                                      zlog(
-                                        data:
-                                            "AnimationScreen: No frames captured or export was cancelled.",
-                                      );
-                                      // BotToast.showText(text: "GIF generation cancelled or failed.");
-                                    }
                                   }
                                 }
                               },

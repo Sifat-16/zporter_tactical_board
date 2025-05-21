@@ -188,7 +188,7 @@ class AnimationSharer {
   }
 
   static Future<void> createGifAndShare(
-    List<Uint8List> pngFrameBytesList, {
+    Uint8List pngFrameBytesList, {
     String fileName = "tactic_scene",
   }) async {
     final String? imagePath = await createAnimationGifFromFrames(
@@ -205,18 +205,17 @@ class AnimationSharer {
   }
 
   static Future<String?> createAnimationGifFromFrames(
-    List<Uint8List> pngFrameBytesList, {
+    Uint8List pngFrameBytesList, {
     String fileName = "tactic_scene",
   }) async {
     if (pngFrameBytesList.isEmpty) {
       zlog(data: "AnimationSharer: No frames provided for GIF creation.");
       return null;
     }
-    Uint8List gifBytes = await convertToGif(pngFrameBytesList);
 
     final tempDir = await getTemporaryDirectory();
     final file = File('${tempDir.path}/$fileName.gif');
-    await file.writeAsBytes(gifBytes);
+    await file.writeAsBytes(pngFrameBytesList);
     zlog(data: "Gif captured and saved to: ${file.path}");
     return file.path;
   }
