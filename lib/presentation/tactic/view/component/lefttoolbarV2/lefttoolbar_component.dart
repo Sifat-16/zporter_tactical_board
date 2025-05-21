@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/forms_toolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/players_toolbar_component.dart';
 
 import 'equipment_toolbar_component.dart';
@@ -29,6 +30,7 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
         'title': 'Players',
         'content': PlayersToolbarComponent(showFooter: widget.showFooter),
       },
+      {'title': 'Forms', 'content': FormsToolbarComponent()},
       {'title': 'Equipment', 'content': EquipmentToolbarComponent()},
     ];
     _tabController = TabController(length: _tabs.length, vsync: this);

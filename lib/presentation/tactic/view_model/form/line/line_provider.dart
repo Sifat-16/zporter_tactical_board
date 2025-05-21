@@ -298,7 +298,6 @@ class LineController extends StateNotifier<LineState> {
           true, // Mark that a line is ready for placement
       activeForm: newLine,
       activatedFormId: newLine.id,
-      // Ensure other tool-specific states are reset
       isFreeDrawingActive: false,
       isEraserActivated: false,
       isTrashActive: false,
