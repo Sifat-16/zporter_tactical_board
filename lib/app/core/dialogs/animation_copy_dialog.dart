@@ -1,26 +1,39 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
+import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 
-Future<bool?> showConfirmationDialog({
-  required BuildContext context,
+class AnimationCopyItem {
+  AnimationCollectionModel animationCollectionModel;
+  AnimationModel animationModel;
+  String newAnimationName;
+
+  AnimationCopyItem({
+    required this.animationModel,
+    required this.animationCollectionModel,
+    required this.newAnimationName,
+  });
+}
+
+Future<AnimationCopyItem?> showAnimationCopyDialog(
+  BuildContext context, {
   required String title,
-  required String content,
-  String confirmButtonText = 'Confirm',
-  String cancelButtonText = 'Cancel',
-
-  /// Optional: Pass a specific ColorManager color (e.g., ColorManager.red) for the confirm button.
-  Color? confirmButtonColor,
-
-  /// Optional: Display an icon above the title.
-  Widget? icon,
+  String? initialValue,
+  String hintText = 'Enter name...', // Default hint text
+  String buttonText = 'OK', // Default button text
+  required List<AnimationCollectionModel> collectionList,
+  required AnimationCollectionModel? selectedCollection,
+  required AnimationModel animation,
 }) {
-  return showDialog<bool>(
+  TextEditingController _controller = TextEditingController(text: initialValue);
+
+  return showDialog<AnimationCopyItem>(
     context: context,
-    barrierDismissible:
-        true, // Allow dismissal by tapping outside (returns null)
+    barrierDismissible: true, // Allow dismissing by tapping outside
     builder: (BuildContext dialogContext) {
-      // --- Use colors from ColorManager ---
       final Color dialogBgColor =
           ColorManager.black; // Surface color for dialog
       final Color primaryAccentColor =
@@ -31,8 +44,7 @@ Future<bool?> showConfirmationDialog({
       final Color defaultIconColor = ColorManager.grey;
 
       // Determine confirm button background color
-      final Color actualConfirmButtonColor =
-          confirmButtonColor ?? primaryAccentColor;
+      final Color actualConfirmButtonColor = primaryAccentColor;
       // Determine text color for confirm button based on its background brightness
       final Color confirmButtonTextColor =
           ThemeData.estimateBrightnessForColor(actualConfirmButtonColor) ==
@@ -41,9 +53,7 @@ Future<bool?> showConfirmationDialog({
                   .white // Use white text on dark button backgrounds
               : ColorManager
                   .black; // Use black text on light button backgrounds
-
       return Theme(
-        // Override theme specifically for this dialog using ColorManager colors
         data: ThemeData.dark().copyWith(
           // Start with dark defaults
           dialogBackgroundColor: dialogBgColor,
@@ -80,7 +90,6 @@ Future<bool?> showConfirmationDialog({
             color: defaultIconColor,
           ), // Default icon color
         ),
-        // Use AlertDialog for standard structure
         child: AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(5.0),
@@ -102,20 +111,36 @@ Future<bool?> showConfirmationDialog({
               color: ColorManager.white,
             ),
           ),
+          contentPadding: const EdgeInsets.fromLTRB(
+            24.0,
+            16.0,
+            24.0,
+            24.0,
+          ), // Increased bottom padding
 
-          // contentPadding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 24.0),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             spacing: 20,
             children: [
-              Text(
-                content,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: ColorManager.grey,
-                  fontSize: 14,
-                ), // Explicitly use grey
+              DropdownSelector<AnimationCollectionModel?>(
+                key: UniqueKey(),
+                label: "Collection",
+                items: collectionList,
+                initialValue: selectedCollection,
+                onChanged: (s) {
+                  selectedCollection = s;
+                },
+                itemAsString: (AnimationCollectionModel? item) {
+                  return item?.name ?? "";
+                },
+              ),
+              TextField(
+                controller: _controller,
+
+                decoration: InputDecoration(
+                  label: Text("Animation"),
+                  border: OutlineInputBorder(),
+                ),
               ),
 
               Row(
@@ -126,7 +151,7 @@ Future<bool?> showConfirmationDialog({
                     padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
                     borderRadius: 2,
                     fillColor: ColorManager.dark1,
-                    child: Text(cancelButtonText),
+                    child: Text("Cancel"),
                     onTap: () {
                       Navigator.of(context).pop(null); // Return false
                     },
@@ -135,16 +160,30 @@ Future<bool?> showConfirmationDialog({
                   CustomButton(
                     padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
                     borderRadius: 2,
-                    fillColor: confirmButtonColor ?? ColorManager.blue,
+                    fillColor: ColorManager.blue,
                     onTap: () {
-                      Navigator.of(dialogContext).pop(true); // Return true
+                      if (selectedCollection != null) {
+                        AnimationCopyItem animationCopyItem = AnimationCopyItem(
+                          animationModel: animation,
+                          animationCollectionModel: selectedCollection!,
+                          newAnimationName: _controller.text.trim(),
+                        );
+                        Navigator.of(
+                          context,
+                        ).pop(animationCopyItem); // Return true
+                      } else {
+                        BotToast.showText(text: "Invalid Collection");
+                        Navigator.of(context).pop(null); // Return true
+                      }
                     },
-                    child: Text(confirmButtonText),
+                    child: Text("Save"),
                   ),
                 ],
               ),
             ],
           ),
+
+          // --- End ConstrainedBox wrapper ---
         ),
       );
     },

@@ -23,6 +23,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/c
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart'; // Adjust path
@@ -245,6 +246,7 @@ class _FormSpeedDialComponentState
     AnimationCollectionModel? collectionModel =
         ap.selectedAnimationCollectionModel;
     AnimationModel? animationModel = ap.selectedAnimationModel;
+    List<AnimationCollectionModel> collectionList = ap.animationCollections;
     // _historyStream is already an instance variable
 
     final currentActiveTool = lpState.activeTool;
@@ -454,6 +456,7 @@ class _FormSpeedDialComponentState
                   // Your original component call
                   keyForTutorial: TutorialKeys.addNewSceneButtonKey,
                   selectedCollection: collectionModel,
+                  collectionList: collectionList,
                   selectedAnimation: animationModel,
                   selectedScene: selectedScene,
                 ),
@@ -469,6 +472,7 @@ class _FormSpeedDialComponentState
   }
 
   Widget _buildAddNewScene({
+    required List<AnimationCollectionModel> collectionList,
     required AnimationCollectionModel? selectedCollection,
     required AnimationModel? selectedAnimation,
     required AnimationItemModel? selectedScene,
@@ -476,13 +480,24 @@ class _FormSpeedDialComponentState
   }) {
     return GestureDetector(
       key: keyForTutorial,
-      onTap: () {
+      onTap: () async {
         if (widget.config.addNewSceneForAdmin != null) {
           widget.config.addNewSceneForAdmin?.call();
           return;
         }
         if (selectedCollection == null || selectedAnimation == null) {
-          ref.read(animationProvider.notifier).showQuickSave();
+          AnimationCreateItem? animationCreateItem =
+              await showNewAnimationInputDialog(
+                context,
+                collectionList: collectionList,
+                selectedCollection: selectedCollection,
+              );
+          if (animationCreateItem != null) {
+            animationCreateItem.items = selectedScene?.components ?? [];
+            ref
+                .read(animationProvider.notifier)
+                .createNewAnimation(newAnimation: animationCreateItem);
+          }
         } else {
           try {
             if (selectedScene != null) {

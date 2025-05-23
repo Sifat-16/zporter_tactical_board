@@ -171,6 +171,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         ),
         SizedBox(height: 10),
         CustomButton(
+          borderRadius: 3,
           onTap: () async {
             bool? proceed;
             if (needCleanup) {

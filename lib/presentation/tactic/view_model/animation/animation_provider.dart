@@ -4,6 +4,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
+import 'package:zporter_tactical_board/app/core/dialogs/animation_copy_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -25,6 +26,7 @@ import 'package:zporter_tactical_board/domain/animation/usecase/save_history_use
 import 'package:zporter_tactical_board/presentation/admin/view/animation/default_animation_constants.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/default_animation_view_model/default_animation_controller.dart';
 import 'package:zporter_tactical_board/presentation/auth/view_model/auth_controller.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
@@ -181,28 +183,21 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
   }
 
-  void createNewAnimation(
-    String newAnimationName, {
-    AnimationItemModel? dummyAnimationPassed,
-  }) async {
+  void createNewAnimation({required AnimationCreateItem newAnimation}) async {
     BotToast.showLoading();
     try {
       AnimationModel animationModel = AnimationModel(
         userId: _getUserId(),
         fieldColor: BoardConstant.field_color,
         id: RandomGenerator.generateId(),
-        name: newAnimationName,
+        name: newAnimation.newAnimationName,
         animationScenes: [],
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      AnimationCollectionModel? animationCollectionModel =
-          state.selectedAnimationCollectionModel;
-      if (animationCollectionModel == null) {
-        BotToast.showText(text: "No Collection is selected");
-        return;
-      }
+      AnimationCollectionModel animationCollectionModel =
+          newAnimation.animationCollectionModel;
 
       if (_isDuplicateAnimation(
         animationCollectionModel.animations,
@@ -222,7 +217,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           fieldSize:
               ref.read(boardProvider.notifier).fetchFieldSize() ??
               Vector2(0, 0),
-          components: dummyAnimationPassed?.components ?? [],
+          components: newAnimation.items,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),
@@ -260,16 +255,16 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
   }
 
-  void copyAnimation(String name, AnimationModel animation) async {
+  void copyAnimation(AnimationCopyItem animationCopyItem) async {
     AnimationCollectionModel? animationCollectionModel =
-        state.selectedAnimationCollectionModel;
+        animationCopyItem.animationCollectionModel;
     if (animationCollectionModel == null) {
       BotToast.showText(text: "Please select a collection");
       return;
     }
-    AnimationModel newAnimationModel = animation.clone();
+    AnimationModel newAnimationModel = animationCopyItem.animationModel.clone();
     newAnimationModel.id = RandomGenerator.generateId();
-    newAnimationModel.name = name;
+    newAnimationModel.name = animationCopyItem.newAnimationName;
     newAnimationModel.createdAt = DateTime.now();
     newAnimationModel.updatedAt = DateTime.now();
 

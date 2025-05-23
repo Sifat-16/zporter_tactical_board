@@ -185,14 +185,14 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(fieldSize: size);
   }
 
-  void animateToDesignTab() {
-    TabController? _controller = state.tabController;
-    _controller?.animateTo(0);
-  }
+  // void animateToDesignTab() {
+  //   TabController? _controller = state.tabController;
+  //   _controller?.animateTo(0);
+  // }
 
-  void updateTabController({required TabController controller}) {
-    state = state.copyWith(tabController: controller);
-  }
+  // void updateTabController({required TabController controller}) {
+  //   state = state.copyWith(tabController: controller);
+  // }
 
   void updateGameBoard(TacticBoardGame? game) {
     state = state.copyWith(tacticBoardGame: game);

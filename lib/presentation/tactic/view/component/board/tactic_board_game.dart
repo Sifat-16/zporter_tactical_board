@@ -134,11 +134,11 @@ class TacticBoard extends TacticBoardGame
           isTrashModeActive = ref.read(lineProvider).isTrashActive;
         } catch (e) {}
 
-        if (isTrashModeActive) {
-          // ref.read(boardProvider.notifier).removeElement();
-        } else {
-          ref.read(boardProvider.notifier).animateToDesignTab();
-        }
+        // if (isTrashModeActive) {
+        //   // ref.read(boardProvider.notifier).removeElement();
+        // } else {
+        //   ref.read(boardProvider.notifier).animateToDesignTab();
+        // }
       }
     }
   }

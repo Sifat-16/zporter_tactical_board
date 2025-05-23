@@ -5,11 +5,9 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/show_quick_save_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/form_speed_dial_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_toolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
@@ -227,41 +225,37 @@ class _DefaultAnimationFieldScreenState
     return Padding(
       padding: EdgeInsets.all(5),
       child:
-          asp.showNewCollectionInput == true ||
-                  asp.showNewAnimationInput == true
-              ? AnimationDataInputComponent()
-              : asp.showQuickSave
-              ? ShowQuickSaveComponent()
-              : GameScreen(
-                scene: selectedScene,
-                saveToDb: false,
-                onSceneSave: (a) {
-                  ref
-                      .read(animationProvider.notifier)
-                      .triggerAutoSaveForAdmin();
-                  zlog(
-                    data:
-                        "Animation item found for save triggered ${a?.toJson()}",
-                  );
-                },
-                config: FormSpeedDialConfig(
-                  showFullScreenButton: false,
-                  showBackButton: true,
+      // asp.showNewCollectionInput == true ||
+      //         asp.showNewAnimationInput == true
+      //     ? AnimationDataInputComponent()
+      //     : asp.showQuickSave
+      //     ? ShowQuickSaveComponent()
+      //     :
+      GameScreen(
+        scene: selectedScene,
+        saveToDb: false,
+        onSceneSave: (a) {
+          ref.read(animationProvider.notifier).triggerAutoSaveForAdmin();
+          zlog(data: "Animation item found for save triggered ${a?.toJson()}");
+        },
+        config: FormSpeedDialConfig(
+          showFullScreenButton: false,
+          showBackButton: true,
 
-                  addNewSceneForAdmin: () {
-                    try {
-                      ref
-                          .read(animationProvider.notifier)
-                          .addNewSceneFromAdmin(
-                            selectedAnimation: asp.selectedAnimationModel!,
-                            selectedScene: asp.selectedScene!,
-                          );
-                    } catch (e) {
-                      zlog(data: "Issue while saving animation for admin ${e}");
-                    }
-                  },
-                ),
-              ),
+          addNewSceneForAdmin: () {
+            try {
+              ref
+                  .read(animationProvider.notifier)
+                  .addNewSceneFromAdmin(
+                    selectedAnimation: asp.selectedAnimationModel!,
+                    selectedScene: asp.selectedScene!,
+                  );
+            } catch (e) {
+              zlog(data: "Issue while saving animation for admin ${e}");
+            }
+          },
+        ),
+      ),
     );
   }
 }

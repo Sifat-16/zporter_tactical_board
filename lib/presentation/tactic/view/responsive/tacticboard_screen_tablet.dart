@@ -11,10 +11,8 @@ import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/show_quick_save_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
@@ -221,11 +219,13 @@ class _TacticboardScreenTabletState
 
     Widget screenContent;
 
-    if (ap.showNewCollectionInput == true || ap.showNewAnimationInput == true) {
-      screenContent = Center(child: AnimationDataInputComponent());
-    } else if (ap.showQuickSave) {
-      screenContent = Center(child: ShowQuickSaveComponent());
-    } else if (bp.showFullScreen) {
+    // if (ap.showNewCollectionInput == true || ap.showNewAnimationInput == true) {
+    //   screenContent = Center(child: AnimationDataInputComponent());
+    // } else if (ap.showQuickSave) {
+    //   screenContent = Center(child: ShowQuickSaveComponent());
+    // } else
+
+    if (bp.showFullScreen) {
       screenContent = PopScope(
         canPop: false,
         onPopInvoked: (bool didPop) {

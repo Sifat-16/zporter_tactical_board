@@ -58,149 +58,152 @@ class AnimationListItem extends StatelessWidget {
     final String durationText =
         "${calculateTime(animation).toStringAsFixed(1)}s"; // Assuming durationSeconds exists
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Card(
-        color: ColorManager.black.withOpacity(0.8), // Dark card background
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    MiniGameFieldWidget(
+    return Card(
+      color: ColorManager.transparent, // Dark card background
+      elevation: 5,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: EdgeInsets.all(8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10.0),
+                    child: MiniGameFieldWidget(
                       fieldColor: fieldColor,
                       borderColor: borderColor,
                       items: [],
                       logicalFieldSize: Vector2(10000, 10000),
                       // aspectRatio: MiniGameFieldWidget.defaultAspectRatio, // Use default
                     ),
-
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 5,
-                          vertical: 4,
-                        ),
-                        child: Text(
-                          animation.name,
-                          maxLines: 2,
-                          style: Theme.of(context).textTheme.labelLarge!
-                              .copyWith(color: ColorManager.white),
-                        ),
-                      ),
-                    ),
-
-                    Positioned(
-                      bottom: 0,
-                      left: 5,
-                      child: CustomButton(
-                        onTap: onCopy, // Use callback
-                        fillColor: ColorManager.dark2,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 3,
-                          horizontal: 4,
-                        ),
-                        borderRadius: 4,
-                        child: Text("COPY", style: buttonTextStyle),
-                      ),
-                    ),
-
-                    Positioned(
-                      bottom: 0,
-                      right: 5,
-                      child: CustomButton(
-                        onTap: onOpen, // Use callback
-                        fillColor: ColorManager.blue,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 3,
-                          horizontal: 4,
-                        ),
-                        borderRadius: 4,
-                        child: Text("OPEN", style: buttonTextStyle),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              SizedBox(width: 10),
-
-              Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  PopupMenuButton(
-                    color: ColorManager.dark2,
-                    itemBuilder: (context) {
-                      return [
-                        PopupMenuItem(
-                          child: TextButton(
-                            onPressed: () async {
-                              Navigator.pop(context);
-                              bool? confirm = await showConfirmationDialog(
-                                context: context,
-                                title: "Delete Animation",
-                                content: "This animation will be removed",
-                              );
-                              if (confirm == true) {
-                                onDelete();
-                              }
-                            },
-                            child: Text(
-                              "Delete",
-                              style: Theme.of(
-                                context,
-                              ).textTheme.labelLarge!.copyWith(
-                                color: ColorManager.red,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ];
-                    },
-                    child: Icon(Icons.more_vert, color: Colors.white),
                   ),
 
-                  SizedBox(height: 10),
-
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        FontAwesomeIcons.minus,
-                        color: Colors.white,
-                      ), // TODO: Add functionality
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2.0),
-                        child: Text(durationText, style: durationStyle),
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 4,
                       ),
-                      const Icon(
-                        FontAwesomeIcons.minus,
-                        color: Colors.white,
-                      ), // TODO: Add functionality// Use passed index string
-                    ],
+                      child: Text(
+                        animation.name,
+                        maxLines: 2,
+                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                          color: ColorManager.white,
+                        ),
+                      ),
+                    ),
                   ),
 
-                  SizedBox(height: 10),
+                  Positioned(
+                    bottom: 0,
+                    left: 5,
+                    child: CustomButton(
+                      onTap: onCopy, // Use callback
+                      fillColor: ColorManager.dark1,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 4,
+                      ),
+                      borderRadius: 4,
+                      child: Text("COPY", style: buttonTextStyle),
+                    ),
+                  ),
 
-                  Text(
-                    animation.animationScenes.length.toString(),
-                    style: indexStyle,
+                  Positioned(
+                    bottom: 0,
+                    right: 5,
+                    child: CustomButton(
+                      onTap: onOpen, // Use callback
+                      fillColor: ColorManager.blue,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 3,
+                        horizontal: 4,
+                      ),
+                      borderRadius: 4,
+                      child: Text("OPEN", style: buttonTextStyle),
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+
+            SizedBox(width: 10),
+
+            Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                PopupMenuButton(
+                  color: ColorManager.dark2,
+                  itemBuilder: (context) {
+                    return [
+                      PopupMenuItem(
+                        child: TextButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            bool? confirm = await showConfirmationDialog(
+                              context: context,
+                              title: "Delete Animation",
+                              content: "This animation will be removed",
+                              confirmButtonText: "Delete",
+                              confirmButtonColor: ColorManager.red,
+                            );
+                            if (confirm == true) {
+                              onDelete();
+                            }
+                          },
+                          child: Text(
+                            "Delete",
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge!.copyWith(
+                              color: ColorManager.red,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ];
+                  },
+                  child: Icon(Icons.more_vert, color: Colors.white),
+                ),
+
+                SizedBox(height: 10),
+
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      FontAwesomeIcons.minus,
+                      color: Colors.white,
+                    ), // TODO: Add functionality
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2.0),
+                      child: Text(durationText, style: durationStyle),
+                    ),
+                    const Icon(
+                      FontAwesomeIcons.minus,
+                      color: Colors.white,
+                    ), // TODO: Add functionality// Use passed index string
+                  ],
+                ),
+
+                SizedBox(height: 10),
+
+                Text(
+                  animation.animationScenes.length.toString(),
+                  style: indexStyle,
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

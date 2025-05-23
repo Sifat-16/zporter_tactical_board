@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/settings_toolbar_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 import 'animation_toolbar_component.dart';
 import 'design_toolbar_component.dart';
@@ -56,11 +55,11 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
       }
     });
 
-    WidgetsBinding.instance.addPostFrameCallback((t) {
-      ref
-          .read(boardProvider.notifier)
-          .updateTabController(controller: _tabController);
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((t) {
+    //   ref
+    //       .read(boardProvider.notifier)
+    //       .updateTabController(controller: _tabController);
+    // });
   }
 
   @override
@@ -75,28 +74,29 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
     return Container(
       child: Column(
         children: [
-          TabBar(
-            controller: _tabController,
-            labelColor: ColorManager.yellow,
-            padding: EdgeInsets.zero,
-            unselectedLabelColor: ColorManager.white,
-            indicatorColor: ColorManager.yellow, // Remove the indicator line
-            labelPadding: EdgeInsets.symmetric(
-              horizontal: AppSize.s8,
-            ), // Remove padding between tab labels
-            isScrollable: false,
-            dividerHeight: 0,
-            tabs:
-                _tabs.map((tab) {
-                  return Tab(text: tab['title']);
-                }).toList(),
+          Container(
+            color: ColorManager.black,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: ColorManager.yellow,
+              padding: EdgeInsets.zero,
+              unselectedLabelColor: ColorManager.white,
+              indicatorColor: ColorManager.yellow, // Remove the indicator line
+              labelPadding: EdgeInsets.symmetric(
+                horizontal: AppSize.s8,
+              ), // Remove padding between tab labels
+              isScrollable: false,
+              dividerHeight: 0,
+              tabs:
+                  _tabs.map((tab) {
+                    return Tab(text: tab['title']);
+                  }).toList(),
+            ),
           ),
 
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
-                color: ColorManager.grey.withValues(alpha: 0.1),
-              ),
+              decoration: BoxDecoration(color: ColorManager.black),
               child: PageView(
                 physics: NeverScrollableScrollPhysics(),
                 controller: _pageController,

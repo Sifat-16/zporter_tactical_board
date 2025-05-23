@@ -143,7 +143,7 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
         ),
         borderRadius: BorderRadius.circular(AppSize.s4),
         border: Border.all(
-          color: Colors.black.withValues(alpha: 0.2),
+          color: Colors.white.withValues(alpha: 0.5),
           width: 0.5,
         ),
       ),

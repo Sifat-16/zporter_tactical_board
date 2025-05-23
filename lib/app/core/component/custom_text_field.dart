@@ -78,7 +78,7 @@ class CustomTextFormField extends StatelessWidget {
 
     return Padding(
       // Keep overall padding like the reference widget
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.zero,
       child: TextFormField(
         // --- Pass standard TextFormField properties ---
         controller: controller,

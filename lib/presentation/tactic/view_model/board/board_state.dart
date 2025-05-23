@@ -30,7 +30,7 @@ class BoardState {
   final bool moveDown;
   final Color boardColor;
   final bool moveUp;
-  final TabController? tabController;
+  // final TabController? tabController;
   final TacticBoardGame? tacticBoardGame;
   final int boardAngle;
   final Vector2? fieldSize;
@@ -57,7 +57,7 @@ class BoardState {
     this.copyItem,
     this.boardColor = BoardConstant.field_color,
     this.fieldSize,
-    this.tabController,
+    // this.tabController,
     this.tacticBoardGame,
     this.refreshBoard = false,
     this.boardAngle = 0,
@@ -84,7 +84,7 @@ class BoardState {
     Color? boardColor,
     Map<String, dynamic>? animationModelJson,
     Vector2? fieldSize,
-    TabController? tabController,
+    // TabController? tabController,
     Object? tacticBoardGame = _sentinel,
     int? boardAngle,
     bool? refreshBoard,
@@ -113,7 +113,7 @@ class BoardState {
       boardColor: boardColor ?? this.boardColor,
       animationModelJson: animationModelJson ?? this.animationModelJson,
       fieldSize: fieldSize ?? this.fieldSize,
-      tabController: tabController ?? this.tabController,
+      // tabController: tabController ?? this.tabController,
       tacticBoardGame:
           tacticBoardGame == _sentinel
               ? this.tacticBoardGame

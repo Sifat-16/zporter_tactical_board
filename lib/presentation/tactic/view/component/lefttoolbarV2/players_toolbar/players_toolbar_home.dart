@@ -203,6 +203,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
         ),
         SizedBox(height: 10),
         CustomButton(
+          borderRadius: 3,
           onTap: () async {
             bool? proceed;
             if (needCleanup) {

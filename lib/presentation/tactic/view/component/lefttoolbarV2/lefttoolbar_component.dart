@@ -56,29 +56,29 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
     return Container(
       child: Column(
         children: [
-          TabBar(
-            controller: _tabController,
-
-            labelColor: ColorManager.yellow,
-
-            padding: EdgeInsets.zero,
-            unselectedLabelColor: ColorManager.white,
-            tabAlignment: TabAlignment.fill,
-            indicatorColor: ColorManager.yellow, // Remove the indicator line
-            labelPadding: EdgeInsets.zero, // Remove padding between tab labels
-            isScrollable: false,
-            dividerHeight: 0,
-            tabs:
-                _tabs.map((tab) {
-                  return Tab(text: tab['title']);
-                }).toList(),
+          Container(
+            color: ColorManager.black,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: ColorManager.yellow,
+              padding: EdgeInsets.zero,
+              unselectedLabelColor: ColorManager.white,
+              tabAlignment: TabAlignment.fill,
+              indicatorColor: ColorManager.yellow, // Remove the indicator line
+              labelPadding:
+                  EdgeInsets.zero, // Remove padding between tab labels
+              isScrollable: false,
+              dividerHeight: 0,
+              tabs:
+                  _tabs.map((tab) {
+                    return Tab(text: tab['title']);
+                  }).toList(),
+            ),
           ),
 
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
-                color: ColorManager.grey.withValues(alpha: 0.1),
-              ),
+              decoration: BoxDecoration(color: ColorManager.black),
               child: PageView(
                 physics: NeverScrollableScrollPhysics(),
                 controller: _pageController,
