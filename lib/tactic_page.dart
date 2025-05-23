@@ -1,7 +1,10 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen_v2.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/admin_screen.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen.dart';
 
 class TacticApp extends StatelessWidget {
   const TacticApp({super.key});
@@ -15,14 +18,36 @@ class TacticApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Zporter Board',
+          builder: BotToastInit(),
+          navigatorObservers: [BotToastNavigatorObserver()],
           themeMode: ThemeMode.system,
           home: Scaffold(
             backgroundColor: ColorManager.black,
-            body: TacticboardScreenV2(),
+            body: TacticPage(userId: "DUMMY_USER_ID"),
           ),
+          // home: GameScreen(),
         );
       },
     );
-    // TacticboardScreenV2();
+  }
+}
+
+class TacticPage extends StatefulWidget {
+  const TacticPage({super.key, required this.userId});
+
+  final String userId;
+
+  @override
+  State<TacticPage> createState() => _TacticPageState();
+}
+
+class _TacticPageState extends State<TacticPage> {
+  bool isAdmin = false;
+  @override
+  Widget build(BuildContext context) {
+    return ProviderScope(
+      child: isAdmin ? AdminScreen() : TacticboardScreen(userId: widget.userId),
+      // body: DrawingScreen(),
+    );
   }
 }

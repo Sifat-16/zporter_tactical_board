@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/app/manager/values_manager.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/forms_toolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/players_toolbar_component.dart';
 
 import 'equipment_toolbar_component.dart';
-import 'forms_toolbar_component.dart';
 
 class LefttoolbarComponent extends StatefulWidget {
-  const LefttoolbarComponent({super.key});
+  const LefttoolbarComponent({super.key, this.showFooter = true});
+  final bool showFooter;
 
   @override
   State<LefttoolbarComponent> createState() => _LefttoolbarComponentState();
@@ -19,16 +19,20 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
   late PageController _pageController;
 
   // List of tab names and content to display
-  final List<Map<String, dynamic>> _tabs = [
-    {'title': 'Players', 'content': PlayersToolbarComponent()},
-    {'title': 'Forms', 'content': FormsToolbarComponent()},
-    {'title': 'Equipment', 'content': EquipmentToolbarComponent()},
-  ];
+  late List<Map<String, dynamic>> _tabs;
 
   @override
   void initState() {
     super.initState();
     // Initialize the TabController
+    _tabs = [
+      {
+        'title': 'Players',
+        'content': PlayersToolbarComponent(showFooter: widget.showFooter),
+      },
+      {'title': 'Forms', 'content': FormsToolbarComponent()},
+      {'title': 'Equipment', 'content': EquipmentToolbarComponent()},
+    ];
     _tabController = TabController(length: _tabs.length, vsync: this);
     _pageController = PageController();
 
@@ -52,29 +56,31 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
     return Container(
       child: Column(
         children: [
-          TabBar(
-            controller: _tabController,
-            labelColor: ColorManager.yellow,
-            padding: EdgeInsets.zero,
-            unselectedLabelColor: ColorManager.white,
-            indicatorColor: ColorManager.yellow, // Remove the indicator line
-            labelPadding: EdgeInsets.symmetric(
-              horizontal: AppSize.s8,
-            ), // Remove padding between tab labels
-            isScrollable: true,
-            dividerHeight: 0,
-            tabs:
-                _tabs.map((tab) {
-                  return Tab(text: tab['title']);
-                }).toList(),
+          Container(
+            color: ColorManager.black,
+            child: TabBar(
+              controller: _tabController,
+              labelColor: ColorManager.yellow,
+              padding: EdgeInsets.zero,
+              unselectedLabelColor: ColorManager.white,
+              tabAlignment: TabAlignment.fill,
+              indicatorColor: ColorManager.yellow, // Remove the indicator line
+              labelPadding:
+                  EdgeInsets.zero, // Remove padding between tab labels
+              isScrollable: false,
+              dividerHeight: 0,
+              tabs:
+                  _tabs.map((tab) {
+                    return Tab(text: tab['title']);
+                  }).toList(),
+            ),
           ),
 
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
-                color: ColorManager.grey.withValues(alpha: 0.1),
-              ),
+              decoration: BoxDecoration(color: ColorManager.black),
               child: PageView(
+                physics: NeverScrollableScrollPhysics(),
                 controller: _pageController,
                 onPageChanged: (index) {
                   _tabController.animateTo(index); // Sync TabBar with PageView
