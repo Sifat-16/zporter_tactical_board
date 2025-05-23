@@ -97,7 +97,9 @@ class GameField extends PositionComponent
       // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
       // --- logoPosition is defined and calculated HERE ---
       final Offset logoPosition = Offset(
-        centerX - logoWidth / 2, // Calculate top-left X to center horizontally
+        centerX -
+            logoWidth / 2 +
+            5, // Calculate top-left X to center horizontally
         centerY - logoHeight / 2, // Calculate top-left Y to center vertically
       );
       // --- End of logoPosition definition ---

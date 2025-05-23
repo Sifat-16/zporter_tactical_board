@@ -22,7 +22,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/c
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_utils.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart'; // Adjust path
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Adjust path
@@ -332,7 +331,7 @@ class _FormSpeedDialComponentState
                           : Center(
                             // Your original Center widget
                             child: Icon(
-                              FontAwesomeIcons.arrowPointer,
+                              Icons.arrow_upward,
                               color:
                                   (currentActiveTool == ActiveTool.pointer &&
                                           !isPlacingItem)
@@ -401,6 +400,49 @@ class _FormSpeedDialComponentState
                     }
                   },
                 ),
+            ],
+          ),
+
+          // --- RIGHT SIDE BUTTONS ---
+          Row(
+            spacing: 10,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // if (config.showPlayAnimationButton && animationModel != null)
+              //   Builder(
+              //     builder: (context) {
+              //       final Object heroTag =
+              //           'anim_${animationModel.id.toString()}';
+              //       return GestureDetector(
+              //         onTap: () {
+              //           Navigator.push(
+              //             context,
+              //             MaterialPageRoute(
+              //               builder:
+              //                   (context) => AnimationScreen(
+              //                     animationModel: animationModel,
+              //                     heroTag: heroTag,
+              //                   ),
+              //             ),
+              //           );
+              //         },
+              //         child: Icon(
+              //           // Your original Icon
+              //           Icons.play_circle_outline,
+              //           color: ColorManager.white,
+              //         ),
+              //       );
+              //     },
+              //   ),
+              if (config.showAddNewSceneButton)
+                _buildAddNewScene(
+                  // Your original component call
+                  keyForTutorial: TutorialKeys.addNewSceneButtonKey,
+                  selectedCollection: collectionModel,
+                  collectionList: collectionList,
+                  selectedAnimation: animationModel,
+                  selectedScene: selectedScene,
+                ),
 
               if (config.showTrashButton)
                 GestureDetector(
@@ -415,50 +457,6 @@ class _FormSpeedDialComponentState
                             currentActiveTool != ActiveTool.pointer) ||
                         isPlacingItem,
                   ),
-                ),
-            ],
-          ),
-
-          // --- RIGHT SIDE BUTTONS ---
-          Row(
-            spacing: 10,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (config.showPlayAnimationButton && animationModel != null)
-                Builder(
-                  builder: (context) {
-                    final Object heroTag =
-                        'anim_${animationModel.id.toString()}';
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => AnimationScreen(
-                                  animationModel: animationModel,
-                                  heroTag: heroTag,
-                                ),
-                          ),
-                        );
-                      },
-                      child: Icon(
-                        // Your original Icon
-                        Icons.play_circle_outline,
-                        color: ColorManager.white,
-                      ),
-                    );
-                  },
-                ),
-
-              if (config.showAddNewSceneButton)
-                _buildAddNewScene(
-                  // Your original component call
-                  keyForTutorial: TutorialKeys.addNewSceneButtonKey,
-                  selectedCollection: collectionModel,
-                  collectionList: collectionList,
-                  selectedAnimation: animationModel,
-                  selectedScene: selectedScene,
                 ),
             ],
           ),
@@ -518,7 +516,7 @@ class _FormSpeedDialComponentState
           }
         }
       },
-      child: Icon(Icons.add_circle_outline, color: ColorManager.white),
+      child: Icon(CupertinoIcons.add_circled, color: ColorManager.white),
     );
   }
 
@@ -577,7 +575,7 @@ class _FormSpeedDialComponentState
 
     return Center(
       child: Icon(
-        CupertinoIcons.trash,
+        Icons.delete_sweep_outlined,
         color: isDimmed ? dimmedColor : defaultColor,
         size: 24,
       ),

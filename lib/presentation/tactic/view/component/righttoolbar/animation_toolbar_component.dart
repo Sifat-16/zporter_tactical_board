@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_list_item.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_scene_item.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 
@@ -130,7 +131,71 @@ class _AnimationToolbarComponentState
             _buildAddAnimationCollectionPopup(
               collectionList: collectionList,
               selectedCollection: selectedCollection,
+            )
+          else
+            _buildPlayAnimationWidget(animationModel: selectedAnimation),
+      ],
+    );
+  }
+
+  Widget _buildPlayAnimationWidget({required AnimationModel animationModel}) {
+    return Column(
+      spacing: 10,
+      children: [
+        Builder(
+          builder: (context) {
+            final Object heroTag = 'anim_${animationModel.id.toString()}';
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => AnimationScreen(
+                          animationModel: animationModel,
+                          heroTag: heroTag,
+                        ),
+                  ),
+                );
+              },
+              child: Icon(
+                // Your original Icon
+                Icons.play_circle_outline,
+                color: ColorManager.white,
+              ),
+            );
+          },
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            CustomButton(
+              onTap: () {
+                ref.read(animationProvider.notifier).clearAnimation();
+              },
+              fillColor: ColorManager.dark2,
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              borderRadius: 3,
+              child: Text(
+                "Cancel",
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium!.copyWith(color: ColorManager.white),
+              ),
             ),
+            CustomButton(
+              fillColor: ColorManager.blue,
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              borderRadius: 3,
+              child: Text(
+                "Save",
+                style: Theme.of(
+                  context,
+                ).textTheme.labelMedium!.copyWith(color: ColorManager.white),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -353,64 +418,28 @@ class _AnimationToolbarComponentState
     required AnimationCollectionModel? selectedCollection,
     required AnimationToolbarConfig config, // Receive config
   }) {
-    if (selectedCollection == null)
+    if (selectedCollection == null) {
       return const SizedBox.shrink(); // Only show if a collection is selected
+    }
 
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
         color: ColorManager.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownSelector<AnimationModel>(
-              key: UniqueKey(),
-              label: "Select Animation",
-              items:
-                  animationList, // These are already filtered for the selected collection by the provider
-              initialValue: selectedAnimation,
-              onChanged: (s) {
-                ref.read(animationProvider.notifier).selectAnimation(s);
-                zlog(data: "Animation Chosen ${s?.name}");
-              },
-              itemAsString: (AnimationModel? item) {
-                return item?.name ?? "";
-              },
-            ),
-            if (config.showBackToDefaultButton &&
-                selectedAnimation !=
-                    null) // Conditionally show "Back to default"
-              Padding(
-                // Added Padding for better spacing
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment
-                          .spaceBetween, // Or MainAxisAlignment.start / .center
-                  children: [
-                    CustomButton(
-                      onTap: () {
-                        ref.read(animationProvider.notifier).clearAnimation();
-                      },
-                      fillColor: ColorManager.blue,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      borderRadius: 3,
-                      child: Text(
-                        "Back to default",
-                        style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                          color: ColorManager.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+        child: DropdownSelector<AnimationModel>(
+          key: UniqueKey(),
+          label: "Select Animation",
+          items:
+              animationList, // These are already filtered for the selected collection by the provider
+          initialValue: selectedAnimation,
+          onChanged: (s) {
+            ref.read(animationProvider.notifier).selectAnimation(s);
+            zlog(data: "Animation Chosen ${s?.name}");
+          },
+          itemAsString: (AnimationModel? item) {
+            return item?.name ?? "";
+          },
         ),
       ),
     );
