@@ -166,10 +166,10 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
     if (mounted) {
       setState(() {
         _isCurrentlyPlaying = !_isCurrentlyPlaying;
+        zlog(
+            data: "Came here to change the state toggle ${_isCurrentlyPlaying}",
+            show: true);
       });
-      zlog(
-          data: "Came here to change the state toggle ${_isCurrentlyPlaying}",
-          show: true);
     }
   }
 
