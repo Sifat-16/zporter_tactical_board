@@ -2,6 +2,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart';
+import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -205,7 +206,8 @@ class _TacticboardScreenTabletState
       return const Scaffold(
         backgroundColor: ColorManager.black,
         body: Center(
-          child: CircularProgressIndicator(color: ColorManager.white),
+          child: ZLoader(logoAssetPath: "assets/image/logo.png"),
+          // child: CircularProgressIndicator(color: ColorManager.white),
         ),
       );
     }
