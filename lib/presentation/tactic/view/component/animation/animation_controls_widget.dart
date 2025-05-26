@@ -164,6 +164,7 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
       zlog(data: "ControlsWidget: Play button pressed.");
     }
     if (mounted) {
+      zlog(data: "Came here to change the state");
       setState(() {
         _isCurrentlyPlaying = !_isCurrentlyPlaying;
       });
