@@ -83,64 +83,72 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
       // Keep overall padding
       padding: widget.padding ?? EdgeInsets.zero,
       // Replace DropdownButtonFormField with DropdownMenu
-      child: DropdownMenu<T?>(
-        hintText: widget.hint,
-        expandedInsets: EdgeInsets.zero,
-        enableSearch: true,
-        searchCallback: (items, query) {
-          return null;
-        },
-        // Controller manages the text field's display
-        controller: _controller,
-        // Provide initial selection (DropdownMenu handles this internally too, but sync with controller)
-        initialSelection: _selectedValue,
-        // Label Widget
-        label: Text(
-          widget.label,
-          style: textTheme.labelLarge!.copyWith(
-            color: ColorManager.white,
-            fontWeight: FontWeight.bold,
+      child: LayoutBuilder(builder: (context, constraints) {
+        return DropdownMenu<T?>(
+          width: constraints.maxWidth,
+          hintText: widget.hint,
+          expandedInsets: EdgeInsets.zero,
+          enableSearch: true,
+          searchCallback: (items, query) {
+            return null;
+          },
+          // Controller manages the text field's display
+          controller: _controller,
+          // Provide initial selection (DropdownMenu handles this internally too, but sync with controller)
+          initialSelection: _selectedValue,
+          // Label Widget
+          label: Text(
+            widget.label,
+            style: textTheme.labelLarge!.copyWith(
+              color: ColorManager.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        dropdownMenuEntries: <DropdownMenuEntry<T?>>[
-          ...widget.items.map<DropdownMenuEntry<T?>>((T item) {
-            return DropdownMenuEntry<T?>(
-              value: item,
-              labelWidget: Text(
-                widget.itemAsString(item),
-                style: dropdownHintStyle,
-              ),
-              label: widget.itemAsString(item), // Required label string
-              // Optional: Use labelWidget if specific styling per item is needed
-              // labelWidget: Text(widget.itemAsString(item), style: dropdownItemStyle),
-            );
-          }),
-        ],
-        // Callback when an item is selected
-        onSelected: (T? value) {
-          // Update internal state
-          setState(() {
-            _selectedValue = value;
-          });
-          widget.onChanged(value);
-        },
+          dropdownMenuEntries: <DropdownMenuEntry<T?>>[
+            ...widget.items.map<DropdownMenuEntry<T?>>((T item) {
+              return DropdownMenuEntry<T?>(
+                value: item,
+                labelWidget: SizedBox(
+                  width: constraints.maxWidth,
+                  child: Text(
+                    widget.itemAsString(item),
+                    style: dropdownHintStyle,
+                  ),
+                ),
+                label: widget.itemAsString(item), // Required label string
+                // Optional: Use labelWidget if specific styling per item is needed
+                // labelWidget: Text(widget.itemAsString(item), style: dropdownItemStyle),
+              );
+            }),
+          ],
+          // Callback when an item is selected
+          onSelected: (T? value) {
+            // Update internal state
+            setState(() {
+              _selectedValue = value;
+            });
+            widget.onChanged(value);
+          },
 
-        // Style the dropdown menu itself (background, text style for items)
-        menuStyle: MenuStyle(
-          backgroundColor: WidgetStatePropertyAll<Color>(ColorManager.black),
-        ),
+          // Style the dropdown menu itself (background, text style for items)
+          menuStyle: MenuStyle(
+            backgroundColor: WidgetStatePropertyAll<Color>(ColorManager.black),
+          ),
 
-        // Style the text field part using InputDecorationTheme or directly
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(),
-          floatingLabelBehavior: FloatingLabelBehavior.auto,
+          // Style the text field part using InputDecorationTheme or directly
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(),
 
-          // You might need to customize filled, fillColor etc. based on design
-        ),
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
 
-        // The text style within the TextField part (controlled by controller)
-        textStyle: dropdownItemStyle, // Use same style for selected item text?
-      ),
+            // You might need to customize filled, fillColor etc. based on design
+          ),
+
+          // The text style within the TextField part (controlled by controller)
+          textStyle:
+              dropdownItemStyle, // Use same style for selected item text?
+        );
+      }),
     );
   }
 }

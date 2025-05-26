@@ -19,6 +19,7 @@ class TacticApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'Zporter Board',
           builder: BotToastInit(),
+
           navigatorObservers: [BotToastNavigatorObserver()],
           themeMode: ThemeMode.system,
           home: Scaffold(
