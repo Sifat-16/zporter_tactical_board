@@ -1,15 +1,9 @@
-import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart'; // Assuming this path
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Assuming this path
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
-// GlobalKey for the game widget, managed by AnimationScreen
-GlobalKey<RiverpodAwareGameWidgetState> animationWidgetKey =
-    GlobalKey<RiverpodAwareGameWidgetState>();
-
-// Custom SliderThumbShape to display text inside the thumb
 class PaceSliderThumbShape extends SliderComponentShape {
   final double enabledThumbRadius;
   final String currentPaceText;
@@ -160,8 +154,6 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
   }
 
   void _togglePlayPause() async {
-    if (!mounted) return;
-
     if (_isCurrentlyPlaying) {
       widget.game.pauseAnimation();
       zlog(data: "ControlsWidget: Pause button pressed.");
@@ -169,30 +161,25 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
       await widget.game.playAnimation();
       zlog(data: "ControlsWidget: Play button pressed.");
     }
-    if (mounted) {
-      setState(() {
-        _isCurrentlyPlaying = !_isCurrentlyPlaying;
-      });
-    }
+    setState(() {
+      _isCurrentlyPlaying = !_isCurrentlyPlaying;
+    });
   }
 
   void _handleHardReset() {
     zlog(data: "ControlsWidget: Hard Reset button pressed.");
     widget.game.pauseAnimation();
+    setState(() {
+      _isCurrentlyPlaying = false;
+      _currentUiPaceFactor =
+          _paceValues.contains(1.0) ? 1.0 : _paceValues.first;
+    });
 
-    if (mounted) {
-      setState(() {
-        _isCurrentlyPlaying = false;
-        _currentUiPaceFactor =
-            _paceValues.contains(1.0) ? 1.0 : _paceValues.first;
-      });
-    }
     widget.game.resetAnimation();
     // widget.onHardResetRequested();
   }
 
   void _increaseSpeed() {
-    if (!mounted) return;
     int currentIndex = _paceValues.indexOf(_currentUiPaceFactor);
     if (currentIndex < _paceValues.length - 1) {
       _setNewPace(_paceValues[currentIndex + 1]);
@@ -200,7 +187,6 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
   }
 
   void _decreaseSpeed() {
-    if (!mounted) return;
     int currentIndex = _paceValues.indexOf(_currentUiPaceFactor);
     if (currentIndex > 0) {
       _setNewPace(_paceValues[currentIndex - 1]);
@@ -216,14 +202,11 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
       return;
     }
     if (_currentUiPaceFactor == newPace) return;
-    if (!mounted) return;
 
     widget.game.setAnimationPace(newPace);
-    if (mounted) {
-      setState(() {
-        _currentUiPaceFactor = newPace;
-      });
-    }
+    setState(() {
+      _currentUiPaceFactor = newPace;
+    });
     zlog(data: "ControlsWidget: Pace factor set to $_currentUiPaceFactor");
   }
 
