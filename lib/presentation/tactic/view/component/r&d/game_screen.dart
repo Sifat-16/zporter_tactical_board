@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flame/extensions.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
@@ -11,13 +9,12 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/animation_controls_widget.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/form_speed_dial_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
-
-import 'animation_export_preview.dart';
 
 enum AnimationShareType { image, video }
 
@@ -49,6 +46,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   late TacticBoard tacticBoardGame;
   bool gameInitialized = false;
   int previousAngle = 0;
+
+  final closeButtonColor = Colors.grey[300];
+  final closeButtonBackgroundColor = Colors.black;
+  final controlButtonColor = Colors.white; // This will be the thumb color
+  final controlButtonBackgroundColor = Colors.black.withOpacity(0.6);
 
   @override
   void initState() {
@@ -84,9 +86,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         );
         zlog(data: "Build new tactic board");
         ref.read(boardProvider.notifier).updateGameBoard(tacticBoardGame);
-        ref
-            .read(boardProvider.notifier)
-            .updateBoardColor(
+        ref.read(boardProvider.notifier).updateBoardColor(
               ref.read(animationProvider.notifier).getFieldColor(),
             );
         gameInitialized = true;
@@ -97,6 +97,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
+    final ap = ref.watch(animationProvider);
     final lp = ref.watch(lineProvider);
     int quarterTurns = bp.boardAngle;
     if (quarterTurns != previousAngle) {
@@ -130,12 +131,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         );
         final Vector2 screenRelativeOffset =
             dragDetails.offset.toVector2() - globalGameScreenOffset.toVector2();
-        final double dx =
-            screenRelativeOffset
-                .x; // Horizontal distance from left in screen coords
-        final double dy =
-            screenRelativeOffset
-                .y; // Vertical distance from top in screen coords
+        final double dx = screenRelativeOffset
+            .x; // Horizontal distance from left in screen coords
+        final double dy = screenRelativeOffset
+            .y; // Vertical distance from top in screen coords
 
         Vector2 transformedOffset;
         if (quarterTurns == 1) {
@@ -182,41 +181,40 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   ),
                 ),
               ),
-
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: 30,
-                  padding: EdgeInsets.symmetric(vertical: 2, horizontal: 10),
-                  decoration: BoxDecoration(),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FormSpeedDialComponent(
-                        tacticBoardGame: tacticBoardGame,
-                        config:
-                            widget.config ??
-                            FormSpeedDialConfig(
-                              onShare: () async {
-                                AnimationModel? selectedAnimation =
-                                    ref
-                                        .read(animationProvider)
-                                        .selectedAnimationModel;
-                                if (selectedAnimation == null) {
-                                  /// no animation here, so direct go for image
-                                  await AnimationSharer.captureAndShare(
-                                    _gameBoundaryKey,
-                                    fileName: "Test scene",
-                                  );
-                                  zlog(
-                                    data: "After sharing tapped, came result",
-                                  );
-                                } else {
-                                  /// animation is here, give user option to export
-                                  AnimationShareType? animationShareType =
-                                      await _showShareChoiceDialog(context);
-                                  if (animationShareType ==
-                                      AnimationShareType.image) {
+              if (bp.isAnimating)
+                Align(
+                    alignment: Alignment.bottomCenter,
+                    child: SizedBox(
+                      height: 35,
+                      child: AnimationControlsWidget(
+                          game: tacticBoardGame,
+                          animationModel: ref
+                              .read(animationProvider)
+                              .selectedAnimationModel!
+                              .copyWith(),
+                          initialIsPlaying: true,
+                          initialPaceFactor: 1),
+                    ))
+              else
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    height: 30,
+                    padding: EdgeInsets.symmetric(vertical: 2, horizontal: 10),
+                    decoration: BoxDecoration(),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FormSpeedDialComponent(
+                          tacticBoardGame: tacticBoardGame,
+                          config: widget.config ??
+                              FormSpeedDialConfig(
+                                onShare: () async {
+                                  AnimationModel? selectedAnimation = ref
+                                      .read(animationProvider)
+                                      .selectedAnimationModel;
+                                  if (selectedAnimation == null) {
+                                    /// no animation here, so direct go for image
                                     await AnimationSharer.captureAndShare(
                                       _gameBoundaryKey,
                                       fileName: "Test scene",
@@ -224,60 +222,102 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     zlog(
                                       data: "After sharing tapped, came result",
                                     );
-                                  } else if (animationShareType ==
-                                      AnimationShareType.video) {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder:
-                                            (_) => Scaffold(
-                                              body: Center(
-                                                child: AnimationExportPreview(
-                                                  animationModel:
-                                                      selectedAnimation, // Pass the current animation model
-
-                                                  onExportComplete: (
-                                                    List<int>? gif,
-                                                  ) {
-                                                    zlog(
-                                                      data:
-                                                          "AnimationScreen: Frame capture in dialog COMPLETE. {frames.length} frames received.",
-                                                    );
-                                                    if (gif != null) {
-                                                      Navigator.pop(context);
-                                                      AnimationSharer.createGifAndShare(
-                                                        Uint8List.fromList(gif),
-                                                      );
-                                                    }
-
-                                                    // if (Navigator.canPop(
-                                                    //   context,
-                                                    // )) {
-                                                    //   Navigator.of(
-                                                    //     context,
-                                                    //   ).pop(); // Close the preview dialog
-                                                    // }
-                                                  },
-                                                  onExportCancelled: () {
-                                                    zlog(
-                                                      data:
-                                                          "AnimationScreen: Export cancelled by user from dialog.",
-                                                    );
-                                                    // No need to pop, dialog handles its own pop on cancel
-                                                  },
-                                                ),
-                                              ),
-                                            ),
-                                      ),
-                                    );
+                                  } else {
+                                    /// animation is here, give user option to export
+                                    AnimationShareType? animationShareType =
+                                        await _showShareChoiceDialog(context);
+                                    if (animationShareType ==
+                                        AnimationShareType.image) {
+                                      await AnimationSharer.captureAndShare(
+                                        _gameBoundaryKey,
+                                        fileName: "Test scene",
+                                      );
+                                      zlog(
+                                        data:
+                                            "After sharing tapped, came result",
+                                      );
+                                    } else if (animationShareType ==
+                                        AnimationShareType.video) {
+                                      // Navigator.of(context).push(
+                                      //   MaterialPageRoute(
+                                      //     builder: (_) => Scaffold(
+                                      //       body: Center(
+                                      //         child: AnimationExportPreview(
+                                      //           animationModel:
+                                      //               selectedAnimation, // Pass the current animation model
+                                      //
+                                      //           onExportComplete: (
+                                      //             List<int>? gif,
+                                      //           ) {
+                                      //             zlog(
+                                      //               data:
+                                      //                   "AnimationScreen: Frame capture in dialog COMPLETE. {frames.length} frames received.",
+                                      //             );
+                                      //             if (gif != null) {
+                                      //               Navigator.pop(context);
+                                      //               AnimationSharer
+                                      //                   .createGifAndShare(
+                                      //                 Uint8List.fromList(gif),
+                                      //               );
+                                      //             }
+                                      //
+                                      //             // if (Navigator.canPop(
+                                      //             //   context,
+                                      //             // )) {
+                                      //             //   Navigator.of(
+                                      //             //     context,
+                                      //             //   ).pop(); // Close the preview dialog
+                                      //             // }
+                                      //           },
+                                      //           onExportCancelled: () {
+                                      //             zlog(
+                                      //               data:
+                                      //                   "AnimationScreen: Export cancelled by user from dialog.",
+                                      //             );
+                                      //             // No need to pop, dialog handles its own pop on cancel
+                                      //           },
+                                      //         ),
+                                      //       ),
+                                      //     ),
+                                      //   ),
+                                      // );
+                                    }
                                   }
-                                }
-                              },
-                            ),
-                      ),
-                    ],
+                                },
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              if (bp.isAnimating)
+                Positioned(
+                  top: 10.0,
+                  right: 10.0,
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      splashColor: Colors.white12,
+                      onTap: () {
+                        tacticBoardGame.stopAnimation();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: closeButtonBackgroundColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.close,
+                          color: closeButtonColor,
+                          size: 26.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );

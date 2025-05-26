@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/animation_copy_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
@@ -32,8 +33,8 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 
 final animationProvider =
     StateNotifierProvider<AnimationController, AnimationState>(
-      (ref) => AnimationController(ref),
-    );
+  (ref) => AnimationController(ref),
+);
 
 class AnimationController extends StateNotifier<AnimationState> {
   AnimationController(this.ref) : super(AnimationState());
@@ -71,10 +72,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedAnimationCollectionModel: animationCollectionModel,
       animations: animationCollectionModel?.animations ?? [],
       selectedAnimationModel: selectedAnimation,
-      selectedScene:
-          changeSelectedScene == true
-              ? selectedAnimation?.animationScenes.first
-              : state.selectedScene,
+      selectedScene: changeSelectedScene == true
+          ? selectedAnimation?.animationScenes.first
+          : state.selectedScene,
       showNewCollectionInput: false,
       showNewAnimationInput: false,
       showQuickSave: false,
@@ -116,13 +116,13 @@ class AnimationController extends StateNotifier<AnimationState> {
               await _defaultAnimationRepository.getAllDefaultAnimations();
           AnimationCollectionModel animationCollectionModel =
               AnimationCollectionModel(
-                id: DefaultAnimationConstants.default_animation_collection_id,
-                name: "Default Animation",
-                animations: default_animations,
-                userId: ref.read(authProvider).userId ?? "",
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-              );
+            id: DefaultAnimationConstants.default_animation_collection_id,
+            name: "Default Animation",
+            animations: default_animations,
+            userId: ref.read(authProvider).userId ?? "",
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
 
           collections.add(animationCollectionModel);
         }
@@ -144,17 +144,18 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void createNewCollection(String newCollectionName) async {
-    BotToast.showLoading();
+    // BotToast.showLoading();
+    showZLoader();
     try {
       AnimationCollectionModel animationCollectionModel =
           AnimationCollectionModel(
-            id: RandomGenerator.generateId(),
-            userId: _getUserId(),
-            name: newCollectionName,
-            animations: [],
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+        id: RandomGenerator.generateId(),
+        userId: _getUserId(),
+        name: newCollectionName,
+        animations: [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
 
       List<AnimationCollectionModel> collections = state.animationCollections;
 
@@ -184,7 +185,8 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void createNewAnimation({required AnimationCreateItem newAnimation}) async {
-    BotToast.showLoading();
+    // BotToast.showLoading();
+    showZLoader();
     try {
       AnimationModel animationModel = AnimationModel(
         userId: _getUserId(),
@@ -214,8 +216,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           fieldColor: BoardConstant.field_color,
           id: RandomGenerator.generateId(),
           userId: _getUserId(),
-          fieldSize:
-              ref.read(boardProvider.notifier).fetchFieldSize() ??
+          fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
               Vector2(0, 0),
           components: newAnimation.items,
           createdAt: DateTime.now(),
@@ -277,7 +278,8 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
       return;
     }
-    BotToast.showLoading();
+    // BotToast.showLoading();
+    showZLoader();
     try {
       animationCollectionModel.animations.add(newAnimationModel);
       animationCollectionModel = await _saveAnimationCollectionUseCase.call(
@@ -328,7 +330,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     AnimationModel? selectedAnimation = state.selectedAnimationModel;
     int index =
         selectedAnimation?.animationScenes.indexWhere((a) => a.id == sceneId) ??
-        -1;
+            -1;
     if (index != -1) {
       try {
         AnimationItemModel scene = selectedAnimation!.animationScenes[index];
@@ -373,7 +375,8 @@ class AnimationController extends StateNotifier<AnimationState> {
         selectedCollection.animations[animationIndex] = selectedAnimation;
 
         if (showLoading) {
-          BotToast.showLoading();
+          // BotToast.showLoading();
+          showZLoader();
         }
 
         try {
@@ -460,8 +463,7 @@ class AnimationController extends StateNotifier<AnimationState> {
             userId: _getUserId(),
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
-            fieldSize:
-                ref.read(boardProvider.notifier).fetchFieldSize() ??
+            fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
                 Vector2(0, 0),
           ),
         );
@@ -554,8 +556,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           userId: _getUserId(),
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
-          fieldSize:
-              ref.read(boardProvider.notifier).fetchFieldSize() ??
+          fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
               Vector2.zero(),
         ),
       );
@@ -592,9 +593,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       zlog(data: "Default animation model List ${changeModel.components}");
       SaveDefaultAnimationParam defaultAnimationParam =
           SaveDefaultAnimationParam(
-            animationItems: defaultAnimations,
-            userId: _getUserId(),
-          );
+        animationItems: defaultAnimations,
+        userId: _getUserId(),
+      );
       _saveDefaultAnimationUseCase.call(defaultAnimationParam);
 
       state = state.copyWith(selectedScene: changeModel);
@@ -671,13 +672,14 @@ class AnimationController extends StateNotifier<AnimationState> {
     List<AnimationItemModel> defaultItems = state.defaultAnimationItems;
     AnimationItemModel deletedItem = defaultItems.removeAt(index);
 
-    BotToast.showLoading();
+    // BotToast.showLoading();
+    showZLoader();
     try {
       SaveDefaultAnimationParam defaultAnimationParam =
           SaveDefaultAnimationParam(
-            animationItems: defaultItems,
-            userId: _getUserId(),
-          );
+        animationItems: defaultItems,
+        userId: _getUserId(),
+      );
 
       defaultItems = await _saveDefaultAnimationUseCase.call(
         defaultAnimationParam,
@@ -868,8 +870,7 @@ class AnimationController extends StateNotifier<AnimationState> {
             userId: _getUserId(),
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
-            fieldSize:
-                ref.read(boardProvider.notifier).fetchFieldSize() ??
+            fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
                 Vector2(0, 0),
           ),
         );

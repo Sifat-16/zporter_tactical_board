@@ -20,7 +20,6 @@ class DropdownSelector<T> extends StatefulWidget {
     this.emptyItem,
     required this.items,
     this.hint,
-
     this.initialValue,
     required this.onChanged,
     this.padding,
@@ -42,12 +41,11 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
     _selectedValue = widget.initialValue;
     // Initialize controller text based on initial selection
     _controller = TextEditingController(
-      text:
-          _selectedValue == null
-              ? ''
-              : widget.itemAsString(
-                _selectedValue as T,
-              ), // Display "" or item string
+      text: _selectedValue == null
+          ? ''
+          : widget.itemAsString(
+              _selectedValue as T,
+            ), // Display "" or item string
     );
   }
 
@@ -58,12 +56,11 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
     setState(() {
       _selectedValue = widget.initialValue;
 
-      _controller.text =
-          _selectedValue == null
-              ? ''
-              : widget.itemAsString(
-                _selectedValue as T,
-              ); // Display "" or item string
+      _controller.text = _selectedValue == null
+          ? ''
+          : widget.itemAsString(
+              _selectedValue as T,
+            ); // Display "" or item string
     });
     zlog(data: "Selector update ${widget.initialValue.runtimeType}");
   }
@@ -88,19 +85,15 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
       // Replace DropdownButtonFormField with DropdownMenu
       child: DropdownMenu<T?>(
         hintText: widget.hint,
-
         expandedInsets: EdgeInsets.zero,
         enableSearch: true,
-
         searchCallback: (items, query) {
           return null;
         },
-
         // Controller manages the text field's display
         controller: _controller,
         // Provide initial selection (DropdownMenu handles this internally too, but sync with controller)
         initialSelection: _selectedValue,
-
         // Label Widget
         label: Text(
           widget.label,

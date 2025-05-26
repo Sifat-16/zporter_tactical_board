@@ -10,9 +10,9 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_list_item.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_scene_item.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 import 'animation_data_input_component.dart';
 
@@ -98,7 +98,6 @@ class _AnimationToolbarComponentState
                     collectionList: collectionList,
                     selectedCollection: selectedCollection,
                   ),
-
                 if (config
                     .showAnimationSelector) // Conditionally show Animation Box
                   _buildAnimationBox(
@@ -111,21 +110,18 @@ class _AnimationToolbarComponentState
                     config:
                         config, // Pass config to control "Back to default" button visibility
                   ),
-
                 if (config
                     .showAnimationList) // Conditionally show Animation/Scene List
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
-                    child:
-                        selectedAnimation == null
-                            ? _buildAnimationList(ap: ap)
-                            : _buildAnimationSceneList(ap: ap),
+                    child: selectedAnimation == null
+                        ? _buildAnimationList(ap: ap)
+                        : _buildAnimationSceneList(ap: ap),
                   ),
               ],
             ),
           ),
         ),
-
         if (config.showAnimationList)
           if (selectedAnimation == null)
             _buildAddAnimationCollectionPopup(
@@ -142,30 +138,39 @@ class _AnimationToolbarComponentState
     return Column(
       spacing: 10,
       children: [
-        Builder(
-          builder: (context) {
-            final Object heroTag = 'anim_${animationModel.id.toString()}';
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) => AnimationScreen(
-                          animationModel: animationModel,
-                          heroTag: heroTag,
-                        ),
-                  ),
-                );
-              },
-              child: Icon(
-                // Your original Icon
-                Icons.play_circle_outline,
-                color: ColorManager.white,
-              ),
-            );
+        GestureDetector(
+          onTap: () {
+            ref.read(boardProvider.notifier).toggleAnimating();
           },
+          child: Icon(
+            // Your original Icon
+            Icons.play_circle_outline,
+            color: ColorManager.white,
+          ),
         ),
+        // Builder(
+        //   builder: (context) {
+        //     final Object heroTag = 'anim_${animationModel.id.toString()}';
+        //     return GestureDetector(
+        //       onTap: () {
+        //         Navigator.push(
+        //           context,
+        //           MaterialPageRoute(
+        //             builder: (context) => AnimationScreen(
+        //               animationModel: animationModel,
+        //               heroTag: heroTag,
+        //             ),
+        //           ),
+        //         );
+        //       },
+        //       child: Icon(
+        //         // Your original Icon
+        //         Icons.play_circle_outline,
+        //         color: ColorManager.white,
+        //       ),
+        //     );
+        //   },
+        // ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -226,11 +231,9 @@ class _AnimationToolbarComponentState
                   onTap: () async {
                     String? newCollectionName =
                         await showNewCollectionInputDialog(
-                          context,
-                          collectionList
-                              .map((c) => c.name.toLowerCase())
-                              .toList(),
-                        );
+                      context,
+                      collectionList.map((c) => c.name.toLowerCase()).toList(),
+                    );
                     if (newCollectionName != null) {
                       ref
                           .read(animationProvider.notifier)
@@ -242,23 +245,21 @@ class _AnimationToolbarComponentState
                   child: Text(
                     "New Collection",
                     style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                      color: ColorManager.white,
-                    ),
+                          color: ColorManager.white,
+                        ),
                   ),
                 ),
                 PopupMenuItem(
                   onTap: () async {
                     AnimationCreateItem? animationCreateItem =
                         await showNewAnimationInputDialog(
-                          context,
-                          collectionList: collectionList,
-                          selectedCollection: selectedCollection,
-                        );
+                      context,
+                      collectionList: collectionList,
+                      selectedCollection: selectedCollection,
+                    );
 
                     if (animationCreateItem != null) {
-                      ref
-                          .read(animationProvider.notifier)
-                          .createNewAnimation(
+                      ref.read(animationProvider.notifier).createNewAnimation(
                             newAnimation: animationCreateItem,
                           );
                     }
@@ -266,8 +267,8 @@ class _AnimationToolbarComponentState
                   child: Text(
                     "New Animation",
                     style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                      color: ColorManager.white,
-                    ),
+                          color: ColorManager.white,
+                        ),
                   ),
                 ),
               ];
@@ -304,15 +305,15 @@ class _AnimationToolbarComponentState
           onCopy: () async {
             AnimationCopyItem? animationCopyItem =
                 await showAnimationCopyDialog(
-                  context,
-                  title: "Copy Animation",
-                  initialValue: "${animation.name} copy",
-                  buttonText: "Copy",
-                  hintText: "${animation.name} copy",
-                  collectionList: collectionList,
-                  animation: animation,
-                  selectedCollection: selectedCollection,
-                );
+              context,
+              title: "Copy Animation",
+              initialValue: "${animation.name} copy",
+              buttonText: "Copy",
+              hintText: "${animation.name} copy",
+              collectionList: collectionList,
+              animation: animation,
+              selectedCollection: selectedCollection,
+            );
             if (animationCopyItem != null) {
               ref
                   .read(animationProvider.notifier)

@@ -10,6 +10,8 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game_animation.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
@@ -34,7 +36,11 @@ String? boardComparator;
 
 // --- Base Abstract Class (Unchanged) ---
 abstract class TacticBoardGame extends FlameGame
-    with DragCallbacks, TapDetector, RiverpodGameMixin {
+    with
+        DragCallbacks,
+        TapDetector,
+        RiverpodGameMixin,
+        AnimationPlaybackControls {
   late GameField gameField;
   late DrawingBoardComponent drawingBoard;
   addItem(FieldItemModel item, {bool save = true});
@@ -46,8 +52,8 @@ class TacticBoard extends TacticBoardGame
         DrawingInputHandler, // Provides drawing state and drag handlers
         ItemManagement, // Provides addItem, _checkAndRemoveComponent, _copyItem
         LayeringManagement, // Provides layering helpers and _moveUp/DownElement
-        BoardRiverpodIntegration // Provides setupBoardListeners
-        {
+        BoardRiverpodIntegration, // Provides setupBoardListeners
+        AnimationPlaybackMixin {
   AnimationItemModel? scene;
   bool saveToDb;
   Function(AnimationItemModel?)? onSceneSave;
@@ -59,6 +65,8 @@ class TacticBoard extends TacticBoardGame
 
   // --- Variable to store the previous state for comparison ---
   // Ensure this is a member variable if used across update calls
+
+  bool isAnimating = false;
 
   @override
   FutureOr<void> onLoad() async {
@@ -160,9 +168,7 @@ class TacticBoard extends TacticBoardGame
           ref.read(boardProvider.notifier).onAnimationSave();
 
       // Consider if toJson() is expensive; maybe compare models directly if possible
-      String current = items
-          .map((e) => e.toJson())
-          .join(
+      String current = items.map((e) => e.toJson()).join(
             ',',
           ); // Use join for a more stable string representation if order matters
       current =
@@ -186,19 +192,23 @@ class TacticBoard extends TacticBoardGame
   }
 
   updateDatabase() {
-    zlog(
-      data:
-          "Updated database... ${ref.read(boardProvider.notifier).onAnimationSave()}",
-    ); // Log that the check is running
+    if (!isAnimating) {
+      zlog(
+        data:
+            "Updated database... ${ref.read(boardProvider.notifier).onAnimationSave()}",
+      ); // Log that the check is running
 
-    ref
-        .read(animationProvider.notifier)
-        .updateDatabaseOnChange(saveToDb: saveToDb)
-        .then((a) {
-          zlog(data: "After save coming animation item model ${a?.toJson()}");
-          ref.read(animationProvider.notifier).saveHistory(scene: a);
-          onSceneSave?.call(a);
-        });
+      ref
+          .read(animationProvider.notifier)
+          .updateDatabaseOnChange(saveToDb: saveToDb)
+          .then((a) {
+        zlog(data: "After save coming animation item model ${a?.toJson()}");
+        ref.read(animationProvider.notifier).saveHistory(scene: a);
+        onSceneSave?.call(a);
+      });
+    } else {
+      zlog(data: "Is animating");
+    }
   }
 
   void redrawLines() {

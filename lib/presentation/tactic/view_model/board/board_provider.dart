@@ -315,4 +315,8 @@ class BoardController extends StateNotifier<BoardState> {
       );
     }
   }
+
+  void toggleAnimating() {
+    state = state.copyWith(isAnimating: !state.isAnimating);
+  }
 }

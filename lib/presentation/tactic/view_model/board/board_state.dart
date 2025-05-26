@@ -37,94 +37,91 @@ class BoardState {
   final bool showFullScreen;
   final bool isDraggingElementToBoard;
   final bool refreshBoard;
+  final bool isAnimating;
 
-  const BoardState({
-    this.players = const [],
-    this.equipments = const [],
-    this.lines = const [],
-    this.texts = const [],
+  const BoardState(
+      {this.players = const [],
+      this.equipments = const [],
+      this.lines = const [],
+      this.texts = const [],
+      this.shapes = const [],
+      this.itemToDelete,
+      this.freeDraw = const [],
+      this.animationModelJson = const {},
+      this.animationModel,
+      this.showAnimation = false,
+      this.selectedItemOnTheBoard,
+      this.forceItemModelNull = false,
+      this.moveDown = false,
+      this.moveUp = false,
+      this.copyItem,
+      this.boardColor = BoardConstant.field_color,
+      this.fieldSize,
+      // this.tabController,
+      this.tacticBoardGame,
+      this.refreshBoard = false,
+      this.boardAngle = 0,
+      this.showFullScreen = false,
+      this.isDraggingElementToBoard = false,
+      this.isAnimating = false});
 
-    this.shapes = const [],
-    this.itemToDelete,
-    this.freeDraw = const [],
-    this.animationModelJson = const {},
-    this.animationModel,
-    this.showAnimation = false,
-    this.selectedItemOnTheBoard,
-    this.forceItemModelNull = false,
-    this.moveDown = false,
-    this.moveUp = false,
-    this.copyItem,
-    this.boardColor = BoardConstant.field_color,
-    this.fieldSize,
-    // this.tabController,
-    this.tacticBoardGame,
-    this.refreshBoard = false,
-    this.boardAngle = 0,
-    this.showFullScreen = false,
-    this.isDraggingElementToBoard = false,
-  });
-
-  BoardState copyWith({
-    List<PlayerModel>? players,
-    List<EquipmentModel>? equipments,
-    List<LineModelV2>? lines,
-    List<ShapeModel>? shapes,
-    List<TextModel>? texts,
-    List<FreeDrawModelV2>? freeDraws,
-    AnimationModel? animationModel,
-    bool? showAnimation,
-    FieldItemModel? selectedItemOnTheBoard,
-    bool forceItemModelNull = false,
-    FieldItemModel? itemToDelete,
-    bool forceItemToDeleteNull = false,
-    FieldItemModel? copyItem,
-    bool? moveDown,
-    bool? moveUp,
-    Color? boardColor,
-    Map<String, dynamic>? animationModelJson,
-    Vector2? fieldSize,
-    // TabController? tabController,
-    Object? tacticBoardGame = _sentinel,
-    int? boardAngle,
-    bool? refreshBoard,
-    bool? showFullScreen,
-    bool? isDraggingElementToBoard,
-  }) {
+  BoardState copyWith(
+      {List<PlayerModel>? players,
+      List<EquipmentModel>? equipments,
+      List<LineModelV2>? lines,
+      List<ShapeModel>? shapes,
+      List<TextModel>? texts,
+      List<FreeDrawModelV2>? freeDraws,
+      AnimationModel? animationModel,
+      bool? showAnimation,
+      FieldItemModel? selectedItemOnTheBoard,
+      bool forceItemModelNull = false,
+      FieldItemModel? itemToDelete,
+      bool forceItemToDeleteNull = false,
+      FieldItemModel? copyItem,
+      bool? moveDown,
+      bool? moveUp,
+      Color? boardColor,
+      Map<String, dynamic>? animationModelJson,
+      Vector2? fieldSize,
+      // TabController? tabController,
+      Object? tacticBoardGame = _sentinel,
+      int? boardAngle,
+      bool? refreshBoard,
+      bool? showFullScreen,
+      bool? isDraggingElementToBoard,
+      bool? isAnimating}) {
     return BoardState(
-      players: players ?? this.players,
-      equipments: equipments ?? this.equipments,
-      shapes: shapes ?? this.shapes,
-      freeDraw: freeDraws ?? freeDraw,
-      texts: texts ?? this.texts,
-      animationModel: animationModel ?? this.animationModel,
-      showAnimation: showAnimation ?? this.showAnimation,
-      selectedItemOnTheBoard:
-          forceItemModelNull == true
-              ? null
-              : selectedItemOnTheBoard ?? this.selectedItemOnTheBoard,
-      itemToDelete:
-          forceItemToDeleteNull == true
-              ? null
-              : itemToDelete ?? this.itemToDelete,
-      copyItem: copyItem,
-      moveDown: moveDown ?? this.moveDown,
-      moveUp: moveUp ?? this.moveUp,
-      boardColor: boardColor ?? this.boardColor,
-      animationModelJson: animationModelJson ?? this.animationModelJson,
-      fieldSize: fieldSize ?? this.fieldSize,
-      // tabController: tabController ?? this.tabController,
-      tacticBoardGame:
-          tacticBoardGame == _sentinel
-              ? this.tacticBoardGame
-              : tacticBoardGame as TacticBoardGame?,
-      boardAngle: boardAngle ?? this.boardAngle,
-      lines: lines ?? this.lines,
-      showFullScreen: showFullScreen ?? this.showFullScreen,
-      isDraggingElementToBoard:
-          isDraggingElementToBoard ?? this.isDraggingElementToBoard,
-      refreshBoard: refreshBoard ?? this.refreshBoard,
-    );
+        players: players ?? this.players,
+        equipments: equipments ?? this.equipments,
+        shapes: shapes ?? this.shapes,
+        freeDraw: freeDraws ?? freeDraw,
+        texts: texts ?? this.texts,
+        animationModel: animationModel ?? this.animationModel,
+        showAnimation: showAnimation ?? this.showAnimation,
+        selectedItemOnTheBoard: forceItemModelNull == true
+            ? null
+            : selectedItemOnTheBoard ?? this.selectedItemOnTheBoard,
+        itemToDelete: forceItemToDeleteNull == true
+            ? null
+            : itemToDelete ?? this.itemToDelete,
+        copyItem: copyItem,
+        moveDown: moveDown ?? this.moveDown,
+        moveUp: moveUp ?? this.moveUp,
+        boardColor: boardColor ?? this.boardColor,
+        animationModelJson: animationModelJson ?? this.animationModelJson,
+        fieldSize: fieldSize ?? this.fieldSize,
+        // tabController: tabController ?? this.tabController,
+        tacticBoardGame: tacticBoardGame == _sentinel
+            ? this.tacticBoardGame
+            : tacticBoardGame as TacticBoardGame?,
+        boardAngle: boardAngle ?? this.boardAngle,
+        lines: lines ?? this.lines,
+        showFullScreen: showFullScreen ?? this.showFullScreen,
+        isDraggingElementToBoard:
+            isDraggingElementToBoard ?? this.isDraggingElementToBoard,
+        refreshBoard: refreshBoard ?? this.refreshBoard,
+        isAnimating: isAnimating ?? this.isAnimating);
   }
 
   // --- CORRECTED Equality and HashCode ---
