@@ -188,6 +188,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     child: SizedBox(
                       height: 35,
                       child: AnimationControlsWidget(
+                          key: ValueKey(ref
+                              .read(animationProvider)
+                              .selectedAnimationModel!
+                              .copyWith()
+                              .id),
                           game: tacticBoardGame,
                           animationModel: ref
                               .read(animationProvider)

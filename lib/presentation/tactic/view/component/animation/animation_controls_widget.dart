@@ -167,7 +167,7 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
       setState(() {
         _isCurrentlyPlaying = !_isCurrentlyPlaying;
       });
-      zlog(data: "Came here to change the state ${_isCurrentlyPlaying}");
+      zlog(data: "Came here to change the state toggle ${_isCurrentlyPlaying}");
     }
   }
 
