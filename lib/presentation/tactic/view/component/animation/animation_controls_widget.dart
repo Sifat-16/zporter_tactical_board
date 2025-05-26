@@ -228,9 +228,6 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
   Widget build(BuildContext context) {
     String formattedPaceText =
         "${_currentUiPaceFactor.toStringAsFixed(_currentUiPaceFactor % 1 == 0 ? 0 : 1)}x";
-    zlog(
-        data: "Came here to change the state build ${_isCurrentlyPlaying}",
-        show: true);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
