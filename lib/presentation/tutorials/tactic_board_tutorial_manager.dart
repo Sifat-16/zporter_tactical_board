@@ -32,7 +32,6 @@ class TacticBoardTutorialManager {
 
   void dismissCurrentCoachMarkTutorial() {
     if (_coachMarkInstance?.isShowing ?? false) {
-      zlog(data: "TutorialManager: Dismissing current coach mark via skip().");
       _coachMarkInstance?.skip(); // This will trigger onSkip or onFinish
     }
     _coachMarkInstance = null;
@@ -59,7 +58,6 @@ class TacticBoardTutorialManager {
         cancelButtonText: "No, Thanks",
       );
       if (takeTour == true && Navigator.of(context).mounted) {
-        zlog(data: "User opted IN for tutorial (Step 1: Open Left Panel).");
         await TutorialUtils.markTutorialAsShown(_interactiveTutorialPromptId);
         _showOpenLeftPanelTutorialInternal(
           context,
@@ -67,13 +65,10 @@ class TacticBoardTutorialManager {
           onTutorialStepFinished,
         );
       } else {
-        zlog(data: "User opted OUT of or dismissed tutorial prompt.");
         if (takeTour == false)
           await TutorialUtils.markTutorialAsShown(_interactiveTutorialPromptId);
       }
-    } else {
-      zlog(data: "Tutorial prompt already dealt with.");
-    }
+    } else {}
   }
 
   void _showOpenLeftPanelTutorialInternal(
@@ -143,12 +138,11 @@ class TacticBoardTutorialManager {
           contents: [
             tcm.TargetContent(
               align: tcm.ContentAlign.bottom,
-              builder:
-                  (ctx, ctrl) => AnimatedTutorialContent(
-                    title: "Open Left Panel",
-                    message:
-                        "Tap this arrow to open the left panel for drawing tools.",
-                  ),
+              builder: (ctx, ctrl) => AnimatedTutorialContent(
+                title: "Open Left Panel",
+                message:
+                    "Tap this arrow to open the left panel for drawing tools.",
+              ),
             ),
           ],
         ),
@@ -161,7 +155,7 @@ class TacticBoardTutorialManager {
   void showDragPlayerTutorial({
     required BuildContext context,
     required VoidCallback
-    onTutorialStepFinished, // Called when drag is *actually* completed
+        onTutorialStepFinished, // Called when drag is *actually* completed
   }) {
     dismissCurrentCoachMarkTutorial(); // Clear previous state and listeners
 
@@ -182,7 +176,8 @@ class TacticBoardTutorialManager {
 
     // Listen for successful drag completion
     // CORRECTED STREAM NAME HERE:
-    _playerSuccessfullyDraggedSubscription = TutorialEvents.onPlayerSuccessfullyDraggedToField.listen((
+    _playerSuccessfullyDraggedSubscription =
+        TutorialEvents.onPlayerSuccessfullyDraggedToField.listen((
       event,
     ) {
       // Optional: Check if event.playerKey matches TutorialKeys.firstPlayerKey if needed
@@ -288,15 +283,14 @@ class TacticBoardTutorialManager {
           contents: [
             tcm.TargetContent(
               align: tcm.ContentAlign.bottom,
-              builder:
-                  (ctx, ctrl) => AnimatedTutorialContent(
-                    title: "Drag Player to Field",
-                    message:
-                        "Now, TAP AND HOLD this player, then drag it onto the tactical board to place it.",
-                    showFingerDragAnimation: true,
-                    fingerAnimationStartAlign: Alignment.topCenter,
-                    fingerDragVector: const Offset(100, -60), // TUNE THIS
-                  ),
+              builder: (ctx, ctrl) => AnimatedTutorialContent(
+                title: "Drag Player to Field",
+                message:
+                    "Now, TAP AND HOLD this player, then drag it onto the tactical board to place it.",
+                showFingerDragAnimation: true,
+                fingerAnimationStartAlign: Alignment.topCenter,
+                fingerDragVector: const Offset(100, -60), // TUNE THIS
+              ),
             ),
           ],
         ),
@@ -373,12 +367,11 @@ class TacticBoardTutorialManager {
           contents: [
             tcm.TargetContent(
               align: tcm.ContentAlign.top,
-              builder:
-                  (ctx, ctrl) => AnimatedTutorialContent(
-                    title: "Add New Scene",
-                    message:
-                        "Tap this button to create a new scene or frame in your animation sequence.",
-                  ),
+              builder: (ctx, ctrl) => AnimatedTutorialContent(
+                title: "Add New Scene",
+                message:
+                    "Tap this button to create a new scene or frame in your animation sequence.",
+              ),
             ),
           ],
         ),
