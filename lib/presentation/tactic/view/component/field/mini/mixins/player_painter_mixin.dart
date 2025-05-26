@@ -110,7 +110,6 @@ import 'dart:math' as math;
 
 import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/app/helper/logger.dart'; // Assuming you use zlog
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -120,20 +119,18 @@ mixin PlayerPainterMixin {
     required PlayerModel player,
     required Canvas canvas,
     required Size
-    visualPlayerSize, // This is player.size (logical) * overallItemScale
+        visualPlayerSize, // This is player.size (logical) * overallItemScale
     required Paint itemPaint,
     required TextPainter textPainter,
     required Size fieldSize,
   }) {
-    Offset centerOfPlayer =
-        SizeHelper.getBoardActualVector(
-          gameScreenSize: fieldSize.toVector2(),
-          actualPosition: player.offset ?? Vector2.zero(),
-        ).toOffset();
+    Offset centerOfPlayer = SizeHelper.getBoardActualVector(
+      gameScreenSize: fieldSize.toVector2(),
+      actualPosition: player.offset ?? Vector2.zero(),
+    ).toOffset();
 
     final double baseOpacity = (player.opacity ?? 1.0).clamp(0.0, 1.0);
-    final Color baseColor =
-        player.color ??
+    final Color baseColor = player.color ??
         (player.playerType == PlayerType.HOME
             ? ColorManager.blue
             : (player.playerType == PlayerType.AWAY
@@ -188,10 +185,6 @@ mixin PlayerPainterMixin {
         centerOfPlayer.dy - textPainter.height / 2,
       );
       textPainter.paint(canvas, roleTextOffset);
-      zlog(
-        data:
-            "Role text '${textPainter.text?.toPlainText()}' drawn at $roleTextOffset",
-      );
     }
 
     // --- Jersey Number ---
@@ -227,10 +220,6 @@ mixin PlayerPainterMixin {
           rectTopY + verticalNudge,
         );
         textPainter.paint(canvas, numberTextDrawOffset);
-        zlog(
-          data:
-              "Jersey number '${textPainter.text?.toPlainText()}' drawn at $numberTextDrawOffset",
-        );
       }
     }
   }

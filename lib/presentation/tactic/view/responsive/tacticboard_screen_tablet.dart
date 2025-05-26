@@ -98,12 +98,6 @@ class _TacticboardScreenTabletState
     _tutorialManager = TacticBoardTutorialManager();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (mounted) {
-        setState(() {
-          _leftPanelWidth = context.widthPercent(22.5);
-          _rightPanelWidth = context.widthPercent(22.5);
-        });
-      }
       try {
         await ref.read(animationProvider.notifier).getAllCollections();
         await ref.read(animationProvider.notifier).configureDefaultAnimations();
@@ -204,6 +198,8 @@ class _TacticboardScreenTabletState
     final bp = ref.watch(boardProvider);
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
+    _leftPanelWidth = context.widthPercent(22.5);
+    _rightPanelWidth = context.widthPercent(22.5);
 
     if (ap.isLoadingAnimationCollections) {
       return const Scaffold(
@@ -215,12 +211,6 @@ class _TacticboardScreenTabletState
     }
 
     Widget screenContent;
-
-    // if (ap.showNewCollectionInput == true || ap.showNewAnimationInput == true) {
-    //   screenContent = Center(child: AnimationDataInputComponent());
-    // } else if (ap.showQuickSave) {
-    //   screenContent = Center(child: ShowQuickSaveComponent());
-    // } else
 
     if (bp.showFullScreen) {
       screenContent = PopScope(

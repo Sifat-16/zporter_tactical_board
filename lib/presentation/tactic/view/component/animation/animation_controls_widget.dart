@@ -154,6 +154,8 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
   }
 
   void _togglePlayPause() async {
+    if (!mounted) return;
+
     if (_isCurrentlyPlaying) {
       widget.game.pauseAnimation();
       zlog(data: "ControlsWidget: Pause button pressed.");
@@ -161,25 +163,30 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
       await widget.game.playAnimation();
       zlog(data: "ControlsWidget: Play button pressed.");
     }
-    setState(() {
-      _isCurrentlyPlaying = !_isCurrentlyPlaying;
-    });
+    if (mounted) {
+      setState(() {
+        _isCurrentlyPlaying = !_isCurrentlyPlaying;
+      });
+    }
   }
 
   void _handleHardReset() {
     zlog(data: "ControlsWidget: Hard Reset button pressed.");
     widget.game.pauseAnimation();
-    setState(() {
-      _isCurrentlyPlaying = false;
-      _currentUiPaceFactor =
-          _paceValues.contains(1.0) ? 1.0 : _paceValues.first;
-    });
 
+    if (mounted) {
+      setState(() {
+        _isCurrentlyPlaying = false;
+        _currentUiPaceFactor =
+            _paceValues.contains(1.0) ? 1.0 : _paceValues.first;
+      });
+    }
     widget.game.resetAnimation();
     // widget.onHardResetRequested();
   }
 
   void _increaseSpeed() {
+    if (!mounted) return;
     int currentIndex = _paceValues.indexOf(_currentUiPaceFactor);
     if (currentIndex < _paceValues.length - 1) {
       _setNewPace(_paceValues[currentIndex + 1]);
@@ -187,6 +194,7 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
   }
 
   void _decreaseSpeed() {
+    if (!mounted) return;
     int currentIndex = _paceValues.indexOf(_currentUiPaceFactor);
     if (currentIndex > 0) {
       _setNewPace(_paceValues[currentIndex - 1]);
@@ -202,11 +210,14 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
       return;
     }
     if (_currentUiPaceFactor == newPace) return;
+    if (!mounted) return;
 
     widget.game.setAnimationPace(newPace);
-    setState(() {
-      _currentUiPaceFactor = newPace;
-    });
+    if (mounted) {
+      setState(() {
+        _currentUiPaceFactor = newPace;
+      });
+    }
     zlog(data: "ControlsWidget: Pace factor set to $_currentUiPaceFactor");
   }
 
@@ -214,6 +225,7 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
   Widget build(BuildContext context) {
     String formattedPaceText =
         "${_currentUiPaceFactor.toStringAsFixed(_currentUiPaceFactor % 1 == 0 ? 0 : 1)}x";
+    debugPrint("");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
