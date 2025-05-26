@@ -82,7 +82,6 @@ class AnimationListItem extends StatelessWidget {
                       // aspectRatio: MiniGameFieldWidget.defaultAspectRatio, // Use default
                     ),
                   ),
-
                   Align(
                     alignment: Alignment.topCenter,
                     child: Padding(
@@ -94,12 +93,11 @@ class AnimationListItem extends StatelessWidget {
                         animation.name,
                         maxLines: 2,
                         style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                          color: ColorManager.white,
-                        ),
+                              color: ColorManager.white,
+                            ),
                       ),
                     ),
                   ),
-
                   Positioned(
                     bottom: 0,
                     left: 5,
@@ -114,7 +112,6 @@ class AnimationListItem extends StatelessWidget {
                       child: Text("COPY", style: buttonTextStyle),
                     ),
                   ),
-
                   Positioned(
                     bottom: 0,
                     right: 5,
@@ -132,9 +129,7 @@ class AnimationListItem extends StatelessWidget {
                 ],
               ),
             ),
-
             SizedBox(width: 10),
-
             Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -162,9 +157,9 @@ class AnimationListItem extends StatelessWidget {
                             style: Theme.of(
                               context,
                             ).textTheme.labelLarge!.copyWith(
-                              color: ColorManager.red,
-                              fontWeight: FontWeight.bold,
-                            ),
+                                  color: ColorManager.red,
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                         ),
                       ),
@@ -172,9 +167,7 @@ class AnimationListItem extends StatelessWidget {
                   },
                   child: Icon(Icons.more_vert, color: Colors.white),
                 ),
-
                 SizedBox(height: 10),
-
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -194,9 +187,7 @@ class AnimationListItem extends StatelessWidget {
                     ), // TODO: Add functionality// Use passed index string
                   ],
                 ),
-
                 SizedBox(height: 10),
-
                 Text(
                   animation.animationScenes.length.toString(),
                   style: indexStyle,

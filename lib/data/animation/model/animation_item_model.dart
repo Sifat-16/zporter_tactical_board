@@ -25,7 +25,7 @@ class AnimationItemModel {
     required this.fieldSize,
     Duration? sceneDuration, // Optional in constructor to allow default
   }) : sceneDuration =
-           sceneDuration ?? const Duration(seconds: 2); // Default to 2 seconds
+            sceneDuration ?? const Duration(seconds: 2); // Default to 2 seconds
 
   AnimationItemModel copyWith({
     String? id,
@@ -72,10 +72,9 @@ class AnimationItemModel {
     final fieldSizeJson = json['fieldSize'];
     // final historyList = (json['history'] ?? []) as List?; // 'history' not used in constructor
     final userId = json['userId'];
-    final color =
-        json['fieldColor'] == null
-            ? ColorManager.grey
-            : Color((json['fieldColor'] as int?) ?? 0);
+    final color = json['fieldColor'] == null
+        ? ColorManager.grey
+        : Color((json['fieldColor'] as int?) ?? 0);
 
     final sceneDurationMilliseconds =
         json['sceneDurationMilliseconds'] as int?; // ADDED
@@ -101,24 +100,21 @@ class AnimationItemModel {
 
     return AnimationItemModel(
       id: idValue.toString(),
-      components:
-          componentsList
-              .map(
-                (componentJson) => FieldItemModel.fromJson(
-                  componentJson as Map<String, dynamic>,
-                ),
-              )
-              .toList(),
+      components: componentsList
+          .map(
+            (componentJson) => FieldItemModel.fromJson(
+              componentJson as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       userId: userId,
       fieldColor: color,
       createdAt: DateTime.parse(createdAtString),
       updatedAt: DateTime.parse(updatedAtString),
       fieldSize: parsedFieldSize,
-      sceneDuration:
-          sceneDurationMilliseconds !=
-                  null // ADDED
-              ? Duration(milliseconds: sceneDurationMilliseconds)
-              : const Duration(seconds: 2), // Default if missing
+      sceneDuration: sceneDurationMilliseconds != null // ADDED
+          ? Duration(milliseconds: sceneDurationMilliseconds)
+          : const Duration(seconds: 2), // Default if missing
     );
   }
 

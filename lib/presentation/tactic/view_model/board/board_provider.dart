@@ -136,6 +136,7 @@ class BoardController extends StateNotifier<BoardState> {
       lines: lines,
       texts: texts,
     );
+    BotToast.showText(text: "Item removed successfully");
   }
 
   void copyElement() {
@@ -263,10 +264,9 @@ class BoardController extends StateNotifier<BoardState> {
 
     // 2. Filter State Lists: Create new lists for each type by excluding items
     //    whose IDs are present in the `idsToRemove` set.
-    final List<PlayerModel> updatedPlayers =
-        state.players
-            .where((player) => !idsToRemove.contains(player.id))
-            .toList();
+    final List<PlayerModel> updatedPlayers = state.players
+        .where((player) => !idsToRemove.contains(player.id))
+        .toList();
     final List<EquipmentModel> updatedEquipments =
         state.equipments.where((eq) => !idsToRemove.contains(eq.id)).toList();
     final List<LineModelV2> updatedLines =
@@ -274,23 +274,20 @@ class BoardController extends StateNotifier<BoardState> {
     final List<ShapeModel> updatedShapes =
         state.shapes.where((shape) => !idsToRemove.contains(shape.id)).toList();
     // Assuming FreeDrawModelV2 instances also have a unique 'id' property.
-    final List<FreeDrawModelV2> updatedFreeDraws =
-        state.freeDraw
-            .where(
-              (draw) => !idsToRemove.contains(draw.id),
-            ) // Ensure FreeDrawModelV2 has an 'id'
-            .toList();
+    final List<FreeDrawModelV2> updatedFreeDraws = state.freeDraw
+        .where(
+          (draw) => !idsToRemove.contains(draw.id),
+        ) // Ensure FreeDrawModelV2 has an 'id'
+        .toList();
 
-    final List<TextModel> updatedTexts =
-        state.texts
-            .where(
-              (text) => !idsToRemove.contains(text.id),
-            ) // Ensure FreeDrawModelV2 has an 'id'
-            .toList();
+    final List<TextModel> updatedTexts = state.texts
+        .where(
+          (text) => !idsToRemove.contains(text.id),
+        ) // Ensure FreeDrawModelV2 has an 'id'
+        .toList();
 
     // Calculate if any items were actually removed from the state to avoid unnecessary updates.
-    int removedCount =
-        (state.players.length - updatedPlayers.length) +
+    int removedCount = (state.players.length - updatedPlayers.length) +
         (state.equipments.length - updatedEquipments.length) +
         (state.lines.length - updatedLines.length) +
         (state.shapes.length - updatedShapes.length) +

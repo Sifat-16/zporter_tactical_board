@@ -70,9 +70,7 @@ class _TacticboardScreenTabletState
     } else {
       try {
         if (selectedScene != null) {
-          ref
-              .read(animationProvider.notifier)
-              .addNewScene(
+          ref.read(animationProvider.notifier).addNewScene(
                 selectedCollection: selectedCollection,
                 selectedAnimation: selectedAnimation,
                 selectedScene: selectedScene,
@@ -96,15 +94,14 @@ class _TacticboardScreenTabletState
   @override
   void initState() {
     super.initState();
-    _leftPanelWidth = 200.0;
-    _rightPanelWidth = 250.0;
+
     _tutorialManager = TacticBoardTutorialManager();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         setState(() {
-          _leftPanelWidth = context.widthPercent(20);
-          _rightPanelWidth = context.widthPercent(20);
+          _leftPanelWidth = context.widthPercent(22.5);
+          _rightPanelWidth = context.widthPercent(22.5);
         });
       }
       try {
@@ -275,7 +272,6 @@ class _TacticboardScreenTabletState
                     ),
                   ),
                 ),
-
                 AnimatedPositioned(
                   duration: _panelAnimationDuration,
                   curve: Curves.easeInOut,
@@ -312,7 +308,6 @@ class _TacticboardScreenTabletState
                     ),
                   ),
                 ),
-
                 AnimatedPositioned(
                   duration: _panelAnimationDuration,
                   curve: Curves.easeInOut,
@@ -405,8 +400,7 @@ class _TacticboardScreenTabletState
             duration: _panelAnimationDuration,
             curve: Curves.easeInOut,
             left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-            top:
-                (context.heightPercent(104) / 2) -
+            top: (context.heightPercent(104) / 2) -
                 25, // Consider if context here refers to the correct one
             // It should be the context of the build method where screenContent is defined
             child: Material(
@@ -442,8 +436,7 @@ class _TacticboardScreenTabletState
             duration: _panelAnimationDuration,
             curve: Curves.easeInOut,
             right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
-            top:
-                (context.heightPercent(104) / 2) -
+            top: (context.heightPercent(104) / 2) -
                 25, // Same consideration for context here
             child: Material(
               color: ColorManager.grey.withOpacity(0.6),
@@ -526,11 +519,9 @@ class _TacticboardScreenTabletState
                       Row(
                         children: [
                           IconButton(
-                            onPressed:
-                                () =>
-                                    ref
-                                        .read(animationProvider.notifier)
-                                        .createNewDefaultAnimationItem(),
+                            onPressed: () => ref
+                                .read(animationProvider.notifier)
+                                .createNewDefaultAnimationItem(),
                             icon: Icon(Icons.add, color: ColorManager.white),
                             tooltip: "Add New Scene",
                           ),

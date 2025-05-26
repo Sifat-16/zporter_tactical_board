@@ -156,9 +156,9 @@ class _FormSpeedDialComponentState
               Text(
                 'Select Action',
                 style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                  color: ColorManager.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: ColorManager.white,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 16),
               Expanded(
@@ -202,8 +202,8 @@ class _FormSpeedDialComponentState
                         onTap: () {
                           lineNotifier
                               .loadActiveLineModelToAddIntoGameFieldEvent(
-                                lineModelV2: lineModel,
-                              );
+                            lineModelV2: lineModel,
+                          );
                           Navigator.pop(bottomSheetContext);
                         },
                       );
@@ -216,8 +216,8 @@ class _FormSpeedDialComponentState
                           onTap: () {
                             lineNotifier
                                 .loadActiveShapeModelToAddIntoGameFieldEvent(
-                                  shapeModel: shapeModel,
-                                );
+                              shapeModel: shapeModel,
+                            );
                             Navigator.pop(bottomSheetContext);
                           },
                         );
@@ -291,7 +291,6 @@ class _FormSpeedDialComponentState
                     color: ColorManager.white,
                   ),
                 ),
-
               if (config.showShareButton)
                 GestureDetector(
                   onTap: () {
@@ -322,27 +321,24 @@ class _FormSpeedDialComponentState
                       _showActionGrid(context);
                     }
                   },
-                  child:
-                      lpState.activeForm != null &&
-                              currentActiveTool == ActiveTool.pointer
-                          ? _buildFormWidget(
-                            fieldItemModel: lpState.activeForm!,
-                          )
-                          : Center(
-                            // Your original Center widget
-                            child: Icon(
-                              Icons.arrow_upward,
-                              color:
-                                  (currentActiveTool == ActiveTool.pointer &&
-                                          !isPlacingItem)
-                                      ? activeColor
-                                      : isPlacingItem
-                                      ? activeColor
-                                      : defaultInactiveColor,
-                            ),
+                  child: lpState.activeForm != null &&
+                          currentActiveTool == ActiveTool.pointer
+                      ? _buildFormWidget(
+                          fieldItemModel: lpState.activeForm!,
+                        )
+                      : Center(
+                          // Your original Center widget
+                          child: Icon(
+                            Icons.arrow_upward,
+                            color: (currentActiveTool == ActiveTool.pointer &&
+                                    !isPlacingItem)
+                                ? activeColor
+                                : isPlacingItem
+                                    ? activeColor
+                                    : defaultInactiveColor,
                           ),
+                        ),
                 ),
-
               if (config.showFreeDrawButton)
                 GestureDetector(
                   onTap: () {
@@ -351,13 +347,11 @@ class _FormSpeedDialComponentState
                   child: _buildFreeDrawComponent(
                     // Your original component call
                     isFocused: currentActiveTool == ActiveTool.freeDraw,
-                    isDimmed:
-                        (currentActiveTool != ActiveTool.freeDraw &&
+                    isDimmed: (currentActiveTool != ActiveTool.freeDraw &&
                             currentActiveTool != ActiveTool.pointer) ||
                         isPlacingItem,
                   ),
                 ),
-
               if (config.showEraserButton)
                 GestureDetector(
                   onTap: () {
@@ -366,17 +360,15 @@ class _FormSpeedDialComponentState
                   child: Icon(
                     // Your original Icon
                     FontAwesomeIcons.eraser,
-                    color:
-                        currentActiveTool == ActiveTool.eraser
-                            ? ColorManager.red
-                            : (currentActiveTool != ActiveTool.eraser &&
+                    color: currentActiveTool == ActiveTool.eraser
+                        ? ColorManager.red
+                        : (currentActiveTool != ActiveTool.eraser &&
                                     currentActiveTool != ActiveTool.pointer) ||
                                 isPlacingItem
                             ? dimmedInactiveColor
                             : defaultInactiveColor,
                   ),
                 ),
-
               if (config.showUndoButton && selectedScene != null)
                 StreamBuilder(
                   stream: _historyStream.call(selectedScene.id),
@@ -451,9 +443,8 @@ class _FormSpeedDialComponentState
                   },
                   child: _buildTrashComponent(
                     // Your original component call
-                    isFocused: currentActiveTool == ActiveTool.trash,
-                    isDimmed:
-                        (currentActiveTool != ActiveTool.trash &&
+                    isFocused: bp.selectedItemOnTheBoard != null,
+                    isDimmed: (currentActiveTool != ActiveTool.trash &&
                             currentActiveTool != ActiveTool.pointer) ||
                         isPlacingItem,
                   ),
@@ -486,10 +477,10 @@ class _FormSpeedDialComponentState
         if (selectedCollection == null || selectedAnimation == null) {
           AnimationCreateItem? animationCreateItem =
               await showNewAnimationInputDialog(
-                context,
-                collectionList: collectionList,
-                selectedCollection: selectedCollection,
-              );
+            context,
+            collectionList: collectionList,
+            selectedCollection: selectedCollection,
+          );
           if (animationCreateItem != null) {
             animationCreateItem.items = selectedScene?.components ?? [];
             ref
@@ -499,9 +490,7 @@ class _FormSpeedDialComponentState
         } else {
           try {
             if (selectedScene != null) {
-              ref
-                  .read(animationProvider.notifier)
-                  .addNewScene(
+              ref.read(animationProvider.notifier).addNewScene(
                     selectedCollection: selectedCollection,
                     selectedAnimation: selectedAnimation,
                     selectedScene: selectedScene,
@@ -571,12 +560,12 @@ class _FormSpeedDialComponentState
     required bool isDimmed,
   }) {
     Color defaultColor = ColorManager.white;
-    Color dimmedColor = ColorManager.white.withOpacity(0.5);
+    Color focusedColor = ColorManager.red;
 
     return Center(
       child: Icon(
         Icons.delete_sweep_outlined,
-        color: isDimmed ? dimmedColor : defaultColor,
+        color: isFocused ? focusedColor : defaultColor,
         size: 24,
       ),
     );
