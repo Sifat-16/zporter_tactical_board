@@ -69,13 +69,11 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
                   EdgeInsets.zero, // Remove padding between tab labels
               isScrollable: false,
               dividerHeight: 0,
-              tabs:
-                  _tabs.map((tab) {
-                    return Tab(text: tab['title']);
-                  }).toList(),
+              tabs: _tabs.map((tab) {
+                return Tab(text: tab['title']);
+              }).toList(),
             ),
           ),
-
           Expanded(
             child: Container(
               decoration: BoxDecoration(color: ColorManager.black),
@@ -85,19 +83,18 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
                 onPageChanged: (index) {
                   _tabController.animateTo(index); // Sync TabBar with PageView
                 },
-                children:
-                    _tabs.map((tab) {
-                      dynamic type = tab['content'];
-                      if (type is Widget) {
-                        return type;
-                      }
-                      return Center(
-                        child: Text(
-                          tab['content'],
-                          style: TextStyle(color: ColorManager.white),
-                        ),
-                      );
-                    }).toList(),
+                children: _tabs.map((tab) {
+                  dynamic type = tab['content'];
+                  if (type is Widget) {
+                    return type;
+                  }
+                  return Center(
+                    child: Text(
+                      tab['content'],
+                      style: TextStyle(color: ColorManager.white),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ),

@@ -128,31 +128,6 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
         onExportP: (d) {});
   }
 
-  // @override
-  // void didUpdateWidget(covariant AnimationControlsWidget oldWidget) {
-  //   super.didUpdateWidget(oldWidget);
-  //   if (widget.game != oldWidget.game ||
-  //       widget.initialIsPlaying != _isCurrentlyPlaying ||
-  //       widget.initialPaceFactor != _currentUiPaceFactor) {
-  //     _isCurrentlyPlaying = widget.initialIsPlaying;
-  //     // Ensure initialPaceFactor is valid with internal _paceValues when widget updates
-  //     if (_paceValues.contains(widget.initialPaceFactor)) {
-  //       _currentUiPaceFactor = widget.initialPaceFactor;
-  //     } else {
-  //       // If the new initialPaceFactor is invalid, retain current or default.
-  //       // This case might need more specific handling based on desired behavior.
-  //       // For now, let's log and potentially keep the current valid pace or reset to default.
-  //       zlog(
-  //           data:
-  //               "ControlsWidget didUpdateWidget: new initialPaceFactor ${widget.initialPaceFactor} is not in _paceValues. Current is $_currentUiPaceFactor");
-  //       // Option: reset to a default if current _currentUiPaceFactor is also somehow invalid or if strict reset is needed
-  //       _currentUiPaceFactor =
-  //           _paceValues.contains(1.0) ? 1.0 : _paceValues.first;
-  //     }
-  //     widget.game.setAnimationPace(_currentUiPaceFactor);
-  //   }
-  // }
-
   void _togglePlayPause() async {
     if (!mounted) return;
 

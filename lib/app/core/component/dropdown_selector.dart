@@ -132,7 +132,7 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
 
           // Style the dropdown menu itself (background, text style for items)
           menuStyle: MenuStyle(
-            backgroundColor: WidgetStatePropertyAll<Color>(ColorManager.black),
+            backgroundColor: WidgetStatePropertyAll<Color>(ColorManager.dark2),
           ),
 
           // Style the text field part using InputDecorationTheme or directly
