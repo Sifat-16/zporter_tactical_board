@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
@@ -238,6 +239,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       );
                                     } else if (animationShareType ==
                                         AnimationShareType.video) {
+                                      BotToast.showText(
+                                          text: "Under construction!");
                                       // Navigator.of(context).push(
                                       //   MaterialPageRoute(
                                       //     builder: (_) => Scaffold(
