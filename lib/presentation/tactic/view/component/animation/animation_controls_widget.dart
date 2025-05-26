@@ -164,10 +164,10 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
       zlog(data: "ControlsWidget: Play button pressed.");
     }
     if (mounted) {
-      zlog(data: "Came here to change the state");
       setState(() {
         _isCurrentlyPlaying = !_isCurrentlyPlaying;
       });
+      zlog(data: "Came here to change the state ${_isCurrentlyPlaying}");
     }
   }
 
@@ -226,7 +226,7 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
   Widget build(BuildContext context) {
     String formattedPaceText =
         "${_currentUiPaceFactor.toStringAsFixed(_currentUiPaceFactor % 1 == 0 ? 0 : 1)}x";
-    debugPrint("");
+    zlog(data: "Came here to change the state build ${_isCurrentlyPlaying}");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 3.0),
