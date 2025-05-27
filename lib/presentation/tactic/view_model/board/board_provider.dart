@@ -11,6 +11,7 @@ import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
@@ -316,7 +317,7 @@ class BoardController extends StateNotifier<BoardState> {
     }
   }
 
-  void toggleAnimating() {
-    state = state.copyWith(isAnimating: !state.isAnimating);
+  void toggleAnimating({required AnimatingObj? animatingObj}) {
+    state = state.copyWith(animatingObj: animatingObj);
   }
 }

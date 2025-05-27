@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_list_item.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_scene_item.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -140,7 +141,9 @@ class _AnimationToolbarComponentState
       children: [
         GestureDetector(
           onTap: () {
-            ref.read(boardProvider.notifier).toggleAnimating();
+            ref
+                .read(boardProvider.notifier)
+                .toggleAnimating(animatingObj: AnimatingObj.animate());
           },
           child: Icon(
             // Your original Icon

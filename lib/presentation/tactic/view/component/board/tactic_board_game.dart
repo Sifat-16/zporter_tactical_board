@@ -42,6 +42,7 @@ abstract class TacticBoardGame extends FlameGame
         RiverpodGameMixin,
         AnimationPlaybackControls {
   late GameField gameField;
+  bool isAnimating = false;
   late DrawingBoardComponent drawingBoard;
   addItem(FieldItemModel item, {bool save = true});
 }
@@ -65,8 +66,6 @@ class TacticBoard extends TacticBoardGame
 
   // --- Variable to store the previous state for comparison ---
   // Ensure this is a member variable if used across update calls
-
-  bool isAnimating = false;
 
   @override
   FutureOr<void> onLoad() async {
@@ -98,6 +97,7 @@ class TacticBoard extends TacticBoardGame
 
   @override
   void onTapDown(TapDownInfo info) {
+    if (isAnimating) return;
     super.onTapDown(info);
     final tapPosition = info.raw.localPosition; // Position in game coordinates
 

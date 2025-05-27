@@ -9,6 +9,7 @@ import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
 const Object _sentinel = Object();
@@ -37,7 +38,7 @@ class BoardState {
   final bool showFullScreen;
   final bool isDraggingElementToBoard;
   final bool refreshBoard;
-  final bool isAnimating;
+  final AnimatingObj? animatingObj;
 
   const BoardState(
       {this.players = const [],
@@ -63,34 +64,36 @@ class BoardState {
       this.boardAngle = 0,
       this.showFullScreen = false,
       this.isDraggingElementToBoard = false,
-      this.isAnimating = false});
+      this.animatingObj});
 
-  BoardState copyWith(
-      {List<PlayerModel>? players,
-      List<EquipmentModel>? equipments,
-      List<LineModelV2>? lines,
-      List<ShapeModel>? shapes,
-      List<TextModel>? texts,
-      List<FreeDrawModelV2>? freeDraws,
-      AnimationModel? animationModel,
-      bool? showAnimation,
-      FieldItemModel? selectedItemOnTheBoard,
-      bool forceItemModelNull = false,
-      FieldItemModel? itemToDelete,
-      bool forceItemToDeleteNull = false,
-      FieldItemModel? copyItem,
-      bool? moveDown,
-      bool? moveUp,
-      Color? boardColor,
-      Map<String, dynamic>? animationModelJson,
-      Vector2? fieldSize,
-      // TabController? tabController,
-      Object? tacticBoardGame = _sentinel,
-      int? boardAngle,
-      bool? refreshBoard,
-      bool? showFullScreen,
-      bool? isDraggingElementToBoard,
-      bool? isAnimating}) {
+  BoardState copyWith({
+    List<PlayerModel>? players,
+    List<EquipmentModel>? equipments,
+    List<LineModelV2>? lines,
+    List<ShapeModel>? shapes,
+    List<TextModel>? texts,
+    List<FreeDrawModelV2>? freeDraws,
+    AnimationModel? animationModel,
+    bool? showAnimation,
+    FieldItemModel? selectedItemOnTheBoard,
+    bool forceItemModelNull = false,
+    FieldItemModel? itemToDelete,
+    bool forceItemToDeleteNull = false,
+    FieldItemModel? copyItem,
+    bool? moveDown,
+    bool? moveUp,
+    Color? boardColor,
+    Map<String, dynamic>? animationModelJson,
+    Vector2? fieldSize,
+    // TabController? tabController,
+    Object? tacticBoardGame = _sentinel,
+    int? boardAngle,
+    bool? refreshBoard,
+    bool? showFullScreen,
+    bool? isDraggingElementToBoard,
+    bool? isAnimating,
+    Object? animatingObj = _sentinel,
+  }) {
     return BoardState(
         players: players ?? this.players,
         equipments: equipments ?? this.equipments,
@@ -121,7 +124,9 @@ class BoardState {
         isDraggingElementToBoard:
             isDraggingElementToBoard ?? this.isDraggingElementToBoard,
         refreshBoard: refreshBoard ?? this.refreshBoard,
-        isAnimating: isAnimating ?? this.isAnimating);
+        animatingObj: animatingObj == _sentinel
+            ? this.animatingObj
+            : animatingObj as AnimatingObj?);
   }
 
   // --- CORRECTED Equality and HashCode ---

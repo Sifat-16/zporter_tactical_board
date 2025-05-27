@@ -12,12 +12,14 @@ import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 import 'package:zporter_tactical_board/presentation/tutorials/tactic_board_tutorial_manager.dart';
 import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
@@ -194,6 +196,12 @@ class _TacticboardScreenTabletState
     super.dispose();
   }
 
+  bool isAnimating(BoardState bp) {
+    AnimatingObj? animatingObj = bp.animatingObj;
+    if (animatingObj == null) return false;
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
@@ -233,7 +241,7 @@ class _TacticboardScreenTabletState
                     selectedScene,
                   ),
                 ),
-                if (!bp.isAnimating)
+                if (!isAnimating(bp))
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -250,7 +258,7 @@ class _TacticboardScreenTabletState
                       ),
                     ),
                   ),
-                if (!bp.isAnimating)
+                if (!isAnimating(bp))
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -266,7 +274,7 @@ class _TacticboardScreenTabletState
                       ),
                     ),
                   ),
-                if (!bp.isAnimating)
+                if (!isAnimating(bp))
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -303,7 +311,7 @@ class _TacticboardScreenTabletState
                       ),
                     ),
                   ),
-                if (!bp.isAnimating)
+                if (!isAnimating(bp))
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -360,7 +368,7 @@ class _TacticboardScreenTabletState
 
           // 2. AnimatedPositioned widgets are now direct children of the root Stack,
           //    overlaying the Scaffold.
-          if (!bp.isAnimating)
+          if (!isAnimating(bp))
             AnimatedPositioned(
               duration: _panelAnimationDuration,
               curve: Curves.easeInOut,
@@ -377,7 +385,7 @@ class _TacticboardScreenTabletState
               ),
             ),
 
-          if (!bp.isAnimating)
+          if (!isAnimating(bp))
             AnimatedPositioned(
               duration: _panelAnimationDuration,
               curve: Curves.easeInOut,
@@ -395,7 +403,7 @@ class _TacticboardScreenTabletState
               ),
             ),
 
-          if (!bp.isAnimating)
+          if (!isAnimating(bp))
             AnimatedPositioned(
               duration: _panelAnimationDuration,
               curve: Curves.easeInOut,
@@ -434,7 +442,7 @@ class _TacticboardScreenTabletState
               ),
             ),
 
-          if (!bp.isAnimating)
+          if (!isAnimating(bp))
             AnimatedPositioned(
               duration: _panelAnimationDuration,
               curve: Curves.easeInOut,

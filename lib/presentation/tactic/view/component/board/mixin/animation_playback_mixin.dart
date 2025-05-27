@@ -29,6 +29,19 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/f
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
+class AnimatingObj {
+  final bool isAnimating;
+  final bool isExporting;
+  AnimatingObj({required this.isAnimating, required this.isExporting});
+
+  factory AnimatingObj.animate() {
+    return AnimatingObj(isAnimating: true, isExporting: false);
+  }
+  factory AnimatingObj.export() {
+    return AnimatingObj(isAnimating: false, isExporting: true);
+  }
+}
+
 mixin AnimationPlaybackMixin on TacticBoardGame {
   late TacticBoard _tacticBoard;
   // MODIFIED: update method with new dt capping
@@ -211,7 +224,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     } else {
       WidgetsBinding.instance.addPostFrameCallback((t) {
         _tacticBoard.removeAll(children.whereType<FieldComponent>());
-        ref.read(boardProvider.notifier).toggleAnimating();
+        ref.read(boardProvider.notifier).toggleAnimating(animatingObj: null);
         _tacticBoard.addInitialItems(_tacticBoard.scene?.components ?? []);
         _tacticBoard.isAnimating = false;
       });

@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_core
   share_plus
   url_launcher_windows
+  widget_capture_x_plus
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
