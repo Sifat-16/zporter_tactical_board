@@ -2,7 +2,7 @@ name: App-Deploy
 
 on:
   push:
-    branches: [tactical_board_admin]
+    branches: [app]
 
 jobs:
   build:
