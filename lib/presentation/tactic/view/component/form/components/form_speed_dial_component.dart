@@ -46,21 +46,24 @@ class FormSpeedDialConfig {
   final Function? addNewSceneForAdmin;
   final bool showBackButton;
   final Function? onShare;
+  final bool showDownloadButton;
+  final Function? onDownload;
 
-  const FormSpeedDialConfig({
-    this.showFullScreenButton = true,
-    this.showShareButton = true,
-    this.showPointerActionsButton = true,
-    this.showFreeDrawButton = true,
-    this.showEraserButton = true,
-    this.showUndoButton = true,
-    this.showTrashButton = true,
-    this.showPlayAnimationButton = true,
-    this.showAddNewSceneButton = true,
-    this.addNewSceneForAdmin,
-    this.showBackButton = false,
-    this.onShare,
-  });
+  const FormSpeedDialConfig(
+      {this.showFullScreenButton = true,
+      this.showShareButton = true,
+      this.showPointerActionsButton = true,
+      this.showFreeDrawButton = true,
+      this.showEraserButton = true,
+      this.showUndoButton = true,
+      this.showTrashButton = true,
+      this.showPlayAnimationButton = true,
+      this.showAddNewSceneButton = true,
+      this.addNewSceneForAdmin,
+      this.showBackButton = false,
+      this.onShare,
+      this.showDownloadButton = true,
+      this.onDownload});
 
   // Example of a more restrictive config
   static const viewOnly = FormSpeedDialConfig(
@@ -298,6 +301,16 @@ class _FormSpeedDialComponentState
                   },
                   child: Icon(
                     Icons.share,
+                    color: ColorManager.white,
+                  ), // Your original color
+                ),
+              if (config.showDownloadButton)
+                GestureDetector(
+                  onTap: () {
+                    widget.config.onDownload?.call();
+                  },
+                  child: Icon(
+                    Icons.download_sharp,
                     color: ColorManager.white,
                   ), // Your original color
                 ),

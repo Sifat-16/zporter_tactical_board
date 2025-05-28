@@ -1,13 +1,14 @@
 // animation_sharer.dart
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image/image.dart' as img; // Import with prefix
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:zporter_tactical_board/app/core/picker/save_file_to_user_picked_directory.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 
 class AnimationSharer {
@@ -46,11 +47,65 @@ class AnimationSharer {
       }
       Uint8List pngBytes = byteData.buffer.asUint8List();
 
+      if (kIsWeb) {
+        final file = File.fromRawPath(pngBytes);
+        return file.path;
+      }
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/$fileName.png');
       await file.writeAsBytes(pngBytes);
       zlog(data: "Image captured and saved to: ${file.path}");
       return file.path;
+    } else {
+      zlog(
+        data:
+            "Error capturing widget: Expected RenderRepaintBoundary, but found ${renderObject.runtimeType}. "
+            "Ensure the GlobalKey is correctly attached to a RepaintBoundary widget that is part of the currently rendered tree.",
+      );
+      return null;
+    }
+    try {} catch (e, s) {
+      zlog(data: "Error capturing widget as image: $e\nStackTrace: $s");
+      return null;
+    }
+  }
+
+  static Future<XFile?> captureWidgetAsPngWeb(
+    GlobalKey boundaryKey, {
+    String fileName = "tactic_scene",
+  }) async {
+    final context = boundaryKey.currentContext;
+    if (context == null) {
+      zlog(data: "Error capturing widget: Boundary key has no context.");
+      return null;
+    }
+
+    final widgetType = boundaryKey.currentWidget.runtimeType;
+    zlog(
+      data:
+          "captureWidgetAsPng: Key is associated with widget type: $widgetType",
+    );
+
+    RenderObject? renderObject = context.findRenderObject();
+    zlog(
+      data:
+          "captureWidgetAsPng: Found RenderObject of type: ${renderObject.runtimeType}",
+    );
+
+    if (renderObject is RenderRepaintBoundary) {
+      ui.Image image = await renderObject.toImage(pixelRatio: 2.0);
+      ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      image.dispose();
+
+      if (byteData == null) {
+        zlog(data: "Error capturing widget: ByteData is null after toImage.");
+        return null;
+      }
+      Uint8List pngBytes = byteData.buffer.asUint8List();
+      final file = XFile.fromData(pngBytes);
+      return file;
     } else {
       zlog(
         data:
@@ -115,16 +170,28 @@ class AnimationSharer {
     GlobalKey boundaryKey, {
     String fileName = "tactic_scene",
   }) async {
-    final String? imagePath = await captureWidgetAsPng(
-      boundaryKey,
-      fileName: "tactic_scene_capture",
-    );
-    if (imagePath != null) {
-      await shareImageFile(
-        imagePath,
-        text: "Check out this tactic from my board!",
-        subject: "Tactic Scene",
+    if (kIsWeb) {
+      final XFile? imageFile = await captureWidgetAsPngWeb(
+        boundaryKey,
+        fileName: "tactic_scene_capture",
       );
+      if (imageFile != null) {
+        await SharePlus.instance.share(ShareParams(
+          files: [imageFile],
+        ));
+      }
+    } else {
+      final String? imagePath = await captureWidgetAsPng(
+        boundaryKey,
+        fileName: "tactic_scene_capture",
+      );
+      if (imagePath != null) {
+        await shareImageFile(
+          imagePath,
+          text: "Check out this tactic from my board!",
+          subject: "Tactic Scene",
+        );
+      }
     }
   }
 
@@ -235,5 +302,88 @@ class AnimationSharer {
 
     final gif = gifEncoder.finish();
     return Uint8List.fromList(gif!);
+  }
+}
+
+class AnimationDownloader {
+  static Future<String?> captureWidgetAsPng(
+    GlobalKey boundaryKey, {
+    String fileName = "tactic_scene",
+  }) async {
+    final context = boundaryKey.currentContext;
+    if (context == null) {
+      zlog(data: "Error capturing widget: Boundary key has no context.");
+      return null;
+    }
+
+    final widgetType = boundaryKey.currentWidget.runtimeType;
+    zlog(
+      data:
+          "captureWidgetAsPng: Key is associated with widget type: $widgetType",
+    );
+
+    RenderObject? renderObject = context.findRenderObject();
+    zlog(
+      data:
+          "captureWidgetAsPng: Found RenderObject of type: ${renderObject.runtimeType}",
+    );
+
+    if (renderObject is RenderRepaintBoundary) {
+      ui.Image image = await renderObject.toImage(pixelRatio: 2.0);
+      ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
+      image.dispose();
+
+      if (byteData == null) {
+        zlog(data: "Error capturing widget: ByteData is null after toImage.");
+        return null;
+      }
+      Uint8List pngBytes = byteData.buffer.asUint8List();
+
+      if (kIsWeb) {
+        final file = File.fromRawPath(pngBytes);
+        return file.path;
+      }
+      final tempDir = await getTemporaryDirectory();
+      final file = File('${tempDir.path}/$fileName.png');
+      await file.writeAsBytes(pngBytes);
+      zlog(data: "Image captured and saved to: ${file.path}");
+      return file.path;
+    } else {
+      zlog(
+        data:
+            "Error capturing widget: Expected RenderRepaintBoundary, but found ${renderObject.runtimeType}. "
+            "Ensure the GlobalKey is correctly attached to a RepaintBoundary widget that is part of the currently rendered tree.",
+      );
+      return null;
+    }
+    try {} catch (e, s) {
+      zlog(data: "Error capturing widget as image: $e\nStackTrace: $s");
+      return null;
+    }
+  }
+
+  static Future<void> captureAndDownload(
+    GlobalKey boundaryKey, {
+    String fileName = "tactic_scene",
+  }) async {
+    final String? imagePath = await captureWidgetAsPng(
+      boundaryKey,
+      fileName: "tactic_scene_capture",
+    );
+    if (imagePath != null) {
+      await saveAppFileToUserSelectedLocation(
+        sourceFilePath: imagePath,
+        suggestedFileName: 'tactic_scene_capture.png',
+      );
+    }
+  }
+
+  static void downloadFile(String s, {required String text}) async {
+    await saveAppFileToUserSelectedLocation(
+      sourceFilePath: s,
+      suggestedFileName: text,
+    );
   }
 }
