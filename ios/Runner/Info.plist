@@ -49,5 +49,9 @@
     <true/>
     <key>UIFileSharingEnabled</key>
     <true/>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Load photos for sharing functionality</string>
+    <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
 </dict>
 </plist>
