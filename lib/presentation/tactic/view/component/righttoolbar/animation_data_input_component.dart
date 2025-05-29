@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_text_field.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
+import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
@@ -28,24 +29,22 @@ Future<String?> showNewCollectionInputDialog(
       // Determine confirm button background color
       final Color actualConfirmButtonColor = primaryAccentColor;
       // Determine text color for confirm button based on its background brightness
-      final Color confirmButtonTextColor =
-          ThemeData.estimateBrightnessForColor(actualConfirmButtonColor) ==
-                  Brightness.dark
-              ? ColorManager
-                  .white // Use white text on dark button backgrounds
-              : ColorManager
-                  .black; // Use black text on light button backgrounds
+      final Color confirmButtonTextColor = ThemeData.estimateBrightnessForColor(
+                  actualConfirmButtonColor) ==
+              Brightness.dark
+          ? ColorManager.white // Use white text on dark button backgrounds
+          : ColorManager.black; // Use black text on light button backgrounds
       return Theme(
         data: ThemeData.dark().copyWith(
           // Start with dark defaults
           dialogBackgroundColor: dialogBgColor,
           colorScheme: ThemeData.dark().colorScheme.copyWith(
-            primary: actualConfirmButtonColor, // Affects ElevatedButton bg
-            surface: dialogBgColor, // Dialog background
-            onSurface: mainTextColor, // Default text (like title)
-            onPrimary: confirmButtonTextColor, // Text ON confirm button
-            secondary: subtleTextColor, // Affects TextButton text color
-          ),
+                primary: actualConfirmButtonColor, // Affects ElevatedButton bg
+                surface: dialogBgColor, // Dialog background
+                onSurface: mainTextColor, // Default text (like title)
+                onPrimary: confirmButtonTextColor, // Text ON confirm button
+                secondary: subtleTextColor, // Affects TextButton text color
+              ),
           // Style buttons
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(
@@ -200,24 +199,22 @@ Future<AnimationCreateItem?> showNewAnimationInputDialog(
       // Determine confirm button background color
       final Color actualConfirmButtonColor = primaryAccentColor;
       // Determine text color for confirm button based on its background brightness
-      final Color confirmButtonTextColor =
-          ThemeData.estimateBrightnessForColor(actualConfirmButtonColor) ==
-                  Brightness.dark
-              ? ColorManager
-                  .white // Use white text on dark button backgrounds
-              : ColorManager
-                  .black; // Use black text on light button backgrounds
+      final Color confirmButtonTextColor = ThemeData.estimateBrightnessForColor(
+                  actualConfirmButtonColor) ==
+              Brightness.dark
+          ? ColorManager.white // Use white text on dark button backgrounds
+          : ColorManager.black; // Use black text on light button backgrounds
       return Theme(
         data: ThemeData.dark().copyWith(
           // Start with dark defaults
           dialogBackgroundColor: dialogBgColor,
           colorScheme: ThemeData.dark().colorScheme.copyWith(
-            primary: actualConfirmButtonColor, // Affects ElevatedButton bg
-            surface: dialogBgColor, // Dialog background
-            onSurface: mainTextColor, // Default text (like title)
-            onPrimary: confirmButtonTextColor, // Text ON confirm button
-            secondary: subtleTextColor, // Affects TextButton text color
-          ),
+                primary: actualConfirmButtonColor, // Affects ElevatedButton bg
+                surface: dialogBgColor, // Dialog background
+                onSurface: mainTextColor, // Default text (like title)
+                onPrimary: confirmButtonTextColor, // Text ON confirm button
+                secondary: subtleTextColor, // Affects TextButton text color
+              ),
           // Style buttons
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(
@@ -272,90 +269,92 @@ Future<AnimationCreateItem?> showNewAnimationInputDialog(
             24.0,
           ), // Increased bottom padding
 
-          content: Form(
-            key: _newAnimationFormKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 20,
-              children: [
-                DropdownSelector<AnimationCollectionModel?>(
-                  key: UniqueKey(),
-                  label: "Collection",
-                  items: collectionList,
-                  initialValue: selectedCollection,
-                  onChanged: (s) {
-                    selectedCollection = s;
-                  },
-                  itemAsString: (AnimationCollectionModel? item) {
-                    return item?.name ?? "";
-                  },
-                ),
-                CustomTextFormField(
-                  // Use the controller from the State
-                  controller: _controller,
-                  label: "Animation",
-                  hintText: "Write animation name...",
-                  textInputAction:
-                      TextInputAction.done, // Set appropriate action
-                  // Add the validator
-                  validator: (value) {
-                    List<String> animationNames =
-                        (selectedCollection?.animations
-                            .map((a) => a.name.toLowerCase())
-                            .toList()) ??
-                        [];
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter an animation name.'; // Error message
-                    } else if (value.isNotEmpty &&
-                        animationNames.contains(value.trim().toLowerCase())) {
-                      return 'This name is already taken';
-                    }
-                    return null; // Return null if valid
-                  },
-                ),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  spacing: 10,
-                  children: [
-                    CustomButton(
-                      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
-                      borderRadius: 2,
-                      fillColor: ColorManager.dark1,
-                      child: Text("Cancel"),
-                      onTap: () {
-                        Navigator.of(context).pop(null); // Return false
-                      },
-                    ),
-                    // Confirm Button (uses ElevatedButtonTheme -> primary/custom bg, contrast text)
-                    CustomButton(
-                      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
-                      borderRadius: 2,
-                      fillColor: ColorManager.blue,
-                      onTap: () {
-                        if (_newAnimationFormKey.currentState?.validate() ??
-                            false) {
-                          if (selectedCollection != null) {
-                            AnimationCreateItem animationCreateItem =
-                                AnimationCreateItem(
-                                  animationCollectionModel: selectedCollection!,
-                                  newAnimationName: _controller.text.trim(),
-                                );
-                            Navigator.of(
-                              context,
-                            ).pop(animationCreateItem); // Return true
+          content: SizedBox(
+            width: context.widthPercent(30),
+            child: Form(
+              key: _newAnimationFormKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 20,
+                children: [
+                  DropdownSelector<AnimationCollectionModel?>(
+                    key: UniqueKey(),
+                    label: "Collection",
+                    items: collectionList,
+                    initialValue: selectedCollection,
+                    onChanged: (s) {
+                      selectedCollection = s;
+                    },
+                    itemAsString: (AnimationCollectionModel? item) {
+                      return item?.name ?? "";
+                    },
+                  ),
+                  CustomTextFormField(
+                    // Use the controller from the State
+                    controller: _controller,
+                    label: "Animation",
+                    hintText: "Write animation name...",
+                    textInputAction:
+                        TextInputAction.done, // Set appropriate action
+                    // Add the validator
+                    validator: (value) {
+                      List<String> animationNames = (selectedCollection
+                              ?.animations
+                              .map((a) => a.name.toLowerCase())
+                              .toList()) ??
+                          [];
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter an animation name.'; // Error message
+                      } else if (value.isNotEmpty &&
+                          animationNames.contains(value.trim().toLowerCase())) {
+                        return 'This name is already taken';
+                      }
+                      return null; // Return null if valid
+                    },
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    spacing: 10,
+                    children: [
+                      CustomButton(
+                        padding:
+                            EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                        borderRadius: 2,
+                        fillColor: ColorManager.dark1,
+                        child: Text("Cancel"),
+                        onTap: () {
+                          Navigator.of(context).pop(null); // Return false
+                        },
+                      ),
+                      // Confirm Button (uses ElevatedButtonTheme -> primary/custom bg, contrast text)
+                      CustomButton(
+                        padding:
+                            EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                        borderRadius: 2,
+                        fillColor: ColorManager.blue,
+                        onTap: () {
+                          if (_newAnimationFormKey.currentState?.validate() ??
+                              false) {
+                            if (selectedCollection != null) {
+                              AnimationCreateItem animationCreateItem =
+                                  AnimationCreateItem(
+                                animationCollectionModel: selectedCollection!,
+                                newAnimationName: _controller.text.trim(),
+                              );
+                              Navigator.of(
+                                context,
+                              ).pop(animationCreateItem); // Return true
+                            }
                           }
-                        }
-                      },
-                      child: Text("Save"),
-                    ),
-                  ],
-                ),
-              ],
+                        },
+                        child: Text("Save"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-
-          // --- End ConstrainedBox wrapper ---
         ),
       );
     },

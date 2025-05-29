@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_collection_default.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -88,21 +89,25 @@ class AnimationController extends StateNotifier<AnimationState> {
     try {
       collections = await _getAllAnimationCollectionUseCase.call(_getUserId());
 
-      if (collections.isEmpty) {
-        await _saveAnimationCollectionUseCase.call(
-          AnimationCollectionModel(
-            id: RandomGenerator.generateId(),
-            name: "General",
-            animations: [],
-            userId: ref.read(authProvider).userId ?? "",
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        );
-        collections = await _getAllAnimationCollectionUseCase.call(
-          _getUserId(),
-        );
-      }
+      collections = AnimationCollectionDefaultUtils.addDefaultCollections(
+          collections: collections,
+          userId: ref.read(authProvider).userId ?? "");
+
+      // if (collections.isEmpty) {
+      //   await _saveAnimationCollectionUseCase.call(
+      //     AnimationCollectionModel(
+      //       id: RandomGenerator.generateId(),
+      //       name: "General",
+      //       animations: [],
+      //       userId: ref.read(authProvider).userId ?? "",
+      //       createdAt: DateTime.now(),
+      //       updatedAt: DateTime.now(),
+      //     ),
+      //   );
+      //   collections = await _getAllAnimationCollectionUseCase.call(
+      //     _getUserId(),
+      //   );
+      // }
 
       try {
         int index = collections.indexWhere(
