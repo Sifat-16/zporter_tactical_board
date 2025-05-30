@@ -109,7 +109,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     WidgetsBinding.instance.addPostFrameCallback((t) {
       if (!mounted) return;
       setState(() {
-        boardComparator = null;
         tacticBoardGame = TacticBoard(
           scene: selectedScene,
           saveToDb: widget.saveToDb,

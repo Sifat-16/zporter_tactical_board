@@ -32,7 +32,7 @@ import 'mixin/drawing_input_handler.dart';
 import 'mixin/item_management.dart';
 import 'mixin/layering_management.dart'; // Make sure this import points to the correct file
 
-String? boardComparator;
+String? _boardComparator;
 
 // --- Base Abstract Class (Unchanged) ---
 abstract class TacticBoardGame extends FlameGame
@@ -154,8 +154,6 @@ class TacticBoard extends TacticBoardGame
   // --- Updated update method with Timer Logic ---
   @override
   void update(double dt) {
-    super.update(dt); // Always call super.update!
-
     // Accumulate the time passed since the last frame
     _timerAccumulator += dt;
 
@@ -171,16 +169,18 @@ class TacticBoard extends TacticBoardGame
       String current = items.map((e) => e.toJson()).join(
             ',',
           ); // Use join for a more stable string representation if order matters
+
+      zlog(data: "Check why update not working ${isAnimating} - ${current}");
       current =
           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()}";
 
-      if (boardComparator == null) {
-        boardComparator = current;
+      if (_boardComparator == null) {
+        _boardComparator = current;
       } else {
-        if (boardComparator != current) {
+        if (_boardComparator != current) {
           // --- ACTION: Do something when a change is detected ---
           // e.g., trigger autosave, update external UI, etc.
-          boardComparator = current; // Update comparator to the new state
+          _boardComparator = current; // Update comparator to the new state
 
           updateDatabase();
         } else {}
@@ -189,6 +189,7 @@ class TacticBoard extends TacticBoardGame
     }
 
     // Other update logic can remain here and run every frame if needed
+    super.update(dt); // Always call super.update!
   }
 
   updateDatabase() {

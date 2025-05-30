@@ -284,8 +284,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     return (ColorManager.white).withAlpha(128);
   }
 
-  @override
-  addItem(FieldItemModel item, {bool save = true}) async {
+  addItemForAnimation(FieldItemModel item, {bool save = true}) async {
     if (item is PlayerModel) {
       add(PlayerComponent(object: item)); // add() is available via FlameGame
     } else if (item is EquipmentModel) {
@@ -393,7 +392,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     for (var itemModel in firstScene.components) {
       if (itemModel is FreeDrawModelV2) continue;
       addItemFutures.add(
-        addItem(itemModel).then((_) async {
+        addItemForAnimation(itemModel).then((_) async {
           // Using your game's addItem override
           await Future.delayed(Duration.zero);
           Component? comp = _findComponentByModelId(itemModel.id);
@@ -482,7 +481,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
 
       if (existingComponent == null) {
         addItemFutures.add(
-          addItem(itemModel).then((_) async {
+          addItemForAnimation(itemModel).then((_) async {
             // Using your game's addItem override
             await Future.delayed(Duration.zero);
             Component? newComp = _findComponentByModelId(itemModel.id);
@@ -564,7 +563,8 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
               addItemFutures.add(() async {
                 if (existingComponent.isMounted) remove(existingComponent);
                 await Future.delayed(Duration.zero);
-                await addItem(itemModel); // Using your game's addItem override
+                await addItemForAnimation(
+                    itemModel); // Using your game's addItem override
                 Component? newShapeComp = _findComponentByModelId(itemModel.id);
                 if (newShapeComp is PositionComponent &&
                     itemModel.offset != null) {

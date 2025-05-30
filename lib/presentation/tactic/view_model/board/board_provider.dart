@@ -233,7 +233,6 @@ class BoardController extends StateNotifier<BoardState> {
   }
 
   void toggleFullScreen() {
-    boardComparator = null;
     state = state.copyWith(showFullScreen: !state.showFullScreen);
   }
 
