@@ -16,11 +16,13 @@ import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/game_field.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game_animation.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
@@ -265,7 +267,8 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
               child is LineDrawerComponentV2 ||
               child is SquareShapeDrawerComponent ||
               child is CircleShapeDrawerComponent ||
-              child is PolygonShapeDrawerComponent,
+              child is PolygonShapeDrawerComponent ||
+              child is TextFieldComponent,
         )
         .toList();
     if (componentsToRemove.isNotEmpty) removeAll(componentsToRemove);
@@ -297,6 +300,8 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
       await add(SquareShapeDrawerComponent(squareModel: item));
     } else if (item is PolygonShapeModel) {
       await add(PolygonShapeDrawerComponent(polygonModel: item));
+    } else if (item is TextModel) {
+      await add(TextFieldComponent(object: item));
     }
   }
 
@@ -313,6 +318,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
       if (c is SquareShapeDrawerComponent) return c.squareModel.id == modelId;
       if (c is CircleShapeDrawerComponent) return c.circleModel.id == modelId;
       if (c is PolygonShapeDrawerComponent) return c.polygonModel.id == modelId;
+      if (c is TextFieldComponent) return c.object.id == modelId;
       return false;
     });
   }
@@ -629,6 +635,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
       return component.circleModel.id;
     if (component is PolygonShapeDrawerComponent)
       return component.polygonModel.id;
+    if (component is TextFieldComponent) return component.object.id;
     return null;
   }
 
@@ -639,6 +646,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     if (component is SquareShapeDrawerComponent) return component.squareModel;
     if (component is CircleShapeDrawerComponent) return component.circleModel;
     if (component is PolygonShapeDrawerComponent) return component.polygonModel;
+    if (component is TextFieldComponent) return component.object;
     return null;
   }
 

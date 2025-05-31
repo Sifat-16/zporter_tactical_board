@@ -106,6 +106,7 @@ class TacticBoard extends TacticBoardGame
     if (components.isNotEmpty) {
       if (!components.any((t) => t is FieldComponent) &&
           !components.any((t) => t is DraggableCircleComponent) &&
+          !components.any((t) => t is DraggableRectangleComponent) &&
           !components.any((t) => t is LineDrawerComponentV2) &&
           !components.any((t) => t is CircleShapeDrawerComponent) &&
           !components.any((t) => t is CircleRadiusDraggableDot) &&
@@ -170,7 +171,6 @@ class TacticBoard extends TacticBoardGame
             ',',
           ); // Use join for a more stable string representation if order matters
 
-      zlog(data: "Check why update not working ${isAnimating} - ${current}");
       current =
           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()}";
 

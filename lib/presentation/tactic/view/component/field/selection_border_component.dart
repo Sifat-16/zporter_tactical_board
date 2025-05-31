@@ -15,17 +15,16 @@ class SelectionBorder extends RectangleComponent {
   final bool symmetrically; // Add this parameter
 
   SelectionBorder({required this.component, required this.symmetrically})
-    : super(
-        size: component.size + Vector2.all(10),
-        anchor: Anchor.center,
-        position: Vector2(component.size.x / 2, component.size.y / 2),
-        paint:
-            Paint()
-              ..color = const Color(0xFF00FF00)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 0.5,
-        priority: 2,
-      ) {
+      : super(
+          size: component.size + Vector2.all(10),
+          anchor: Anchor.center,
+          position: Vector2(component.size.x / 2, component.size.y / 2),
+          paint: Paint()
+            ..color = const Color(0xFF00FF00)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.5,
+          priority: 2,
+        ) {
     add(RotationHandle(component)..position = Vector2(size.x / 2, 0));
 
     // Add the four scaling handles (dots) at the corners
@@ -42,7 +41,7 @@ class SelectionBorder extends RectangleComponent {
       add(
         ScalingHandle(
           component: component,
-          anchor: Anchor.center,
+          anchor: Anchor.bottomRight,
           scalingHandlePosition: ScalingHandlePosition.TOP_LEFT,
         )..position = Vector2(-0, -0), // Top-Left
         // Assuming the dot should be centered on the corner
@@ -50,21 +49,21 @@ class SelectionBorder extends RectangleComponent {
       add(
         ScalingHandle(
           component: component,
-          anchor: Anchor.center,
+          anchor: Anchor.bottomLeft,
           scalingHandlePosition: ScalingHandlePosition.TOP_RIGHT,
         )..position = Vector2(size.x, -0), // Top-Right
       );
       add(
         ScalingHandle(
           component: component,
-          anchor: Anchor.center,
+          anchor: Anchor.topRight,
           scalingHandlePosition: ScalingHandlePosition.BOTTOM_LEFT,
         )..position = Vector2(-0, size.y), // Bottom-Left
       );
       add(
         ScalingHandle(
           component: component,
-          anchor: Anchor.center,
+          anchor: Anchor.topLeft,
           scalingHandlePosition: ScalingHandlePosition.BOTTOM_RIGHT,
         )..position = Vector2(size.x, size.y), // Bottom-Right
       );
@@ -76,11 +75,10 @@ class SelectionBorder extends RectangleComponent {
     size = component.size + Vector2.all(10);
     anchor = Anchor.center;
     position = Vector2(component.size.x / 2, component.size.y / 2);
-    paint =
-        Paint()
-          ..color = const Color(0xFF00FF00)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.5;
+    paint = Paint()
+      ..color = const Color(0xFF00FF00)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
     priority = 2;
     if (component is EquipmentComponent ||
         component is PlayerComponent ||
@@ -92,10 +90,9 @@ class SelectionBorder extends RectangleComponent {
   void updateHandlePositions() {
     // Get all scaling handles and the rotation handle
     final scalingHandles = children.whereType<ScalingHandle>().toList();
-    final rotationHandle =
-        children
-            .whereType<RotationHandle>()
-            .firstOrNull; // Use firstOrNull for safety
+    final rotationHandle = children
+        .whereType<RotationHandle>()
+        .firstOrNull; // Use firstOrNull for safety
 
     // Ensure we have the expected number of scaling handles
     if (scalingHandles.length == 4) {
