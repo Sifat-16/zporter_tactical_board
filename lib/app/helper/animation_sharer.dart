@@ -166,10 +166,8 @@ class AnimationSharer {
     }
   }
 
-  static Future<void> captureAndShare(
-    GlobalKey boundaryKey, {
-    String fileName = "tactic_scene",
-  }) async {
+  static Future<void> captureAndShare(GlobalKey boundaryKey,
+      {String fileName = "tactic_scene", required BuildContext context}) async {
     if (kIsWeb) {
       final XFile? imageFile = await captureWidgetAsPngWeb(
         boundaryKey,
@@ -178,6 +176,11 @@ class AnimationSharer {
       if (imageFile != null) {
         await SharePlus.instance.share(ShareParams(
           files: [imageFile],
+          sharePositionOrigin: Rect.fromLTWH(
+              0,
+              0,
+              MediaQuery.of(context).size.width,
+              MediaQuery.of(context).size.height / 2),
         ));
       }
     } else {
@@ -186,24 +189,29 @@ class AnimationSharer {
         fileName: "tactic_scene_capture",
       );
       if (imagePath != null) {
-        await shareImageFile(
-          imagePath,
-          text: "Check out this tactic from my board!",
-          subject: "Tactic Scene",
-        );
+        await shareImageFile(imagePath,
+            text: "Check out this tactic from my board!",
+            subject: "Tactic Scene",
+            context: context);
       }
     }
   }
 
-  static Future<void> shareImageFile(
-    String filePath, {
-    String? text,
-    String? subject,
-  }) async {
+  static Future<void> shareImageFile(String filePath,
+      {String? text, String? subject, required BuildContext context}) async {
     try {
       final xFile = XFile(filePath);
       await SharePlus.instance.share(
-        ShareParams(files: [xFile], text: text, subject: subject),
+        ShareParams(
+          files: [xFile],
+          text: text,
+          subject: subject,
+          sharePositionOrigin: Rect.fromLTWH(
+              0,
+              0,
+              MediaQuery.of(context).size.width,
+              MediaQuery.of(context).size.height / 2),
+        ),
       );
       zlog(data: "File shared: $filePath");
     } catch (e) {
@@ -254,20 +262,17 @@ class AnimationSharer {
     return null;
   }
 
-  static Future<void> createGifAndShare(
-    Uint8List pngFrameBytesList, {
-    String fileName = "tactic_scene",
-  }) async {
+  static Future<void> createGifAndShare(Uint8List pngFrameBytesList,
+      {String fileName = "tactic_scene", required BuildContext context}) async {
     final String? imagePath = await createAnimationGifFromFrames(
       pngFrameBytesList,
       fileName: "tactic_scene_capture",
     );
     if (imagePath != null) {
-      await shareImageFile(
-        imagePath,
-        text: "Check out this tactic from my board!",
-        subject: "Tactic Scene",
-      );
+      await shareImageFile(imagePath,
+          text: "Check out this tactic from my board!",
+          subject: "Tactic Scene",
+          context: context);
     }
   }
 

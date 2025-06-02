@@ -5,8 +5,6 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_events.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
 class PlayerComponentV2 extends ConsumerStatefulWidget {
   const PlayerComponentV2({
@@ -42,15 +40,6 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
         ref
             .read(boardProvider.notifier)
             .updateDraggingToBoard(isDragging: true);
-        if (widget.key == TutorialKeys.firstPlayerKey) {
-          zlog(
-            data:
-                "PlayerComponentV2: Tutorial drag interaction started for the tutored player. Firing event.",
-          );
-          TutorialEvents.firePlayerTutorialDragInteractionStarted(
-            TutorialKeys.firstPlayerKey,
-          );
-        }
       },
       hitTestBehavior: HitTestBehavior.deferToChild,
       onDragEnd: (DraggableDetails details) {
@@ -60,11 +49,6 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
         zlog(
           data:
               "Drag ended: accepted=${details.wasAccepted}, offset=${details.offset}",
-        );
-        TutorialEvents.firePlayerSuccessfullyDraggedToField(
-          // If you can identify if it was TutorialKeys.firstPlayerKey, that's even better.
-          // For now, let's assume any successful drag after the tutorial step starts is fine.
-          // playerKey: /* key of the dragged player if available */
         );
       },
 
@@ -113,8 +97,7 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
   // with the correct height/width. The SizedBox wrapper outside is belts-and-braces.
   Widget _buildPlayerComponent({bool isDragging = false}) {
     final theme = Theme.of(context);
-    final roleTextStyle =
-        theme.textTheme.labelLarge?.copyWith(
+    final roleTextStyle = theme.textTheme.labelLarge?.copyWith(
           color: ColorManager.white,
           fontWeight: FontWeight.bold,
           fontSize: 12,
@@ -125,8 +108,7 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
           fontSize: 12,
         );
 
-    final indexTextStyle =
-        theme.textTheme.labelSmall?.copyWith(
+    final indexTextStyle = theme.textTheme.labelSmall?.copyWith(
           color: ColorManager.white,
           fontSize: 10,
         ) ??

@@ -25,7 +25,6 @@ extension TutorialTypeExtension on TutorialType {
   }
 }
 
-
 class TutorialManager {
   // This class will manage the tutorials using tutorial_coach_mark
 
@@ -95,7 +94,7 @@ class TutorialManager {
     required BuildContext context,
     required TutorialType type,
     VoidCallback? onFinish,
-    VoidCallback? onSkip,
+    bool Function()? onSkip,
   }) {
     List<TargetFocus> targets = _getTargetsForType(type);
 

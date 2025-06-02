@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:widget_capture_x_plus/widget_capture_x_plus.dart';
 import 'package:widget_capture_x_plus/widget_capture_x_plus_controller.dart';
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/animation_sharer.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
@@ -473,7 +474,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     if (selectedAnimation == null) {
                                       await AnimationSharer.captureAndShare(
                                           _gameBoundaryKey,
-                                          fileName: "Test scene");
+                                          context: context,
+                                          fileName:
+                                              "Tactic Scene ${RandomGenerator.generateId()}");
                                     } else {
                                       AnimationShareType? type =
                                           await _showShareChoiceDialog(
@@ -481,6 +484,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       if (type == AnimationShareType.image) {
                                         await AnimationSharer.captureAndShare(
                                             _gameBoundaryKey,
+                                            context: context,
                                             fileName: "Test scene");
                                       } else if (type ==
                                           AnimationShareType.video) {
@@ -515,6 +519,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                             finalOutput.success &&
                                             finalOutput.filePath != null) {
                                           AnimationSharer.shareImageFile(
+                                              context: context,
                                               finalOutput.filePath!,
                                               text: "Test animation text");
                                           zlog(

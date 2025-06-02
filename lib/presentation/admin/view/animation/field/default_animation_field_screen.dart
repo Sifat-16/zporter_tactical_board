@@ -12,8 +12,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/rightt
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tactic_board_tutorial_manager.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
 class DefaultAnimationFieldScreen extends ConsumerStatefulWidget {
   const DefaultAnimationFieldScreen({super.key, required this.animationModel});
@@ -33,9 +31,6 @@ class _DefaultAnimationFieldScreenState
   late double _rightPanelWidth;
   final Duration _panelAnimationDuration = const Duration(milliseconds: 250);
 
-  late final TacticBoardTutorialManager _tutorialManager;
-  // Keys are no longer defined here, they are in TutorialKeys
-
   void _toggleLeftPanel() {
     setState(() {
       _isLeftPanelOpen = !_isLeftPanelOpen;
@@ -54,7 +49,6 @@ class _DefaultAnimationFieldScreenState
     super.initState();
     _leftPanelWidth = 200.0;
     _rightPanelWidth = 250.0;
-    _tutorialManager = TacticBoardTutorialManager();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
@@ -73,7 +67,6 @@ class _DefaultAnimationFieldScreenState
 
   @override
   void dispose() {
-    _tutorialManager.dismissCurrentCoachMarkTutorial();
     super.dispose();
   }
 
@@ -145,7 +138,6 @@ class _DefaultAnimationFieldScreenState
               top: (context.heightPercent(92) / 2) - 25,
               // Assign the static key directly to the Material widget
               child: Material(
-                key: TutorialKeys.leftPanelButtonKey,
                 color: ColorManager.grey.withOpacity(0.6),
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(8),
@@ -174,7 +166,6 @@ class _DefaultAnimationFieldScreenState
                 ),
               ),
             ),
-
             AnimatedPositioned(
               duration: _panelAnimationDuration,
               curve: Curves.easeInOut,
@@ -224,14 +215,7 @@ class _DefaultAnimationFieldScreenState
   ) {
     return Padding(
       padding: EdgeInsets.all(5),
-      child:
-      // asp.showNewCollectionInput == true ||
-      //         asp.showNewAnimationInput == true
-      //     ? AnimationDataInputComponent()
-      //     : asp.showQuickSave
-      //     ? ShowQuickSaveComponent()
-      //     :
-      GameScreen(
+      child: GameScreen(
         scene: selectedScene,
         saveToDb: false,
         onSceneSave: (a) {
@@ -241,12 +225,9 @@ class _DefaultAnimationFieldScreenState
         config: FormSpeedDialConfig(
           showFullScreenButton: false,
           showBackButton: true,
-
           addNewSceneForAdmin: () {
             try {
-              ref
-                  .read(animationProvider.notifier)
-                  .addNewSceneFromAdmin(
+              ref.read(animationProvider.notifier).addNewSceneFromAdmin(
                     selectedAnimation: asp.selectedAnimationModel!,
                     selectedScene: asp.selectedScene!,
                   );

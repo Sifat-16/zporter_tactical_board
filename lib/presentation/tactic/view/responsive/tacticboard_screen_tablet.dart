@@ -20,8 +20,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tactic_board_tutorial_manager.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
 class TacticboardScreenTablet extends ConsumerStatefulWidget {
   const TacticboardScreenTablet({super.key, required this.userId});
@@ -39,9 +37,6 @@ class _TacticboardScreenTabletState
   late double _leftPanelWidth;
   late double _rightPanelWidth;
   final Duration _panelAnimationDuration = const Duration(milliseconds: 250);
-
-  late final TacticBoardTutorialManager _tutorialManager;
-  // Keys are no longer defined here, they are in TutorialKeys
 
   void _toggleLeftPanel() {
     setState(() {
@@ -98,92 +93,10 @@ class _TacticboardScreenTabletState
   void initState() {
     super.initState();
 
-    _tutorialManager = TacticBoardTutorialManager();
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         await ref.read(animationProvider.notifier).getAllCollections();
         await ref.read(animationProvider.notifier).configureDefaultAnimations();
-
-        // if (mounted) {
-        //   Future.delayed(const Duration(milliseconds: 300), () {
-        //     if (mounted) {
-        //       _tutorialManager.checkAndShowOpenLeftPanelTutorial(
-        //         context: context,
-        //         onLeftPanelButtonTutorialTap: _toggleLeftPanel,
-        //         onTutorialStepFinished: () {
-        //           // Step 1 (Open Panel) Finished
-        //           zlog(
-        //             data:
-        //                 "TacticboardScreen: Left panel tutorial step finished.",
-        //           );
-        //           if (_isLeftPanelOpen && mounted) {
-        //             Future.delayed(const Duration(milliseconds: 600), () {
-        //               if (mounted) {
-        //                 if (TutorialKeys.firstPlayerKey.currentContext !=
-        //                     null) {
-        //                   zlog(
-        //                     data:
-        //                         "TacticboardScreen: Attempting to show drag player tutorial.",
-        //                   );
-        //                   _tutorialManager.showDragPlayerTutorial(
-        //                     context: context,
-        //                     onTutorialStepFinished: () {
-        //                       // Step 2 (Drag Player) IS NOW TRULY Finished
-        //                       zlog(
-        //                         data:
-        //                             "TacticboardScreen: Drag player ACTION tutorial step finished.",
-        //                       );
-        //                       // Now, start the "Add New Scene" tutorial step
-        //                       Future.delayed(const Duration(milliseconds: 300), () {
-        //                         if (mounted &&
-        //                             TutorialKeys
-        //                                     .addNewSceneButtonKey
-        //                                     .currentContext !=
-        //                                 null) {
-        //                           zlog(
-        //                             data:
-        //                                 "TacticboardScreen: Attempting to show Add New Scene tutorial.",
-        //                           );
-        //                           _tutorialManager.showAddNewSceneTutorial(
-        //                             context: context,
-        //                             onAddNewSceneButtonTutorialTap:
-        //                                 _performAddNewSceneAction,
-        //                             onTutorialStepFinished: () {
-        //                               zlog(
-        //                                 data:
-        //                                     "TacticboardScreen: Add New Scene tutorial step finished.",
-        //                               );
-        //                               zlog(data: "TUTORIAL SEQUENCE COMPLETE!");
-        //                             },
-        //                           );
-        //                         } else if (mounted) {
-        //                           zlog(
-        //                             data:
-        //                                 "TacticboardScreen: TutorialKeys.addNewSceneButtonKey.currentContext is NULL. Cannot start Add New Scene tutorial.",
-        //                           );
-        //                         }
-        //                       });
-        //                     },
-        //                   );
-        //                 } else {
-        //                   /* ... log error ... */
-        //                   zlog(
-        //                     data:
-        //                         "TacticboardScreen: TutorialKeys.firstPlayerKey.currentContext is NULL.",
-        //                   );
-        //                 }
-        //               }
-        //             });
-        //           } else if (mounted) {
-        //             /* ... log error ... */
-        //             zlog(data: "TacticboardScreen: Left panel is not open.");
-        //           }
-        //         },
-        //       );
-        //     }
-        //   });
-        // }
       } catch (e, s) {
         zlog(data: "Error during initial data load or tutorial setup: $e \n$s");
       }
@@ -192,7 +105,6 @@ class _TacticboardScreenTabletState
 
   @override
   void dispose() {
-    _tutorialManager.dismissCurrentCoachMarkTutorial();
     super.dispose();
   }
 
@@ -282,7 +194,6 @@ class _TacticboardScreenTabletState
                     top: (context.heightPercent(92) / 2) - 25,
                     // Assign the static key directly to the Material widget
                     child: Material(
-                      key: TutorialKeys.leftPanelButtonKey,
                       color: ColorManager.grey.withOpacity(0.6),
                       borderRadius: const BorderRadius.only(
                         topRight: Radius.circular(8),
@@ -412,7 +323,6 @@ class _TacticboardScreenTabletState
                   25, // Consider if context here refers to the correct one
               // It should be the context of the build method where screenContent is defined
               child: Material(
-                key: TutorialKeys.leftPanelButtonKey,
                 color: ColorManager.grey.withOpacity(0.6),
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(8),
