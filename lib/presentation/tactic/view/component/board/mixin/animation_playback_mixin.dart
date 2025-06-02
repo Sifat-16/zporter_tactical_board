@@ -52,6 +52,8 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
   static const double REASONABLE_TIME_STEP_AFTER_FREEZE =
       1.0 / 30.0; // Cap to process at ~30FPS after a long freeze
 
+  static const double BASE_BALL_ROTATION_SPEED_RADS_PER_SEC = 2 * 3.14159;
+
   late AnimationModel animationModel;
   late bool autoPlay;
 
@@ -146,6 +148,28 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
       bool anAnimationCompletedThisFrame = false;
       for (int i = _activeManualAnimations.length - 1; i >= 0; i--) {
         final anim = _activeManualAnimations[i];
+
+        if (anim.component is EquipmentComponent) {
+          final equipmentComponent = anim.component as EquipmentComponent;
+          // Assuming your ManualVelocityAnimation instance (`anim`) has an `isMoving` getter.
+          // Your code in `_startOrUpdateManualAnimation` already uses `existingAnim.isMoving`,
+          // so this property should be available.
+          if (equipmentComponent.object.name == "BALL" && anim.isMoving) {
+            // Calculate rotation for this frame.
+            // The rotation speed is determined by the base rotation speed,
+            // the time delta (effectiveDt), and the current scene's pace factor.
+            double rotationThisFrame = BASE_BALL_ROTATION_SPEED_RADS_PER_SEC *
+                effectiveDt *
+                _scenePaceFactor;
+
+            equipmentComponent.angle -= rotationThisFrame;
+
+            // Optional: Keep the angle within 0 to 2*PI range if desired,
+            // though Flame typically handles larger angle values correctly.
+            // equipmentComponent.angle %= (2 * 3.14159);
+          }
+        }
+
         if (anim.update(effectiveDt)) {
           // Pass the same effectiveDt here
           _activeMovingItemIdsInCurrentScene.remove(anim.itemModel.id);
