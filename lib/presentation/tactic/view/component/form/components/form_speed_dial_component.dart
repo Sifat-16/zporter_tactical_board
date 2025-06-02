@@ -27,7 +27,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart'; // Adjust path
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart'; // Adjust path
 
 import 'form_item_speed_dial.dart'; // Adjust path
 import 'line/form_line_item.dart'; // Adjust path
@@ -296,7 +295,7 @@ class _FormSpeedDialComponentState
                 ),
               if (config.showShareButton)
                 GestureDetector(
-                  onTap: () {
+                  onTap: () async {
                     widget.config.onShare?.call();
                   },
                   child: Icon(
@@ -441,8 +440,6 @@ class _FormSpeedDialComponentState
               //   ),
               if (config.showAddNewSceneButton)
                 _buildAddNewScene(
-                  // Your original component call
-                  keyForTutorial: TutorialKeys.addNewSceneButtonKey,
                   selectedCollection: collectionModel,
                   collectionList: collectionList,
                   selectedAnimation: animationModel,

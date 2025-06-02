@@ -20,109 +20,91 @@ class EquipmentUtils {
       name: "HALF-CIRCLE",
       imagePath: "half-circle.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "GOAL-POST",
       imagePath: "goal-post.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "CONE",
       imagePath: "cone.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "TRAFFIC-CONE",
       imagePath: "traffic-cone.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "BULLSEYE",
       imagePath: "bullseye.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "CIRCLE",
       imagePath: "circle.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "POLE-DANCE",
       imagePath: "pole-dance.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "DUMMY",
       imagePath: "dummy.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "LADDER",
       imagePath: "ladder.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "BLOCK",
       imagePath: "block.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "DUMBBELL",
       imagePath: "dumbbell.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "DIGITAL-CLOCK",
       imagePath: "digital-clock.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "SCOREBOARD",
       imagePath: "scoreboard.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "STOPWATCH",
       imagePath: "stopwatch.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "SMARTPHONE",
       imagePath: "smartphone.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "WHISTLE",
       imagePath: "whistle.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "WORLD-CUP",
       imagePath: "world-cup.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "MEDAL",
       imagePath: "medal.png",
     ),
-
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "PODIUM",

@@ -14,7 +14,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
 
 class PlayersToolbarHome extends ConsumerStatefulWidget {
   const PlayersToolbarHome({super.key, this.showFooter = true});
@@ -78,11 +77,10 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   }) {
     // Create a copy from the source players list
     List<PlayerModel> activePlayers = List.from(sourcePlayers);
-    Set<String> fieldPlayerIds =
-        fieldPlayers
-            .where((f) => f.playerType == PlayerType.HOME)
-            .map((f) => f.id)
-            .toSet(); // Use Set for faster lookup
+    Set<String> fieldPlayerIds = fieldPlayers
+        .where((f) => f.playerType == PlayerType.HOME)
+        .map((f) => f.id)
+        .toSet(); // Use Set for faster lookup
 
     // Remove players that are already on the field
     activePlayers.removeWhere((p) => fieldPlayerIds.contains(p.id));
@@ -108,10 +106,9 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     // 2. Apply search filter if active
     final String searchTerm = _searchController.text.toLowerCase();
     if (_isSearching && searchTerm.isNotEmpty) {
-      activeToolbarPlayers =
-          activeToolbarPlayers
-              .where((p) => p.role.toLowerCase().contains(searchTerm))
-              .toList();
+      activeToolbarPlayers = activeToolbarPlayers
+          .where((p) => p.role.toLowerCase().contains(searchTerm))
+          .toList();
     }
     // --- End Filtering Logic ---
 
@@ -137,19 +134,13 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
               PlayerModel player = activeToolbarPlayers[index];
 
               Key? itemKey;
-              // Assign the static key to the first player component
-              if (index == 1) {
-                itemKey = TutorialKeys.firstPlayerKey; // Use static key
-                // zlog(data: "Assigning TutorialKeys.firstPlayerKey to player: ${player.id} at index 0");
-              }
+
               return PlayerComponentV2(key: itemKey, playerModel: player);
             }),
           ),
           // --- End Scrollbar Wrapper ---
         ),
-
         SizedBox(height: 10),
-
         if (widget.showFooter)
           _buildFooter(
             needCleanup: activeToolbarPlayers.length != players.length,
@@ -184,9 +175,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
             return item.category.displayName.toString();
           },
         ),
-
         SizedBox(height: 10),
-
         DropdownSelector<FormationTemplate>(
           hint: "Line Up",
           label: "Line Up",
@@ -226,9 +215,9 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
 
               List<PlayerModel> playersToAdd =
                   PlayerUtilsV2.generateHomePlayerFromScene(
-                    scene: scene,
-                    availablePlayers: players,
-                  );
+                scene: scene,
+                availablePlayers: players,
+              );
 
               tacticBoard?.removeFieldItems(players);
 
@@ -243,9 +232,9 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
           child: Text(
             "ADD",
             style: Theme.of(context).textTheme.labelLarge!.copyWith(
-              color: ColorManager.white,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: ColorManager.white,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
         ),
       ],

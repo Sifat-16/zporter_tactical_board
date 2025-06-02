@@ -66,21 +66,19 @@ mixin ItemManagement on TacticBoardGame {
     ref.read(boardProvider.notifier).updateFreeDraws(lines: lines);
     List<FreeDrawModelV2> duplicateLines = lines.map((e) => e.clone()).toList();
 
-    duplicateLines =
-        duplicateLines.map((l) {
-          List<Vector2> points = l.points;
-          points =
-              points
-                  .map(
-                    (p) => SizeHelper.getBoardActualVector(
-                      gameScreenSize: gameField.size,
-                      actualPosition: p,
-                    ),
-                  )
-                  .toList();
-          l.points = points;
-          return l;
-        }).toList();
+    duplicateLines = duplicateLines.map((l) {
+      List<Vector2> points = l.points;
+      points = points
+          .map(
+            (p) => SizeHelper.getBoardActualVector(
+              gameScreenSize: gameField.size,
+              actualPosition: p,
+            ),
+          )
+          .toList();
+      l.points = points;
+      return l;
+    }).toList();
 
     zlog(data: "Initial lines after ${duplicateLines}");
     drawingBoard = DrawingBoardComponent(
@@ -150,19 +148,38 @@ mixin ItemManagement on TacticBoardGame {
       FieldItemModel newItem = copyItem.clone();
       newItem.id = RandomGenerator.generateId();
       // Original code used non-nullable offset. Add null check for safety if needed.
-      newItem.offset = (newItem.offset ?? Vector2.zero()) + Vector2(5, 5);
+      newItem.offset = (newItem.offset ?? Vector2.zero()) +
+          SizeHelper.getBoardRelativeVector(
+              gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
 
       if (newItem is LineModelV2) {
         LineModelV2 updatedLine =
             newItem.clone(); // Clones the newItem FormModel
-        updatedLine.start = Vector2(newItem.start.x + 10, newItem.start.y + 10);
+        zlog(
+            data:
+                "After copying status ${newItem.offset} - ${updatedLine.start}");
 
-        updatedLine.end = Vector2(newItem.end.x + 10, newItem.end.y + 10);
+        updatedLine.start = newItem.start +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
+
+        updatedLine.end = newItem.end +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
+
+        updatedLine.controlPoint2 = (newItem.controlPoint2 ?? Vector2.zero()) +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
+
+        updatedLine.controlPoint1 = (newItem.controlPoint1 ?? Vector2.zero()) +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
 
         LineDrawerComponentV2 newLine = LineDrawerComponentV2(
           lineModelV2: updatedLine,
         );
-        add(newLine);
+        // add(newLine);
+        addItem(updatedLine);
       } else {
         // If it's not a FormModel (e.g., Player, Equipment)
         addItem(newItem); // Calls the public addItem in this mixin
@@ -181,11 +198,10 @@ mixin ItemManagement on TacticBoardGame {
       addItem(f);
     }
     _addFreeDrawing(
-      lines:
-          initialItems
-              .whereType<FreeDrawModelV2>()
-              .map((e) => e.clone())
-              .toList(),
+      lines: initialItems
+          .whereType<FreeDrawModelV2>()
+          .map((e) => e.clone())
+          .toList(),
     );
   }
 
@@ -202,14 +218,12 @@ mixin ItemManagement on TacticBoardGame {
     // Filter the children:
     // 1. Only consider components that are of type FieldComponent.
     // 2. From those, select ones where the component's object.id is in our set of IDs.
-    final List<FieldComponent> matchingComponents =
-        children
-            .whereType<FieldComponent>() // Filters for FieldComponent instances
-            .where((fieldComp) {
-              // fieldComp.object is the FieldItemModel (e.g., PlayerModel, EquipmentModel)
-              return idsToMatch.contains(fieldComp.object.id);
-            })
-            .toList(); // Convert the resulting Iterable to a List.
+    final List<FieldComponent> matchingComponents = children
+        .whereType<FieldComponent>() // Filters for FieldComponent instances
+        .where((fieldComp) {
+      // fieldComp.object is the FieldItemModel (e.g., PlayerModel, EquipmentModel)
+      return idsToMatch.contains(fieldComp.object.id);
+    }).toList(); // Convert the resulting Iterable to a List.
 
     return matchingComponents;
   }
