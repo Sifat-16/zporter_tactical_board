@@ -162,7 +162,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
                 effectiveDt *
                 _scenePaceFactor;
 
-            // equipmentComponent.angle -= rotationThisFrame;
+            equipmentComponent.angle -= rotationThisFrame;
 
             // Optional: Keep the angle within 0 to 2*PI range if desired,
             // though Flame typically handles larger angle values correctly.
