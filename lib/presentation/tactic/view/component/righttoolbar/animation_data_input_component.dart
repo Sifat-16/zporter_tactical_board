@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:zporter_tactical_board/app/core/component/choice_chip_grid_selector.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_text_field.dart';
+import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
@@ -278,19 +278,7 @@ Future<AnimationCreateItem?> showNewAnimationInputDialog(
                   mainAxisSize: MainAxisSize.min,
                   spacing: 20,
                   children: [
-                    // DropdownSelector<AnimationCollectionModel?>(
-                    //   key: UniqueKey(),
-                    //   label: "Collection",
-                    //   items: collectionList,
-                    //   initialValue: selectedCollection,
-                    //   onChanged: (s) {
-                    //     selectedCollection = s;
-                    //   },
-                    //   itemAsString: (AnimationCollectionModel? item) {
-                    //     return item?.name ?? "";
-                    //   },
-                    // ),
-                    ChoiceChipGridSelector(
+                    DropdownSelector<AnimationCollectionModel?>(
                       key: UniqueKey(),
                       label: "Collection",
                       items: collectionList,
@@ -302,6 +290,18 @@ Future<AnimationCreateItem?> showNewAnimationInputDialog(
                         return item?.name ?? "";
                       },
                     ),
+                    // ChoiceChipGridSelector(
+                    //   key: UniqueKey(),
+                    //   label: "Collection",
+                    //   items: collectionList,
+                    //   initialValue: selectedCollection,
+                    //   onChanged: (s) {
+                    //     selectedCollection = s;
+                    //   },
+                    //   itemAsString: (AnimationCollectionModel? item) {
+                    //     return item?.name ?? "";
+                    //   },
+                    // ),
                     CustomTextFormField(
                       // Use the controller from the State
                       controller: _controller,

@@ -225,9 +225,9 @@ final lineProvider = StateNotifierProvider<LineController, LineState>(
 
 class LineController extends StateNotifier<LineState> {
   LineController(this.ref)
-    : super(
-        const LineState(activeTool: ActiveTool.pointer),
-      ); // Default to pointer
+      : super(
+          const LineState(activeTool: ActiveTool.pointer),
+        ); // Default to pointer
 
   final Ref ref;
 
@@ -257,9 +257,9 @@ class LineController extends StateNotifier<LineState> {
     // along with `activeForm` indicate this specific "pointer-for-placement" state.
     bool preserveActiveFormForPointerPlacement =
         newTool == ActiveTool.pointer &&
-        state.activeForm != null &&
-        (state.isLineActiveToAddIntoGameField ||
-            state.isShapeActiveToAddIntoGameField);
+            state.activeForm != null &&
+            (state.isLineActiveToAddIntoGameField ||
+                state.isShapeActiveToAddIntoGameField);
 
     state = state.copyWith(
       activeTool: newTool,
@@ -272,11 +272,9 @@ class LineController extends StateNotifier<LineState> {
           preserveActiveFormForPointerPlacement ? state.activeForm : null,
       activatedFormId:
           preserveActiveFormForPointerPlacement ? state.activatedFormId : null,
-      isLineActiveToAddIntoGameField:
-          preserveActiveFormForPointerPlacement &&
+      isLineActiveToAddIntoGameField: preserveActiveFormForPointerPlacement &&
           state.isLineActiveToAddIntoGameField,
-      isShapeActiveToAddIntoGameField:
-          preserveActiveFormForPointerPlacement &&
+      isShapeActiveToAddIntoGameField: preserveActiveFormForPointerPlacement &&
           state.isShapeActiveToAddIntoGameField,
     );
     zlog(
@@ -290,6 +288,7 @@ class LineController extends StateNotifier<LineState> {
   void loadActiveLineModelToAddIntoGameFieldEvent({
     required LineModelV2 lineModelV2,
   }) {
+    zlog(data: "Came here to add line");
     LineModelV2 newLine = lineModelV2.clone();
     newLine.id = RandomGenerator.generateId();
     state = state.copyWith(
@@ -297,6 +296,7 @@ class LineController extends StateNotifier<LineState> {
       isLineActiveToAddIntoGameField:
           true, // Mark that a line is ready for placement
       activeForm: newLine,
+      activeId: lineModelV2.id,
       activatedFormId: newLine.id,
       isFreeDrawingActive: false,
       isEraserActivated: false,
@@ -321,6 +321,7 @@ class LineController extends StateNotifier<LineState> {
       isFreeDrawingActive: false,
       isEraserActivated: false,
       isTrashActive: false,
+      activeId: shapeModel.id,
       isLineActiveToAddIntoGameField: false,
     );
     zlog(data: "Loaded shape ${newShape.id} to add with pointer tool.");
@@ -347,6 +348,7 @@ class LineController extends StateNotifier<LineState> {
       isLineActiveToAddIntoGameField: false,
       isShapeActiveToAddIntoGameField: false,
       activeForm: null,
+      activeId: null,
       activatedFormId: null,
       // The specific tool flags (freeDraw, eraser, trash) should already be false
       // if an item was being placed, as placing an item implies pointer tool.
@@ -373,6 +375,7 @@ class LineController extends StateNotifier<LineState> {
       ..add(line); // Example: adding to a list
     state = state.copyWith(
       availableLines: lines,
+      activeId: null,
       activeTool: ActiveTool.pointer, // Revert to pointer tool
       isLineActiveToAddIntoGameField:
           false, // No longer actively adding this specific line
@@ -390,6 +393,7 @@ class LineController extends StateNotifier<LineState> {
       ..add(freeDraw); // Example
     state = state.copyWith(
       availableFreeDraws: freeDraws,
+
       activeTool:
           ActiveTool.pointer, // Revert to pointer after free draw completion
       isFreeDrawingActive: false, // Free draw session ends
@@ -406,12 +410,12 @@ class LineController extends StateNotifier<LineState> {
     // Called AFTER a shape (activeForm) has been drawn/committed.
     // Example: add to a list of drawn shapes, not explicitly done here.
     state = state.copyWith(
-      activeTool: ActiveTool.pointer, // Revert to pointer
-      isShapeActiveToAddIntoGameField:
-          false, // No longer actively adding this specific shape
-      activeForm: null, // Clear the completed form
-      activatedFormId: null,
-    );
+        activeTool: ActiveTool.pointer, // Revert to pointer
+        isShapeActiveToAddIntoGameField:
+            false, // No longer actively adding this specific shape
+        activeForm: null, // Clear the completed form
+        activatedFormId: null,
+        activeId: null);
     zlog(data: "Unloaded/Committed shape ${shape.id}. State reset.");
   }
 }

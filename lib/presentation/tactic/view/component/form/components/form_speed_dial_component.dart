@@ -505,6 +505,9 @@ class _FormSpeedDialComponentState
                     selectedAnimation: selectedAnimation,
                     selectedScene: selectedScene,
                   );
+              BotToast.showText(
+                  text: "Image added to animation",
+                  contentColor: ColorManager.black);
             } else {
               BotToast.showText(
                 text: "Cannot add new scene: No current scene selected.",
