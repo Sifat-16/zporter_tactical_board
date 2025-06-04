@@ -28,7 +28,17 @@ class _FormLineItemState extends ConsumerState<FormLineItem> {
     return GestureDetector(
       onTap: () {
         if (lp.isLineActiveToAddIntoGameField) {
-          ref.read(lineProvider.notifier).dismissActiveFormItem();
+          String? activeId = ref.read(lineProvider).activeId;
+          if (activeId == widget.lineModelV2.id) {
+            ref.read(lineProvider.notifier).dismissActiveFormItem();
+          } else {
+            ref.read(lineProvider.notifier).dismissActiveFormItem();
+            ref
+                .read(lineProvider.notifier)
+                .loadActiveLineModelToAddIntoGameFieldEvent(
+                  lineModelV2: widget.lineModelV2,
+                );
+          }
         } else {
           ref
               .read(lineProvider.notifier)

@@ -30,7 +30,19 @@ class _FormShapeItemState extends ConsumerState<FormShapeItem> {
     return GestureDetector(
       onTap: () {
         if (lp.isShapeActiveToAddIntoGameField) {
-          ref.read(lineProvider.notifier).dismissActiveFormItem();
+          String? activeId = ref.read(lineProvider).activeId;
+          if (activeId == widget.shapeModel.id) {
+            ref.read(lineProvider.notifier).dismissActiveFormItem();
+          } else {
+            ref.read(lineProvider.notifier).dismissActiveFormItem();
+            ref
+                .read(lineProvider.notifier)
+                .loadActiveShapeModelToAddIntoGameFieldEvent(
+                  shapeModel: widget.shapeModel.copyWith(
+                    id: RandomGenerator.generateId(),
+                  ),
+                );
+          }
         } else {
           ref
               .read(lineProvider.notifier)

@@ -260,6 +260,13 @@ class _AnimationToolbarComponentState
                       collectionList: collectionList,
                       selectedCollection: selectedCollection,
                     );
+                    try {
+                      animationCreateItem?.items = ref
+                              .read(animationProvider)
+                              .selectedScene
+                              ?.components ??
+                          [];
+                    } catch (e) {}
 
                     if (animationCreateItem != null) {
                       ref.read(animationProvider.notifier).createNewAnimation(

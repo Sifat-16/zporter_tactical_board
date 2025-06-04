@@ -171,10 +171,12 @@ class AnimationSharer {
     if (kIsWeb) {
       final XFile? imageFile = await captureWidgetAsPngWeb(
         boundaryKey,
-        fileName: "tactic_scene_capture",
+        fileName: fileName,
       );
       if (imageFile != null) {
         await SharePlus.instance.share(ShareParams(
+          text: "Zporter Football Pad Image",
+          subject: "Check out this from my Zporter Football Pad",
           files: [imageFile],
           sharePositionOrigin: Rect.fromLTWH(
               0,
@@ -186,12 +188,12 @@ class AnimationSharer {
     } else {
       final String? imagePath = await captureWidgetAsPng(
         boundaryKey,
-        fileName: "tactic_scene_capture",
+        fileName: fileName,
       );
       if (imagePath != null) {
         await shareImageFile(imagePath,
-            text: "Check out this tactic from my board!",
-            subject: "Tactic Scene",
+            text: "Zporter Football Pad Image",
+            subject: "Check out this from my Zporter Football Pad",
             context: context);
       }
     }
@@ -375,12 +377,12 @@ class AnimationDownloader {
   }) async {
     final String? imagePath = await captureWidgetAsPng(
       boundaryKey,
-      fileName: "tactic_scene_capture",
+      fileName: fileName,
     );
     if (imagePath != null) {
       await saveAppFileToUserSelectedLocation(
         sourceFilePath: imagePath,
-        suggestedFileName: 'tactic_scene_capture.png',
+        suggestedFileName: '${fileName}.png',
       );
     }
   }

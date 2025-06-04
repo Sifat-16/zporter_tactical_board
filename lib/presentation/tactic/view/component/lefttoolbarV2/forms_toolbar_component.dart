@@ -84,11 +84,7 @@ class _FormsToolbarComponentState extends ConsumerState<FormsToolbarComponent>
           final lineModel = lines[lineIndex];
           return FormLineItem(
             lineModelV2: lineModel,
-            onTap: () {
-              lineNotifier.loadActiveLineModelToAddIntoGameFieldEvent(
-                lineModelV2: lineModel,
-              );
-            },
+            onTap: () {},
           );
         } else {
           final shapeIndex = index - lines.length - texts.length;
@@ -96,11 +92,7 @@ class _FormsToolbarComponentState extends ConsumerState<FormsToolbarComponent>
             final shapeModel = shapes[shapeIndex];
             return FormShapeItem(
               shapeModel: shapeModel,
-              onTap: () {
-                lineNotifier.loadActiveShapeModelToAddIntoGameFieldEvent(
-                  shapeModel: shapeModel,
-                );
-              },
+              onTap: () {},
             );
           } else {
             return Container(color: Colors.red); // Error indicator

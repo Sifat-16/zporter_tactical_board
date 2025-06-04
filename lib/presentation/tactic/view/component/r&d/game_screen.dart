@@ -8,8 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:widget_capture_x_plus/widget_capture_x_plus.dart';
 import 'package:widget_capture_x_plus/widget_capture_x_plus_controller.dart';
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
-import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/animation_sharer.dart';
+import 'package:zporter_tactical_board/app/helper/file_name_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -53,7 +53,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   int previousAngle = 0;
 
   final WidgetCaptureXPlusController _widgetCaptureXPlusController =
-      WidgetCaptureXPlusController(outputBaseFileName: "tactics_animation");
+      WidgetCaptureXPlusController(
+          outputBaseFileName:
+              FileNameGenerator.generateZporterCaptureFilename());
 
   final closeButtonColor = Colors.grey[300];
   final closeButtonBackgroundColor = Colors.black;
@@ -475,8 +477,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       await AnimationSharer.captureAndShare(
                                           _gameBoundaryKey,
                                           context: context,
-                                          fileName:
-                                              "Tactic Scene ${RandomGenerator.generateId()}");
+                                          fileName: FileNameGenerator
+                                              .generateZporterCaptureFilename());
                                     } else {
                                       AnimationShareType? type =
                                           await _showShareChoiceDialog(
@@ -485,7 +487,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         await AnimationSharer.captureAndShare(
                                             _gameBoundaryKey,
                                             context: context,
-                                            fileName: "Test scene");
+                                            fileName: FileNameGenerator
+                                                .generateZporterCaptureFilename());
                                       } else if (type ==
                                           AnimationShareType.video) {
                                         if (!mounted) return;
@@ -519,9 +522,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                             finalOutput.success &&
                                             finalOutput.filePath != null) {
                                           AnimationSharer.shareImageFile(
-                                              context: context,
-                                              finalOutput.filePath!,
-                                              text: "Test animation text");
+                                            context: context,
+                                            finalOutput.filePath!,
+                                            text:
+                                                "Zporter Football Pad Animation",
+                                            subject:
+                                                "Check out this from my Zporter Football Pad",
+                                          );
                                           zlog(
                                               data:
                                                   "Video ready for sharing: ${finalOutput.filePath}");
@@ -552,9 +559,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       return;
                                     }
                                     if (selectedAnimation == null) {
-                                      await AnimationDownloader
-                                          .captureAndDownload(_gameBoundaryKey,
-                                              fileName: "Test scene");
+                                      await AnimationDownloader.captureAndDownload(
+                                          _gameBoundaryKey,
+                                          fileName: FileNameGenerator
+                                              .generateZporterCaptureFilename());
                                     } else {
                                       AnimationShareType? type =
                                           await _showShareChoiceDialog(
@@ -563,7 +571,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         await AnimationDownloader
                                             .captureAndDownload(
                                                 _gameBoundaryKey,
-                                                fileName: "Test scene");
+                                                fileName: FileNameGenerator
+                                                    .generateZporterCaptureFilename());
                                       } else if (type ==
                                           AnimationShareType.video) {
                                         if (!mounted) return;
@@ -599,7 +608,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           AnimationDownloader.downloadFile(
                                               finalOutput.filePath!,
                                               text:
-                                                  "${ref.read(animationProvider).selectedAnimationModel?.name}.mp4");
+                                                  "${FileNameGenerator.generateZporterCaptureFilename()}.mp4");
                                           zlog(
                                               data:
                                                   "Video ready for sharing: ${finalOutput.filePath}");

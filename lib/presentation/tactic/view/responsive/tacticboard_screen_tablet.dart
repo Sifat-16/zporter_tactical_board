@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart';
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
+import 'package:zporter_tactical_board/app/core/component/zporter_logo_launcher.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
-import 'package:zporter_tactical_board/app/manager/asset_manager.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -416,11 +415,12 @@ class _TacticboardScreenTabletState
                     alignment: Alignment.centerRight,
                     child: Padding(
                       padding: const EdgeInsets.only(right: 10.0),
-                      child: Image.asset(
-                        AssetsManager.logo,
-                        height: AppSize.s40,
-                        width: AppSize.s40,
-                      ),
+                      // child: Image.asset(
+                      //   AssetsManager.logo,
+                      //   height: AppSize.s40,
+                      //   width: AppSize.s40,
+                      // ),
+                      child: ZporterLogoLauncher(),
                     ),
                   ),
                   Row(
@@ -479,11 +479,12 @@ class _TacticboardScreenTabletState
               alignment: Alignment.centerRight,
               child: Padding(
                 padding: const EdgeInsets.only(right: 10.0),
-                child: Image.asset(
-                  AssetsManager.logo,
-                  height: AppSize.s40,
-                  width: AppSize.s40,
-                ),
+                // child:/ Image.asset(
+                //   AssetsManager.logo,
+                //   height: AppSize.s40,
+                //   width: AppSize.s40,
+                // ),
+                child: ZporterLogoLauncher(),
               ),
             ),
         ],
