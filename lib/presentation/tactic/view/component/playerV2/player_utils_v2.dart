@@ -116,10 +116,9 @@ class PlayerUtilsV2 {
     required PlayerType playerType,
   }) {
     List<PlayerModel> generatedPlayers = [];
-    List<Tuple3<String, String, int>> players =
-        (playerType == PlayerType.HOME)
-            ? homePlayers
-            : (playerType == PlayerType.AWAY)
+    List<Tuple3<String, String, int>> players = (playerType == PlayerType.HOME)
+        ? homePlayers
+        : (playerType == PlayerType.AWAY)
             ? awayPlayers
             : otherPlayers;
 
@@ -163,15 +162,13 @@ class PlayerUtilsV2 {
     return generatedPlayers;
   }
 
-  static List<PlayerModel> generateHomePlayerFromScene({
-    required AnimationItemModel scene,
-    required List<PlayerModel> availablePlayers,
-  }) {
+  static List<PlayerModel> generateHomePlayerFromScene(
+      {required AnimationItemModel scene,
+      required List<PlayerModel> availablePlayers}) {
     List<PlayerModel> scenePlayers =
         scene.components.whereType<PlayerModel>().toList() ?? [];
 
-    List<PlayerModel> playersToAdd =
-        scenePlayers.map((p) {
+    List<PlayerModel> playersToAdd = scenePlayers.map((p) {
           return availablePlayers
               .firstWhere((player) => player.id == p.id)
               .copyWith(offset: p.offset);
@@ -185,12 +182,12 @@ class PlayerUtilsV2 {
     required List<PlayerModel> availablePlayers,
     required Vector2 fieldSize,
   }) {
-    List<PlayerModel> scenePlayers =
-        scene.components
-            .whereType<PlayerModel>()
-            .toList()
-            .where((p) => p.playerType == PlayerType.HOME)
-            .toList();
+    zlog(data: "Generating away players for lineup");
+    List<PlayerModel> scenePlayers = scene.components
+        .whereType<PlayerModel>()
+        .toList()
+        .where((p) => p.playerType == PlayerType.HOME)
+        .toList();
 
     List<PlayerModel> playersToAdd = [];
 
@@ -210,9 +207,17 @@ class PlayerUtilsV2 {
                       ).x *
                       1.25 /
                       2)),
-          p.offset?.y ?? 0,
+
+          1 -
+              ((p.offset?.y ?? 0) -
+                  (SizeHelper.getBoardRelativeVector(
+                        gameScreenSize: fieldSize,
+                        actualPosition: p.size ?? Vector2.zero(),
+                      ).y /
+                      2)),
+          // p.offset?.y ?? 0,
         );
-        zlog(data: "Check the components ${offset} - ${p.offset} ${p.size}");
+        zlog(data: "Check the components ${offset} - ${fieldSize} ${p.size}");
         playerModel = playerModel.copyWith(offset: offset);
 
         playersToAdd.add(playerModel);
@@ -221,4 +226,95 @@ class PlayerUtilsV2 {
 
     return playersToAdd;
   }
+
+  // static List<PlayerModel> generateAwayPlayerFromScene({
+  //   required AnimationItemModel scene,
+  //   required List<PlayerModel> availablePlayers, // Changed name for clarity
+  //   required Vector2 fieldSize,
+  // }) {
+  //   zlog(data: "Generating away players for lineup with opposite logic");
+  //   List<PlayerModel> homeScenePlayers = scene.components
+  //       .whereType<PlayerModel>()
+  //       .where((p) => p.playerType == PlayerType.HOME)
+  //       .toList();
+  //
+  //   List<PlayerModel> playersToAdd = [];
+  //
+  //   // Map: Home Player "ROLE_JERSEY" -> Target Away Player Tuple<Role, Jersey>
+  //   // This map defines the tactical opposites.
+  //   // Assumes your Tuple class can create a 2-element tuple like Tuple(item1, item2)
+  //   // or you use a custom _TargetPlayerIdentity class.
+  //   final Map<String, Tuple2<String, int>> homeToAwayTargetMap = {
+  //     "LB_3": Tuple2("RB", 2), // Home LB (3) -> Away RB (2)
+  //     "RB_2": Tuple2("LB", 3), // Home RB (2) -> Away LB (3)
+  //     "LW_11": Tuple2("RW", 7), // Home LW (11) -> Away RW (7)
+  //     "RW_7": Tuple2("LW", 11), // Home RW (7) -> Away LW (11)
+  //     "LM_18": Tuple2("RM", 17), // Home LM (18) -> Away RM (17)
+  //     "RM_17": Tuple2("LM", 18), // Home RM (17) -> Away LM (18)
+  //     // Assuming WB jersey 13 is Left, 12 is Right for Home team
+  //     "WB_13": Tuple2("WB", 12), // Home Left WB (13) -> Away Right WB (12)
+  //     "WB_12": Tuple2("WB", 13), // Home Right WB (12) -> Away Left WB (13)
+  //     // Assuming W jersey 23 is Left, 22 is Right for Home team
+  //     "W_23": Tuple2("W", 22), // Home Left W (23) -> Away Right W (22)
+  //     "W_22": Tuple2("W", 23), // Home Right W (22) -> Away Left W (23)
+  //   };
+  //
+  //   for (PlayerModel homePlayer in homeScenePlayers) {
+  //     String targetAwayRole = homePlayer.role;
+  //     int targetAwayJersey = homePlayer.jerseyNumber;
+  //
+  //     String homePlayerKey = "${homePlayer.role}_${homePlayer.jerseyNumber}";
+  //
+  //     if (homeToAwayTargetMap.containsKey(homePlayerKey)) {
+  //       Tuple2<String, int> targetIdentity =
+  //           homeToAwayTargetMap[homePlayerKey]!;
+  //       targetAwayRole = targetIdentity.item1;
+  //       targetAwayJersey = targetIdentity.item2;
+  //       zlog(
+  //           data:
+  //               "Mapping Home (${homePlayer.role} #${homePlayer.jerseyNumber}) to target Away Identity (${targetAwayRole} #${targetAwayJersey})");
+  //     } else {
+  //       // Player role is symmetrical (CB, GK, CM, CDM, ST, CAM, CF, F)
+  //       // Their role and jersey number remain the same for the opponent search.
+  //       zlog(
+  //           data:
+  //               "No specific mapping for Home (${homePlayer.role} #${homePlayer.jerseyNumber}). Using same role/jersey for Away search.");
+  //     }
+  //
+  //     PlayerModel? awayPlayerMatch = availablePlayers.firstWhereOrNull(
+  //       (player) =>
+  //           player.role == targetAwayRole &&
+  //           player.jerseyNumber == targetAwayJersey,
+  //     );
+  //
+  //     if (awayPlayerMatch != null) {
+  //       // Use the original position mirroring logic, as you mentioned it was working fine.
+  //       Vector2 mirroredOffset = Vector2(
+  //         1.0 -
+  //             ((homePlayer.offset?.x ?? 0) -
+  //                 (SizeHelper.getBoardRelativeVector(
+  //                       gameScreenSize: fieldSize,
+  //                       actualPosition: homePlayer.size ?? Vector2.zero(),
+  //                     ).x *
+  //                     1.25 /
+  //                     2)),
+  //         homePlayer.offset?.y ?? 0, // Y-coordinate remains the same
+  //       );
+  //
+  //       zlog(
+  //           data:
+  //               "Found Away Player: ${awayPlayerMatch.role} #${awayPlayerMatch.jerseyNumber}. Original Home offset: ${homePlayer.offset}, Mirrored Away offset: $mirroredOffset");
+  //
+  //       PlayerModel finalAwayPlayer =
+  //           awayPlayerMatch.copyWith(offset: mirroredOffset);
+  //       playersToAdd.add(finalAwayPlayer);
+  //     } else {
+  //       zlog(
+  //           data:
+  //               "CRITICAL: Could not find matching away player for Home (${homePlayer.role} #${homePlayer.jerseyNumber}) with target Away Identity (${targetAwayRole} #${targetAwayJersey}) in availableAwayPlayers. Check awayPlayers list and mapping.");
+  //     }
+  //   }
+  //
+  //   return playersToAdd;
+  // }
 }

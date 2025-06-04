@@ -22,17 +22,15 @@ class GameField extends PositionComponent
 
   ui.Image? _logoImage;
 
-  final Paint _borderPaint =
-      Paint()
-        ..color = ColorManager.black
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1;
+  final Paint _borderPaint = Paint()
+    ..color = ColorManager.black
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1;
 
-  final Paint _fillPaint =
-      Paint()
-        ..color = ColorManager.black
-        ..style = PaintingStyle.fill
-        ..strokeWidth = 1;
+  final Paint _fillPaint = Paint()
+    ..color = ColorManager.black
+    ..style = PaintingStyle.fill
+    ..strokeWidth = 1;
 
   final Paint _fieldPaint = Paint()..color = ColorManager.grey; // Green Field
 
