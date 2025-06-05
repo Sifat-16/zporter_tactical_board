@@ -118,6 +118,7 @@ class _TacticboardScreenTabletState
     final bp = ref.watch(boardProvider);
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
+
     _leftPanelWidth = context.widthPercent(22.5);
     _rightPanelWidth = context.widthPercent(22.5);
 

@@ -32,6 +32,7 @@ mixin ItemManagement on TacticBoardGame {
   @override
   addItem(FieldItemModel item, {bool save = true}) async {
     // --- Exact code from original TacticBoard.addItem ---
+
     if (item is PlayerModel) {
       add(PlayerComponent(object: item)); // add() is available via FlameGame
     } else if (item is EquipmentModel) {
@@ -190,12 +191,12 @@ mixin ItemManagement on TacticBoardGame {
     // --- End of exact code ---
   }
 
-  void addInitialItems(List<FieldItemModel> initialItems) {
+  void addInitialItems(List<FieldItemModel> initialItems) async {
     zlog(data: "Initial items ${initialItems}");
 
     ref.read(boardProvider.notifier).clearItems();
     for (var f in initialItems) {
-      addItem(f);
+      await addItem(f);
     }
     _addFreeDrawing(
       lines: initialItems

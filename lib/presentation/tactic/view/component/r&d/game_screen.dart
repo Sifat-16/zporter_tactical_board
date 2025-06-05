@@ -340,7 +340,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     return DragTarget<FieldItemModel>(
       /* ... (onAcceptWithDetails - Same as before) ... */
-      onAcceptWithDetails: (details) {
+      onAcceptWithDetails: (details) async {
         if (!gameInitialized ||
             isBoardBusy(bp) ||
             _currentExportDialogContext != null) {
@@ -363,7 +363,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             transformedOffset + tacticBoardGame.gameField.position;
         fieldItemModel.offset = SizeHelper.getBoardRelativeVector(
             gameScreenSize: gameScreenSize, actualPosition: actualPosition);
-        tacticBoardGame.addItem(fieldItemModel);
+        await tacticBoardGame.addItem(fieldItemModel);
       },
       builder: (BuildContext context, List<Object?> candidateData,
           List<dynamic> rejectedData) {

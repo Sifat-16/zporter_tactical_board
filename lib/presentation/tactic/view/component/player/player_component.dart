@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class PlayerComponent extends FieldComponent<PlayerModel> {
@@ -75,8 +77,7 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
 
     // --- Shared calculations ---
     final double baseOpacity = (object.opacity ?? 1.0).clamp(0.0, 1.0);
-    final Color baseColor =
-        object.color ??
+    final Color baseColor = object.color ??
         (object.playerType == PlayerType.HOME
             ? ColorManager.blue
             : (object.playerType == PlayerType.AWAY
@@ -219,5 +220,25 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     // TODO: implement onComponentScale
     super.onComponentScale(size);
     object.size = size;
+  }
+
+  @override
+  void onLongTapDown(TapDownEvent event) async {
+    // TODO: implement onLongTapDown
+    super.onLongTapDown(event);
+
+    PlayerModel? updatedPlayer = await PlayerUtilsV2.showEditPlayerDialog(
+      context: game.buildContext!,
+      player: object,
+    );
+
+    if (updatedPlayer != null) {
+      object = updatedPlayer;
+      ref
+          .read(boardProvider.notifier)
+          .updatePlayerModel(newModel: updatedPlayer);
+    } else {
+      zlog(data: 'Player edit cancelled.');
+    }
   }
 }

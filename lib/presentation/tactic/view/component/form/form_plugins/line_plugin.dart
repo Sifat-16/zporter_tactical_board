@@ -29,11 +29,11 @@ class DraggableDot extends CircleComponent with DragCallbacks {
     super.radius = 8.0,
     this.color = Colors.blue,
   }) : super(
-         position: initialPosition,
-         anchor: Anchor.center,
-         paint: Paint()..color = color,
-         priority: 2,
-       );
+          position: initialPosition,
+          anchor: Anchor.center,
+          paint: Paint()..color = color,
+          priority: 2,
+        );
 
   Vector2? _dragStartLocalPosition;
 
@@ -87,24 +87,20 @@ class LineDrawerComponentV2 extends PositionComponent
   late Paint _inactivePaint;
 
   LineDrawerComponentV2({required this.lineModelV2, this.circleRadius = 8.0})
-    : super(priority: 1);
+      : super(priority: 1);
 
   updatePaint() {
-    _inactivePaint =
-        Paint()
-          ..color =
-              lineModelV2.color?.withValues(alpha: lineModelV2.opacity) ??
-              ColorManager.black.withValues(alpha: lineModelV2.opacity)
-          ..strokeWidth = lineModelV2.thickness
-          ..style = PaintingStyle.stroke;
+    _inactivePaint = Paint()
+      ..color = lineModelV2.color?.withValues(alpha: lineModelV2.opacity) ??
+          ColorManager.black.withValues(alpha: lineModelV2.opacity)
+      ..strokeWidth = lineModelV2.thickness
+      ..style = PaintingStyle.stroke;
 
-    _activePaint =
-        Paint()
-          ..color =
-              lineModelV2.color?.withValues(alpha: lineModelV2.opacity) ??
-              ColorManager.black.withValues(alpha: lineModelV2.opacity)
-          ..strokeWidth = lineModelV2.thickness
-          ..style = PaintingStyle.stroke;
+    _activePaint = Paint()
+      ..color = lineModelV2.color?.withValues(alpha: lineModelV2.opacity) ??
+          ColorManager.black.withValues(alpha: lineModelV2.opacity)
+      ..strokeWidth = lineModelV2.thickness
+      ..style = PaintingStyle.stroke;
   }
 
   @override
@@ -281,30 +277,32 @@ class LineDrawerComponentV2 extends PositionComponent
 
     // Update the public line model
     lineModelV2 = _duplicateLine.copyWith(
-      start:
-          SizeHelper.getBoardRelativeVector(
-            gameScreenSize: game.gameField.size,
-            actualPosition: start,
-          ).clone(),
-      end:
-          SizeHelper.getBoardRelativeVector(
-            gameScreenSize: game.gameField.size,
-            actualPosition: end,
-          ).clone(),
-      controlPoint1:
-          SizeHelper.getBoardRelativeVector(
-            gameScreenSize: game.gameField.size,
-            actualPosition: _controlPoint1,
-          ).clone(),
-      controlPoint2:
-          SizeHelper.getBoardRelativeVector(
-            gameScreenSize: game.gameField.size,
-            actualPosition: _controlPoint2,
-          ).clone(),
+      start: SizeHelper.getBoardRelativeVector(
+        gameScreenSize: game.gameField.size,
+        actualPosition: start,
+      ).clone(),
+      end: SizeHelper.getBoardRelativeVector(
+        gameScreenSize: game.gameField.size,
+        actualPosition: end,
+      ).clone(),
+      controlPoint1: SizeHelper.getBoardRelativeVector(
+        gameScreenSize: game.gameField.size,
+        actualPosition: _controlPoint1,
+      ).clone(),
+      controlPoint2: SizeHelper.getBoardRelativeVector(
+        gameScreenSize: game.gameField.size,
+        actualPosition: _controlPoint2,
+      ).clone(),
     );
 
     // Notify provider
-    ref.read(boardProvider.notifier).updateLine(line: lineModelV2);
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      try {
+        if (ref.exists(boardProvider)) {
+          ref.read(boardProvider.notifier).updateLine(line: lineModelV2);
+        }
+      } catch (e) {}
+    });
   }
 
   // --- MODIFIED: render ---
@@ -467,12 +465,9 @@ class LineDrawerComponentV2 extends PositionComponent
       p.y - arrowSize * math.sin(angle + math.pi / 6),
     );
 
-    final arrowPaint =
-        Paint()
-          ..color =
-              basePaint
-                  .color // Use base color
-          ..style = PaintingStyle.fill; // Use fill for visibility
+    final arrowPaint = Paint()
+      ..color = basePaint.color // Use base color
+      ..style = PaintingStyle.fill; // Use fill for visibility
     canvas.drawPath(path, arrowPaint);
   }
   // --- End NEW HELPER ---
@@ -497,8 +492,7 @@ class LineDrawerComponentV2 extends PositionComponent
     for (int i = 0; i < numDashes; i++) {
       final startOffset =
           start + normalizedDirection * (i * (dashWidth + dashSpace));
-      final endOffset =
-          start +
+      final endOffset = start +
           normalizedDirection * (i * (dashWidth + dashSpace) + dashWidth);
       // Clamp endOffset to not overshoot the actual 'end' point for this segment
       if (start.distanceToSquared(endOffset) > start.distanceToSquared(end) &&
