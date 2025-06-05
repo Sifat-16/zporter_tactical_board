@@ -34,7 +34,6 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
     return Draggable<PlayerModel>(
       data: widget.playerModel.clone(),
       rootOverlay: true,
-
       // hapticFeedbackOnStart: true,
       onDragStarted: () {
         ref

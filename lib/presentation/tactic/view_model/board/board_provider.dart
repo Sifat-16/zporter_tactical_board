@@ -13,6 +13,7 @@ import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 final boardProvider = StateNotifierProvider<BoardController, BoardState>(
@@ -24,7 +25,7 @@ class BoardController extends StateNotifier<BoardState> {
 
   Ref ref;
 
-  addBoardComponent({required FieldItemModel fieldItemModel}) {
+  addBoardComponent({required FieldItemModel fieldItemModel}) async {
     if (fieldItemModel is PlayerModel) {
       state = state.copyWith(players: [...state.players, fieldItemModel]);
     } else if (fieldItemModel is EquipmentModel) {
@@ -318,5 +319,15 @@ class BoardController extends StateNotifier<BoardState> {
 
   void toggleAnimating({required AnimatingObj? animatingObj}) {
     state = state.copyWith(animatingObj: animatingObj);
+  }
+
+  void updatePlayerModel({required PlayerModel newModel}) {
+    List<PlayerModel> players = state.players;
+    int index = players.indexWhere((p) => p.id == newModel.id);
+    if (index != -1) {
+      players[index] = newModel;
+    }
+    state = state.copyWith(players: players);
+    ref.read(animationProvider.notifier).updatePlayerModel(newModel: newModel);
   }
 }

@@ -1,9 +1,11 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/admin/model/default_lineup_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
@@ -57,11 +59,10 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
   // --- End Helper Methods ---
 
   initiatePlayerLocally() {
-    WidgetsBinding.instance.addPostFrameCallback((t) {
+    WidgetsBinding.instance.addPostFrameCallback((t) async {
+      List<PlayerModel> pls = await PlayerUtilsV2.getOrInitializeAwayPlayers();
       setState(() {
-        players = PlayerUtilsV2.generatePlayerModelList(
-          playerType: PlayerType.AWAY,
-        );
+        players = pls;
         _duplicatePlayers = players;
       });
     });
@@ -100,29 +101,52 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
     _duplicatePlayers = generateActivePlayers(
       players: _duplicatePlayers,
       fieldPlayers: bp.players,
-    );
+    )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
 
     return Column(
       children: [
-        // Use AnimatedSwitcher for a smooth transition (optional but nice)
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: _buildHeader(), // Build header dynamically
-        ),
         Expanded(
           child: GridView.count(
             crossAxisCount: 3,
             children: [
-              ...List.generate(_duplicatePlayers.length, (index) {
-                PlayerModel player = _duplicatePlayers[index];
-                return PlayerComponentV2(playerModel: player);
+              ...List.generate(_duplicatePlayers.length + 1, (index) {
+                if (index == 0) {
+                  return _buildAddPlayer();
+                }
+                PlayerModel player = _duplicatePlayers[index - 1];
+                return GestureDetector(
+                    onLongPress: () async {
+                      PlayerModel? updatedPlayer =
+                          await PlayerUtilsV2.showEditPlayerDialog(
+                        context: context,
+                        player: player,
+                      );
+
+                      if (updatedPlayer != null) {
+                        // Player was updated, now you need to save this 'updatedPlayer'
+                        // back to your Sembast database and update your UI state.
+                        zlog(
+                            data:
+                                'Player updated: ${updatedPlayer.name}, Image: ${updatedPlayer.imagePath}');
+
+                        int index =
+                            players.indexWhere((p) => p.id == updatedPlayer.id);
+                        if (index != -1) {
+                          setState(() {
+                            players[index] = updatedPlayer;
+                            _duplicatePlayers = players;
+                          });
+                        }
+                      } else {
+                        zlog(data: 'Player edit cancelled.');
+                      }
+                    },
+                    child: PlayerComponentV2(playerModel: player));
               }),
             ],
           ),
         ),
-
         SizedBox(height: 10),
-
         if (widget.showFooter)
           _buildFooter(needCleanup: _duplicatePlayers.length != players.length)
         else
@@ -132,8 +156,23 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
   }
 
   // --- Updated _buildHeader method ---
-  Widget _buildHeader() {
-    return SizedBox.shrink();
+  // Takes the current count as parameter
+  Widget _buildAddPlayer() {
+    return GestureDetector(
+        onTap: () async {
+          PlayerModel? newPlayer = await PlayerUtilsV2.showCreatePlayerDialog(
+              context: context, playerType: PlayerType.AWAY);
+          if (newPlayer != null) {
+            setState(() {
+              players.add(newPlayer);
+              _duplicatePlayers = players;
+            });
+          }
+        },
+        child: Icon(
+          FontAwesomeIcons.userPlus,
+          color: ColorManager.red,
+        ));
   }
 
   Widget _buildFooter({required bool needCleanup}) {
@@ -153,9 +192,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
             return item.category.displayName.toString();
           },
         ),
-
         SizedBox(height: 10),
-
         DropdownSelector<FormationTemplate>(
           label: "Line Up",
           items: selectedFormation?.templates ?? [],
@@ -194,10 +231,10 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
 
               List<PlayerModel> playersToAdd =
                   PlayerUtilsV2.generateAwayPlayerFromScene(
-                    scene: scene,
-                    availablePlayers: players,
-                    fieldSize: tacticBoard?.gameField.size ?? Vector2.zero(),
-                  );
+                scene: scene,
+                availablePlayers: players,
+                fieldSize: tacticBoard?.gameField.size ?? Vector2.zero(),
+              );
 
               tacticBoard?.removeFieldItems(players);
 
@@ -212,9 +249,9 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
           child: Text(
             "ADD",
             style: Theme.of(context).textTheme.labelLarge!.copyWith(
-              color: ColorManager.white,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: ColorManager.white,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
         ),
       ],

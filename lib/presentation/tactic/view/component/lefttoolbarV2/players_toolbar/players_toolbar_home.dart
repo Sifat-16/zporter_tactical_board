@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
@@ -37,7 +38,9 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   @override
   void initState() {
     super.initState();
-    initiatePlayerLocally();
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      initiatePlayerLocally();
+    });
 
     _searchController.addListener(() {
       if (mounted) {
@@ -53,12 +56,18 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     super.dispose();
   }
 
-  initiatePlayerLocally() {
-    zlog(data: "Comming to here to initiate players");
-    // Removed WidgetsBinding, setState will trigger build anyway
-    players = PlayerUtilsV2.generatePlayerModelList(
-      playerType: PlayerType.HOME,
-    );
+  initiatePlayerLocally() async {
+    // zlog(data: "Comming to here to initiate players");
+    // // Removed WidgetsBinding, setState will trigger build anyway
+    // players = PlayerUtilsV2.generatePlayerModelList(
+    //   playerType: PlayerType.HOME,
+    // );
+
+    List<PlayerModel> pls = await PlayerUtilsV2.getOrInitializeHomePlayers();
+
+    setState(() {
+      players = pls;
+    });
 
     // No need to set _duplicatePlayers here if filtering in build
   }
@@ -101,25 +110,20 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
       sourcePlayers: players, // Always start from the full generated list
       fieldPlayers: bp.players,
-    );
+    )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
 
     // 2. Apply search filter if active
     final String searchTerm = _searchController.text.toLowerCase();
     if (_isSearching && searchTerm.isNotEmpty) {
       activeToolbarPlayers = activeToolbarPlayers
           .where((p) => p.role.toLowerCase().contains(searchTerm))
-          .toList();
+          .toList()
+        ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
     }
     // --- End Filtering Logic ---
 
     return Column(
       children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: _buildHeader(
-            activeToolbarPlayers.length,
-          ), // Pass count to header
-        ),
         Expanded(
           // --- 3. Wrap GridView with Scrollbar ---
           child: GridView.count(
@@ -129,13 +133,43 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
             ), // Add some padding for grid items
             mainAxisSpacing: AppSize.s4, // Spacing between rows
             crossAxisSpacing: AppSize.s4, // Spacing between columns
-            children: List.generate(activeToolbarPlayers.length, (index) {
+            children: List.generate(activeToolbarPlayers.length + 1, (index) {
+              if (index == 0) {
+                return _buildAddPlayer();
+              }
+
               // Use filtered list
-              PlayerModel player = activeToolbarPlayers[index];
+              PlayerModel player = activeToolbarPlayers[index - 1];
 
               Key? itemKey;
 
-              return PlayerComponentV2(key: itemKey, playerModel: player);
+              return GestureDetector(
+                  onLongPress: () async {
+                    PlayerModel? updatedPlayer =
+                        await PlayerUtilsV2.showEditPlayerDialog(
+                      context: context,
+                      player: player,
+                    );
+
+                    if (updatedPlayer != null) {
+                      // Player was updated, now you need to save this 'updatedPlayer'
+                      // back to your Sembast database and update your UI state.
+                      zlog(
+                          data:
+                              'Player updated: ${updatedPlayer.name}, Image: ${updatedPlayer.imagePath}');
+
+                      int index =
+                          players.indexWhere((p) => p.id == updatedPlayer.id);
+                      if (index != -1) {
+                        setState(() {
+                          players[index] = updatedPlayer;
+                        });
+                      }
+                    } else {
+                      zlog(data: 'Player edit cancelled.');
+                    }
+                  },
+                  child: PlayerComponentV2(key: itemKey, playerModel: player));
             }),
           ),
           // --- End Scrollbar Wrapper ---
@@ -153,8 +187,21 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
 
   // --- Updated _buildHeader method ---
   // Takes the current count as parameter
-  Widget _buildHeader(int currentCount) {
-    return SizedBox.shrink();
+  Widget _buildAddPlayer() {
+    return GestureDetector(
+        onTap: () async {
+          PlayerModel? newPlayer = await PlayerUtilsV2.showCreatePlayerDialog(
+              context: context, playerType: PlayerType.HOME);
+          if (newPlayer != null) {
+            setState(() {
+              players.add(newPlayer);
+            });
+          }
+        },
+        child: Icon(
+          FontAwesomeIcons.userPlus,
+          color: ColorManager.blueAccent,
+        ));
   }
 
   Widget _buildFooter({required bool needCleanup}) {

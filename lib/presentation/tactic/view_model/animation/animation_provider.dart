@@ -15,6 +15,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/domain/admin/default_animation/default_animation_repository.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/delete_history_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
@@ -895,4 +896,185 @@ class AnimationController extends StateNotifier<AnimationState> {
       BotToast.showText(text: "No animation found");
     }
   }
+
+  AnimationItemModel _updateSceneWithPlayer(
+      AnimationItemModel scene, PlayerModel newPlayerModel) {
+    bool sceneModified = false;
+    List<FieldItemModel> updatedComponents = scene.components.map((component) {
+      if (component is PlayerModel && component.id == newPlayerModel.id) {
+        if (component != newPlayerModel) {
+          // Only mark modified if it's actually different
+          sceneModified = true;
+          return newPlayerModel; // Replace with the new model
+        }
+      }
+      return component; // Keep existing component
+    }).toList();
+
+    if (sceneModified) {
+      // Create a new scene instance with updated components
+      return scene.copyWith(
+          components: updatedComponents, updatedAt: DateTime.now());
+    }
+    return scene; // Return original scene if no relevant player was updated or if newModel was identical
+  }
+
+  // Helper function to update scenes within an AnimationModel
+  AnimationModel _updateAnimationWithPlayer(
+      AnimationModel animation, PlayerModel newPlayerModel) {
+    bool animationModified = false;
+    List<AnimationItemModel> updatedScenes =
+        animation.animationScenes.map((scene) {
+      AnimationItemModel updatedScene =
+          _updateSceneWithPlayer(scene, newPlayerModel);
+      if (updatedScene != scene) {
+        // Check if the scene instance changed
+        animationModified = true;
+      }
+      return updatedScene;
+    }).toList();
+
+    if (animationModified) {
+      return animation.copyWith(
+          animationScenes: updatedScenes, updatedAt: DateTime.now());
+    }
+    return animation;
+  }
+
+  // Helper function to update animations within an AnimationCollectionModel
+  AnimationCollectionModel _updateCollectionWithPlayer(
+      AnimationCollectionModel collection, PlayerModel newPlayerModel) {
+    bool collectionModified = false;
+    List<AnimationModel> updatedAnimations =
+        collection.animations.map((animation) {
+      AnimationModel updatedAnimation =
+          _updateAnimationWithPlayer(animation, newPlayerModel);
+      if (updatedAnimation != animation) {
+        // Check if the animation instance changed
+        collectionModified = true;
+      }
+      return updatedAnimation;
+    }).toList();
+
+    if (collectionModified) {
+      return collection.copyWith(
+          animations: updatedAnimations, updatedAt: DateTime.now());
+    }
+    return collection;
+  }
+
+  // The main method to update the player model across various state parts
+  void updatePlayerModel({
+    required PlayerModel newModel,
+  }) {
+    // 1. Process List<AnimationCollectionModel>
+    List<AnimationCollectionModel> updatedCollectionModelList =
+        state.animationCollections.map((collection) {
+      return _updateCollectionWithPlayer(collection, newModel);
+    }).toList();
+
+    // 2. Process List<AnimationModel> (top-level animations)
+    List<AnimationModel> updatedAnimationList =
+        state.animations.map((animation) {
+      return _updateAnimationWithPlayer(animation, newModel);
+    }).toList();
+
+    // 3. Process List<AnimationItemModel> (default animations/scenes)
+    List<AnimationItemModel> updatedDefaultAnimationsList =
+        state.defaultAnimationItems.map((scene) {
+      return _updateSceneWithPlayer(scene, newModel);
+    }).toList();
+
+    // 4. Process selected items, ensuring they point to the updated instances from the lists if applicable
+    AnimationCollectionModel? finalSelectedCollection;
+    if (state.selectedAnimationCollectionModel != null) {
+      // Try to find the selected collection in the updated list first
+      finalSelectedCollection = updatedCollectionModelList.firstWhereOrNull(
+        (c) => c.id == state.selectedAnimationCollectionModel!.id,
+      );
+      // If not found in the list (e.g., it was a standalone object), or if found but was the original instance, process it directly
+      if (finalSelectedCollection == null ||
+          finalSelectedCollection == state.selectedAnimationCollectionModel) {
+        AnimationCollectionModel directlyProcessed =
+            _updateCollectionWithPlayer(
+                state.selectedAnimationCollectionModel!, newModel);
+        // Prefer the list version if it exists and was updated, otherwise use the directly processed one if it changed.
+        if (finalSelectedCollection != null &&
+            finalSelectedCollection != directlyProcessed &&
+            directlyProcessed != state.selectedAnimationCollectionModel) {
+          // This case is tricky, implies the one in the list was not updated but direct processing did.
+          // Usually, if it's in the list, list's version is canonical.
+        }
+        finalSelectedCollection = (finalSelectedCollection != null &&
+                finalSelectedCollection !=
+                    state.selectedAnimationCollectionModel)
+            ? finalSelectedCollection
+            : directlyProcessed;
+      }
+    }
+
+    AnimationModel? finalSelectedAnimation;
+    if (state.selectedAnimationModel != null) {
+      // Prefer finding in the selected collection's updated animations, then in the top-level updated animation list
+      finalSelectedAnimation =
+          finalSelectedCollection?.animations.firstWhereOrNull(
+                (a) => a.id == state.selectedAnimationModel!.id,
+              ) ??
+              updatedAnimationList.firstWhereOrNull(
+                (a) => a.id == state.selectedAnimationModel!.id,
+              );
+
+      if (finalSelectedAnimation == null ||
+          finalSelectedAnimation == state.selectedAnimationModel) {
+        AnimationModel directlyProcessed =
+            _updateAnimationWithPlayer(state.selectedAnimationModel!, newModel);
+        finalSelectedAnimation = (finalSelectedAnimation != null &&
+                finalSelectedAnimation != state.selectedAnimationModel)
+            ? finalSelectedAnimation
+            : directlyProcessed;
+      }
+    }
+
+    AnimationItemModel? finalSelectedScene;
+    if (state.selectedScene != null) {
+      // Prefer finding in the selected animation's updated scenes, then in the updated default animations list
+      finalSelectedScene =
+          finalSelectedAnimation?.animationScenes.firstWhereOrNull(
+                (s) => s.id == state.selectedScene!.id,
+              ) ??
+              updatedDefaultAnimationsList.firstWhereOrNull(
+                (s) => s.id == state.selectedScene!.id,
+              );
+      if (finalSelectedScene == null ||
+          finalSelectedScene == state.selectedScene) {
+        AnimationItemModel directlyProcessed =
+            _updateSceneWithPlayer(state.selectedScene!, newModel);
+        finalSelectedScene = (finalSelectedScene != null &&
+                finalSelectedScene != state.selectedScene)
+            ? finalSelectedScene
+            : directlyProcessed;
+      }
+    }
+
+    // Create the new state. This assumes your state object has a copyWith method or similar.
+    // Replace 'YourAppState' and its fields with your actual state class and properties.
+    state = state.copyWith(
+      animationCollections: updatedCollectionModelList,
+      animations: updatedAnimationList,
+      selectedAnimationCollectionModel: finalSelectedCollection,
+      selectedAnimationModel: finalSelectedAnimation,
+      selectedScene: finalSelectedScene,
+      defaultAnimationItems: updatedDefaultAnimationsList,
+    );
+  }
+
+  // void updatePlayerModel({required PlayerModel newModel}) {
+  //   List<AnimationCollectionModel> collectionModel = state.animationCollections;
+  //   List<AnimationModel> animationList = state.animations;
+  //   AnimationCollectionModel? selectedCollection =
+  //       state.selectedAnimationCollectionModel;
+  //   AnimationModel? selectedAnimation = state.selectedAnimationModel;
+  //   AnimationItemModel? selectedScene = state.selectedScene;
+  //   List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
+  // }
 }
