@@ -68,6 +68,7 @@ dependencies:
   flutter_svg: ^2.0.17
   qr_flutter: ^4.1.0
   intl: ^0.20.2
+  device_preview: ^1.2.0
 
   widget_capture_x_plus:
     git:

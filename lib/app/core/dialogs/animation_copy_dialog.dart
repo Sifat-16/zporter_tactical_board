@@ -2,6 +2,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
+import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -46,24 +47,22 @@ Future<AnimationCopyItem?> showAnimationCopyDialog(
       // Determine confirm button background color
       final Color actualConfirmButtonColor = primaryAccentColor;
       // Determine text color for confirm button based on its background brightness
-      final Color confirmButtonTextColor =
-          ThemeData.estimateBrightnessForColor(actualConfirmButtonColor) ==
-                  Brightness.dark
-              ? ColorManager
-                  .white // Use white text on dark button backgrounds
-              : ColorManager
-                  .black; // Use black text on light button backgrounds
+      final Color confirmButtonTextColor = ThemeData.estimateBrightnessForColor(
+                  actualConfirmButtonColor) ==
+              Brightness.dark
+          ? ColorManager.white // Use white text on dark button backgrounds
+          : ColorManager.black; // Use black text on light button backgrounds
       return Theme(
         data: ThemeData.dark().copyWith(
           // Start with dark defaults
           dialogBackgroundColor: dialogBgColor,
           colorScheme: ThemeData.dark().colorScheme.copyWith(
-            primary: actualConfirmButtonColor, // Affects ElevatedButton bg
-            surface: dialogBgColor, // Dialog background
-            onSurface: mainTextColor, // Default text (like title)
-            onPrimary: confirmButtonTextColor, // Text ON confirm button
-            secondary: subtleTextColor, // Affects TextButton text color
-          ),
+                primary: actualConfirmButtonColor, // Affects ElevatedButton bg
+                surface: dialogBgColor, // Dialog background
+                onSurface: mainTextColor, // Default text (like title)
+                onPrimary: confirmButtonTextColor, // Text ON confirm button
+                secondary: subtleTextColor, // Affects TextButton text color
+              ),
           // Style buttons
           textButtonTheme: TextButtonThemeData(
             style: TextButton.styleFrom(
@@ -118,69 +117,71 @@ Future<AnimationCopyItem?> showAnimationCopyDialog(
             24.0,
           ), // Increased bottom padding
 
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 20,
-            children: [
-              DropdownSelector<AnimationCollectionModel?>(
-                key: UniqueKey(),
-                label: "Collection",
-                items: collectionList,
-                initialValue: selectedCollection,
-                onChanged: (s) {
-                  selectedCollection = s;
-                },
-                itemAsString: (AnimationCollectionModel? item) {
-                  return item?.name ?? "";
-                },
-              ),
-              TextField(
-                controller: _controller,
-
-                decoration: InputDecoration(
-                  label: Text("Animation"),
-                  border: OutlineInputBorder(),
+          content: SizedBox(
+            width: context.widthPercent(30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 20,
+              children: [
+                DropdownSelector<AnimationCollectionModel?>(
+                  key: UniqueKey(),
+                  label: "Collection",
+                  items: collectionList,
+                  initialValue: selectedCollection,
+                  onChanged: (s) {
+                    selectedCollection = s;
+                  },
+                  itemAsString: (AnimationCollectionModel? item) {
+                    return item?.name ?? "";
+                  },
                 ),
-              ),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                spacing: 10,
-                children: [
-                  CustomButton(
-                    padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
-                    borderRadius: 2,
-                    fillColor: ColorManager.dark1,
-                    child: Text("Cancel"),
-                    onTap: () {
-                      Navigator.of(context).pop(null); // Return false
-                    },
+                TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    label: Text("Animation"),
+                    border: OutlineInputBorder(),
                   ),
-                  // Confirm Button (uses ElevatedButtonTheme -> primary/custom bg, contrast text)
-                  CustomButton(
-                    padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
-                    borderRadius: 2,
-                    fillColor: ColorManager.blue,
-                    onTap: () {
-                      if (selectedCollection != null) {
-                        AnimationCopyItem animationCopyItem = AnimationCopyItem(
-                          animationModel: animation,
-                          animationCollectionModel: selectedCollection!,
-                          newAnimationName: _controller.text.trim(),
-                        );
-                        Navigator.of(
-                          context,
-                        ).pop(animationCopyItem); // Return true
-                      } else {
-                        BotToast.showText(text: "Invalid Collection");
-                        Navigator.of(context).pop(null); // Return true
-                      }
-                    },
-                    child: Text("Save"),
-                  ),
-                ],
-              ),
-            ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  spacing: 10,
+                  children: [
+                    CustomButton(
+                      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                      borderRadius: 2,
+                      fillColor: ColorManager.dark1,
+                      child: Text("Cancel"),
+                      onTap: () {
+                        Navigator.of(context).pop(null); // Return false
+                      },
+                    ),
+                    // Confirm Button (uses ElevatedButtonTheme -> primary/custom bg, contrast text)
+                    CustomButton(
+                      padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                      borderRadius: 2,
+                      fillColor: ColorManager.blue,
+                      onTap: () {
+                        if (selectedCollection != null) {
+                          AnimationCopyItem animationCopyItem =
+                              AnimationCopyItem(
+                            animationModel: animation,
+                            animationCollectionModel: selectedCollection!,
+                            newAnimationName: _controller.text.trim(),
+                          );
+                          Navigator.of(
+                            context,
+                          ).pop(animationCopyItem); // Return true
+                        } else {
+                          BotToast.showText(text: "Invalid Collection");
+                          Navigator.of(context).pop(null); // Return true
+                        }
+                      },
+                      child: Text("Save"),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
 
           // --- End ConstrainedBox wrapper ---
