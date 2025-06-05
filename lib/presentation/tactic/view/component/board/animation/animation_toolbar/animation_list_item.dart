@@ -311,7 +311,7 @@ class AnimationListItem extends StatelessWidget {
                             ),
                             child: Text(
                               animation.name,
-                              maxLines: 2,
+                              maxLines: 6,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context)
                                   .textTheme
