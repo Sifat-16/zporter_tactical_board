@@ -265,8 +265,8 @@ class _FormSpeedDialComponentState
       width: context.widthPercent(90), // Your original width
       child: Row(
         mainAxisSize: MainAxisSize.max, // Your original mainAxisSize
-        mainAxisAlignment: MainAxisAlignment.center,
-        spacing: 30,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        // spacing: 30,
         children: [
           // --- LEFT SIDE BUTTONS ---
           Row(
