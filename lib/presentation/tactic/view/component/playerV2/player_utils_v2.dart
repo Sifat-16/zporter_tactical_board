@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -414,9 +415,7 @@ class PlayerUtilsV2 {
       } catch (e) {
         zlog(data: 'Failed to save new player: $e');
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Error: Could not save new player.')),
-          );
+          BotToast.showText(text: "Error: Could not save new player.");
         }
         return null;
       }
@@ -699,10 +698,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     } catch (e) {
       zlog(data: 'Error during image pick/crop process: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Error processing image. Please try again.')),
-        );
+        BotToast.showText(text: "Error processing image. Please try again.");
       }
     }
   }
@@ -718,10 +714,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
     if (staticData == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('This player has no default data to reset to.')),
-        );
+        BotToast.showText(text: "This player has no default data to reset to.");
       }
       return;
     }
@@ -755,11 +748,9 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   Future<void> _onSavePressed() async {
     // 1. Basic validation
     if (_selectedJerseyNumber == null || _selectedRole == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Please fill all fields and select a role and jersey number.')),
-      );
+      BotToast.showText(
+          text: "Please fill all fields and select a role and jersey number.");
+
       return;
     }
 
@@ -769,11 +760,9 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
 
     if (isTaken) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text('Jersey number $_selectedJerseyNumber is already taken!')),
-      );
+      BotToast.showText(
+          text: 'Jersey number $_selectedJerseyNumber is already taken!');
+
       return;
     }
 
@@ -892,11 +881,10 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                             // ** BOTTOAST INTEGRATION POINT **
                             // Replace ScaffoldMessenger with your BotToast call if available
                             // Example: BotToast.showText(text: 'Jersey number $value is already taken!');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      'Jersey number $value is already taken! Please choose another.')),
-                            );
+                            BotToast.showText(
+                                text:
+                                    'Jersey number $value is already taken! Please choose another.');
+
                             // Revert selection:
                             // By setting state and having DropdownSelector rebuild with the 'previousValidNumber'
                             // as its initialValue, it should visually update.
@@ -909,30 +897,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                               _selectedJerseyNumber = value;
                             });
                           }
-                        }
-
-                        // onChanged: (value) async {
-                        //   if (value == null) {
-                        //     setState(() => _selectedJerseyNumber = null);
-                        //     return;
-                        //   }
-                        //   bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-                        //       value,
-                        //       widget.playerType,
-                        //       isEditMode ? widget.player!.id : '');
-                        //   if (isTaken) {
-                        //     if (mounted) {
-                        //       ScaffoldMessenger.of(context).showSnackBar(
-                        //         SnackBar(
-                        //             content: Text(
-                        //                 'Jersey number $value is already taken!')),
-                        //       );
-                        //     }
-                        //   } else {
-                        //     setState(() => _selectedJerseyNumber = value);
-                        //   }
-                        // },
-                        ),
+                        }),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -1034,469 +999,3 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     );
   }
 }
-
-// class _EditPlayerDialog extends StatefulWidget {
-//   final PlayerModel player;
-//   final List<String> availableRoles;
-//   final List<int> availableJerseyNumbers;
-//
-//   const _EditPlayerDialog({
-//     required this.player,
-//     required this.availableRoles,
-//     required this.availableJerseyNumbers,
-//   });
-//
-//   @override
-//   State<_EditPlayerDialog> createState() => _EditPlayerDialogState();
-// }
-//
-// class _EditPlayerDialogState extends State<_EditPlayerDialog> {
-//   late TextEditingController _nameController;
-//   late int? _selectedJerseyNumber;
-//   late String? _selectedRole;
-//   String? _currentImagePath; // Holds path to the selected image file
-//
-//   final ImagePicker _picker = ImagePicker();
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     _nameController = TextEditingController(text: widget.player.name ?? '');
-//     _selectedJerseyNumber =
-//     widget.player.jerseyNumber > 0 ? widget.player.jerseyNumber : null;
-//     _selectedRole = widget.player.role.isNotEmpty ? widget.player.role : null;
-//     _currentImagePath = widget.player.imagePath;
-//
-//     // Validate initial role
-//     if (_selectedRole != null &&
-//         !widget.availableRoles.contains(_selectedRole)) {
-//       zlog(
-//           data:
-//           "Initial role '$_selectedRole' not in available roles. Resetting.");
-//       _selectedRole = null; // Or set to a default if appropriate
-//     }
-//     // Validate initial jersey number
-//     if (_selectedJerseyNumber != null &&
-//         !widget.availableJerseyNumbers.contains(_selectedJerseyNumber)) {
-//       zlog(
-//           data:
-//           "Initial jersey number '$_selectedJerseyNumber' not in available numbers. Resetting.");
-//       _selectedJerseyNumber = null;
-//     }
-//   }
-//
-//   @override
-//   void dispose() {
-//     _nameController.dispose();
-//     super.dispose();
-//   }
-//
-//   Future<void> _onResetPressed() async {
-//     final playerToEdit = widget.player;
-//
-//     // 1. Find the player's original static data
-//     var staticData = PlayerUtilsV2.homePlayers
-//         .firstWhereOrNull((p) => p.item2 == playerToEdit.id);
-//     PlayerType teamTypeForSearch = PlayerType.HOME;
-//
-//     if (staticData == null) {
-//       staticData = PlayerUtilsV2.awayPlayers
-//           .firstWhereOrNull((p) => p.item2 == playerToEdit.id);
-//       teamTypeForSearch = PlayerType.AWAY;
-//     }
-//
-//     if (staticData == null) {
-//       // If there's no default data, inform the user and abort the reset.
-//       // The dialog remains open for the user to cancel.
-//       if (mounted) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           const SnackBar(
-//               content: Text('This player has no default data to reset to.')),
-//         );
-//       }
-//       return;
-//     }
-//
-//     final String originalRole = staticData.item1;
-//     final int originalNumber = staticData.item3;
-//     int finalNumber;
-//
-//     // 2. Determine the correct jersey number
-//     bool isOriginalNumberTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-//       originalNumber,
-//       teamTypeForSearch,
-//       playerToEdit.id,
-//     );
-//
-//     if (isOriginalNumberTaken) {
-//       finalNumber = await PlayerUtilsV2.findClosestUntakenNumber(
-//         originalNumber,
-//         teamTypeForSearch,
-//         playerToEdit.id,
-//       );
-//     } else {
-//       finalNumber = originalNumber;
-//     }
-//
-//     // 3. Construct the new, reset PlayerModel
-//     // We use `copyWith` on the original player to preserve essential properties like
-//     // id, playerType, offset, size, etc., while overwriting the editable fields.
-//     final PlayerModel resetPlayerModel = playerToEdit.copyWith(
-//       role: originalRole,
-//       jerseyNumber: finalNumber,
-//       name: '', // Reset the name to an empty string
-//       imagePath: null, // Remove the custom image path
-//     );
-//
-//     // 4. Pop the dialog and return the newly created reset model
-//     if (mounted) {
-//       Navigator.of(context).pop(resetPlayerModel);
-//     }
-//   }
-//
-//   Future<void> _pickImage() async {
-//     try {
-//       final XFile? pickedFile =
-//       await _picker.pickImage(source: ImageSource.gallery);
-//       if (pickedFile == null) {
-//         zlog(data: 'Image picking cancelled by user.');
-//         return; // User cancelled picking
-//       }
-//
-//       // --- Start Cropping Step ---
-//       CroppedFile? croppedFile = await ImageCropper().cropImage(
-//         sourcePath: pickedFile.path,
-//
-//         compressQuality:
-//         100, // Adjust quality (0-100), higher is better quality/larger file
-//         // aspectRatio: const CropAspectRatio(ratioX: 1.0, ratioY: 1.0), // Circle implies 1:1 aspect ratio
-//         uiSettings: [
-//           AndroidUiSettings(
-//               toolbarTitle: 'Crop Player Icon',
-//               toolbarColor: ColorManager.black, // Use your app's theme colors
-//               toolbarWidgetColor: ColorManager.white,
-//               initAspectRatio:
-//               CropAspectRatioPreset.square, // Essential for circle
-//               lockAspectRatio: true, // User cannot change aspect ratio from 1:1
-//               showCropGrid: false, // Usually not shown for circular crop
-//               backgroundColor: ColorManager.dark2,
-//               activeControlsWidgetColor: ColorManager.yellow,
-//               cropFrameColor: ColorManager.yellow.withValues(alpha: 0.8),
-//               hideBottomControls:
-//               false // Set to true if you want a cleaner look
-//           ),
-//           IOSUiSettings(
-//             title: 'Crop Player Icon',
-//             aspectRatioLockEnabled: true,
-//             resetAspectRatioEnabled: false,
-//             aspectRatioPickerButtonHidden: true, // Ensure 1:1 is maintained
-//             doneButtonTitle: 'Done',
-//             cancelButtonTitle: 'Cancel',
-//             showActivitySheetOnDone:
-//             false, // Set to true if you want share options after crop
-//             rotateButtonsHidden: false,
-//             rotateClockwiseButtonHidden: false,
-//             // You might need to set minimumAspectRatio if not using aspectRatioLockEnabled
-//             // minimumAspectRatio: 1.0,
-//           ),
-//           // WebUiSettings( // If you need web support
-//           //   context: context, // Crucial for web
-//           //   presentStyle: CropperPresentStyle.dialog, // or .page
-//           //   size: const CropperSize(width: 500, height: 500), // Size of the cropper UI
-//           //   boundary: const CroppieBoundary(width: 400, height: 400), // The cropping area
-//           //   viewPort: const CroppieViewPort(width: 300, height: 300, type: 'circle'), // Defines the circle
-//           //   enableExif: true,
-//           //   enableZoom: true,
-//           //   showZoomer: true,
-//           // ),
-//         ],
-//       );
-//
-//       if (croppedFile == null) {
-//         zlog(data: 'Image cropping cancelled by user.');
-//         return; // User cancelled cropping
-//       }
-//       // --- End Cropping Step ---
-//
-//       // Use the path of the *cropped* file
-//       final String pathForSaving = croppedFile.path;
-//
-//       // Proceed to copy the cropped file to your app's directory
-//       final Directory appDocDir = await getApplicationDocumentsDirectory();
-//       final String playerImageDir = p.join(appDocDir.path, 'zporter_player');
-//       await Directory(playerImageDir).create(recursive: true);
-//
-//       // Create a unique filename or use the one from cropper (it might be temporary)
-//       // It's often good to give it a consistent extension, e.g., .png or .jpg
-//       String fileExtension = p.extension(pathForSaving);
-//       if (fileExtension.isEmpty)
-//         fileExtension = ".png"; // Default if cropper doesn't give one
-//
-//       final String fileName =
-//           '${DateTime.now().millisecondsSinceEpoch}_${widget.player.id}$fileExtension';
-//       final String newPath = p.join(playerImageDir, fileName);
-//
-//       await File(pathForSaving).copy(newPath);
-//
-//       setState(() {
-//         _currentImagePath = newPath;
-//       });
-//       zlog(data: 'Cropped image copied to: $newPath');
-//     } catch (e) {
-//       zlog(data: 'Error during image pick/crop process: $e');
-//       if (mounted) {
-//         // Ensure the widget is still in the tree before showing SnackBar
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(
-//               content: Text(
-//                   'Error processing image. Please try again. ${e.toString().characters.take(30)}...')),
-//         );
-//       }
-//     }
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final theme = Theme.of(context); // For consistent styling
-//
-//     return Dialog(
-//       backgroundColor: ColorManager.black, // Background color from screenshot
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-//       child: SizedBox(
-//         width: context.widthPercent(40),
-//         child: SingleChildScrollView(
-//           padding: const EdgeInsets.all(20.0),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             crossAxisAlignment: CrossAxisAlignment.stretch,
-//             children: <Widget>[
-//               Align(
-//                 alignment: Alignment.centerLeft,
-//                 child: Text(
-//                   'Edit Player Icon',
-//                   textAlign: TextAlign.center,
-//                   style: theme.textTheme.headlineSmall?.copyWith(
-//                       color: ColorManager.white, fontWeight: FontWeight.bold),
-//                 ),
-//               ),
-//               const SizedBox(height: 24),
-//               Center(
-//                 child: GestureDetector(
-//                   onTap: _pickImage,
-//                   child: CircleAvatar(
-//                     radius: 50,
-//                     backgroundColor:
-//                     ColorManager.dark2, // Placeholder background
-//                     backgroundImage: _currentImagePath != null &&
-//                         File(_currentImagePath!).existsSync()
-//                         ? FileImage(File(_currentImagePath!))
-//                         : null,
-//                     child: _currentImagePath == null ||
-//                         !File(_currentImagePath!).existsSync()
-//                         ? Icon(
-//                       Icons.add_a_photo_outlined,
-//                       size: 40,
-//                       color: ColorManager.white.withOpacity(0.7),
-//                     )
-//                         : null,
-//                   ),
-//                 ),
-//               ),
-//               const SizedBox(height: 24),
-//               Row(
-//                 children: [
-//                   Expanded(
-//                     child: DropdownSelector<int>(
-//                       label: 'Nr',
-//                       items: widget.availableJerseyNumbers,
-//                       initialValue:
-//                       _selectedJerseyNumber, // This is key for reverting
-//                       hint: "Select Nr",
-//                       itemAsString: (item) => item.toString(),
-//                       onChanged: (value) async {
-//                         // Make onChanged async
-//                         if (value == null) {
-//                           setState(() {
-//                             _selectedJerseyNumber = null;
-//                           });
-//                           return;
-//                         }
-//
-//                         // Store current selection in case we need to revert
-//                         int? previousValidNumber = _selectedJerseyNumber;
-//
-//                         // Optimistically set for the check, but prepare to revert
-//                         // setState(() { _selectedJerseyNumber = value; }); // Let's not do this yet.
-//
-//                         bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-//                             value, widget.player.playerType, widget.player.id);
-//
-//                         if (isTaken) {
-//                           // ** BOTTOAST INTEGRATION POINT **
-//                           // Replace ScaffoldMessenger with your BotToast call if available
-//                           // Example: BotToast.showText(text: 'Jersey number $value is already taken!');
-//                           ScaffoldMessenger.of(context).showSnackBar(
-//                             SnackBar(
-//                                 content: Text(
-//                                     'Jersey number $value is already taken! Please choose another.')),
-//                           );
-//                           // Revert selection:
-//                           // By setting state and having DropdownSelector rebuild with the 'previousValidNumber'
-//                           // as its initialValue, it should visually update.
-//                           setState(() {
-//                             _selectedJerseyNumber = previousValidNumber;
-//                           });
-//                         } else {
-//                           // Number is not taken, accept the new value
-//                           setState(() {
-//                             _selectedJerseyNumber = value;
-//                           });
-//                         }
-//                       },
-//                     ),
-//                   ),
-//                   const SizedBox(width: 16),
-//                   Expanded(
-//                     child: DropdownSelector<String>(
-//                       label: 'Role',
-//                       items: widget.availableRoles,
-//                       initialValue: _selectedRole,
-//                       hint: "Select Role",
-//                       itemAsString: (item) => item,
-//                       onChanged: (value) {
-//                         setState(() {
-//                           _selectedRole = value;
-//                         });
-//                       },
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//               const SizedBox(height: 16),
-//               TextFormField(
-//                 controller: _nameController,
-//                 style: TextStyle(color: ColorManager.white),
-//                 decoration: InputDecoration(
-//                   labelText: 'Name',
-//                   labelStyle:
-//                   TextStyle(color: ColorManager.white.withOpacity(0.7)),
-//                   hintText: 'Edit name...',
-//                   hintStyle:
-//                   TextStyle(color: ColorManager.white.withOpacity(0.5)),
-//                   filled: true,
-//                   fillColor: ColorManager.dark2,
-//                   border: OutlineInputBorder(
-//                     borderRadius: BorderRadius.circular(8.0),
-//                     borderSide: BorderSide.none,
-//                   ),
-//                   // focusedBorder: OutlineInputBorder(
-//                   //   borderRadius: BorderRadius.circular(8.0),
-//                   //   borderSide: BorderSide(color: ColorManager.primary, width: 1.5), // Assuming primary is blueish
-//                   // ),
-//                 ),
-//               ),
-//               const SizedBox(height: 24),
-//               Row(
-//                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   CustomButton(
-//                     padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-//                     borderRadius: 2,
-//                     fillColor: ColorManager.yellow,
-//                     child: Text(
-//                       "Reset",
-//                       style: Theme.of(context).textTheme.labelMedium!.copyWith(
-//                           color: ColorManager.white,
-//                           fontWeight: FontWeight.bold),
-//                     ),
-//                     onTap: () {
-//                       _onResetPressed();
-//                     },
-//                   ),
-//                   Row(
-//                     mainAxisAlignment: MainAxisAlignment.end,
-//                     children: <Widget>[
-//                       CustomButton(
-//                         padding:
-//                         EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-//                         borderRadius: 2,
-//                         fillColor: ColorManager.dark1,
-//                         child: Text(
-//                           "Cancel",
-//                           style: Theme.of(context)
-//                               .textTheme
-//                               .labelMedium!
-//                               .copyWith(
-//                               color: ColorManager.white,
-//                               fontWeight: FontWeight.bold),
-//                         ),
-//                         onTap: () {
-//                           Navigator.of(context).pop(null); // Return false
-//                         },
-//                       ),
-//                       const SizedBox(width: 8),
-//                       CustomButton(
-//                         padding:
-//                         EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-//                         borderRadius: 2,
-//                         fillColor: ColorManager.blue,
-//                         onTap: () async {
-//                           // Make onPressed async for validation
-//                           // --- Begin Save Validation ---
-//                           if (_selectedJerseyNumber == null ||
-//                               _selectedRole == null ||
-//                               _nameController.text.trim().isEmpty) {
-//                             ScaffoldMessenger.of(context).showSnackBar(
-//                               const SnackBar(
-//                                   content: Text(
-//                                       'Please fill all fields and select jersey/role.')),
-//                             );
-//                             return;
-//                           }
-//
-//                           // Re-validate jersey number on save
-//                           bool isTakenOnSave =
-//                           await PlayerUtilsV2.isJerseyNumberTaken(
-//                               _selectedJerseyNumber!,
-//                               widget.player.playerType,
-//                               widget.player.id);
-//
-//                           if (isTakenOnSave) {
-//                             // ** BOTTOAST INTEGRATION POINT **
-//                             // Example: BotToast.showText(text: 'Jersey number $_selectedJerseyNumber is already taken! Cannot save.');
-//                             ScaffoldMessenger.of(context).showSnackBar(
-//                               SnackBar(
-//                                   content: Text(
-//                                       'Jersey number $_selectedJerseyNumber is already taken! Cannot save.')),
-//                             );
-//                             return; // Prevent saving
-//                           }
-//                           // --- End Save Validation ---
-//
-//                           final updatedPlayer = widget.player.copyWith(
-//                             name: _nameController.text.trim(),
-//                             jerseyNumber: _selectedJerseyNumber,
-//                             role: _selectedRole,
-//                             imagePath: _currentImagePath,
-//                           );
-//                           Navigator.of(context).pop(updatedPlayer);
-//                         },
-//                         child: Text("Save",
-//                             style: Theme.of(context)
-//                                 .textTheme
-//                                 .labelMedium!
-//                                 .copyWith(
-//                                 color: ColorManager.white,
-//                                 fontWeight: FontWeight.bold)),
-//                       ),
-//                     ],
-//                   ),
-//                 ],
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
