@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:zporter_tactical_board/app/extensions/size_extension.dart'; // Adjust path
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjust path
 import 'package:zporter_tactical_board/app/services/injection_container.dart'; // Adjust path
@@ -262,204 +261,214 @@ class _FormSpeedDialComponentState
     final config = widget.config;
 
     return SizedBox(
-      width: context.widthPercent(90), // Your original width
+      // width: context.widthPercent(90), // Your original width
       child: Row(
         mainAxisSize: MainAxisSize.max, // Your original mainAxisSize
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         // spacing: 30,
         children: [
           // --- LEFT SIDE BUTTONS ---
-          Row(
-            mainAxisAlignment:
-                MainAxisAlignment.center, // Your original alignment
-            spacing: 10,
-            children: [
-              if (config.showBackButton)
-                GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Icon(Icons.arrow_back, color: ColorManager.white),
-                ),
-              if (config.showFullScreenButton)
-                GestureDetector(
-                  onTap: () {
-                    ref.read(boardProvider.notifier).toggleFullScreen();
-                  },
-                  child: Icon(
-                    bp.showFullScreen == false
-                        ? Icons.fullscreen
-                        : Icons.fullscreen_exit,
-                    color: ColorManager.white,
+          Flexible(
+            flex: 1,
+            child: Row(
+              mainAxisAlignment:
+                  MainAxisAlignment.center, // Your original alignment
+              spacing: 10,
+              children: [
+                if (config.showBackButton)
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).pop();
+                    },
+                    child: Icon(Icons.arrow_back, color: ColorManager.white),
                   ),
-                ),
-              if (config.showShareButton)
-                GestureDetector(
-                  onTap: () async {
-                    widget.config.onShare?.call();
-                  },
-                  child: Icon(
-                    Icons.share,
-                    color: ColorManager.white,
-                  ), // Your original color
-                ),
-              if (config.showDownloadButton)
-                GestureDetector(
-                  onTap: () {
-                    widget.config.onDownload?.call();
-                  },
-                  child: Icon(
-                    Icons.download_sharp,
-                    color: ColorManager.white,
-                  ), // Your original color
-                ),
-            ],
+                if (config.showFullScreenButton)
+                  GestureDetector(
+                    onTap: () {
+                      ref.read(boardProvider.notifier).toggleFullScreen();
+                    },
+                    child: Icon(
+                      bp.showFullScreen == false
+                          ? Icons.fullscreen
+                          : Icons.fullscreen_exit,
+                      color: ColorManager.white,
+                    ),
+                  ),
+                if (config.showShareButton)
+                  GestureDetector(
+                    onTap: () async {
+                      widget.config.onShare?.call();
+                    },
+                    child: Icon(
+                      Icons.share,
+                      color: ColorManager.white,
+                    ), // Your original color
+                  ),
+                if (config.showDownloadButton)
+                  GestureDetector(
+                    onTap: () {
+                      widget.config.onDownload?.call();
+                    },
+                    child: Icon(
+                      Icons.download_sharp,
+                      color: ColorManager.white,
+                    ), // Your original color
+                  ),
+              ],
+            ),
           ),
 
           // --- CENTER TOOL BUTTONS ---
-          Row(
-            mainAxisSize: MainAxisSize.min, // Your original mainAxisSize
-            spacing: 10,
-            children: [
-              if (config.showPointerActionsButton)
-                GestureDetector(
-                  onTap: () {
-                    if (isPlacingItem) {
-                      lpNotifier.dismissActiveFormItem();
-                    } else if (currentActiveTool == ActiveTool.pointer) {
-                      _showActionGrid(context);
-                    } else {
-                      lpNotifier.setActiveTool(ActiveTool.pointer);
-                      _showActionGrid(context);
-                    }
-                  },
-                  child: lpState.activeForm != null &&
-                          currentActiveTool == ActiveTool.pointer
-                      ? _buildFormWidget(
-                          fieldItemModel: lpState.activeForm!,
-                        )
-                      : Center(
-                          // Your original Center widget
-                          child: Icon(
-                            Icons.arrow_upward,
-                            color: (currentActiveTool == ActiveTool.pointer &&
-                                    !isPlacingItem)
-                                ? activeColor
-                                : isPlacingItem
-                                    ? activeColor
-                                    : defaultInactiveColor,
+          Flexible(
+            flex: 1,
+            child: Row(
+              mainAxisSize: MainAxisSize.min, // Your original mainAxisSize
+              spacing: 10,
+              children: [
+                if (config.showPointerActionsButton)
+                  GestureDetector(
+                    onTap: () {
+                      if (isPlacingItem) {
+                        lpNotifier.dismissActiveFormItem();
+                      } else if (currentActiveTool == ActiveTool.pointer) {
+                        _showActionGrid(context);
+                      } else {
+                        lpNotifier.setActiveTool(ActiveTool.pointer);
+                        _showActionGrid(context);
+                      }
+                    },
+                    child: lpState.activeForm != null &&
+                            currentActiveTool == ActiveTool.pointer
+                        ? _buildFormWidget(
+                            fieldItemModel: lpState.activeForm!,
+                          )
+                        : Center(
+                            // Your original Center widget
+                            child: Icon(
+                              Icons.arrow_upward,
+                              color: (currentActiveTool == ActiveTool.pointer &&
+                                      !isPlacingItem)
+                                  ? activeColor
+                                  : isPlacingItem
+                                      ? activeColor
+                                      : defaultInactiveColor,
+                            ),
                           ),
-                        ),
-                ),
-              if (config.showFreeDrawButton)
-                GestureDetector(
-                  onTap: () {
-                    lpNotifier.toggleFreeDraw();
-                  },
-                  child: _buildFreeDrawComponent(
-                    // Your original component call
-                    isFocused: currentActiveTool == ActiveTool.freeDraw,
-                    isDimmed: (currentActiveTool != ActiveTool.freeDraw &&
-                            currentActiveTool != ActiveTool.pointer) ||
-                        isPlacingItem,
                   ),
-                ),
-              if (config.showEraserButton)
-                GestureDetector(
-                  onTap: () {
-                    lpNotifier.toggleEraser();
-                  },
-                  child: Icon(
-                    // Your original Icon
-                    FontAwesomeIcons.eraser,
-                    color: currentActiveTool == ActiveTool.eraser
-                        ? ColorManager.red
-                        : (currentActiveTool != ActiveTool.eraser &&
-                                    currentActiveTool != ActiveTool.pointer) ||
-                                isPlacingItem
-                            ? dimmedInactiveColor
-                            : defaultInactiveColor,
+                if (config.showFreeDrawButton)
+                  GestureDetector(
+                    onTap: () {
+                      lpNotifier.toggleFreeDraw();
+                    },
+                    child: _buildFreeDrawComponent(
+                      // Your original component call
+                      isFocused: currentActiveTool == ActiveTool.freeDraw,
+                      isDimmed: (currentActiveTool != ActiveTool.freeDraw &&
+                              currentActiveTool != ActiveTool.pointer) ||
+                          isPlacingItem,
+                    ),
                   ),
-                ),
-              if (config.showUndoButton && selectedScene != null)
-                StreamBuilder(
-                  stream: _historyStream.call(selectedScene.id),
-                  builder: (context, snapshot) {
-                    HistoryModel? history = snapshot.data;
+                if (config.showEraserButton)
+                  GestureDetector(
+                    onTap: () {
+                      lpNotifier.toggleEraser();
+                    },
+                    child: Icon(
+                      // Your original Icon
+                      FontAwesomeIcons.eraser,
+                      color: currentActiveTool == ActiveTool.eraser
+                          ? ColorManager.red
+                          : (currentActiveTool != ActiveTool.eraser &&
+                                      currentActiveTool !=
+                                          ActiveTool.pointer) ||
+                                  isPlacingItem
+                              ? dimmedInactiveColor
+                              : defaultInactiveColor,
+                    ),
+                  ),
+                if (config.showUndoButton && selectedScene != null)
+                  StreamBuilder(
+                    stream: _historyStream.call(selectedScene.id),
+                    builder: (context, snapshot) {
+                      HistoryModel? history = snapshot.data;
 
-                    if (history == null) {
-                      return SizedBox.shrink();
-                    } else {
-                      return GestureDetector(
-                        onTap: () {
-                          ref
-                              .read(animationProvider.notifier)
-                              .performUndoOperation();
-                        },
-                        child: Icon(
-                          FontAwesomeIcons.arrowRotateLeft,
-                          color: ColorManager.white,
-                        ),
-                      );
-                    }
-                  },
-                ),
-            ],
+                      if (history == null) {
+                        return SizedBox.shrink();
+                      } else {
+                        return GestureDetector(
+                          onTap: () {
+                            ref
+                                .read(animationProvider.notifier)
+                                .performUndoOperation();
+                          },
+                          child: Icon(
+                            FontAwesomeIcons.arrowRotateLeft,
+                            color: ColorManager.white,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+              ],
+            ),
           ),
 
           // --- RIGHT SIDE BUTTONS ---
-          Row(
-            spacing: 10,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // if (config.showPlayAnimationButton && animationModel != null)
-              //   Builder(
-              //     builder: (context) {
-              //       final Object heroTag =
-              //           'anim_${animationModel.id.toString()}';
-              //       return GestureDetector(
-              //         onTap: () {
-              //           Navigator.push(
-              //             context,
-              //             MaterialPageRoute(
-              //               builder:
-              //                   (context) => AnimationScreen(
-              //                     animationModel: animationModel,
-              //                     heroTag: heroTag,
-              //                   ),
-              //             ),
-              //           );
-              //         },
-              //         child: Icon(
-              //           // Your original Icon
-              //           Icons.play_circle_outline,
-              //           color: ColorManager.white,
-              //         ),
-              //       );
-              //     },
-              //   ),
-              if (config.showAddNewSceneButton)
-                _buildAddNewScene(
-                  selectedCollection: collectionModel,
-                  collectionList: collectionList,
-                  selectedAnimation: animationModel,
-                  selectedScene: selectedScene,
-                ),
-
-              if (config.showTrashButton)
-                GestureDetector(
-                  onTap: () {
-                    ref.read(boardProvider.notifier).removeElement();
-                  },
-                  child: _buildTrashComponent(
-                    // Your original component call
-                    isFocused: bp.selectedItemOnTheBoard != null,
-                    isDimmed: (currentActiveTool != ActiveTool.trash &&
-                            currentActiveTool != ActiveTool.pointer) ||
-                        isPlacingItem,
+          Flexible(
+            flex: 1,
+            child: Row(
+              spacing: 10,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // if (config.showPlayAnimationButton && animationModel != null)
+                //   Builder(
+                //     builder: (context) {
+                //       final Object heroTag =
+                //           'anim_${animationModel.id.toString()}';
+                //       return GestureDetector(
+                //         onTap: () {
+                //           Navigator.push(
+                //             context,
+                //             MaterialPageRoute(
+                //               builder:
+                //                   (context) => AnimationScreen(
+                //                     animationModel: animationModel,
+                //                     heroTag: heroTag,
+                //                   ),
+                //             ),
+                //           );
+                //         },
+                //         child: Icon(
+                //           // Your original Icon
+                //           Icons.play_circle_outline,
+                //           color: ColorManager.white,
+                //         ),
+                //       );
+                //     },
+                //   ),
+                if (config.showAddNewSceneButton)
+                  _buildAddNewScene(
+                    selectedCollection: collectionModel,
+                    collectionList: collectionList,
+                    selectedAnimation: animationModel,
+                    selectedScene: selectedScene,
                   ),
-                ),
-            ],
+
+                if (config.showTrashButton)
+                  GestureDetector(
+                    onTap: () {
+                      ref.read(boardProvider.notifier).removeElement();
+                    },
+                    child: _buildTrashComponent(
+                      // Your original component call
+                      isFocused: bp.selectedItemOnTheBoard != null,
+                      isDimmed: (currentActiveTool != ActiveTool.trash &&
+                              currentActiveTool != ActiveTool.pointer) ||
+                          isPlacingItem,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ],
       ),

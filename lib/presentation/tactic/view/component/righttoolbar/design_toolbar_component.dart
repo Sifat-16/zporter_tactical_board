@@ -11,6 +11,7 @@ import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
@@ -30,43 +31,45 @@ class _DesignToolbarComponentState
     final bp = ref.watch(boardProvider);
     return bp.selectedItemOnTheBoard == null
         ? Center(
-          child: Text(
-            "No Item Selected",
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium!.copyWith(color: ColorManager.white),
-          ),
-        )
+            child: Text(
+              "No Item Selected",
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium!.copyWith(color: ColorManager.white),
+            ),
+          )
         : Container(
-          padding: EdgeInsets.symmetric(vertical: 25, horizontal: 10),
-          child: ListView(
-            children: [
-              _buildTopActionWidget(boardState: bp),
-              SizedBox(height: 20),
-              _buildFillColorWidget("Fill Color", boardState: bp),
-              SizedBox(height: 20),
-              _buildOpacitySliderWidget(boardState: bp),
-              // SizedBox(height: 20),
-              // _buildSizeSliderWidget(boardState: bp),
-              // SizedBox(height: 20),
-              // IncrementDecrementNumberField(
-              //   label: "Border type",
-              //   initialValue: 0,
-              //   onChanged: (d) {},
-              // ),
-              // SizedBox(height: 20),
-              // IncrementDecrementNumberField(
-              //   label: "Border thickness",
-              //   initialValue: 2,
-              //   onChanged: (d) {},
-              // ),
-              // SizedBox(height: 20),
-              // _buildFillColorWidget("Border color", boardState: bp),
-              // SizedBox(height: 20),
-              // _buildSwitcherWidget(),
-            ],
-          ),
-        );
+            padding: EdgeInsets.symmetric(vertical: 25, horizontal: 10),
+            child: ListView(
+              children: [
+                _buildTopActionWidget(boardState: bp),
+                SizedBox(height: 20),
+                _buildFillColorWidget("Fill Color", boardState: bp),
+                SizedBox(height: 20),
+                _buildOpacitySliderWidget(boardState: bp),
+                // SizedBox(height: 20),
+                // _buildSizeSliderWidget(boardState: bp),
+                // SizedBox(height: 20),
+                // IncrementDecrementNumberField(
+                //   label: "Border type",
+                //   initialValue: 0,
+                //   onChanged: (d) {},
+                // ),
+                // SizedBox(height: 20),
+                // IncrementDecrementNumberField(
+                //   label: "Border thickness",
+                //   initialValue: 2,
+                //   onChanged: (d) {},
+                // ),
+                // SizedBox(height: 20),
+                // _buildFillColorWidget("Border color", boardState: bp),
+                // SizedBox(height: 20),
+                if (bp.selectedItemOnTheBoard is PlayerModel)
+                  _buildSwitcherWidget(
+                      playerModel: bp.selectedItemOnTheBoard as PlayerModel),
+              ],
+            ),
+          );
   }
 
   Widget _buildTopActionWidget({required BoardState boardState}) {
@@ -142,7 +145,6 @@ class _DesignToolbarComponentState
             context,
           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
         ),
-
         ColorSlider(
           initialColor: item.color,
           colors: [
@@ -168,7 +170,6 @@ class _DesignToolbarComponentState
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       spacing: 10,
-
       children: [
         Text(
           "Opacity",
@@ -176,7 +177,6 @@ class _DesignToolbarComponentState
             context,
           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
         ),
-
         OpacitySlider(
           initial: item.opacity ?? 1,
           onOpacityChanged: (v) {
@@ -192,19 +192,18 @@ class _DesignToolbarComponentState
   Widget _buildSizeSliderWidget({required BoardState boardState}) {
     FieldItemModel item = boardState.selectedItemOnTheBoard!;
     if (
-    // item is FormModel && item.formItemModel is LineModel
-    //     ||
-    item is LineModelV2 ||
-        item is FreeDrawModelV2 ||
-        item is ShapeModel ||
-        item is EquipmentModel) {
+        // item is FormModel && item.formItemModel is LineModel
+        //     ||
+        item is LineModelV2 ||
+            item is FreeDrawModelV2 ||
+            item is ShapeModel ||
+            item is EquipmentModel) {
       return SizedBox.shrink();
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       spacing: 10,
-
       children: [
         Text(
           "Size",
@@ -212,7 +211,6 @@ class _DesignToolbarComponentState
             context,
           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
         ),
-
         CustomSlider(
           min: 16,
           max: 100,
@@ -227,32 +225,51 @@ class _DesignToolbarComponentState
     );
   }
 
-  Widget _buildSwitcherWidget() {
+  Widget _buildSwitcherWidget({required PlayerModel playerModel}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       spacing: 10,
-
       children: [
         SwitcherComponent(
-          title: "Images",
-          initialValue: true,
-          onChanged: (t) {},
+          title: "Image",
+          initialValue: playerModel.showImage,
+          onChanged: (t) {
+            playerModel.showImage = t;
+            ref
+                .read(boardProvider.notifier)
+                .updatePlayerModel(newModel: playerModel);
+          },
         ),
         SwitcherComponent(
-          title: "Names",
-          initialValue: true,
-          onChanged: (t) {},
+          title: "Name",
+          initialValue: playerModel.showName,
+          onChanged: (t) {
+            playerModel.showName = t;
+            ref
+                .read(boardProvider.notifier)
+                .updatePlayerModel(newModel: playerModel);
+          },
         ),
         SwitcherComponent(
           title: "Number",
-          initialValue: true,
-          onChanged: (t) {},
+          initialValue: playerModel.showNr,
+          onChanged: (t) {
+            playerModel.showNr = t;
+            ref
+                .read(boardProvider.notifier)
+                .updatePlayerModel(newModel: playerModel);
+          },
         ),
         SwitcherComponent(
           title: "Role",
-          initialValue: false,
-          onChanged: (t) {},
+          initialValue: playerModel.showRole,
+          onChanged: (t) {
+            playerModel.showRole = t;
+            ref
+                .read(boardProvider.notifier)
+                .updatePlayerModel(newModel: playerModel);
+          },
         ),
       ],
     );

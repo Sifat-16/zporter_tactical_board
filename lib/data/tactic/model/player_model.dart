@@ -15,6 +15,10 @@ class PlayerModel extends FieldItemModel {
   int jerseyNumber;
   PlayerType playerType;
   String? name;
+  bool showImage;
+  bool showNr;
+  bool showName;
+  bool showRole;
 
   PlayerModel(
       {
@@ -38,6 +42,10 @@ class PlayerModel extends FieldItemModel {
       required this.jerseyNumber,
       required this.playerType,
       this.imagePath,
+      this.showImage = true,
+      this.showName = true,
+      this.showNr = true,
+      this.showRole = true,
       this.name});
 
   @override
@@ -49,7 +57,11 @@ class PlayerModel extends FieldItemModel {
       'imagePath': imagePath,
       'jerseyNumber': jerseyNumber,
       'playerType': playerType.name,
-      'name': name
+      'name': name,
+      'showName': showName,
+      'showNr': showNr,
+      'showRole': showRole,
+      'showImage': showImage
       // Use describeEnum for serialization
     };
   }
@@ -92,6 +104,11 @@ class PlayerModel extends FieldItemModel {
 
     final name = json['name'] as String?;
 
+    bool showImage = (json['showImage'] as bool?) ?? true;
+    bool showNr = (json['showNr'] as bool?) ?? true;
+    bool showName = (json['showName'] as bool?) ?? true;
+    bool showRole = (json['showRole'] as bool?) ?? true;
+
     // --- Construct and Return PlayerModel Instance ---
     return PlayerModel(
       // Pass parsed base properties
@@ -106,6 +123,10 @@ class PlayerModel extends FieldItemModel {
       color: color,
       opacity: opacity,
       name: name,
+      showImage: showImage,
+      showName: showName,
+      showNr: showNr,
+      showRole: showRole,
       // fieldItemType is set automatically by PlayerModel constructor
 
       // Pass parsed PlayerModel specific properties
@@ -137,7 +158,11 @@ class PlayerModel extends FieldItemModel {
       int? jerseyNumber,
       String? imagePath,
       PlayerType? playerType,
-      String? name}) {
+      String? name,
+      bool? showImage,
+      bool? showNr,
+      bool? showName,
+      bool? showRole}) {
     return PlayerModel(
         // --- Use new or existing values for base properties ---
         id: id ?? this.id,
@@ -161,7 +186,11 @@ class PlayerModel extends FieldItemModel {
         imagePath:
             imagePath ?? this.imagePath, // Handles null assignment correctly
         playerType: playerType ?? this.playerType,
-        name: name ?? this.name);
+        name: name ?? this.name,
+        showImage: showImage ?? this.showImage,
+        showName: showName ?? this.showName,
+        showNr: showNr ?? this.showNr,
+        showRole: showRole ?? this.showRole);
   }
 
   @override

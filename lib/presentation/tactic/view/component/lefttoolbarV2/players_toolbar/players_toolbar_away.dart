@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,12 +7,14 @@ import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/admin/model/default_lineup_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/lineup_view_model/lineup_controller.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/lineup_arrangement_dialog.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -110,10 +113,10 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
             crossAxisCount: 3,
             children: [
               ...List.generate(_duplicatePlayers.length + 1, (index) {
-                if (index == 0) {
+                if (index == _duplicatePlayers.length) {
                   return _buildAddPlayer();
                 }
-                PlayerModel player = _duplicatePlayers[index - 1];
+                PlayerModel player = _duplicatePlayers[index];
                 return GestureDetector(
                     onLongPress: () async {
                       PlayerModel? updatedPlayer =
@@ -170,8 +173,8 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
           }
         },
         child: Icon(
-          FontAwesomeIcons.userPlus,
-          color: ColorManager.red,
+          FontAwesomeIcons.circlePlus,
+          color: ColorManager.white,
         ));
   }
 
@@ -210,38 +213,117 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         CustomButton(
           borderRadius: 3,
           onTap: () async {
-            bool? proceed;
-            if (needCleanup) {
-              proceed = await showConfirmationDialog(
-                context: context,
-                title: "Confirm New Lineup Setup",
-                content:
-                    "This action will remove all home players currently on the field to apply the new lineup. Are you sure you want to proceed?",
+            TacticBoard? tacticBoard =
+                (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;
+            AnimationItemModel? scene = selectedLineUp?.scene;
+
+            if (scene == null || tacticBoard == null) {
+              BotToast.showText(text: "Please select a lineup first.");
+              return;
+            }
+
+            // --- Away Team Logic Start ---
+
+            // 1. Get the base template (which uses HOME players) and the available AWAY roster.
+            final List<PlayerModel> homeTemplatePlayers =
+                scene.components.whereType<PlayerModel>().toList();
+            final List<PlayerModel> awayRoster =
+                players; // The current state's away players
+
+            // 2. Create the mirrored "target" positions for the away team.
+            // This replicates the positioning logic from `generateAwayPlayerFromScene`.
+            List<PlayerModel> targetAwayPositions = [];
+            for (final homePlayer in homeTemplatePlayers) {
+              Vector2 mirroredOffset = Vector2(
+                1 -
+                    ((homePlayer.offset?.x ?? 0) -
+                        (SizeHelper.getBoardRelativeVector(
+                              gameScreenSize: tacticBoard.gameField.size,
+                              actualPosition: homePlayer.size ?? Vector2.zero(),
+                            ).x *
+                            1.25 /
+                            2)),
+                1 -
+                    ((homePlayer.offset?.y ?? 0) -
+                        (SizeHelper.getBoardRelativeVector(
+                              gameScreenSize: tacticBoard.gameField.size,
+                              actualPosition: homePlayer.size ?? Vector2.zero(),
+                            ).y /
+                            2)),
               );
+
+              // Create a "target" player model that has the mirrored position and the target role/number.
+              // We use the home player's ID as a unique key for the position itself.
+              targetAwayPositions.add(
+                homePlayer.copyWith(
+                  offset: mirroredOffset,
+                  playerType: PlayerType.AWAY,
+                ),
+              );
+            }
+
+            // 3. Pre-assign away players based on role and jersey number.
+            Map<String, PlayerModel?> initialAssignments = {};
+            List<PlayerModel> unassignedRosterPlayers = List.from(awayRoster);
+
+            for (final targetPos in targetAwayPositions) {
+              PlayerModel? match;
+              // Find a player in the available roster that matches the target role and number.
+              int matchIndex = unassignedRosterPlayers.indexWhere(
+                  (awayPlayer) =>
+                      (awayPlayer.role == targetPos.role) &&
+                      (awayPlayer.jerseyNumber == targetPos.jerseyNumber));
+
+              if (matchIndex != -1) {
+                // If a match is found, assign them and remove them from the pool of available players.
+                match = unassignedRosterPlayers.removeAt(matchIndex);
+              }
+              // Use the target position's unique ID as the key for the assignment map.
+              initialAssignments[targetPos.id] = match;
+            }
+
+            // --- Away Team Logic End ---
+
+            // 4. Launch the dialog with the pre-processed data.
+            final List<PlayerModel>? finalPlayersToAdd =
+                await showDialog<List<PlayerModel>>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => LineupArrangementDialog(
+                // Pass the generated target positions.
+                targetPositions: targetAwayPositions,
+                // Pass the full away roster for the user to pick from.
+                coachsRoster: awayRoster,
+                // Pass the initial assignments we just figured out.
+                initialAssignments: initialAssignments,
+              ),
+            );
+
+            if (finalPlayersToAdd == null) return; // User cancelled
+
+            // 5. Apply the final, user-confirmed lineup to the board.
+            bool proceed = false;
+            final bool playersOnField = ref
+                .read(boardProvider)
+                .players
+                .any((p) => p.playerType == PlayerType.AWAY);
+
+            if (playersOnField) {
+              proceed = await showConfirmationDialog(
+                    context: context,
+                    title: "Apply New Lineup",
+                    content:
+                        "This action will remove all away players currently on the field. Are you sure you want to proceed?",
+                  ) ??
+                  false;
             } else {
               proceed = true;
             }
 
-            if (proceed == true) {
-              TacticBoard? tacticBoard =
-                  (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;
-
-              AnimationItemModel? scene = selectedLineUp?.scene;
-              if (scene == null) return;
-
-              List<PlayerModel> playersToAdd =
-                  PlayerUtilsV2.generateAwayPlayerFromScene(
-                scene: scene,
-                availablePlayers: players,
-                fieldSize: tacticBoard?.gameField.size ?? Vector2.zero(),
-              );
-
-              tacticBoard?.removeFieldItems(players);
-
-              if (tacticBoard != null) {
-                for (var pd in playersToAdd) {
-                  tacticBoard.addItem(pd);
-                }
+            if (proceed) {
+              tacticBoard.removeFieldItems(awayRoster);
+              for (final player in finalPlayersToAdd) {
+                tacticBoard.addItem(player);
               }
             }
           },

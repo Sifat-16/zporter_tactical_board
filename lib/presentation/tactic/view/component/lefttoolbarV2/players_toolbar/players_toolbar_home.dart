@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -12,6 +13,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/lineup_view_model/lineup_controller.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/lineup_arrangement_dialog.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -134,12 +136,12 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
             mainAxisSpacing: AppSize.s4, // Spacing between rows
             crossAxisSpacing: AppSize.s4, // Spacing between columns
             children: List.generate(activeToolbarPlayers.length + 1, (index) {
-              if (index == 0) {
+              if (index == activeToolbarPlayers.length) {
                 return _buildAddPlayer();
               }
 
               // Use filtered list
-              PlayerModel player = activeToolbarPlayers[index - 1];
+              PlayerModel player = activeToolbarPlayers[index];
 
               Key? itemKey;
 
@@ -199,8 +201,8 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
           }
         },
         child: Icon(
-          FontAwesomeIcons.userPlus,
-          color: ColorManager.blueAccent,
+          FontAwesomeIcons.circlePlus,
+          color: ColorManager.white,
         ));
   }
 
@@ -241,37 +243,80 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
         CustomButton(
           borderRadius: 3,
           onTap: () async {
-            bool? proceed;
-            if (needCleanup) {
+            TacticBoard? tacticBoard =
+                (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;
+            AnimationItemModel? scene = selectedLineUp?.scene;
+
+            if (scene == null || tacticBoard == null) {
+              BotToast.showText(text: "Please select a lineup first.");
+              return;
+            }
+
+            // --- Home Team Logic Start ---
+
+            // 1. For the home team, the template players directly represent the target positions.
+            final List<PlayerModel> targetPositions =
+                scene.components.whereType<PlayerModel>().toList();
+            final List<PlayerModel> homeRoster =
+                players; // The current state's home players
+
+            // 2. Pre-assign players based on matching ID.
+            final Map<String, PlayerModel> rosterMap = {
+              for (var p in homeRoster) p.id: p
+            };
+            Map<String, PlayerModel?> initialAssignments = {};
+            for (final targetPos in targetPositions) {
+              // If a player on the roster has the same ID as the target position, assign them.
+              if (rosterMap.containsKey(targetPos.id)) {
+                initialAssignments[targetPos.id] = rosterMap[targetPos.id];
+              } else {
+                // Otherwise, the spot is unassigned (legacy/missing player).
+                initialAssignments[targetPos.id] = null;
+              }
+            }
+
+            // --- Home Team Logic End ---
+
+            // 3. Launch the dialog with the processed data.
+            final List<PlayerModel>? finalPlayersToAdd =
+                await showDialog<List<PlayerModel>>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => LineupArrangementDialog(
+                // The template itself defines the target positions.
+                targetPositions: targetPositions,
+                // Pass the full home roster for the user to pick from.
+                coachsRoster: homeRoster,
+                // Pass the initial assignments we just figured out.
+                initialAssignments: initialAssignments,
+              ),
+            );
+
+            if (finalPlayersToAdd == null) return; // User cancelled
+
+            // 4. Apply the final, user-confirmed lineup to the board.
+            bool proceed = false;
+            final bool playersOnField = ref
+                .read(boardProvider)
+                .players
+                .any((p) => p.playerType == PlayerType.HOME);
+
+            if (playersOnField) {
               proceed = await showConfirmationDialog(
-                context: context,
-                title: "Confirm New Lineup Setup",
-                content:
-                    "This action will remove all home players currently on the field to apply the new lineup. Are you sure you want to proceed?",
-              );
+                    context: context,
+                    title: "Apply New Lineup",
+                    content:
+                        "This action will remove all home players currently on the field. Are you sure you want to proceed?",
+                  ) ??
+                  false;
             } else {
               proceed = true;
             }
 
-            if (proceed == true) {
-              TacticBoard? tacticBoard =
-                  (ref.read(boardProvider).tacticBoardGame) as TacticBoard?;
-
-              AnimationItemModel? scene = selectedLineUp?.scene;
-              if (scene == null) return;
-
-              List<PlayerModel> playersToAdd =
-                  PlayerUtilsV2.generateHomePlayerFromScene(
-                scene: scene,
-                availablePlayers: players,
-              );
-
-              tacticBoard?.removeFieldItems(players);
-
-              if (tacticBoard != null) {
-                for (var pd in playersToAdd) {
-                  tacticBoard.addItem(pd);
-                }
+            if (proceed) {
+              tacticBoard.removeFieldItems(homeRoster);
+              for (final player in finalPlayersToAdd) {
+                tacticBoard.addItem(player);
               }
             }
           },
