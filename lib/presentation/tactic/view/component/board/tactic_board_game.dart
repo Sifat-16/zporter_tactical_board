@@ -77,7 +77,7 @@ class TacticBoard extends TacticBoardGame
   // Methods specific to TacticBoard remain here
   _initiateField() {
     gameField = GameField(
-      size: Vector2(size.x - 20, size.y - 20),
+      size: Vector2(size.x - 22.5, size.y - 22.5),
       initialColor: scene?.fieldColor,
     );
     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);

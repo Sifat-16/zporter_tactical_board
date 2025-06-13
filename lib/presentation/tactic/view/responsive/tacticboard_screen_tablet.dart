@@ -406,6 +406,18 @@ class _TacticboardScreenTabletState
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
+          if (animationModel != null)
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: Text(
+                animationModel.name ?? "",
+                style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                    color: ColorManager.white.withValues(alpha: 0.8),
+                    fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           Expanded(child: GameScreen(scene: selectedScene)),
           if (animationModel == null)
             Padding(
@@ -463,6 +475,20 @@ class _TacticboardScreenTabletState
                                     Icon(Icons.add, color: ColorManager.white),
                                 tooltip: "Add New Scene",
                               ),
+
+                              // --- NEW BUTTON ADDED HERE ---
+                              IconButton(
+                                onPressed: () {
+                                  ref
+                                      .read(animationProvider.notifier)
+                                      .copyCurrentDefaultScene();
+                                  BotToast.showText(text: "Scene Copied");
+                                },
+                                icon:
+                                    Icon(Icons.copy, color: ColorManager.white),
+                                tooltip: "Copy Current Scene",
+                              ),
+                              // --- END OF NEW BUTTON ---
                               IconButton(
                                 onPressed: () async {
                                   bool? confirm = await showConfirmationDialog(

@@ -1,3 +1,4 @@
+// import 'dart:io';
 // import 'dart:math' as math;
 //
 // import 'package:flutter/material.dart';
@@ -34,6 +35,10 @@
 //       _LineupArrangementDialogState();
 // }
 //
+// //==============================================================================
+// // Full State Implementation
+// //==============================================================================
+//
 // class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
 //   // The state of assignments, initialized from the widget.
 //   late final Map<String, PlayerModel?> _assignments;
@@ -42,20 +47,17 @@
 //   void initState() {
 //     super.initState();
 //     // The dialog's state is a direct copy of the initial assignments passed in.
-//     // This makes the dialog stateless regarding the logic of how assignments are made.
 //     _assignments = Map.from(widget.initialAssignments);
 //   }
 //
 //   /// A getter that checks if every position on the field has a player assigned.
-//   /// The "Apply" button is enabled based on this.
 //   bool get _allPositionsFilled => !_assignments.containsValue(null);
 //
 //   /// Handles tapping a position on the field to assign or change a player.
 //   Future<void> _pickPlayerForPosition(String targetPositionId) async {
 //     final currentlyAssignedPlayer = _assignments[targetPositionId];
 //
-//     // Create a list of choices for the popup dialog:
-//     // It includes all unassigned players PLUS the player currently in this spot (if any).
+//     // Create a list of choices for the popup dialog.
 //     final Set<String> assignedIds = _assignments.values
 //         .where((p) => p != null && p.id != currentlyAssignedPlayer?.id)
 //         .map((p) => p!.id)
@@ -64,7 +66,7 @@
 //     final List<PlayerModel> availableChoices =
 //         widget.coachsRoster.where((p) => !assignedIds.contains(p.id)).toList();
 //
-//     // Show a simple dialog to pick a player.
+//     // Show a dialog to pick a player, now with images.
 //     final PlayerModel? selectedPlayer = await showDialog<PlayerModel>(
 //       context: context,
 //       builder: (context) {
@@ -74,26 +76,55 @@
 //           titleTextStyle: TextStyle(color: ColorManager.white, fontSize: 18),
 //           children: availableChoices.isEmpty
 //               ? [
-//                   Padding(
-//                     padding: const EdgeInsets.all(24.0),
+//                   const Padding(
+//                     padding: EdgeInsets.all(24.0),
 //                     child: Text("No available players to assign.",
-//                         style: TextStyle(color: ColorManager.white)),
+//                         style: TextStyle(color: Colors.white)),
 //                   )
 //                 ]
+//               // --- UPDATED UI LOGIC ---
 //               : availableChoices.map((player) {
+//                   final bool isCurrentlySelected =
+//                       player.id == currentlyAssignedPlayer?.id;
+//                   final imagePath = player.imagePath;
+//                   final bool hasImage = imagePath != null &&
+//                       imagePath.isNotEmpty &&
+//                       File(imagePath).existsSync();
+//
 //                   return SimpleDialogOption(
 //                     onPressed: () => Navigator.pop(context, player),
-//                     child: Text(
-//                       '#${player.jerseyNumber} - ${player.name ?? player.role}',
-//                       style: TextStyle(
-//                         color: player.id == currentlyAssignedPlayer?.id
-//                             ? ColorManager
-//                                 .yellow // Highlight the current player
-//                             : ColorManager.white,
-//                         fontWeight: player.id == currentlyAssignedPlayer?.id
-//                             ? FontWeight.bold
-//                             : FontWeight.normal,
-//                       ),
+//                     child: Row(
+//                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                       children: [
+//                         // Player name and number (wrapped to prevent overflow)
+//                         Expanded(
+//                           child: Text(
+//                             '#${player.jerseyNumber} - ${player.name ?? player.role}',
+//                             overflow: TextOverflow.ellipsis,
+//                             style: TextStyle(
+//                               color: isCurrentlySelected
+//                                   ? ColorManager.yellow
+//                                   : ColorManager.white,
+//                               fontWeight: isCurrentlySelected
+//                                   ? FontWeight.bold
+//                                   : FontWeight.normal,
+//                             ),
+//                           ),
+//                         ),
+//                         const SizedBox(width: 16),
+//                         // Player image avatar
+//                         CircleAvatar(
+//                           radius: 20,
+//                           backgroundColor: ColorManager.dark1,
+//                           backgroundImage:
+//                               hasImage ? FileImage(File(imagePath)) : null,
+//                           child: !hasImage
+//                               ? Icon(Icons.person,
+//                                   size: 24,
+//                                   color: Colors.white.withOpacity(0.6))
+//                               : null,
+//                         ),
+//                       ],
 //                     ),
 //                   );
 //                 }).toList(),
@@ -183,13 +214,15 @@
 //               mainAxisAlignment: MainAxisAlignment.end,
 //               children: [
 //                 CustomButton(
+//                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
 //                   onTap: () => Navigator.of(context).pop(null),
 //                   fillColor: ColorManager.dark2,
 //                   child: Text("Cancel",
 //                       style: TextStyle(color: ColorManager.white)),
 //                 ),
-//                 const SizedBox(width: 8),
+//                 const SizedBox(width: 15),
 //                 CustomButton(
+//                   padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
 //                   onTap: _allPositionsFilled
 //                       ? () {
 //                           final List<PlayerModel> finalLineup = [];
@@ -248,7 +281,6 @@
 //                 )
 //               // If the spot is EMPTY (unassigned), show the placeholder.
 //               : Stack(
-//                   alignment: Alignment.center,
 //                   children: [
 //                     // Show the "ghost" of the target player.
 //                     Opacity(
@@ -259,8 +291,8 @@
 //                     ),
 //                     // Overlay a "missing" icon.
 //                     Container(
-//                       width: markerSize * 0.6,
-//                       height: markerSize * 0.6,
+//                       width: markerSize * .8,
+//                       height: markerSize * .8,
 //                       decoration: BoxDecoration(
 //                         color: Colors.black.withOpacity(0.6),
 //                         shape: BoxShape.circle,
@@ -349,24 +381,6 @@
 //     );
 //     canvas.drawCircle(Offset(size.width - penaltyDistX, center.dy),
 //         penaltySpotRadius, spotPaint);
-//
-//     // Penalty Arcs
-//     final double penaltyArcRadius = size.width * 0.1;
-//     canvas.drawArc(
-//         Rect.fromCircle(
-//             center: Offset(penaltyDistX, center.dy), radius: penaltyArcRadius),
-//         -math.pi / 2.5,
-//         math.pi / 1.25,
-//         false,
-//         borderPaint);
-//     canvas.drawArc(
-//         Rect.fromCircle(
-//             center: Offset(size.width - penaltyDistX, center.dy),
-//             radius: penaltyArcRadius),
-//         math.pi / 2 - math.pi / 2.5,
-//         math.pi / 1.25,
-//         false,
-//         borderPaint);
 //   }
 //
 //   @override
@@ -375,6 +389,8 @@
 //         oldDelegate.borderColor != borderColor;
 //   }
 // }
+
+///2nd
 
 import 'dart:io';
 import 'dart:math' as math;
@@ -385,26 +401,24 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
 
-//==============================================================================
-// Main Dialog Widget
-//==============================================================================
-
 class LineupArrangementDialog extends StatefulWidget {
-  /// The list of positions to be filled on the field. Each model contains the
-  /// target offset, role, and jersey number.
+  /// The list of positions to be filled on the field.
   final List<PlayerModel> targetPositions;
 
-  /// The full list of players available for assignment (the coach's roster for the team).
-  final List<PlayerModel> coachsRoster;
+  /// The list of players to be arranged (either the full roster or just those on the field).
+  final List<PlayerModel> playersToArrange;
 
-  /// A pre-computed map of initial assignments, linking a target position's ID
-  /// to an already matched player from the roster.
+  /// The list of players available for substitution (those on the bench).
+  final List<PlayerModel> benchPlayers;
+
+  /// A pre-computed map of initial assignments.
   final Map<String, PlayerModel?> initialAssignments;
 
   const LineupArrangementDialog({
     super.key,
     required this.targetPositions,
-    required this.coachsRoster,
+    required this.playersToArrange,
+    required this.benchPlayers,
     required this.initialAssignments,
   });
 
@@ -413,38 +427,43 @@ class LineupArrangementDialog extends StatefulWidget {
       _LineupArrangementDialogState();
 }
 
-//==============================================================================
-// Full State Implementation
-//==============================================================================
-
 class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
-  // The state of assignments, initialized from the widget.
   late final Map<String, PlayerModel?> _assignments;
 
   @override
   void initState() {
     super.initState();
-    // The dialog's state is a direct copy of the initial assignments passed in.
     _assignments = Map.from(widget.initialAssignments);
   }
 
-  /// A getter that checks if every position on the field has a player assigned.
   bool get _allPositionsFilled => !_assignments.containsValue(null);
 
-  /// Handles tapping a position on the field to assign or change a player.
   Future<void> _pickPlayerForPosition(String targetPositionId) async {
     final currentlyAssignedPlayer = _assignments[targetPositionId];
 
-    // Create a list of choices for the popup dialog.
+    // --- MODIFIED: The choice list now includes players to arrange AND bench players for substitution ---
+    // Create a combined list of all possible players.
+    final List<PlayerModel> allAvailablePlayers = [
+      ...widget.playersToArrange,
+      ...widget.benchPlayers,
+    ];
+    // Create a Set of unique players by their ID to handle potential duplicates
+    final Map<String, PlayerModel> uniquePlayerMap = {
+      for (var p in allAvailablePlayers) p.id: p
+    };
+    final List<PlayerModel> uniquePlayers = uniquePlayerMap.values.toList();
+
+    // Filter out players who are already assigned to a DIFFERENT position.
     final Set<String> assignedIds = _assignments.values
         .where((p) => p != null && p.id != currentlyAssignedPlayer?.id)
         .map((p) => p!.id)
         .toSet();
 
     final List<PlayerModel> availableChoices =
-        widget.coachsRoster.where((p) => !assignedIds.contains(p.id)).toList();
+        uniquePlayers.where((p) => !assignedIds.contains(p.id)).toList();
 
-    // Show a dialog to pick a player, now with images.
+    availableChoices.sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+
     final PlayerModel? selectedPlayer = await showDialog<PlayerModel>(
       context: context,
       builder: (context) {
@@ -460,7 +479,6 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
                         style: TextStyle(color: Colors.white)),
                   )
                 ]
-              // --- UPDATED UI LOGIC ---
               : availableChoices.map((player) {
                   final bool isCurrentlySelected =
                       player.id == currentlyAssignedPlayer?.id;
@@ -469,12 +487,15 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
                       imagePath.isNotEmpty &&
                       File(imagePath).existsSync();
 
+                  // Highlight players from the bench to distinguish them
+                  final bool isBenchPlayer =
+                      widget.benchPlayers.any((p) => p.id == player.id);
+
                   return SimpleDialogOption(
                     onPressed: () => Navigator.pop(context, player),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Player name and number (wrapped to prevent overflow)
                         Expanded(
                           child: Text(
                             '#${player.jerseyNumber} - ${player.name ?? player.role}',
@@ -482,15 +503,22 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
                             style: TextStyle(
                               color: isCurrentlySelected
                                   ? ColorManager.yellow
-                                  : ColorManager.white,
+                                  : isBenchPlayer
+                                      ? Colors.lightGreenAccent.withOpacity(0.8)
+                                      : ColorManager.white,
                               fontWeight: isCurrentlySelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        // Player image avatar
+                        if (isBenchPlayer)
+                          Text("(Sub) ",
+                              style: TextStyle(
+                                  color:
+                                      Colors.lightGreenAccent.withOpacity(0.6),
+                                  fontSize: 12)),
+                        const SizedBox(width: 8),
                         CircleAvatar(
                           radius: 20,
                           backgroundColor: ColorManager.dark1,
@@ -510,14 +538,10 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
       },
     );
 
-    // If the user selected a player, update the state.
     if (selectedPlayer != null) {
       setState(() {
-        // If the selected player was already in another spot, that spot becomes vacant.
         _assignments.updateAll(
             (key, value) => value?.id == selectedPlayer.id ? null : value);
-
-        // Assign the newly selected player to the tapped position.
         _assignments[targetPositionId] = selectedPlayer;
       });
     }
@@ -546,7 +570,7 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Tap a position to assign a player from your roster.',
+                  'Tap a position to assign a player. Green players are substitutes.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context)
                       .textTheme
@@ -571,12 +595,10 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
                           borderColor: Colors.white.withOpacity(0.6),
                         ),
                       ),
-                      // The build now iterates over the generic `targetPositions`.
                       ...widget.targetPositions.map(
                         (targetPos) => _buildPlayerMarker(
-                          targetPos, // The model defining the position and target role/number
-                          _assignments[
-                              targetPos.id], // The currently assigned player
+                          targetPos,
+                          _assignments[targetPos.id],
                           constraints,
                         ),
                       ),
@@ -606,10 +628,8 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
                           final List<PlayerModel> finalLineup = [];
                           _assignments
                               .forEach((targetPositionId, assignedPlayer) {
-                            // Find the original target position to get the correct offset.
                             final targetPos = widget.targetPositions
                                 .firstWhere((p) => p.id == targetPositionId);
-                            // Combine the assigned player's data with the target's position.
                             finalLineup.add(assignedPlayer!
                                 .copyWith(offset: targetPos.offset));
                           });
@@ -630,11 +650,9 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
     );
   }
 
-  /// Builds a single player marker widget. It now takes a generic `targetPosition`.
   Widget _buildPlayerMarker(PlayerModel targetPosition,
       PlayerModel? assignedPlayer, BoxConstraints constraints) {
     const double markerSize = 40.0;
-    // The position is determined by the targetPosition model's offset.
     final double left =
         (targetPosition.offset?.x ?? 0.5) * constraints.maxWidth -
             (markerSize / 2);
@@ -650,37 +668,32 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
         child: Tooltip(
           message: assignedPlayer != null
               ? '#${assignedPlayer.jerseyNumber} ${assignedPlayer.name ?? assignedPlayer.role}'
-              // The placeholder shows the role from the `targetPosition` model.
               : 'Unassigned (${targetPosition.role})',
           child: (assignedPlayer != null)
-              // If a player is assigned, show their normal component.
               ? PlayerComponentV2(
                   playerModel: assignedPlayer,
                 )
-              // If the spot is EMPTY (unassigned), show the placeholder.
               : Stack(
                   children: [
-                    // Show the "ghost" of the target player.
                     Opacity(
                       opacity: 0.4,
                       child: PlayerComponentV2(
                         playerModel: targetPosition,
                       ),
                     ),
-                    // Overlay a "missing" icon.
-                    Container(
-                      width: markerSize * .8,
-                      height: markerSize * .8,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.question_mark,
-                        color: Colors.white,
-                        size: markerSize * 0.4,
-                      ),
-                    ),
+                    // Container(
+                    //   width: markerSize * .8,
+                    //   height: markerSize * .8,
+                    //   decoration: BoxDecoration(
+                    //     color: Colors.black.withOpacity(0.1),
+                    //     shape: BoxShape.circle,
+                    //   ),
+                    //   child: Icon(
+                    //     Icons.question_mark,
+                    //     color: Colors.white.withValues(alpha: 0.1),
+                    //     size: markerSize * 0.4,
+                    //   ),
+                    // ),
                   ],
                 ),
         ),
@@ -689,9 +702,7 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
   }
 }
 
-//==============================================================================
-// Full Field Painter
-//==============================================================================
+// Keep FullFieldPainter unchanged
 class FullFieldPainter extends CustomPainter {
   final Color fieldColor;
   final Color borderColor;
@@ -767,3 +778,5 @@ class FullFieldPainter extends CustomPainter {
         oldDelegate.borderColor != borderColor;
   }
 }
+
+///3rd

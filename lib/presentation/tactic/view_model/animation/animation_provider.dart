@@ -659,12 +659,38 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
   }
 
-  AnimationItemModel _generateDummyAnimationItem() {
+  void copyCurrentDefaultScene() {
+    AnimationItemModel? selectedScene = state.selectedScene;
+    if (selectedScene != null) {
+      List<AnimationItemModel> defaultItems = state.defaultAnimationItems;
+
+      AnimationItemModel item =
+          _generateDummyAnimationItem(items: selectedScene.components);
+      int index = defaultItems.indexWhere((t) => t.id == selectedScene.id);
+      if (index == -1) {
+        index = 0;
+      } else {
+        index += 1;
+      }
+
+      defaultItems.insert(index, item);
+
+      zlog(data: 'Default animation index ${defaultItems.length - 1}');
+      state = state.copyWith(
+        defaultAnimationItems: defaultItems,
+        defaultAnimationItemIndex: index,
+        selectedScene: defaultItems[index],
+      );
+    }
+  }
+
+  AnimationItemModel _generateDummyAnimationItem(
+      {List<FieldItemModel> items = const []}) {
     return AnimationItemModel(
       fieldColor: BoardConstant.field_color,
       id: RandomGenerator.generateId(),
       userId: _getUserId(),
-      components: [],
+      components: items,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
       fieldSize:

@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
@@ -193,6 +194,9 @@ class _AnimationToolbarComponentState
             ),
             CustomButton(
               fillColor: ColorManager.blue,
+              onTap: () {
+                BotToast.showText(text: "Animation saved");
+              },
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               borderRadius: 3,
               child: Text(
