@@ -175,7 +175,8 @@ class AnimationSharer {
       );
       if (imageFile != null) {
         await SharePlus.instance.share(ShareParams(
-          text: "Zporter Football Pad Image",
+          text: "${imageFile.name}",
+          title: "${imageFile.name}",
           subject: "Check out this from my Zporter Football Pad",
           files: [imageFile],
           sharePositionOrigin: Rect.fromLTWH(
@@ -192,7 +193,7 @@ class AnimationSharer {
       );
       if (imagePath != null) {
         await shareImageFile(imagePath,
-            text: "Zporter Football Pad Image",
+            text: "${imagePath.split("/").last}",
             subject: "Check out this from my Zporter Football Pad",
             context: context);
       }
@@ -203,6 +204,7 @@ class AnimationSharer {
       {String? text, String? subject, required BuildContext context}) async {
     try {
       final xFile = XFile(filePath);
+
       await SharePlus.instance.share(
         ShareParams(
           files: [xFile],

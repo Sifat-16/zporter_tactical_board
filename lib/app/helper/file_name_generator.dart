@@ -6,7 +6,7 @@ class FileNameGenerator {
     final DateTime now = DateTime.now();
 
     // Define the prefix for the filename
-    const String prefix = "Zporter_Tactic_Scene_Capture_";
+    const String prefix = "Zporter Tactic Scene Capture ";
 
     // Format the main date and time part (YYYY-MM-DD-HHMM-SS)
     // HH for 24-hour format, mm for minutes, ss for seconds.
