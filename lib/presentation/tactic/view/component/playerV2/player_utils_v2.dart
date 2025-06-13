@@ -156,6 +156,26 @@ class PlayerUtilsV2 {
     }
   }
 
+  // ... inside PlayerUtilsV2
+
+  static Stream<List<PlayerModel>> watchHomePlayers() async* {
+    final db = await SemDB.database;
+
+    // CORRECTED: First, create a query from the store.
+    final query = _homePlayersStore.query();
+
+    // Then, call onSnapshots on the query object.
+    final stream = query.onSnapshots(db);
+
+    // The rest of the stream transformation logic is correct and remains the same.
+    yield* stream.map((snapshots) {
+      // For each list of snapshots, map it to a list of PlayerModel objects.
+      return snapshots
+          .map((snapshot) => PlayerModel.fromJson(snapshot.value))
+          .toList();
+    });
+  }
+
   /// Fetches away players from DB, or generates from static data and saves if DB is empty.
   static Future<List<PlayerModel>> getOrInitializeAwayPlayers() async {
     final db = await SemDB.database;
@@ -176,6 +196,23 @@ class PlayerUtilsV2 {
           .map((snapshot) => PlayerModel.fromJson(snapshot.value))
           .toList();
     }
+  }
+
+  static Stream<List<PlayerModel>> watchAwayPlayers() async* {
+    final db = await SemDB.database;
+
+    // Create a query for the away players store
+    final query = _awayPlayersStore.query();
+
+    // Get the stream of snapshots from the query
+    final stream = query.onSnapshots(db);
+
+    // Transform the stream of database data into a stream of PlayerModel lists
+    yield* stream.map((snapshots) {
+      return snapshots
+          .map((snapshot) => PlayerModel.fromJson(snapshot.value))
+          .toList();
+    });
   }
 
   /// Saves a list of players to the specified Sembast store.
@@ -381,7 +418,40 @@ class PlayerUtilsV2 {
       await store.record(player.id).put(db, player.toJson());
       zlog(
           data:
-              'Player ${player.id} (${player.name}) updated in store: ${store.name}');
+              'Player ${player.id} (${player.name}) updated in store: ${store.name} - ${player.toJson()}');
+    } catch (e) {
+      zlog(data: 'Error updating player ${player.id} in DB: $e');
+      rethrow; // Rethrow to allow caller to handle
+    }
+  }
+
+  static Future<void> deletePlayerInDb(PlayerModel player) async {
+    final db = await SemDB.database;
+    StoreRef<String, Map<String, dynamic>> store;
+
+    // Determine the correct store based on playerType
+    switch (player.playerType) {
+      case PlayerType.HOME:
+        store = _homePlayersStore;
+        break;
+      case PlayerType.AWAY:
+        store = _awayPlayersStore;
+        break;
+      case PlayerType.OTHER:
+      case PlayerType.UNKNOWN:
+        zlog(
+            data:
+                'Player type ${player.playerType} not typically stored individually for editing in this context. Update logic might need specific handling if required.');
+        // If you need to store/update OTHER players, define a store for them.
+        // For now, we'll skip updating for OTHER/UNKNOWN or throw an error.
+        return; // Or throw Exception('Cannot update player of type ${player.playerType}');
+    }
+
+    try {
+      await store.record(player.id).delete(db);
+      zlog(
+          data:
+              'Player ${player.id} (${player.name}) updated in store: ${store.name} - ${player.toJson()}');
     } catch (e) {
       zlog(data: 'Error updating player ${player.id} in DB: $e');
       rethrow; // Rethrow to allow caller to handle
@@ -399,6 +469,7 @@ class PlayerUtilsV2 {
         return PlayerEditorDialog(
           player: null, // Passing null triggers "Create Mode"
           playerType: playerType,
+          onDelete: (p) async {},
           availableRoles: getUniqueRoles(),
           availableJerseyNumbers: getDefaultJerseyNumbers(),
         );
@@ -438,6 +509,9 @@ class PlayerUtilsV2 {
         return PlayerEditorDialog(
           player: player, // Pass the player to trigger "Edit Mode"
           playerType: player.playerType,
+          onDelete: (p) async {
+            await deletePlayerInDb(p);
+          },
           availableRoles: getUniqueRoles(),
           availableJerseyNumbers: getDefaultJerseyNumbers(),
         );
@@ -596,12 +670,15 @@ class PlayerEditorDialog extends StatefulWidget {
   /// A list of all available roles for the dropdown.
   final List<String> availableRoles;
 
+  final Function(PlayerModel) onDelete;
+
   /// A list of all available jersey numbers for the dropdown.
   final List<int> availableJerseyNumbers;
 
   const PlayerEditorDialog({
     super.key,
     this.player,
+    required this.onDelete,
     required this.playerType,
     required this.availableRoles,
     required this.availableJerseyNumbers,
@@ -714,7 +791,11 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
     if (staticData == null) {
       if (mounted) {
-        BotToast.showText(text: "This player has no default data to reset to.");
+        PlayerModel? p = widget.player;
+        if (p == null) return;
+        widget.onDelete.call(p);
+        Navigator.of(context).pop(null);
+        // BotToast.showText(text: "This player has no default data to reset to.");
       }
       return;
     }
@@ -736,7 +817,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       role: originalRole,
       jerseyNumber: finalNumber,
       name: '',
-      imagePath: null, // This is how we "remove" the image
+      imagePath: '', // This is how we "remove" the image
     );
 
     if (mounted) {
@@ -828,13 +909,25 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
               Center(
                 child: GestureDetector(
                   onTap: _pickImage,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: ColorManager.dark2,
-                    backgroundImage: _currentImagePath != null &&
-                            File(_currentImagePath!).existsSync()
-                        ? FileImage(File(_currentImagePath!))
-                        : null,
+                  child: Container(
+                    // --- FIX START ---
+                    // Give the container a fixed size so it doesn't expand.
+                    width: 100,
+                    height: 100,
+                    // --- FIX END ---
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: ColorManager.white.withValues(alpha: 0.4),
+                        image: _currentImagePath != null &&
+                                File(_currentImagePath!).existsSync()
+                            ? DecorationImage(
+                                // 'cover' will fill the container, cropping the image if necessary.
+                                // 'contain' will fit the whole image inside, leaving empty space if aspect ratios differ.
+                                fit: BoxFit.cover,
+                                image: FileImage(File(_currentImagePath!)))
+                            : null),
+                    // The child is only shown when there's no image.
+                    // It will be centered automatically inside the 100x100 container.
                     child: _currentImagePath == null ||
                             !File(_currentImagePath!).existsSync()
                         ? Icon(
@@ -943,7 +1036,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                       fillColor: ColorManager.yellow,
                       onTap: _onResetPressed,
                       child: Text(
-                        "Reset",
+                        "Delete",
                         style: Theme.of(context)
                             .textTheme
                             .labelMedium!
