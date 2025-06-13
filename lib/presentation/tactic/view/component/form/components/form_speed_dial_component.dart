@@ -264,7 +264,7 @@ class _FormSpeedDialComponentState
       // width: context.widthPercent(90), // Your original width
       child: Row(
         mainAxisSize: MainAxisSize.max, // Your original mainAxisSize
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.center,
         // spacing: 30,
         children: [
           // --- LEFT SIDE BUTTONS ---
@@ -416,58 +416,61 @@ class _FormSpeedDialComponentState
           // --- RIGHT SIDE BUTTONS ---
           Flexible(
             flex: 1,
-            child: Row(
-              spacing: 10,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // if (config.showPlayAnimationButton && animationModel != null)
-                //   Builder(
-                //     builder: (context) {
-                //       final Object heroTag =
-                //           'anim_${animationModel.id.toString()}';
-                //       return GestureDetector(
-                //         onTap: () {
-                //           Navigator.push(
-                //             context,
-                //             MaterialPageRoute(
-                //               builder:
-                //                   (context) => AnimationScreen(
-                //                     animationModel: animationModel,
-                //                     heroTag: heroTag,
-                //                   ),
-                //             ),
-                //           );
-                //         },
-                //         child: Icon(
-                //           // Your original Icon
-                //           Icons.play_circle_outline,
-                //           color: ColorManager.white,
-                //         ),
-                //       );
-                //     },
-                //   ),
-                if (config.showAddNewSceneButton)
-                  _buildAddNewScene(
-                    selectedCollection: collectionModel,
-                    collectionList: collectionList,
-                    selectedAnimation: animationModel,
-                    selectedScene: selectedScene,
-                  ),
-
-                if (config.showTrashButton)
-                  GestureDetector(
-                    onTap: () {
-                      ref.read(boardProvider.notifier).removeElement();
-                    },
-                    child: _buildTrashComponent(
-                      // Your original component call
-                      isFocused: bp.selectedItemOnTheBoard != null,
-                      isDimmed: (currentActiveTool != ActiveTool.trash &&
-                              currentActiveTool != ActiveTool.pointer) ||
-                          isPlacingItem,
+            child: Container(
+              // color: Colors.green,
+              child: Row(
+                spacing: 10,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // if (config.showPlayAnimationButton && animationModel != null)
+                  //   Builder(
+                  //     builder: (context) {
+                  //       final Object heroTag =
+                  //           'anim_${animationModel.id.toString()}';
+                  //       return GestureDetector(
+                  //         onTap: () {
+                  //           Navigator.push(
+                  //             context,
+                  //             MaterialPageRoute(
+                  //               builder:
+                  //                   (context) => AnimationScreen(
+                  //                     animationModel: animationModel,
+                  //                     heroTag: heroTag,
+                  //                   ),
+                  //             ),
+                  //           );
+                  //         },
+                  //         child: Icon(
+                  //           // Your original Icon
+                  //           Icons.play_circle_outline,
+                  //           color: ColorManager.white,
+                  //         ),
+                  //       );
+                  //     },
+                  //   ),
+                  if (config.showAddNewSceneButton)
+                    _buildAddNewScene(
+                      selectedCollection: collectionModel,
+                      collectionList: collectionList,
+                      selectedAnimation: animationModel,
+                      selectedScene: selectedScene,
                     ),
-                  ),
-              ],
+
+                  if (config.showTrashButton)
+                    GestureDetector(
+                      onTap: () {
+                        ref.read(boardProvider.notifier).removeElement();
+                      },
+                      child: _buildTrashComponent(
+                        // Your original component call
+                        isFocused: bp.selectedItemOnTheBoard != null,
+                        isDimmed: (currentActiveTool != ActiveTool.trash &&
+                                currentActiveTool != ActiveTool.pointer) ||
+                            isPlacingItem,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
@@ -514,9 +517,19 @@ class _FormSpeedDialComponentState
                     selectedAnimation: selectedAnimation,
                     selectedScene: selectedScene,
                   );
-              BotToast.showText(
-                  text: "Image added to animation",
-                  contentColor: ColorManager.black);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Center(child: Text("Image added to animation")),
+                  backgroundColor: ColorManager.black,
+                  showCloseIcon: true,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+
+              // BotToast.showText(
+              //     text: "Image added to animation",
+              //     contentColor: ColorManager.black,
+              //     duration: Duration(seconds: 5));
             } else {
               BotToast.showText(
                 text: "Cannot add new scene: No current scene selected.",
