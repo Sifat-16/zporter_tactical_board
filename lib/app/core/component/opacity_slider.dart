@@ -3,8 +3,10 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 
 class OpacitySlider extends StatefulWidget {
   final ValueChanged<double>? onOpacityChanged;
+  final double initial;
 
-  const OpacitySlider({Key? key, this.onOpacityChanged}) : super(key: key);
+  const OpacitySlider({Key? key, this.onOpacityChanged, required this.initial})
+    : super(key: key);
 
   @override
   _OpacitySliderState createState() => _OpacitySliderState();
@@ -12,6 +14,13 @@ class OpacitySlider extends StatefulWidget {
 
 class _OpacitySliderState extends State<OpacitySlider> {
   double _opacityValue = 1.0; // Initial opacity is 100%
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _opacityValue = widget.initial;
+  }
 
   void _updateOpacity(double value) {
     setState(() {
