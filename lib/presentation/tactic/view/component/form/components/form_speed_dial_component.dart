@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjust path
 import 'package:zporter_tactical_board/app/services/injection_container.dart'; // Adjust path
@@ -268,11 +269,12 @@ class _FormSpeedDialComponentState
         // spacing: 30,
         children: [
           // --- LEFT SIDE BUTTONS ---
-          Flexible(
-            flex: 1,
+          Container(
+            // color: Colors.white,
+            width: context.widthPercent(22),
             child: Row(
               mainAxisAlignment:
-                  MainAxisAlignment.center, // Your original alignment
+                  MainAxisAlignment.end, // Your original alignment
               spacing: 10,
               children: [
                 if (config.showBackButton)
@@ -319,10 +321,12 @@ class _FormSpeedDialComponentState
           ),
 
           // --- CENTER TOOL BUTTONS ---
-          Flexible(
-            flex: 1,
+          Container(
+            // color: Colors.green,
+            width: context.widthPercent(22),
             child: Row(
               mainAxisSize: MainAxisSize.min, // Your original mainAxisSize
+              mainAxisAlignment: MainAxisAlignment.center,
               spacing: 10,
               children: [
                 if (config.showPointerActionsButton)
@@ -414,63 +418,61 @@ class _FormSpeedDialComponentState
           ),
 
           // --- RIGHT SIDE BUTTONS ---
-          Flexible(
-            flex: 1,
-            child: Container(
-              // color: Colors.green,
-              child: Row(
-                spacing: 10,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // if (config.showPlayAnimationButton && animationModel != null)
-                  //   Builder(
-                  //     builder: (context) {
-                  //       final Object heroTag =
-                  //           'anim_${animationModel.id.toString()}';
-                  //       return GestureDetector(
-                  //         onTap: () {
-                  //           Navigator.push(
-                  //             context,
-                  //             MaterialPageRoute(
-                  //               builder:
-                  //                   (context) => AnimationScreen(
-                  //                     animationModel: animationModel,
-                  //                     heroTag: heroTag,
-                  //                   ),
-                  //             ),
-                  //           );
-                  //         },
-                  //         child: Icon(
-                  //           // Your original Icon
-                  //           Icons.play_circle_outline,
-                  //           color: ColorManager.white,
-                  //         ),
-                  //       );
-                  //     },
-                  //   ),
-                  if (config.showAddNewSceneButton)
-                    _buildAddNewScene(
-                      selectedCollection: collectionModel,
-                      collectionList: collectionList,
-                      selectedAnimation: animationModel,
-                      selectedScene: selectedScene,
-                    ),
+          Container(
+            // color: Colors.red,
+            width: context.widthPercent(22),
+            child: Row(
+              spacing: 10,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                // if (config.showPlayAnimationButton && animationModel != null)
+                //   Builder(
+                //     builder: (context) {
+                //       final Object heroTag =
+                //           'anim_${animationModel.id.toString()}';
+                //       return GestureDetector(
+                //         onTap: () {
+                //           Navigator.push(
+                //             context,
+                //             MaterialPageRoute(
+                //               builder:
+                //                   (context) => AnimationScreen(
+                //                     animationModel: animationModel,
+                //                     heroTag: heroTag,
+                //                   ),
+                //             ),
+                //           );
+                //         },
+                //         child: Icon(
+                //           // Your original Icon
+                //           Icons.play_circle_outline,
+                //           color: ColorManager.white,
+                //         ),
+                //       );
+                //     },
+                //   ),
+                if (config.showAddNewSceneButton)
+                  _buildAddNewScene(
+                    selectedCollection: collectionModel,
+                    collectionList: collectionList,
+                    selectedAnimation: animationModel,
+                    selectedScene: selectedScene,
+                  ),
 
-                  if (config.showTrashButton)
-                    GestureDetector(
-                      onTap: () {
-                        ref.read(boardProvider.notifier).removeElement();
-                      },
-                      child: _buildTrashComponent(
-                        // Your original component call
-                        isFocused: bp.selectedItemOnTheBoard != null,
-                        isDimmed: (currentActiveTool != ActiveTool.trash &&
-                                currentActiveTool != ActiveTool.pointer) ||
-                            isPlacingItem,
-                      ),
+                if (config.showTrashButton)
+                  GestureDetector(
+                    onTap: () {
+                      ref.read(boardProvider.notifier).removeElement();
+                    },
+                    child: _buildTrashComponent(
+                      // Your original component call
+                      isFocused: bp.selectedItemOnTheBoard != null,
+                      isDimmed: (currentActiveTool != ActiveTool.trash &&
+                              currentActiveTool != ActiveTool.pointer) ||
+                          isPlacingItem,
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ],

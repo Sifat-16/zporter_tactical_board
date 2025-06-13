@@ -437,85 +437,92 @@ class _TacticboardScreenTabletState
                     ),
                   ),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Flexible(
-                        flex: 1,
-                        child: Container(
-                            // color: Colors.yellow,
-                            ),
+                      Container(
+                        width: context.widthPercent(22),
+                        // color: Colors.yellow,
                       ),
                       if (asp.defaultAnimationItems.isNotEmpty)
-                        Flexible(
-                          flex: 1,
-                          child: Container(
-                            // color: Colors.white,
-                            child: CompactPaginator(
-                              totalPages: asp.defaultAnimationItems.length,
-                              onPageChanged: (index) {
-                                ref
-                                    .read(animationProvider.notifier)
-                                    .changeDefaultAnimationIndex(index);
-                              },
-                              initialPage: asp.defaultAnimationItemIndex,
-                            ),
+                        Container(
+                          // color: Colors.white,
+                          width: context.widthPercent(22),
+                          child: CompactPaginator(
+                            totalPages: asp.defaultAnimationItems.length,
+                            onPageChanged: (index) {
+                              ref
+                                  .read(animationProvider.notifier)
+                                  .changeDefaultAnimationIndex(index);
+                            },
+                            initialPage: asp.defaultAnimationItemIndex,
                           ),
                         ),
-                      Flexible(
-                        flex: 1,
-                        child: Container(
-                          // color: Colors.green,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              IconButton(
-                                onPressed: () => ref
-                                    .read(animationProvider.notifier)
-                                    .createNewDefaultAnimationItem(),
-                                icon:
-                                    Icon(Icons.add, color: ColorManager.white),
-                                tooltip: "Add New Scene",
-                              ),
+                      Container(
+                        // color: Colors.green,
+                        width: context.widthPercent(22),
+                        child: Row(
+                          spacing: 10,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            // Icon(
+                            //   Icons.add,
+                            //   color: Colors.white,
+                            // ),
+                            // Icon(
+                            //   Icons.add,
+                            //   color: Colors.white,
+                            // ),
+                            // Icon(
+                            //   Icons.add,
+                            //   color: Colors.white,
+                            // ),
+                            InkWell(
+                              onTap: () => ref
+                                  .read(animationProvider.notifier)
+                                  .createNewDefaultAnimationItem(),
 
-                              // --- NEW BUTTON ADDED HERE ---
-                              IconButton(
-                                onPressed: () {
+                              child: Icon(Icons.add, color: ColorManager.white),
+                              // tooltip: "Add New Scene",
+                            ),
+
+                            // --- NEW BUTTON ADDED HERE ---
+                            InkWell(
+                              onTap: () {
+                                ref
+                                    .read(animationProvider.notifier)
+                                    .copyCurrentDefaultScene();
+                                BotToast.showText(text: "Scene Copied");
+                              },
+                              child: Icon(
+                                Icons.copy,
+                                color: ColorManager.white,
+                                size: 18,
+                              ),
+                              // tooltip: "Copy Current Scene",
+                            ),
+                            // --- END OF NEW BUTTON ---
+                            InkWell(
+                              onTap: () async {
+                                bool? confirm = await showConfirmationDialog(
+                                  context: context,
+                                  title: "Reset Board?",
+                                  content:
+                                      "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
+                                  confirmButtonText: "Reset",
+                                );
+                                if (confirm == true) {
                                   ref
                                       .read(animationProvider.notifier)
-                                      .copyCurrentDefaultScene();
-                                  BotToast.showText(text: "Scene Copied");
-                                },
-                                icon: Icon(
-                                  Icons.copy,
-                                  color: ColorManager.white,
-                                  size: 18,
-                                ),
-                                tooltip: "Copy Current Scene",
+                                      .deleteDefaultAnimation();
+                                }
+                              },
+                              child: Icon(
+                                Icons.delete_sweep_outlined,
+                                color: ColorManager.white,
                               ),
-                              // --- END OF NEW BUTTON ---
-                              IconButton(
-                                onPressed: () async {
-                                  bool? confirm = await showConfirmationDialog(
-                                    context: context,
-                                    title: "Reset Board?",
-                                    content:
-                                        "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
-                                    confirmButtonText: "Reset",
-                                  );
-                                  if (confirm == true) {
-                                    ref
-                                        .read(animationProvider.notifier)
-                                        .deleteDefaultAnimation();
-                                  }
-                                },
-                                icon: Icon(
-                                  Icons.delete_sweep_outlined,
-                                  color: ColorManager.white,
-                                ),
-                                tooltip: "Clear Current Scene",
-                              ),
-                            ],
-                          ),
+                              // tooltip: "Clear Current Scene",
+                            ),
+                          ],
                         ),
                       ),
                     ],
