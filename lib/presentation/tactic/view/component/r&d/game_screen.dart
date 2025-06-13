@@ -410,41 +410,44 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                             !bp.animatingObj!.isExporting,
                         initialPaceFactor: 1.0,
                         onExportProgressCallback: (progress) async {
-                          _exportProgressNotifier.value = progress;
-                          if (progress >= 1.0 &&
-                              !_isFinalizingVideoNotifier.value) {
-                            _isFinalizingVideoNotifier.value = true;
-                            zlog(
-                                data:
-                                    "Animation playback 100%. Switched to finalizing video state.");
-                            RecordingOutput? recordingOutput;
-                            try {
+                          WidgetsBinding.instance
+                              .addPostFrameCallback((t) async {
+                            _exportProgressNotifier.value = progress;
+                            if (progress >= 1.0 &&
+                                !_isFinalizingVideoNotifier.value) {
+                              _isFinalizingVideoNotifier.value = true;
                               zlog(
                                   data:
-                                      "Stopping widget recording (finalization step).");
-                              recordingOutput =
-                                  await _widgetCaptureXPlusController
-                                      .stopRecording();
-                              zlog(
+                                      "Animation playback 100%. Switched to finalizing video state.");
+                              RecordingOutput? recordingOutput;
+                              try {
+                                zlog(
+                                    data:
+                                        "Stopping widget recording (finalization step).");
+                                recordingOutput =
+                                    await _widgetCaptureXPlusController
+                                        .stopRecording();
+                                zlog(
+                                    data:
+                                        "Widget recording stopped. Output: ${recordingOutput?.filePath}, Success: ${recordingOutput?.success}");
+                              } catch (e, s) {
+                                zlog(
                                   data:
-                                      "Widget recording stopped. Output: ${recordingOutput?.filePath}, Success: ${recordingOutput?.success}");
-                            } catch (e, s) {
-                              zlog(
-                                data:
-                                    "Error stopping widget recording (finalization step): $e\n$s",
-                              );
-                            }
+                                      "Error stopping widget recording (finalization step): $e\n$s",
+                                );
+                              }
 
-                            if (_currentExportDialogContext != null &&
-                                mounted &&
-                                Navigator.canPop(
-                                    _currentExportDialogContext!)) {
-                              // This is the crucial pop that returns the result to _showVideoExportProgressDialog's awaiter
-                              Navigator.of(_currentExportDialogContext!)
-                                  .pop(recordingOutput);
+                              if (_currentExportDialogContext != null &&
+                                  mounted &&
+                                  Navigator.canPop(
+                                      _currentExportDialogContext!)) {
+                                // This is the crucial pop that returns the result to _showVideoExportProgressDialog's awaiter
+                                Navigator.of(_currentExportDialogContext!)
+                                    .pop(recordingOutput);
+                              }
+                              // _isFinalizingVideoNotifier and provider state are reset by the caller of _showVideoExportProgressDialog (onShare)
                             }
-                            // _isFinalizingVideoNotifier and provider state are reset by the caller of _showVideoExportProgressDialog (onShare)
-                          }
+                          });
                         },
                       ),
                     ),
