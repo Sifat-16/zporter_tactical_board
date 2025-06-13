@@ -466,6 +466,7 @@ class _TacticboardScreenTabletState
                         child: Container(
                           // color: Colors.green,
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: [
                               IconButton(
                                 onPressed: () => ref
@@ -484,8 +485,11 @@ class _TacticboardScreenTabletState
                                       .copyCurrentDefaultScene();
                                   BotToast.showText(text: "Scene Copied");
                                 },
-                                icon:
-                                    Icon(Icons.copy, color: ColorManager.white),
+                                icon: Icon(
+                                  Icons.copy,
+                                  color: ColorManager.white,
+                                  size: 18,
+                                ),
                                 tooltip: "Copy Current Scene",
                               ),
                               // --- END OF NEW BUTTON ---
