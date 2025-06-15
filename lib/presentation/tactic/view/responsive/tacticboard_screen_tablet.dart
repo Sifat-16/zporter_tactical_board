@@ -461,7 +461,7 @@ class _TacticboardScreenTabletState
                         // color: Colors.green,
                         width: context.widthPercent(22),
                         child: Row(
-                          spacing: 10,
+                          spacing: 12,
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             // Icon(
@@ -481,7 +481,10 @@ class _TacticboardScreenTabletState
                                   .read(animationProvider.notifier)
                                   .createNewDefaultAnimationItem(),
 
-                              child: Icon(Icons.add, color: ColorManager.white),
+                              child: Icon(
+                                Icons.add,
+                                color: ColorManager.white,
+                              ),
                               // tooltip: "Add New Scene",
                             ),
 
@@ -516,10 +519,8 @@ class _TacticboardScreenTabletState
                                       .deleteDefaultAnimation();
                                 }
                               },
-                              child: Icon(
-                                Icons.delete_sweep_outlined,
-                                color: ColorManager.white,
-                              ),
+                              child: Icon(Icons.delete_sweep_outlined,
+                                  color: ColorManager.white, size: 24),
                               // tooltip: "Clear Current Scene",
                             ),
                           ],
