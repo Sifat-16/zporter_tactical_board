@@ -3,10 +3,12 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  desktop_webview_window
   file_saver
   file_selector_linux
   url_launcher_linux
   widget_capture_x_plus
+  window_to_front
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

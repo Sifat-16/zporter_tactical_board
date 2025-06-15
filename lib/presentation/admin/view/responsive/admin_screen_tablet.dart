@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+
+import 'dart:convert';
+
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/animation/default_animation_screen.dart';
-import 'package:zporter_tactical_board/presentation/admin/view/lineup/default_lineup_screen.dart'; // Assuming this is the correct path to your ColorManager
+import 'package:zporter_tactical_board/presentation/admin/view/lineup/default_lineup_screen.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/admin_tutorials_screen.dart';
 
 class AdminScreenTablet extends StatefulWidget {
   const AdminScreenTablet({super.key});
@@ -11,85 +16,77 @@ class AdminScreenTablet extends StatefulWidget {
 }
 
 class _AdminScreenTabletState extends State<AdminScreenTablet> {
+  // Helper to create styled buttons, reducing code repetition
+  Widget _buildAdminButton({
+    required String text,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: ColorManager.dark1,
+        foregroundColor: ColorManager.white,
+        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+        textStyle: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: ColorManager.dark2, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 5,
+      ),
+      child: Text(text),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: ColorManager.black, // Use black from ColorManager
+      backgroundColor: ColorManager.black,
       appBar: AppBar(
-        centerTitle: true, // Center the AppBar title
+        centerTitle: true,
         title: const Text(
           'Admin Panel',
-          style: TextStyle(color: ColorManager.white), // Title text color
+          style: TextStyle(
+            color: ColorManager.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        backgroundColor: ColorManager.black, // AppBar background also black
-        elevation: 0, // Optional: remove shadow for a flatter look
+        backgroundColor: ColorManager.black,
+        elevation: 0,
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            ElevatedButton(
+            _buildAdminButton(
+              text: 'Default Lineup',
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => DefaultLineupScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => DefaultLineupScreen()),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    ColorManager.dark1, // Dark theme button background
-                foregroundColor:
-                    ColorManager.white, // Text color from ColorManager
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(
-                    color: ColorManager.dark2,
-                    width: 1,
-                  ), // Optional: subtle border
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Default Lineup'),
             ),
-            const SizedBox(height: 25), // Spacing between buttons
-            ElevatedButton(
+            const SizedBox(height: 25),
+            _buildAdminButton(
+              text: 'Default Animation',
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => DefaultAnimationScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => DefaultAnimationScreen()),
                 );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    ColorManager.dark1, // Dark theme button background
-                foregroundColor:
-                    ColorManager.white, // Text color from ColorManager
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(
-                    color: ColorManager.dark2,
-                    width: 1,
-                  ), // Optional: subtle border
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Default Animation'),
+            ),
+            const SizedBox(height: 25),
+            // *** NEW: Tutorials Button ***
+            _buildAdminButton(
+              text: 'Manage Tutorials',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => AdminTutorialsScreen()),
+                );
+              },
             ),
           ],
         ),

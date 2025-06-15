@@ -5,12 +5,15 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   cloud_firestore
   connectivity_plus
+  desktop_webview_window
   file_saver
   file_selector_windows
   firebase_core
+  firebase_storage
   share_plus
   url_launcher_windows
   widget_capture_x_plus
+  window_to_front
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

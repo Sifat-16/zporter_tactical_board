@@ -1,5 +1,6 @@
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -19,6 +20,12 @@ class TacticApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'Zporter Board',
           builder: BotToastInit(),
+          localizationsDelegates: const [
+            // GlobalMaterialLocalizations.delegate,
+            // GlobalCupertinoLocalizations.delegate,
+            // GlobalWidgetsLocalizations.delegate,
+            FlutterQuillLocalizations.delegate,
+          ],
 
           navigatorObservers: [BotToastNavigatorObserver()],
           themeMode: ThemeMode.system,

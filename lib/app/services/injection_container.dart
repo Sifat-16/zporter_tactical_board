@@ -1,14 +1,18 @@
+import 'package:appwrite/appwrite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:zporter_tactical_board/app/config/database/remote/appwrite_db.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/default_animation_datasource.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/default_lineup_datasource.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/local/lineup_cache_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/remote/default_animation_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/remote/default_lineup_datasource_impl.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/remote/tutorial_datasource_impl.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/tutorial_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/local/animation_local_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/remote/animation_remote_datasource_impl.dart';
@@ -17,6 +21,8 @@ import 'package:zporter_tactical_board/domain/admin/default_animation/default_an
 import 'package:zporter_tactical_board/domain/admin/default_animation/default_animation_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_repository.dart';
 import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_repository_impl.dart';
+import 'package:zporter_tactical_board/domain/admin/tutorial/tutorial_repository.dart';
+import 'package:zporter_tactical_board/domain/admin/tutorial/tutorial_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_cache_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/delete_history_usecase.dart';
@@ -157,5 +163,20 @@ Future<void> initializeTacticBoardDependencies() async {
   );
   sl.registerLazySingleton<DefaultAnimationRepository>(
     () => DefaultAnimationRepositoryImpl(datasource: sl.get()),
+  );
+
+  //tutorials
+  sl.registerLazySingleton<AppwriteClientFactory>(
+    () => AppwriteClientFactory(),
+  );
+  sl.registerLazySingleton<TutorialDatasource>(
+    () => TutorialDatasourceHybridImpl(
+        appwriteStorage: Storage(sl.get<AppwriteClientFactory>().create()),
+        appwriteEndpoint: sl.get<AppwriteClientFactory>().appwriteEndpoint,
+        appwriteProjectId: sl.get<AppwriteClientFactory>().appwriteProjectId),
+  );
+
+  sl.registerLazySingleton<TutorialRepository>(
+    () => TutorialRepositoryImpl(datasource: sl.get()),
   );
 }

@@ -16,6 +16,8 @@ import 'package:zporter_tactical_board/data/tactic/model/line_model.dart'; // Ad
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart'; // Adjust path
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_history_stream_usecase.dart'; // Adjust path
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_selection_dialogue.dart';
+import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/shapes/form_shape_item.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/form_text_item.dart';
@@ -472,6 +474,20 @@ class _FormSpeedDialComponentState
                           isPlacingItem,
                     ),
                   ),
+
+                GestureDetector(
+                  onTap: () {
+                    ref.read(tutorialsProvider.notifier).fetchTutorials();
+                    _showTutorialSelectionDialog(context);
+                  },
+                  child: Center(
+                    child: Icon(
+                      CupertinoIcons.info,
+                      color: ColorManager.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -605,6 +621,16 @@ class _FormSpeedDialComponentState
         color: isFocused ? focusedColor : defaultColor,
         size: 24,
       ),
+    );
+  }
+
+  void _showTutorialSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // We return a dedicated widget for the dialog's content.
+        return const TutorialSelectionDialog();
+      },
     );
   }
 }
