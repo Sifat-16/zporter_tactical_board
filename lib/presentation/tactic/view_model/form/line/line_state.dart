@@ -21,7 +21,7 @@ class LineState {
   final bool isLineActiveToAddIntoGameField;
   final bool isShapeActiveToAddIntoGameField;
   final FieldItemModel?
-  activeForm; // The specific item model selected from grid/tool
+      activeForm; // The specific item model selected from grid/tool
   // Flags indicating if a tool that involves continuous drawing/action is active
   final bool isFreeDrawingActive; // Directly tied to ActiveTool.freeDraw
   final bool isEraserActivated; // Directly tied to ActiveTool.eraser
@@ -30,6 +30,7 @@ class LineState {
   final String? activatedFormId; // ID of the activeForm, if any
 
   final ActiveTool activeTool; // The primary selected tool
+  final String? activeId;
 
   const LineState({
     this.availableLines = const [],
@@ -41,6 +42,7 @@ class LineState {
     this.activatedFormId,
     this.isEraserActivated = false,
     this.isTrashActive = false,
+    this.activeId,
     this.activeTool = ActiveTool.pointer, // Default tool
   });
 
@@ -55,28 +57,26 @@ class LineState {
     bool? isEraserActivated,
     bool? isTrashActive,
     ActiveTool? activeTool,
+    Object? activeId = _sentinel,
   }) {
     return LineState(
-      availableLines: availableLines ?? this.availableLines,
-      availableFreeDraws: availableFreeDraws ?? this.availableFreeDraws,
-      isLineActiveToAddIntoGameField:
-          isLineActiveToAddIntoGameField ?? this.isLineActiveToAddIntoGameField,
-      isShapeActiveToAddIntoGameField:
-          isShapeActiveToAddIntoGameField ??
-          this.isShapeActiveToAddIntoGameField,
-      activeForm:
-          activeForm == _sentinel
-              ? this.activeForm
-              : activeForm as FieldItemModel?,
-      isFreeDrawingActive: isFreeDrawingActive ?? this.isFreeDrawingActive,
-      activatedFormId:
-          activatedFormId == _sentinel
-              ? this.activatedFormId
-              : activatedFormId as String?,
-      isEraserActivated: isEraserActivated ?? this.isEraserActivated,
-      isTrashActive: isTrashActive ?? this.isTrashActive,
-      activeTool: activeTool ?? this.activeTool,
-    );
+        availableLines: availableLines ?? this.availableLines,
+        availableFreeDraws: availableFreeDraws ?? this.availableFreeDraws,
+        isLineActiveToAddIntoGameField: isLineActiveToAddIntoGameField ??
+            this.isLineActiveToAddIntoGameField,
+        isShapeActiveToAddIntoGameField: isShapeActiveToAddIntoGameField ??
+            this.isShapeActiveToAddIntoGameField,
+        activeForm: activeForm == _sentinel
+            ? this.activeForm
+            : activeForm as FieldItemModel?,
+        isFreeDrawingActive: isFreeDrawingActive ?? this.isFreeDrawingActive,
+        activatedFormId: activatedFormId == _sentinel
+            ? this.activatedFormId
+            : activatedFormId as String?,
+        isEraserActivated: isEraserActivated ?? this.isEraserActivated,
+        isTrashActive: isTrashActive ?? this.isTrashActive,
+        activeTool: activeTool ?? this.activeTool,
+        activeId: activeId == _sentinel ? this.activeId : activeId as String?);
   }
 
   @override

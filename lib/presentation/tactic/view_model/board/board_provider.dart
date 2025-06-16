@@ -10,7 +10,10 @@ import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 final boardProvider = StateNotifierProvider<BoardController, BoardState>(
@@ -22,7 +25,7 @@ class BoardController extends StateNotifier<BoardState> {
 
   Ref ref;
 
-  addBoardComponent({required FieldItemModel fieldItemModel}) {
+  addBoardComponent({required FieldItemModel fieldItemModel}) async {
     if (fieldItemModel is PlayerModel) {
       state = state.copyWith(players: [...state.players, fieldItemModel]);
     } else if (fieldItemModel is EquipmentModel) {
@@ -35,6 +38,8 @@ class BoardController extends StateNotifier<BoardState> {
       state = state.copyWith(lines: [...state.lines, fieldItemModel]);
     } else if (fieldItemModel is ShapeModel) {
       state = state.copyWith(shapes: [...state.shapes, fieldItemModel]);
+    } else if (fieldItemModel is TextModel) {
+      state = state.copyWith(texts: [...state.texts, fieldItemModel]);
     }
   }
 
@@ -45,6 +50,7 @@ class BoardController extends StateNotifier<BoardState> {
       ...state.freeDraw,
       ...state.lines,
       ...state.shapes,
+      ...state.texts,
     ];
   }
 
@@ -61,6 +67,9 @@ class BoardController extends StateNotifier<BoardState> {
         return e.clone();
       }),
       ...state.shapes.map((e) {
+        return e.clone();
+      }),
+      ...state.texts.map((e) {
         return e.clone();
       }),
     ];
@@ -106,6 +115,7 @@ class BoardController extends StateNotifier<BoardState> {
     List<FreeDrawModelV2> freeDraws = state.freeDraw;
     List<LineModelV2> lines = state.lines;
     List<ShapeModel> shapes = state.shapes;
+    List<TextModel> texts = state.texts;
     if (selectedItem is PlayerModel) {
       players.removeWhere((t) => t.id == selectedItem.id);
     } else if (selectedItem is EquipmentModel) {
@@ -116,6 +126,8 @@ class BoardController extends StateNotifier<BoardState> {
       lines.removeWhere((t) => t.id == selectedItem.id);
     } else if (selectedItem is ShapeModel) {
       shapes.removeWhere((t) => t.id == selectedItem.id);
+    } else if (selectedItem is TextModel) {
+      texts.removeWhere((t) => t.id == selectedItem.id);
     }
     state = state.copyWith(
       forceItemToDeleteNull: true,
@@ -124,7 +136,9 @@ class BoardController extends StateNotifier<BoardState> {
       equipments: equipments,
       freeDraws: freeDraws,
       lines: lines,
+      texts: texts,
     );
+    BotToast.showText(text: "Item removed successfully");
   }
 
   void copyElement() {
@@ -162,6 +176,7 @@ class BoardController extends StateNotifier<BoardState> {
       freeDraws: [],
       lines: [],
       shapes: [],
+      texts: [],
     );
   }
 
@@ -173,14 +188,14 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(fieldSize: size);
   }
 
-  void animateToDesignTab() {
-    TabController? _controller = state.tabController;
-    _controller?.animateTo(0);
-  }
+  // void animateToDesignTab() {
+  //   TabController? _controller = state.tabController;
+  //   _controller?.animateTo(0);
+  // }
 
-  void updateTabController({required TabController controller}) {
-    state = state.copyWith(tabController: controller);
-  }
+  // void updateTabController({required TabController controller}) {
+  //   state = state.copyWith(tabController: controller);
+  // }
 
   void updateGameBoard(TacticBoardGame? game) {
     state = state.copyWith(tacticBoardGame: game);
@@ -219,7 +234,6 @@ class BoardController extends StateNotifier<BoardState> {
   }
 
   void toggleFullScreen() {
-    boardComparator = null;
     state = state.copyWith(showFullScreen: !state.showFullScreen);
   }
 
@@ -251,10 +265,9 @@ class BoardController extends StateNotifier<BoardState> {
 
     // 2. Filter State Lists: Create new lists for each type by excluding items
     //    whose IDs are present in the `idsToRemove` set.
-    final List<PlayerModel> updatedPlayers =
-        state.players
-            .where((player) => !idsToRemove.contains(player.id))
-            .toList();
+    final List<PlayerModel> updatedPlayers = state.players
+        .where((player) => !idsToRemove.contains(player.id))
+        .toList();
     final List<EquipmentModel> updatedEquipments =
         state.equipments.where((eq) => !idsToRemove.contains(eq.id)).toList();
     final List<LineModelV2> updatedLines =
@@ -262,20 +275,25 @@ class BoardController extends StateNotifier<BoardState> {
     final List<ShapeModel> updatedShapes =
         state.shapes.where((shape) => !idsToRemove.contains(shape.id)).toList();
     // Assuming FreeDrawModelV2 instances also have a unique 'id' property.
-    final List<FreeDrawModelV2> updatedFreeDraws =
-        state.freeDraw
-            .where(
-              (draw) => !idsToRemove.contains(draw.id),
-            ) // Ensure FreeDrawModelV2 has an 'id'
-            .toList();
+    final List<FreeDrawModelV2> updatedFreeDraws = state.freeDraw
+        .where(
+          (draw) => !idsToRemove.contains(draw.id),
+        ) // Ensure FreeDrawModelV2 has an 'id'
+        .toList();
+
+    final List<TextModel> updatedTexts = state.texts
+        .where(
+          (text) => !idsToRemove.contains(text.id),
+        ) // Ensure FreeDrawModelV2 has an 'id'
+        .toList();
 
     // Calculate if any items were actually removed from the state to avoid unnecessary updates.
-    int removedCount =
-        (state.players.length - updatedPlayers.length) +
+    int removedCount = (state.players.length - updatedPlayers.length) +
         (state.equipments.length - updatedEquipments.length) +
         (state.lines.length - updatedLines.length) +
         (state.shapes.length - updatedShapes.length) +
-        (state.freeDraw.length - updatedFreeDraws.length);
+        (state.freeDraw.length - updatedFreeDraws.length) +
+        (state.texts.length - updatedTexts.length);
 
     if (removedCount > 0) {
       zlog(
@@ -289,6 +307,7 @@ class BoardController extends StateNotifier<BoardState> {
         lines: updatedLines,
         shapes: updatedShapes,
         freeDraws: updatedFreeDraws,
+        texts: updatedTexts,
       );
     } else {
       zlog(
@@ -296,5 +315,19 @@ class BoardController extends StateNotifier<BoardState> {
             "No items from the provided list were found in the current BoardState for removal. State remains unchanged regarding item lists.",
       );
     }
+  }
+
+  void toggleAnimating({required AnimatingObj? animatingObj}) {
+    state = state.copyWith(animatingObj: animatingObj);
+  }
+
+  void updatePlayerModel({required PlayerModel newModel}) {
+    List<PlayerModel> players = state.players;
+    int index = players.indexWhere((p) => p.id == newModel.id);
+    if (index != -1) {
+      players[index] = newModel;
+    }
+    state = state.copyWith(players: players);
+    ref.read(animationProvider.notifier).updatePlayerModel(newModel: newModel);
   }
 }

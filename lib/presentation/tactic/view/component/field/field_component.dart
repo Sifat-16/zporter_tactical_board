@@ -122,7 +122,7 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
                     size / 2 -
                     handle.size / 2)
                 .distanceTo(localPosition) <
-            handle.radius * 2) {
+            handle.interactionRadius * 2) {
           return handle.anchor;
         }
       }

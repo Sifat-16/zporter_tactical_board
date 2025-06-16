@@ -12,16 +12,16 @@ import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/triangle_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/triangle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
@@ -29,8 +29,10 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 mixin ItemManagement on TacticBoardGame {
   // Public method moved from TacticBoard (Code inside unchanged)
   // This 'addItem' handles adding the COMPONENT based on the model TYPE
+  @override
   addItem(FieldItemModel item, {bool save = true}) async {
     // --- Exact code from original TacticBoard.addItem ---
+
     if (item is PlayerModel) {
       add(PlayerComponent(object: item)); // add() is available via FlameGame
     } else if (item is EquipmentModel) {
@@ -41,12 +43,10 @@ mixin ItemManagement on TacticBoardGame {
       await add(CircleShapeDrawerComponent(circleModel: item));
     } else if (item is SquareShapeModel) {
       await add(SquareShapeDrawerComponent(squareModel: item));
-    } else if (item is TriangleShapeModel) {
-      await add(
-        TriangleShapeDrawerComponent(initialModel: item, isCreating: false),
-      );
     } else if (item is PolygonShapeModel) {
       await add(PolygonShapeDrawerComponent(polygonModel: item));
+    } else if (item is TextModel) {
+      await add(TextFieldComponent(object: item));
     }
     // else if (item is FreeDrawModelV2) {
     //   await add(FreeDrawerComponentV2(freeDrawModelV2: item));
@@ -67,21 +67,19 @@ mixin ItemManagement on TacticBoardGame {
     ref.read(boardProvider.notifier).updateFreeDraws(lines: lines);
     List<FreeDrawModelV2> duplicateLines = lines.map((e) => e.clone()).toList();
 
-    duplicateLines =
-        duplicateLines.map((l) {
-          List<Vector2> points = l.points;
-          points =
-              points
-                  .map(
-                    (p) => SizeHelper.getBoardActualVector(
-                      gameScreenSize: gameField.size,
-                      actualPosition: p,
-                    ),
-                  )
-                  .toList();
-          l.points = points;
-          return l;
-        }).toList();
+    duplicateLines = duplicateLines.map((l) {
+      List<Vector2> points = l.points;
+      points = points
+          .map(
+            (p) => SizeHelper.getBoardActualVector(
+              gameScreenSize: gameField.size,
+              actualPosition: p,
+            ),
+          )
+          .toList();
+      l.points = points;
+      return l;
+    }).toList();
 
     zlog(data: "Initial lines after ${duplicateLines}");
     drawingBoard = DrawingBoardComponent(
@@ -127,10 +125,10 @@ mixin ItemManagement on TacticBoardGame {
         return t.squareModel.id == itemToDelete?.id;
       } else if (t is CircleShapeDrawerComponent) {
         return t.circleModel.id == itemToDelete?.id;
-      } else if (t is TriangleShapeDrawerComponent) {
-        return t.triangleModel.id == itemToDelete?.id;
       } else if (t is PolygonShapeDrawerComponent) {
         return t.polygonModel.id == itemToDelete?.id;
+      } else if (t is TextFieldComponent) {
+        return t.object.id == itemToDelete?.id;
       }
       // Add check for FreeDrawerComponent if it was handled previously
       // else if (t is FreeDrawerComponent) { return t.freeDrawModel.id == itemToDelete?.id }
@@ -151,19 +149,38 @@ mixin ItemManagement on TacticBoardGame {
       FieldItemModel newItem = copyItem.clone();
       newItem.id = RandomGenerator.generateId();
       // Original code used non-nullable offset. Add null check for safety if needed.
-      newItem.offset = (newItem.offset ?? Vector2.zero()) + Vector2(5, 5);
+      newItem.offset = (newItem.offset ?? Vector2.zero()) +
+          SizeHelper.getBoardRelativeVector(
+              gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
 
       if (newItem is LineModelV2) {
         LineModelV2 updatedLine =
             newItem.clone(); // Clones the newItem FormModel
-        updatedLine.start = Vector2(newItem.start.x + 10, newItem.start.y + 10);
+        zlog(
+            data:
+                "After copying status ${newItem.offset} - ${updatedLine.start}");
 
-        updatedLine.end = Vector2(newItem.end.x + 10, newItem.end.y + 10);
+        updatedLine.start = newItem.start +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
+
+        updatedLine.end = newItem.end +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
+
+        updatedLine.controlPoint2 = (newItem.controlPoint2 ?? Vector2.zero()) +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
+
+        updatedLine.controlPoint1 = (newItem.controlPoint1 ?? Vector2.zero()) +
+            SizeHelper.getBoardRelativeVector(
+                gameScreenSize: gameField.size, actualPosition: Vector2(8, 8));
 
         LineDrawerComponentV2 newLine = LineDrawerComponentV2(
           lineModelV2: updatedLine,
         );
-        add(newLine);
+        // add(newLine);
+        addItem(updatedLine);
       } else {
         // If it's not a FormModel (e.g., Player, Equipment)
         addItem(newItem); // Calls the public addItem in this mixin
@@ -174,19 +191,18 @@ mixin ItemManagement on TacticBoardGame {
     // --- End of exact code ---
   }
 
-  void addInitialItems(List<FieldItemModel> initialItems) {
+  void addInitialItems(List<FieldItemModel> initialItems) async {
     zlog(data: "Initial items ${initialItems}");
 
     ref.read(boardProvider.notifier).clearItems();
     for (var f in initialItems) {
-      addItem(f);
+      await addItem(f);
     }
     _addFreeDrawing(
-      lines:
-          initialItems
-              .whereType<FreeDrawModelV2>()
-              .map((e) => e.clone())
-              .toList(),
+      lines: initialItems
+          .whereType<FreeDrawModelV2>()
+          .map((e) => e.clone())
+          .toList(),
     );
   }
 
@@ -203,14 +219,12 @@ mixin ItemManagement on TacticBoardGame {
     // Filter the children:
     // 1. Only consider components that are of type FieldComponent.
     // 2. From those, select ones where the component's object.id is in our set of IDs.
-    final List<FieldComponent> matchingComponents =
-        children
-            .whereType<FieldComponent>() // Filters for FieldComponent instances
-            .where((fieldComp) {
-              // fieldComp.object is the FieldItemModel (e.g., PlayerModel, EquipmentModel)
-              return idsToMatch.contains(fieldComp.object.id);
-            })
-            .toList(); // Convert the resulting Iterable to a List.
+    final List<FieldComponent> matchingComponents = children
+        .whereType<FieldComponent>() // Filters for FieldComponent instances
+        .where((fieldComp) {
+      // fieldComp.object is the FieldItemModel (e.g., PlayerModel, EquipmentModel)
+      return idsToMatch.contains(fieldComp.object.id);
+    }).toList(); // Convert the resulting Iterable to a List.
 
     return matchingComponents;
   }
@@ -220,5 +234,16 @@ mixin ItemManagement on TacticBoardGame {
 
     removeAll(itemsToRemove);
     ref.read(boardProvider.notifier).removeFieldItems(items);
+  }
+
+  addNewTextOnTheField({required TextModel object}) {
+    object = object.copyWith(
+      offset: SizeHelper.getBoardRelativeVector(
+        gameScreenSize: gameField.size,
+        actualPosition: gameField.size / 2,
+      ),
+    );
+    add(TextFieldComponent(object: object));
+    ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: object);
   }
 }

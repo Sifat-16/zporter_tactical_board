@@ -8,6 +8,8 @@ import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
 const Object _sentinel = Object();
@@ -17,6 +19,7 @@ class BoardState {
   final List<EquipmentModel> equipments;
   final List<LineModelV2> lines;
   final List<ShapeModel> shapes;
+  final List<TextModel> texts;
   final FieldItemModel? itemToDelete;
   final List<FreeDrawModelV2> freeDraw;
   final AnimationModel? animationModel;
@@ -28,44 +31,47 @@ class BoardState {
   final bool moveDown;
   final Color boardColor;
   final bool moveUp;
-  final TabController? tabController;
+  // final TabController? tabController;
   final TacticBoardGame? tacticBoardGame;
   final int boardAngle;
   final Vector2? fieldSize;
   final bool showFullScreen;
   final bool isDraggingElementToBoard;
   final bool refreshBoard;
+  final AnimatingObj? animatingObj;
 
-  const BoardState({
-    this.players = const [],
-    this.equipments = const [],
-    this.lines = const [],
-    this.shapes = const [],
-    this.itemToDelete,
-    this.freeDraw = const [],
-    this.animationModelJson = const {},
-    this.animationModel,
-    this.showAnimation = false,
-    this.selectedItemOnTheBoard,
-    this.forceItemModelNull = false,
-    this.moveDown = false,
-    this.moveUp = false,
-    this.copyItem,
-    this.boardColor = BoardConstant.field_color,
-    this.fieldSize,
-    this.tabController,
-    this.tacticBoardGame,
-    this.refreshBoard = false,
-    this.boardAngle = 0,
-    this.showFullScreen = false,
-    this.isDraggingElementToBoard = false,
-  });
+  const BoardState(
+      {this.players = const [],
+      this.equipments = const [],
+      this.lines = const [],
+      this.texts = const [],
+      this.shapes = const [],
+      this.itemToDelete,
+      this.freeDraw = const [],
+      this.animationModelJson = const {},
+      this.animationModel,
+      this.showAnimation = false,
+      this.selectedItemOnTheBoard,
+      this.forceItemModelNull = false,
+      this.moveDown = false,
+      this.moveUp = false,
+      this.copyItem,
+      this.boardColor = BoardConstant.field_color,
+      this.fieldSize,
+      // this.tabController,
+      this.tacticBoardGame,
+      this.refreshBoard = false,
+      this.boardAngle = 0,
+      this.showFullScreen = false,
+      this.isDraggingElementToBoard = false,
+      this.animatingObj});
 
   BoardState copyWith({
     List<PlayerModel>? players,
     List<EquipmentModel>? equipments,
     List<LineModelV2>? lines,
     List<ShapeModel>? shapes,
+    List<TextModel>? texts,
     List<FreeDrawModelV2>? freeDraws,
     AnimationModel? animationModel,
     bool? showAnimation,
@@ -79,46 +85,48 @@ class BoardState {
     Color? boardColor,
     Map<String, dynamic>? animationModelJson,
     Vector2? fieldSize,
-    TabController? tabController,
+    // TabController? tabController,
     Object? tacticBoardGame = _sentinel,
     int? boardAngle,
     bool? refreshBoard,
     bool? showFullScreen,
     bool? isDraggingElementToBoard,
+    bool? isAnimating,
+    Object? animatingObj = _sentinel,
   }) {
     return BoardState(
-      players: players ?? this.players,
-      equipments: equipments ?? this.equipments,
-      shapes: shapes ?? this.shapes,
-      freeDraw: freeDraws ?? this.freeDraw,
-      animationModel: animationModel ?? this.animationModel,
-      showAnimation: showAnimation ?? this.showAnimation,
-      selectedItemOnTheBoard:
-          forceItemModelNull == true
-              ? null
-              : selectedItemOnTheBoard ?? this.selectedItemOnTheBoard,
-      itemToDelete:
-          forceItemToDeleteNull == true
-              ? null
-              : itemToDelete ?? this.itemToDelete,
-      copyItem: copyItem,
-      moveDown: moveDown ?? this.moveDown,
-      moveUp: moveUp ?? this.moveUp,
-      boardColor: boardColor ?? this.boardColor,
-      animationModelJson: animationModelJson ?? this.animationModelJson,
-      fieldSize: fieldSize ?? this.fieldSize,
-      tabController: tabController ?? this.tabController,
-      tacticBoardGame:
-          tacticBoardGame == _sentinel
-              ? this.tacticBoardGame
-              : tacticBoardGame as TacticBoardGame?,
-      boardAngle: boardAngle ?? this.boardAngle,
-      lines: lines ?? this.lines,
-      showFullScreen: showFullScreen ?? this.showFullScreen,
-      isDraggingElementToBoard:
-          isDraggingElementToBoard ?? this.isDraggingElementToBoard,
-      refreshBoard: refreshBoard ?? this.refreshBoard,
-    );
+        players: players ?? this.players,
+        equipments: equipments ?? this.equipments,
+        shapes: shapes ?? this.shapes,
+        freeDraw: freeDraws ?? freeDraw,
+        texts: texts ?? this.texts,
+        animationModel: animationModel ?? this.animationModel,
+        showAnimation: showAnimation ?? this.showAnimation,
+        selectedItemOnTheBoard: forceItemModelNull == true
+            ? null
+            : selectedItemOnTheBoard ?? this.selectedItemOnTheBoard,
+        itemToDelete: forceItemToDeleteNull == true
+            ? null
+            : itemToDelete ?? this.itemToDelete,
+        copyItem: copyItem,
+        moveDown: moveDown ?? this.moveDown,
+        moveUp: moveUp ?? this.moveUp,
+        boardColor: boardColor ?? this.boardColor,
+        animationModelJson: animationModelJson ?? this.animationModelJson,
+        fieldSize: fieldSize ?? this.fieldSize,
+        // tabController: tabController ?? this.tabController,
+        tacticBoardGame: tacticBoardGame == _sentinel
+            ? this.tacticBoardGame
+            : tacticBoardGame as TacticBoardGame?,
+        boardAngle: boardAngle ?? this.boardAngle,
+        lines: lines ?? this.lines,
+        showFullScreen: showFullScreen ?? this.showFullScreen,
+        isDraggingElementToBoard:
+            isDraggingElementToBoard ?? this.isDraggingElementToBoard,
+        refreshBoard: refreshBoard ?? this.refreshBoard,
+        animatingObj: animatingObj == _sentinel
+            ? this.animatingObj
+            : animatingObj as AnimatingObj?);
   }
 
   // --- CORRECTED Equality and HashCode ---

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 
 Future<bool?> showConfirmationDialog({
@@ -21,7 +22,7 @@ Future<bool?> showConfirmationDialog({
     builder: (BuildContext dialogContext) {
       // --- Use colors from ColorManager ---
       final Color dialogBgColor =
-          ColorManager.dark1; // Surface color for dialog
+          ColorManager.black; // Surface color for dialog
       final Color primaryAccentColor =
           ColorManager.blue; // Default confirm button color
       final Color mainTextColor = ColorManager.white; // Main text color
@@ -82,11 +83,10 @@ Future<bool?> showConfirmationDialog({
         // Use AlertDialog for standard structure
         child: AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.0),
+            borderRadius: BorderRadius.circular(5.0),
           ),
-          backgroundColor: dialogBgColor, // Explicitly set background
+          backgroundColor: dialogBgColor,
           iconPadding: const EdgeInsets.only(top: 24.0),
-          icon: icon, // Use passed icon widget directly
           titlePadding: const EdgeInsets.only(
             top: 16.0,
             left: 24.0,
@@ -102,38 +102,49 @@ Future<bool?> showConfirmationDialog({
               color: ColorManager.white,
             ),
           ),
-          contentPadding: const EdgeInsets.fromLTRB(
-            24.0,
-            16.0,
-            24.0,
-            24.0,
-          ), // Increased bottom padding
-          content: Text(
-            content,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: ColorManager.grey,
-              fontSize: 14,
-            ), // Explicitly use grey
+
+          // contentPadding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 24.0),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 20,
+            children: [
+              Text(
+                content,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: ColorManager.grey,
+                  fontSize: 14,
+                ), // Explicitly use grey
+              ),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                spacing: 10,
+                children: [
+                  CustomButton(
+                    padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                    borderRadius: 2,
+                    fillColor: ColorManager.dark1,
+                    child: Text(cancelButtonText),
+                    onTap: () {
+                      Navigator.of(context).pop(null); // Return false
+                    },
+                  ),
+                  // Confirm Button (uses ElevatedButtonTheme -> primary/custom bg, contrast text)
+                  CustomButton(
+                    padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                    borderRadius: 2,
+                    fillColor: confirmButtonColor ?? ColorManager.blue,
+                    onTap: () {
+                      Navigator.of(dialogContext).pop(true); // Return true
+                    },
+                    child: Text(confirmButtonText),
+                  ),
+                ],
+              ),
+            ],
           ),
-          actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          actionsAlignment: MainAxisAlignment.spaceEvenly,
-          actions: <Widget>[
-            // Cancel Button (uses TextButtonTheme -> grey text)
-            TextButton(
-              child: Text(cancelButtonText),
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false); // Return false
-              },
-            ),
-            // Confirm Button (uses ElevatedButtonTheme -> primary/custom bg, contrast text)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true); // Return true
-              },
-              child: Text(confirmButtonText),
-            ),
-          ],
         ),
       );
     },

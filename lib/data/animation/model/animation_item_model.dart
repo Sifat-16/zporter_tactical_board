@@ -3,19 +3,17 @@ import 'dart:ui';
 import 'package:flame/components.dart'; // For Vector2
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-// Assuming FieldItemModel and its helpers are correctly imported
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-// Import ObjectId if your ID is actually that type
-// import 'package:mongo_dart/mongo_dart.dart';
 
 class AnimationItemModel {
-  String id; // Assuming String ID
+  String id;
   List<FieldItemModel> components;
   Color fieldColor;
   DateTime createdAt;
   String userId;
   DateTime updatedAt;
-  Vector2 fieldSize; // <-- CHANGED: Removed '?', now non-nullable
+  Vector2 fieldSize;
+  Duration sceneDuration; // ADDED: Duration for this specific scene's movements
 
   AnimationItemModel({
     required this.id,
@@ -24,8 +22,10 @@ class AnimationItemModel {
     required this.userId,
     required this.fieldColor,
     required this.updatedAt,
-    required this.fieldSize, // <-- CHANGED: Marked as required
-  });
+    required this.fieldSize,
+    Duration? sceneDuration, // Optional in constructor to allow default
+  }) : sceneDuration =
+            sceneDuration ?? const Duration(seconds: 2); // Default to 2 seconds
 
   AnimationItemModel copyWith({
     String? id,
@@ -33,24 +33,20 @@ class AnimationItemModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? userId,
-    Vector2?
-    fieldSize, // <-- Parameter stays optional to allow copying without changing it
+    Vector2? fieldSize,
     Color? fieldColor,
-    List<AnimationItemModel>? history,
+    Duration? sceneDuration, // ADDED
+    // List<AnimationItemModel>? history, // 'history' was in your old copyWith, not used in constructor
   }) {
     return AnimationItemModel(
       id: id ?? this.id,
-      // Deep clone component list if not replaced
       components: components ?? this.components.map((e) => e.clone()).toList(),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      // Use new fieldSize if provided, otherwise clone existing (it's non-nullable)
       userId: userId ?? this.userId,
       fieldColor: fieldColor ?? this.fieldColor,
-      fieldSize:
-          fieldSize ??
-          this.fieldSize
-              .clone(), // <-- CHANGED: No '?.' needed for 'this.fieldSize'
+      fieldSize: fieldSize ?? this.fieldSize.clone(),
+      sceneDuration: sceneDuration ?? this.sceneDuration, // ADDED
     );
   }
 
@@ -62,69 +58,68 @@ class AnimationItemModel {
       'updatedAt': updatedAt.toIso8601String(),
       'userId': userId,
       'fieldColor': fieldColor.toARGB32(),
-      // fieldSize is guaranteed non-null. Clone it before serializing.
-      'fieldSize': FieldItemModel.vector2ToJson(
-        fieldSize.clone(),
-      ), // <-- CHANGED: No '?.' needed
+      'fieldSize': FieldItemModel.vector2ToJson(fieldSize.clone()),
+      'sceneDurationMilliseconds':
+          sceneDuration.inMilliseconds, // ADDED: Store as milliseconds
     };
   }
 
   factory AnimationItemModel.fromJson(Map<String, dynamic> json) {
-    // Perform null checks for required fields upfront
     final componentsList = json['components'] as List?;
     final createdAtString = json['createdAt'] as String?;
     final updatedAtString = json['updatedAt'] as String?;
     final idValue = json['id'] ?? json['_id'];
-    final fieldSizeJson = json['fieldSize']; // Get potential fieldSize data
-    final historyList = (json['history'] ?? []) as List?;
+    final fieldSizeJson = json['fieldSize'];
+    // final historyList = (json['history'] ?? []) as List?; // 'history' not used in constructor
     final userId = json['userId'];
-    final color =
-        json['fieldColor'] == null
-            ? ColorManager.grey
-            : Color((json['fieldColor'] as int?) ?? 0);
+    final color = json['fieldColor'] == null
+        ? ColorManager.grey
+        : Color((json['fieldColor'] as int?) ?? 0);
+
+    final sceneDurationMilliseconds =
+        json['sceneDurationMilliseconds'] as int?; // ADDED
 
     if (idValue == null ||
         componentsList == null ||
         createdAtString == null ||
-        historyList == null ||
+        // historyList == null || // Not in constructor
         updatedAtString == null) {
       throw FormatException(
         "Missing required fields (id, components, createdAt, updatedAt) in AnimationItemModel JSON",
       );
     }
 
-    // Deserialize fieldSize and ensure it's valid, throw error if not
     final Vector2? parsedFieldSize = FieldItemModel.vector2FromJson(
       fieldSizeJson,
     );
     if (parsedFieldSize == null) {
-      // Since fieldSize is required, throw an error if it's missing or invalid in the JSON
       throw FormatException(
         "Missing or invalid required field 'fieldSize' in AnimationItemModel JSON: $fieldSizeJson",
       );
     }
-    // --- End fieldSize check ---
 
     return AnimationItemModel(
-      id: idValue.toString(), // Adjust if using ObjectId
-      components:
-          componentsList
-              .map(
-                (componentJson) => FieldItemModel.fromJson(
-                  componentJson as Map<String, dynamic>,
-                ),
-              )
-              .toList(),
+      id: idValue.toString(),
+      components: componentsList
+          .map(
+            (componentJson) => FieldItemModel.fromJson(
+              componentJson as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
       userId: userId,
       fieldColor: color,
-
       createdAt: DateTime.parse(createdAtString),
       updatedAt: DateTime.parse(updatedAtString),
-      fieldSize: parsedFieldSize, // <-- Pass the non-nullable parsed value
+      fieldSize: parsedFieldSize,
+      sceneDuration: sceneDurationMilliseconds != null // ADDED
+          ? Duration(milliseconds: sceneDurationMilliseconds)
+          : const Duration(seconds: 2), // Default if missing
     );
   }
 
   AnimationItemModel clone({bool addHistory = true}) {
+    // 'addHistory' param not used here
     return AnimationItemModel(
       id: id,
       fieldColor: fieldColor,
@@ -132,23 +127,13 @@ class AnimationItemModel {
       components: components.map((e) => e.clone()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
-      fieldSize:
-          fieldSize.clone(), // <-- CHANGED: No '?.' needed, must clone Vector2
+      fieldSize: fieldSize.clone(),
+      sceneDuration: sceneDuration, // ADDED
     );
   }
 
-  AnimationItemModel cloneHistory() {
-    return AnimationItemModel(
-      id: id,
-      fieldColor: fieldColor,
-      userId: userId,
-      components: components.map((e) => e.clone()).toList(),
-      createdAt: createdAt,
-      updatedAt: updatedAt,
-      fieldSize:
-          fieldSize.clone(), // <-- CHANGED: No '?.' needed, must clone Vector2
-    );
-  }
+  // cloneHistory seemed identical to clone in your provided code, removed for brevity
+  // If it had a different purpose, you can re-add it.
 
   factory AnimationItemModel.createEmptyAnimationItem({
     String? id,
@@ -158,25 +143,19 @@ class AnimationItemModel {
     DateTime? updatedAt,
     Color? fieldColor,
     Vector2? fieldSize,
+    Duration? sceneDuration, // ADDED
   }) {
     final now = DateTime.now();
-
     return AnimationItemModel(
-      id:
-          id ??
-          RandomGenerator.generateId(), // Generate a new UUID if no ID is provided
-      components:
-          components ??
-          [], // Start with an empty list of components if not provided
+      id: id ?? RandomGenerator.generateId(),
+      components: components ?? [],
       createdAt: createdAt ?? now,
       updatedAt: updatedAt ?? now,
-      userId:
-          userId ??
-          "default_user_id", // Default placeholder if no userId is provided
-      fieldColor: fieldColor ?? ColorManager.grey, // Default field color
-      fieldSize:
-          fieldSize ??
-          Vector2(1280, 720), // Default field size (e.g., HD dimensions)
+      userId: userId ?? "default_user_id",
+      fieldColor: fieldColor ?? ColorManager.grey,
+      fieldSize: fieldSize ?? Vector2(1280, 720),
+      sceneDuration:
+          sceneDuration ?? const Duration(seconds: 2), // ADDED default
     );
   }
 }

@@ -2,6 +2,8 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart';
+import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
+import 'package:zporter_tactical_board/app/core/component/zporter_logo_launcher.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -9,16 +11,14 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/show_quick_save_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tactic_board_tutorial_manager.dart';
-import 'package:zporter_tactical_board/presentation/tutorials/tutorial_keys.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 class TacticboardScreenTablet extends ConsumerStatefulWidget {
   const TacticboardScreenTablet({super.key, required this.userId});
@@ -36,9 +36,6 @@ class _TacticboardScreenTabletState
   late double _leftPanelWidth;
   late double _rightPanelWidth;
   final Duration _panelAnimationDuration = const Duration(milliseconds: 250);
-
-  late final TacticBoardTutorialManager _tutorialManager;
-  // Keys are no longer defined here, they are in TutorialKeys
 
   void _toggleLeftPanel() {
     setState(() {
@@ -70,9 +67,7 @@ class _TacticboardScreenTabletState
     } else {
       try {
         if (selectedScene != null) {
-          ref
-              .read(animationProvider.notifier)
-              .addNewScene(
+          ref.read(animationProvider.notifier).addNewScene(
                 selectedCollection: selectedCollection,
                 selectedAnimation: selectedAnimation,
                 selectedScene: selectedScene,
@@ -96,100 +91,11 @@ class _TacticboardScreenTabletState
   @override
   void initState() {
     super.initState();
-    _leftPanelWidth = 200.0;
-    _rightPanelWidth = 250.0;
-    _tutorialManager = TacticBoardTutorialManager();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (mounted) {
-        setState(() {
-          _leftPanelWidth = context.widthPercent(20);
-          _rightPanelWidth = context.widthPercent(20);
-        });
-      }
       try {
         await ref.read(animationProvider.notifier).getAllCollections();
         await ref.read(animationProvider.notifier).configureDefaultAnimations();
-
-        // if (mounted) {
-        //   Future.delayed(const Duration(milliseconds: 300), () {
-        //     if (mounted) {
-        //       _tutorialManager.checkAndShowOpenLeftPanelTutorial(
-        //         context: context,
-        //         onLeftPanelButtonTutorialTap: _toggleLeftPanel,
-        //         onTutorialStepFinished: () {
-        //           // Step 1 (Open Panel) Finished
-        //           zlog(
-        //             data:
-        //                 "TacticboardScreen: Left panel tutorial step finished.",
-        //           );
-        //           if (_isLeftPanelOpen && mounted) {
-        //             Future.delayed(const Duration(milliseconds: 600), () {
-        //               if (mounted) {
-        //                 if (TutorialKeys.firstPlayerKey.currentContext !=
-        //                     null) {
-        //                   zlog(
-        //                     data:
-        //                         "TacticboardScreen: Attempting to show drag player tutorial.",
-        //                   );
-        //                   _tutorialManager.showDragPlayerTutorial(
-        //                     context: context,
-        //                     onTutorialStepFinished: () {
-        //                       // Step 2 (Drag Player) IS NOW TRULY Finished
-        //                       zlog(
-        //                         data:
-        //                             "TacticboardScreen: Drag player ACTION tutorial step finished.",
-        //                       );
-        //                       // Now, start the "Add New Scene" tutorial step
-        //                       Future.delayed(const Duration(milliseconds: 300), () {
-        //                         if (mounted &&
-        //                             TutorialKeys
-        //                                     .addNewSceneButtonKey
-        //                                     .currentContext !=
-        //                                 null) {
-        //                           zlog(
-        //                             data:
-        //                                 "TacticboardScreen: Attempting to show Add New Scene tutorial.",
-        //                           );
-        //                           _tutorialManager.showAddNewSceneTutorial(
-        //                             context: context,
-        //                             onAddNewSceneButtonTutorialTap:
-        //                                 _performAddNewSceneAction,
-        //                             onTutorialStepFinished: () {
-        //                               zlog(
-        //                                 data:
-        //                                     "TacticboardScreen: Add New Scene tutorial step finished.",
-        //                               );
-        //                               zlog(data: "TUTORIAL SEQUENCE COMPLETE!");
-        //                             },
-        //                           );
-        //                         } else if (mounted) {
-        //                           zlog(
-        //                             data:
-        //                                 "TacticboardScreen: TutorialKeys.addNewSceneButtonKey.currentContext is NULL. Cannot start Add New Scene tutorial.",
-        //                           );
-        //                         }
-        //                       });
-        //                     },
-        //                   );
-        //                 } else {
-        //                   /* ... log error ... */
-        //                   zlog(
-        //                     data:
-        //                         "TacticboardScreen: TutorialKeys.firstPlayerKey.currentContext is NULL.",
-        //                   );
-        //                 }
-        //               }
-        //             });
-        //           } else if (mounted) {
-        //             /* ... log error ... */
-        //             zlog(data: "TacticboardScreen: Left panel is not open.");
-        //           }
-        //         },
-        //       );
-        //     }
-        //   });
-        // }
       } catch (e, s) {
         zlog(data: "Error during initial data load or tutorial setup: $e \n$s");
       }
@@ -198,8 +104,13 @@ class _TacticboardScreenTabletState
 
   @override
   void dispose() {
-    _tutorialManager.dismissCurrentCoachMarkTutorial();
     super.dispose();
+  }
+
+  bool isAnimating(BoardState bp) {
+    AnimatingObj? animatingObj = bp.animatingObj;
+    if (animatingObj == null) return false;
+    return true;
   }
 
   @override
@@ -208,16 +119,21 @@ class _TacticboardScreenTabletState
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
 
+    _leftPanelWidth = context.widthPercent(22.5);
+    _rightPanelWidth = context.widthPercent(22.5);
+
     if (ap.isLoadingAnimationCollections) {
       return const Scaffold(
         backgroundColor: ColorManager.black,
         body: Center(
-          child: CircularProgressIndicator(color: ColorManager.white),
+          child: ZLoader(logoAssetPath: "assets/image/logo.png"),
+          // child: CircularProgressIndicator(color: ColorManager.white),
         ),
       );
     }
 
     Widget screenContent;
+
     if (bp.showFullScreen) {
       screenContent = PopScope(
         canPop: false,
@@ -237,108 +153,110 @@ class _TacticboardScreenTabletState
                     selectedScene,
                   ),
                 ),
-                AnimatedPositioned(
-                  duration: _panelAnimationDuration,
-                  curve: Curves.easeInOut,
-                  left: _isLeftPanelOpen ? 0 : -_leftPanelWidth,
-                  top: 0,
-                  bottom: 0,
-                  width: _leftPanelWidth,
-                  child: SafeArea(
-                    child: Material(
-                      elevation: 4.0,
-                      color: ColorManager.dark2,
-                      // LefttoolbarComponent no longer takes the key
-                      child: const LefttoolbarComponent(),
+                if (!isAnimating(bp))
+                  AnimatedPositioned(
+                    duration: _panelAnimationDuration,
+                    curve: Curves.easeInOut,
+                    left: _isLeftPanelOpen ? 0 : -_leftPanelWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: _leftPanelWidth,
+                    child: SafeArea(
+                      child: Material(
+                        elevation: 4.0,
+                        color: ColorManager.dark2,
+                        // LefttoolbarComponent no longer takes the key
+                        child: const LefttoolbarComponent(),
+                      ),
                     ),
                   ),
-                ),
-                AnimatedPositioned(
-                  duration: _panelAnimationDuration,
-                  curve: Curves.easeInOut,
-                  right: _isRightPanelOpen ? 0 : -_rightPanelWidth,
-                  top: 0,
-                  bottom: 0,
-                  width: _rightPanelWidth,
-                  child: SafeArea(
-                    child: Material(
-                      elevation: 4.0,
-                      color: ColorManager.dark2,
-                      child: RighttoolbarComponent(),
+                if (!isAnimating(bp))
+                  AnimatedPositioned(
+                    duration: _panelAnimationDuration,
+                    curve: Curves.easeInOut,
+                    right: _isRightPanelOpen ? 0 : -_rightPanelWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: _rightPanelWidth,
+                    child: SafeArea(
+                      child: Material(
+                        elevation: 4.0,
+                        color: ColorManager.dark2,
+                        child: RighttoolbarComponent(),
+                      ),
                     ),
                   ),
-                ),
-                AnimatedPositioned(
-                  duration: _panelAnimationDuration,
-                  curve: Curves.easeInOut,
-                  left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-                  top: (context.heightPercent(92) / 2) - 25,
-                  // Assign the static key directly to the Material widget
-                  child: Material(
-                    key: TutorialKeys.leftPanelButtonKey,
-                    color: ColorManager.grey.withOpacity(0.6),
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(8),
-                      bottomRight: Radius.circular(8),
-                    ),
-                    elevation: 6.0,
-                    child: InkWell(
+                if (!isAnimating(bp))
+                  AnimatedPositioned(
+                    duration: _panelAnimationDuration,
+                    curve: Curves.easeInOut,
+                    left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
+                    top: (context.heightPercent(92) / 2) - 25,
+                    // Assign the static key directly to the Material widget
+                    child: Material(
+                      color: ColorManager.grey.withOpacity(0.6),
                       borderRadius: const BorderRadius.only(
                         topRight: Radius.circular(8),
                         bottomRight: Radius.circular(8),
                       ),
-                      onTap: _toggleLeftPanel,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8.0,
-                          horizontal: 4.0,
+                      elevation: 6.0,
+                      child: InkWell(
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(8),
+                          bottomRight: Radius.circular(8),
                         ),
-                        child: Icon(
-                          _isLeftPanelOpen
-                              ? Icons.chevron_left
-                              : Icons.chevron_right,
-                          color: Colors.white,
-                          size: 20,
+                        onTap: _toggleLeftPanel,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8.0,
+                            horizontal: 4.0,
+                          ),
+                          child: Icon(
+                            _isLeftPanelOpen
+                                ? Icons.chevron_left
+                                : Icons.chevron_right,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-
-                AnimatedPositioned(
-                  duration: _panelAnimationDuration,
-                  curve: Curves.easeInOut,
-                  right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
-                  top: (context.heightPercent(92) / 2) - 25,
-                  child: Material(
-                    color: ColorManager.grey.withOpacity(0.6),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(8),
-                      bottomLeft: Radius.circular(8),
-                    ),
-                    elevation: 6.0,
-                    child: InkWell(
+                if (!isAnimating(bp))
+                  AnimatedPositioned(
+                    duration: _panelAnimationDuration,
+                    curve: Curves.easeInOut,
+                    right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
+                    top: (context.heightPercent(92) / 2) - 25,
+                    child: Material(
+                      color: ColorManager.grey.withOpacity(0.6),
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(8),
                         bottomLeft: Radius.circular(8),
                       ),
-                      onTap: _toggleRightPanel,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8.0,
-                          horizontal: 4.0,
+                      elevation: 6.0,
+                      child: InkWell(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          bottomLeft: Radius.circular(8),
                         ),
-                        child: Icon(
-                          _isRightPanelOpen
-                              ? Icons.chevron_right
-                              : Icons.chevron_left,
-                          color: Colors.white,
-                          size: 20,
+                        onTap: _toggleRightPanel,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8.0,
+                            horizontal: 4.0,
+                          ),
+                          child: Icon(
+                            _isRightPanelOpen
+                                ? Icons.chevron_right
+                                : Icons.chevron_left,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -355,118 +273,121 @@ class _TacticboardScreenTabletState
             child: SizedBox(
               height: context.screenHeight * .92,
               width: context.widthPercent(100),
-              child: Scaffold(
-                backgroundColor: ColorManager.black,
-                body: _buildCentralContent(context, ref, ap, selectedScene),
-              ),
+              child: _buildCentralContent(context, ref, ap, selectedScene),
             ),
           ),
 
           // 2. AnimatedPositioned widgets are now direct children of the root Stack,
           //    overlaying the Scaffold.
-          AnimatedPositioned(
-            duration: _panelAnimationDuration,
-            curve: Curves.easeInOut,
-            left: _isLeftPanelOpen ? 0 : -_leftPanelWidth,
-            top: 0,
-            bottom: 0,
-            width: _leftPanelWidth,
-            child: SafeArea(
-              child: Material(
-                elevation: 4.0,
-                color: ColorManager.dark2,
-                child: const LefttoolbarComponent(),
+          if (!isAnimating(bp))
+            AnimatedPositioned(
+              duration: _panelAnimationDuration,
+              curve: Curves.easeInOut,
+              left: _isLeftPanelOpen ? 0 : -_leftPanelWidth,
+              top: 0,
+              bottom: 0,
+              width: _leftPanelWidth,
+              child: SafeArea(
+                child: Material(
+                  elevation: 4.0,
+                  color: ColorManager.dark2,
+                  child: const LefttoolbarComponent(),
+                ),
               ),
             ),
-          ),
-          AnimatedPositioned(
-            duration: _panelAnimationDuration,
-            curve: Curves.easeInOut,
-            right: _isRightPanelOpen ? 0 : -_rightPanelWidth,
-            top: 0,
-            bottom: 0,
-            width: _rightPanelWidth,
-            child: SafeArea(
-              child: Material(
-                elevation: 4.0,
-                color: ColorManager.dark2,
-                child:
-                    RighttoolbarComponent(), // Assuming this doesn't need 'const' or is stateful
+
+          if (!isAnimating(bp))
+            AnimatedPositioned(
+              duration: _panelAnimationDuration,
+              curve: Curves.easeInOut,
+              right: _isRightPanelOpen ? 0 : -_rightPanelWidth,
+              top: 0,
+              bottom: 0,
+              width: _rightPanelWidth,
+              child: SafeArea(
+                child: Material(
+                  elevation: 4.0,
+                  color: ColorManager.dark2,
+                  child:
+                      RighttoolbarComponent(), // Assuming this doesn't need 'const' or is stateful
+                ),
               ),
             ),
-          ),
-          AnimatedPositioned(
-            duration: _panelAnimationDuration,
-            curve: Curves.easeInOut,
-            left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-            top:
-                (context.heightPercent(104) / 2) -
-                25, // Consider if context here refers to the correct one
-            // It should be the context of the build method where screenContent is defined
-            child: Material(
-              key: TutorialKeys.leftPanelButtonKey,
-              color: ColorManager.grey.withOpacity(0.6),
-              borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(8),
-                bottomRight: Radius.circular(8),
-              ),
-              elevation: 6.0,
-              child: InkWell(
+
+          if (!isAnimating(bp))
+            AnimatedPositioned(
+              duration: _panelAnimationDuration,
+              curve: Curves.easeInOut,
+              left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
+              top: (context.heightPercent(104) / 2) -
+                  25, // Consider if context here refers to the correct one
+              // It should be the context of the build method where screenContent is defined
+              child: Material(
+                color: ColorManager.grey.withOpacity(0.6),
                 borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(8),
                   bottomRight: Radius.circular(8),
                 ),
-                onTap: _toggleLeftPanel,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8.0,
-                    horizontal: 4.0,
+                elevation: 6.0,
+                child: InkWell(
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
                   ),
-                  child: Icon(
-                    _isLeftPanelOpen ? Icons.chevron_left : Icons.chevron_right,
-                    color: Colors.white,
-                    size: 20,
+                  onTap: _toggleLeftPanel,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8.0,
+                      horizontal: 4.0,
+                    ),
+                    child: Icon(
+                      _isLeftPanelOpen
+                          ? Icons.chevron_left
+                          : Icons.chevron_right,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          AnimatedPositioned(
-            duration: _panelAnimationDuration,
-            curve: Curves.easeInOut,
-            right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
-            top:
-                (context.heightPercent(104) / 2) -
-                25, // Same consideration for context here
-            child: Material(
-              color: ColorManager.grey.withOpacity(0.6),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                bottomLeft: Radius.circular(8),
-              ),
-              elevation: 6.0,
-              child: InkWell(
+
+          if (!isAnimating(bp))
+            AnimatedPositioned(
+              duration: _panelAnimationDuration,
+              curve: Curves.easeInOut,
+              right: _isRightPanelOpen ? _rightPanelWidth - 20 : 5,
+              top: (context.heightPercent(104) / 2) -
+                  25, // Same consideration for context here
+              child: Material(
+                color: ColorManager.grey.withOpacity(0.6),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(8),
                   bottomLeft: Radius.circular(8),
                 ),
-                onTap: _toggleRightPanel,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8.0,
-                    horizontal: 4.0,
+                elevation: 6.0,
+                child: InkWell(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    bottomLeft: Radius.circular(8),
                   ),
-                  child: Icon(
-                    _isRightPanelOpen
-                        ? Icons.chevron_right
-                        : Icons.chevron_left,
-                    color: Colors.white,
-                    size: 20,
+                  onTap: _toggleRightPanel,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8.0,
+                      horizontal: 4.0,
+                    ),
+                    child: Icon(
+                      _isRightPanelOpen
+                          ? Icons.chevron_right
+                          : Icons.chevron_left,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
         ],
       );
     }
@@ -482,68 +403,149 @@ class _TacticboardScreenTabletState
     AnimationModel? animationModel = asp.selectedAnimationModel;
     return Padding(
       padding: EdgeInsets.only(top: 50.0, left: 10, right: 10, bottom: 10),
-      child:
-          asp.showNewCollectionInput == true ||
-                  asp.showNewAnimationInput == true
-              ? AnimationDataInputComponent()
-              : asp.showQuickSave
-              ? ShowQuickSaveComponent()
-              : Column(
-                mainAxisAlignment: MainAxisAlignment.start,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          if (animationModel != null)
+            Padding(
+              padding: const EdgeInsets.all(5.0),
+              child: Text(
+                animationModel.name ?? "",
+                style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                    color: ColorManager.white.withValues(alpha: 0.8),
+                    fontSize: 14),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          Expanded(child: GameScreen(scene: selectedScene)),
+          if (animationModel == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Stack(
                 children: [
-                  Expanded(child: GameScreen(scene: selectedScene)),
-                  if (animationModel == null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Row(
-                        children: [
-                          if (asp.defaultAnimationItems.isNotEmpty)
-                            Expanded(
-                              child: CompactPaginator(
-                                totalPages: asp.defaultAnimationItems.length,
-                                onPageChanged: (index) {
-                                  ref
-                                      .read(animationProvider.notifier)
-                                      .changeDefaultAnimationIndex(index);
-                                },
-                                initialPage: asp.defaultAnimationItemIndex,
-                              ),
-                            ),
-                          IconButton(
-                            onPressed:
-                                () =>
-                                    ref
-                                        .read(animationProvider.notifier)
-                                        .createNewDefaultAnimationItem(),
-                            icon: Icon(Icons.add, color: ColorManager.white),
-                            tooltip: "Add New Scene",
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 10.0),
+                      // child: Image.asset(
+                      //   AssetsManager.logo,
+                      //   height: AppSize.s40,
+                      //   width: AppSize.s40,
+                      // ),
+                      child: ZporterLogoLauncher(),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: context.widthPercent(22),
+                        // color: Colors.yellow,
+                      ),
+                      if (asp.defaultAnimationItems.isNotEmpty)
+                        Container(
+                          // color: Colors.white,
+                          width: context.widthPercent(22),
+                          child: CompactPaginator(
+                            totalPages: asp.defaultAnimationItems.length,
+                            onPageChanged: (index) {
+                              ref
+                                  .read(animationProvider.notifier)
+                                  .changeDefaultAnimationIndex(index);
+                            },
+                            initialPage: asp.defaultAnimationItemIndex,
                           ),
-                          IconButton(
-                            onPressed: () async {
-                              bool? confirm = await showConfirmationDialog(
-                                context: context,
-                                title: "Reset Board?",
-                                content:
-                                    "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
-                                confirmButtonText: "Reset",
-                              );
-                              if (confirm == true) {
+                        ),
+                      Container(
+                        // color: Colors.green,
+                        width: context.widthPercent(22),
+                        child: Row(
+                          spacing: 12,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            // Icon(
+                            //   Icons.add,
+                            //   color: Colors.white,
+                            // ),
+                            // Icon(
+                            //   Icons.add,
+                            //   color: Colors.white,
+                            // ),
+                            // Icon(
+                            //   Icons.add,
+                            //   color: Colors.white,
+                            // ),
+                            InkWell(
+                              onTap: () => ref
+                                  .read(animationProvider.notifier)
+                                  .createNewDefaultAnimationItem(),
+
+                              child: Icon(
+                                Icons.add,
+                                color: ColorManager.white,
+                              ),
+                              // tooltip: "Add New Scene",
+                            ),
+
+                            // --- NEW BUTTON ADDED HERE ---
+                            InkWell(
+                              onTap: () {
                                 ref
                                     .read(animationProvider.notifier)
-                                    .deleteDefaultAnimation();
-                              }
-                            },
-                            icon: Icon(
-                              Icons.delete_sweep_outlined,
-                              color: ColorManager.white,
+                                    .copyCurrentDefaultScene();
+                                BotToast.showText(text: "Scene Copied");
+                              },
+                              child: Icon(
+                                Icons.copy,
+                                color: ColorManager.white,
+                                size: 18,
+                              ),
+                              // tooltip: "Copy Current Scene",
                             ),
-                            tooltip: "Clear Current Scene",
-                          ),
-                        ],
+                            // --- END OF NEW BUTTON ---
+                            InkWell(
+                              onTap: () async {
+                                bool? confirm = await showConfirmationDialog(
+                                  context: context,
+                                  title: "Reset Board?",
+                                  content:
+                                      "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
+                                  confirmButtonText: "Reset",
+                                );
+                                if (confirm == true) {
+                                  ref
+                                      .read(animationProvider.notifier)
+                                      .deleteDefaultAnimation();
+                                }
+                              },
+                              child: Icon(Icons.delete_sweep_outlined,
+                                  color: ColorManager.white, size: 24),
+                              // tooltip: "Clear Current Scene",
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
                 ],
               ),
+            )
+          else
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10.0),
+                // child:/ Image.asset(
+                //   AssetsManager.logo,
+                //   height: AppSize.s40,
+                //   width: AppSize.s40,
+                // ),
+                child: ZporterLogoLauncher(),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -555,13 +557,11 @@ class _TacticboardScreenTabletState
   ) {
     return Padding(
       padding: EdgeInsets.all(5),
-      child:
-          asp.showNewCollectionInput == true ||
-                  asp.showNewAnimationInput == true
-              ? AnimationDataInputComponent()
-              : asp.showQuickSave
-              ? ShowQuickSaveComponent()
-              : GameScreen(scene: selectedScene),
+      child: SafeArea(
+        top: true,
+        bottom: true,
+        child: GameScreen(scene: selectedScene),
+      ),
     );
   }
 }

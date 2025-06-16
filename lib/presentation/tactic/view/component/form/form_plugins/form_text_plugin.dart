@@ -20,25 +20,25 @@
 //
 //     final textPosition =
 //         size.toOffset() / 2 -
-//         Offset(textPainter.width / 2, textPainter.height / 2);
+//             Offset(textPainter.width / 2, textPainter.height / 2);
 //     textPainter.paint(canvas, textPosition);
 //   }
 //
 //   @override
 //   void onScaleUpdate(
-//     FormModel model,
-//     Vector2 scale,
-//     Function(Vector2) updateSize,
-//   ) {
+//       FormModel model,
+//       Vector2 scale,
+//       Function(Vector2) updateSize,
+//       ) {
 //     updateSize(calculateSize(model, scale));
 //   }
 //
 //   @override
 //   void showTextInputDialog(
-//     FormModel model,
-//     BuildContext context,
-//     Function(String) onTextUpdated,
-//   ) {
+//       FormModel model,
+//       BuildContext context,
+//       Function(String) onTextUpdated,
+//       ) {
 //     TextEditingController controller = TextEditingController(
 //       text: (model.formItemModel as FormTextModel).text,
 //     );
@@ -46,57 +46,57 @@
 //       context: context,
 //       builder:
 //           (context) => Theme(
-//             data: ThemeData.dark(), // Set dark theme for the dialog
-//             child: AlertDialog(
-//               backgroundColor: Colors.black87, // Black background
-//               title: const Text(
-//                 'Enter Text',
-//                 style: TextStyle(color: Colors.white), // White title text
-//               ),
-//               content: TextField(
-//                 controller: controller,
-//                 maxLines: null,
-//                 style: const TextStyle(color: Colors.white), // White input text
-//                 decoration: const InputDecoration(
-//                   enabledBorder: UnderlineInputBorder(
-//                     borderSide: BorderSide(color: Colors.white),
-//                   ),
-//                   focusedBorder: UnderlineInputBorder(
-//                     borderSide: BorderSide(color: Colors.white),
-//                   ),
-//                 ),
-//                 onSubmitted: (value) {
-//                   onTextUpdated(value);
-//                   Navigator.of(context).pop();
-//                 },
-//               ),
-//               actions: <Widget>[
-//                 TextButton(
-//                   onPressed: () {
-//                     Navigator.of(context).pop();
-//                   },
-//                   child: const Text(
-//                     'Cancel',
-//                     style: TextStyle(color: Colors.white),
-//                   ),
-//                 ),
-//                 TextButton(
-//                   onPressed: () {
-//                     var inputText = controller.text.trim();
-//                     if (inputText.isEmpty) {
-//                       inputText = "T";
-//                     }
-//                     onTextUpdated(inputText);
-//                     Navigator.of(context).pop();
-//                   },
-//                   child: const Text(
-//                     'OK',
-//                     style: TextStyle(color: Colors.white),
-//                   ),
-//                 ),
-//               ],
-//             ),
+//         data: ThemeData.dark(), // Set dark theme for the dialog
+//         child: AlertDialog(
+//           backgroundColor: Colors.black87, // Black background
+//           title: const Text(
+//             'Enter Text',
+//             style: TextStyle(color: Colors.white), // White title text
 //           ),
+//           content: TextField(
+//             controller: controller,
+//             maxLines: null,
+//             style: const TextStyle(color: Colors.white), // White input text
+//             decoration: const InputDecoration(
+//               enabledBorder: UnderlineInputBorder(
+//                 borderSide: BorderSide(color: Colors.white),
+//               ),
+//               focusedBorder: UnderlineInputBorder(
+//                 borderSide: BorderSide(color: Colors.white),
+//               ),
+//             ),
+//             onSubmitted: (value) {
+//               onTextUpdated(value);
+//               Navigator.of(context).pop();
+//             },
+//           ),
+//           actions: <Widget>[
+//             TextButton(
+//               onPressed: () {
+//                 Navigator.of(context).pop();
+//               },
+//               child: const Text(
+//                 'Cancel',
+//                 style: TextStyle(color: Colors.white),
+//               ),
+//             ),
+//             TextButton(
+//               onPressed: () {
+//                 var inputText = controller.text.trim();
+//                 if (inputText.isEmpty) {
+//                   inputText = "T";
+//                 }
+//                 onTextUpdated(inputText);
+//                 Navigator.of(context).pop();
+//               },
+//               child: const Text(
+//                 'OK',
+//                 style: TextStyle(color: Colors.white),
+//               ),
+//             ),
+//           ],
+//         ),
+//       ),
 //     );
 //   }
 //

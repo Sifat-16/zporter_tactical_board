@@ -10,9 +10,12 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game_animation.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/scaling_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart'; // Assuming LineModel, FreeDrawModel are here or in models
@@ -29,13 +32,19 @@ import 'mixin/drawing_input_handler.dart';
 import 'mixin/item_management.dart';
 import 'mixin/layering_management.dart'; // Make sure this import points to the correct file
 
-String? boardComparator;
+String? _boardComparator;
 
 // --- Base Abstract Class (Unchanged) ---
 abstract class TacticBoardGame extends FlameGame
-    with DragCallbacks, TapDetector, RiverpodGameMixin {
+    with
+        DragCallbacks,
+        TapDetector,
+        RiverpodGameMixin,
+        AnimationPlaybackControls {
   late GameField gameField;
+  bool isAnimating = false;
   late DrawingBoardComponent drawingBoard;
+  addItem(FieldItemModel item, {bool save = true});
 }
 
 // ---- The Refactored TacticBoard Class ----
@@ -44,8 +53,8 @@ class TacticBoard extends TacticBoardGame
         DrawingInputHandler, // Provides drawing state and drag handlers
         ItemManagement, // Provides addItem, _checkAndRemoveComponent, _copyItem
         LayeringManagement, // Provides layering helpers and _moveUp/DownElement
-        BoardRiverpodIntegration // Provides setupBoardListeners
-        {
+        BoardRiverpodIntegration, // Provides setupBoardListeners
+        AnimationPlaybackMixin {
   AnimationItemModel? scene;
   bool saveToDb;
   Function(AnimationItemModel?)? onSceneSave;
@@ -68,7 +77,7 @@ class TacticBoard extends TacticBoardGame
   // Methods specific to TacticBoard remain here
   _initiateField() {
     gameField = GameField(
-      size: Vector2(size.x - 20, size.y - 20),
+      size: Vector2(size.x - 22.5, size.y - 22.5),
       initialColor: scene?.fieldColor,
     );
     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
@@ -88,6 +97,7 @@ class TacticBoard extends TacticBoardGame
 
   @override
   void onTapDown(TapDownInfo info) {
+    if (isAnimating) return;
     super.onTapDown(info);
     final tapPosition = info.raw.localPosition; // Position in game coordinates
 
@@ -96,6 +106,7 @@ class TacticBoard extends TacticBoardGame
     if (components.isNotEmpty) {
       if (!components.any((t) => t is FieldComponent) &&
           !components.any((t) => t is DraggableCircleComponent) &&
+          !components.any((t) => t is DraggableRectangleComponent) &&
           !components.any((t) => t is LineDrawerComponentV2) &&
           !components.any((t) => t is CircleShapeDrawerComponent) &&
           !components.any((t) => t is CircleRadiusDraggableDot) &&
@@ -104,6 +115,7 @@ class TacticBoard extends TacticBoardGame
           !components.any((t) => t is ScalingHandle) &&
           !components.any((t) => t is PolygonShapeDrawerComponent) &&
           !components.any((t) => t is PolygonVertexDotComponent) &&
+          !components.any((t) => t is TextFieldComponent) &&
           ref.read(lineProvider).activeForm is! PolygonShapeModel) {
         bool deselect = true;
 
@@ -131,11 +143,11 @@ class TacticBoard extends TacticBoardGame
           isTrashModeActive = ref.read(lineProvider).isTrashActive;
         } catch (e) {}
 
-        if (isTrashModeActive) {
-          // ref.read(boardProvider.notifier).removeElement();
-        } else {
-          ref.read(boardProvider.notifier).animateToDesignTab();
-        }
+        // if (isTrashModeActive) {
+        //   // ref.read(boardProvider.notifier).removeElement();
+        // } else {
+        //   ref.read(boardProvider.notifier).animateToDesignTab();
+        // }
       }
     }
   }
@@ -143,8 +155,6 @@ class TacticBoard extends TacticBoardGame
   // --- Updated update method with Timer Logic ---
   @override
   void update(double dt) {
-    super.update(dt); // Always call super.update!
-
     // Accumulate the time passed since the last frame
     _timerAccumulator += dt;
 
@@ -157,21 +167,20 @@ class TacticBoard extends TacticBoardGame
           ref.read(boardProvider.notifier).onAnimationSave();
 
       // Consider if toJson() is expensive; maybe compare models directly if possible
-      String current = items
-          .map((e) => e.toJson())
-          .join(
+      String current = items.map((e) => e.toJson()).join(
             ',',
           ); // Use join for a more stable string representation if order matters
+
       current =
           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()}";
 
-      if (boardComparator == null) {
-        boardComparator = current;
+      if (_boardComparator == null) {
+        _boardComparator = current;
       } else {
-        if (boardComparator != current) {
+        if (_boardComparator != current) {
           // --- ACTION: Do something when a change is detected ---
           // e.g., trigger autosave, update external UI, etc.
-          boardComparator = current; // Update comparator to the new state
+          _boardComparator = current; // Update comparator to the new state
 
           updateDatabase();
         } else {}
@@ -180,22 +189,27 @@ class TacticBoard extends TacticBoardGame
     }
 
     // Other update logic can remain here and run every frame if needed
+    super.update(dt); // Always call super.update!
   }
 
   updateDatabase() {
-    zlog(
-      data:
-          "Updated database... ${ref.read(boardProvider.notifier).onAnimationSave()}",
-    ); // Log that the check is running
+    if (!isAnimating) {
+      zlog(
+        data:
+            "Updated database... ${ref.read(boardProvider.notifier).onAnimationSave()}",
+      ); // Log that the check is running
 
-    ref
-        .read(animationProvider.notifier)
-        .updateDatabaseOnChange(saveToDb: saveToDb)
-        .then((a) {
-          zlog(data: "After save coming animation item model ${a?.toJson()}");
-          ref.read(animationProvider.notifier).saveHistory(scene: a);
-          onSceneSave?.call(a);
-        });
+      ref
+          .read(animationProvider.notifier)
+          .updateDatabaseOnChange(saveToDb: saveToDb)
+          .then((a) {
+        zlog(data: "After save coming animation item model ${a?.toJson()}");
+        ref.read(animationProvider.notifier).saveHistory(scene: a);
+        onSceneSave?.call(a);
+      });
+    } else {
+      zlog(data: "Is animating");
+    }
   }
 
   void redrawLines() {
