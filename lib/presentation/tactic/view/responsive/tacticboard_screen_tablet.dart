@@ -119,8 +119,8 @@ class _TacticboardScreenTabletState
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
 
-    _leftPanelWidth = context.widthPercent(22.5);
-    _rightPanelWidth = context.widthPercent(22.5);
+    _leftPanelWidth = context.widthPercent(25);
+    _rightPanelWidth = context.widthPercent(25);
 
     if (ap.isLoadingAnimationCollections) {
       return const Scaffold(

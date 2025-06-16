@@ -17,6 +17,13 @@
 // import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 // import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 //
+// // CHANGED: Create the StreamProvider here or in a separate file.
+// final homePlayersStreamProvider = StreamProvider<List<PlayerModel>>((ref) {
+//   PlayerUtilsV2.getOrInitializeHomePlayers();
+//   return PlayerUtilsV2.watchHomePlayers();
+// });
+//
+// // CHANGED: Converted to ConsumerStatefulWidget to handle local state for search/formation
 // class PlayersToolbarHome extends ConsumerStatefulWidget {
 //   const PlayersToolbarHome({super.key, this.showFooter = true});
 //
@@ -27,7 +34,8 @@
 // }
 //
 // class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
-//   List<PlayerModel> players = [];
+//   // REMOVED: The local `players` list is no longer needed.
+//   // List<PlayerModel> players = [];
 //
 //   bool _isSearching = false;
 //   final TextEditingController _searchController = TextEditingController();
@@ -38,10 +46,7 @@
 //   @override
 //   void initState() {
 //     super.initState();
-//     WidgetsBinding.instance.addPostFrameCallback((t) {
-//       initiatePlayerLocally();
-//     });
-//
+//     // REMOVED: No need to manually initiate players.
 //     _searchController.addListener(() {
 //       if (mounted) {
 //         setState(() {});
@@ -55,15 +60,7 @@
 //     super.dispose();
 //   }
 //
-//   initiatePlayerLocally() async {
-//     List<PlayerModel> pls = await PlayerUtilsV2.getOrInitializeHomePlayers();
-//     if (mounted) {
-//       setState(() {
-//         players = pls;
-//       });
-//     }
-//   }
-//
+//   // This logic is now only for formations, which is fine.
 //   initiateTeamFormationLocally({
 //     required List<CategorizedFormationGroup> lineups,
 //   }) {
@@ -91,83 +88,82 @@
 //     final bp = ref.watch(boardProvider);
 //     final lineup = ref.watch(lineupProvider);
 //
+//     // CHANGED: Watch the new stream provider.
+//     final homePlayersAsync = ref.watch(homePlayersStreamProvider);
+//
 //     if (lineup.categorizedGroups.isNotEmpty && teamFormation.isEmpty) {
 //       initiateTeamFormationLocally(lineups: lineup.categorizedGroups);
 //     }
 //
-//     // This list now correctly represents the "bench" or "roster"
-//     List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
-//       sourcePlayers: players,
-//       fieldPlayers: bp.players,
-//     )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+//     return homePlayersAsync.when(
+//       loading: () => const Center(child: CircularProgressIndicator()),
+//       error: (err, stack) => Center(child: Text('Error: $err')),
+//       data: (players) {
+//         // `players` now comes directly from the stream
+//         // This list now correctly represents the "bench" or "roster"
+//         List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
+//           sourcePlayers: players, // Use the data from the stream
+//           fieldPlayers: bp.players,
+//         )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
 //
-//     final String searchTerm = _searchController.text.toLowerCase();
-//     if (_isSearching && searchTerm.isNotEmpty) {
-//       activeToolbarPlayers = activeToolbarPlayers
-//           .where((p) =>
-//               (p.name?.toLowerCase().contains(searchTerm) ?? false) ||
-//               p.role.toLowerCase().contains(searchTerm))
-//           .toList();
-//     }
+//         final String searchTerm = _searchController.text.toLowerCase();
+//         if (_isSearching && searchTerm.isNotEmpty) {
+//           activeToolbarPlayers = activeToolbarPlayers
+//               .where((p) =>
+//                   (p.name?.toLowerCase().contains(searchTerm) ?? false) ||
+//                   p.role.toLowerCase().contains(searchTerm))
+//               .toList();
+//         }
 //
-//     return Column(
-//       children: [
-//         Expanded(
-//           child: GridView.count(
-//             crossAxisCount: 3,
-//             padding: const EdgeInsets.all(AppSize.s4),
-//             mainAxisSpacing: AppSize.s4,
-//             crossAxisSpacing: AppSize.s4,
-//             children: List.generate(activeToolbarPlayers.length + 1, (index) {
-//               if (index == activeToolbarPlayers.length) {
-//                 return _buildAddPlayer();
-//               }
+//         return Column(
+//           children: [
+//             Expanded(
+//               child: GridView.count(
+//                 crossAxisCount: 3,
+//                 padding: const EdgeInsets.all(AppSize.s4),
+//                 mainAxisSpacing: AppSize.s4,
+//                 crossAxisSpacing: AppSize.s4,
+//                 children:
+//                     List.generate(activeToolbarPlayers.length + 1, (index) {
+//                   if (index == activeToolbarPlayers.length) {
+//                     return _buildAddPlayer();
+//                   }
 //
-//               PlayerModel player = activeToolbarPlayers[index];
+//                   PlayerModel player = activeToolbarPlayers[index];
 //
-//               return GestureDetector(
-//                   onLongPress: () async {
-//                     PlayerModel? updatedPlayer =
+//                   return GestureDetector(
+//                       onLongPress: () async {
+//                         // Logic is the same, but we no longer need setState.
+//                         // The change will be saved to the DB and the stream will update the UI.
 //                         await PlayerUtilsV2.showEditPlayerDialog(
-//                       context: context,
-//                       player: player,
-//                     );
-//
-//                     if (updatedPlayer != null) {
-//                       int index =
-//                           players.indexWhere((p) => p.id == updatedPlayer.id);
-//                       if (index != -1) {
-//                         setState(() {
-//                           players[index] = updatedPlayer;
-//                         });
-//                       }
-//                     }
-//                   },
-//                   child: PlayerComponentV2(playerModel: player));
-//             }),
-//           ),
-//         ),
-//         SizedBox(height: 10),
-//         if (widget.showFooter)
-//           _buildFooter(
-//             benchPlayers: activeToolbarPlayers, // Pass bench players to footer
-//           )
-//         else
-//           SizedBox.shrink(),
-//       ],
+//                           context: context,
+//                           player: player,
+//                         );
+//                       },
+//                       child: PlayerComponentV2(playerModel: player));
+//                 }),
+//               ),
+//             ),
+//             SizedBox(height: 10),
+//             if (widget.showFooter)
+//               _buildFooter(
+//                 benchPlayers: activeToolbarPlayers,
+//               )
+//             else
+//               SizedBox.shrink(),
+//           ],
+//         );
+//       },
 //     );
 //   }
 //
 //   Widget _buildAddPlayer() {
 //     return GestureDetector(
 //         onTap: () async {
-//           PlayerModel? newPlayer = await PlayerUtilsV2.showCreatePlayerDialog(
+//           // Logic is the same, but we no longer need setState.
+//           // The new player will be saved to the DB and the stream will update the UI.
+//           await PlayerUtilsV2.showCreatePlayerDialog(
 //               context: context, playerType: PlayerType.HOME);
-//           if (newPlayer != null) {
-//             setState(() {
-//               players.add(newPlayer);
-//             });
-//           }
 //         },
 //         child: Icon(
 //           FontAwesomeIcons.circlePlus,
@@ -175,7 +171,8 @@
 //         ));
 //   }
 //
-//   // MODIFIED: _buildFooter to handle new logic
+//   // The footer logic remains completely unchanged as it depends on local state
+//   // and data passed into it, which is correct.
 //   Widget _buildFooter({required List<PlayerModel> benchPlayers}) {
 //     final boardState = ref.read(boardProvider);
 //     final playersOnField = boardState.players
@@ -224,27 +221,23 @@
 //               return;
 //             }
 //
-//             // The target positions defined by the new formation template.
 //             final List<PlayerModel> targetPositions =
 //                 scene.components.whereType<PlayerModel>().toList();
-//
-//             // --- NEW LOGIC: DISTINGUISH BETWEEN SETUP AND RE-ARRANGE ---
 //
 //             Map<String, PlayerModel?> initialAssignments;
 //             List<PlayerModel> playersToArrange;
 //
 //             if (!isRearranging) {
-//               // --- 1. INITIAL SETUP LOGIC (Your existing logic) ---
 //               zlog(data: "Performing initial lineup setup.");
-//               playersToArrange = players; // Full roster
-//               initialAssignments = {}; // No one is assigned yet.
+//               // We need all players from the stream here, which we can get by re-reading the provider's state.
+//               final allPlayers =
+//                   ref.read(homePlayersStreamProvider).value ?? [];
+//               playersToArrange = allPlayers;
+//               initialAssignments = {};
 //             } else {
-//               // --- 2. RE-ARRANGEMENT LOGIC ---
 //               zlog(data: "Performing lineup re-arrangement.");
-//               playersToArrange =
-//                   playersOnField; // Key change: Use players on field!
+//               playersToArrange = playersOnField;
 //
-//               // Smart pre-assignment: Try to match current players to new roles
 //               initialAssignments = {};
 //               List<PlayerModel> availableOnField = List.from(playersOnField);
 //
@@ -259,7 +252,6 @@
 //                   initialAssignments[targetPos.id] = null;
 //                 }
 //               }
-//               // Assign any remaining players to remaining slots
 //               for (final targetPos in targetPositions) {
 //                 if (initialAssignments[targetPos.id] == null &&
 //                     availableOnField.isNotEmpty) {
@@ -269,22 +261,20 @@
 //               }
 //             }
 //
-//             // --- LAUNCH DIALOG WITH CORRECT CONTEXT ---
 //             final List<PlayerModel>? finalLineup =
 //                 await showDialog<List<PlayerModel>>(
 //               context: context,
 //               barrierDismissible: false,
 //               builder: (_) => LineupArrangementDialog(
 //                 targetPositions: targetPositions,
-//                 playersToArrange: playersToArrange, // Pass the correct list
-//                 benchPlayers: benchPlayers, // Players not on the field
+//                 playersToArrange: playersToArrange,
+//                 benchPlayers: benchPlayers,
 //                 initialAssignments: initialAssignments,
 //               ),
 //             );
 //
-//             if (finalLineup == null) return; // User cancelled
+//             if (finalLineup == null) return;
 //
-//             // --- 4. SURGICAL APPLY LOGIC ---
 //             zlog(data: "Applying new lineup...");
 //
 //             final Set<String> originalPlayerIds =
@@ -292,7 +282,6 @@
 //             final Set<String> finalPlayerIds =
 //                 finalLineup.map((p) => p.id).toSet();
 //
-//             // Find players to remove (substituted out)
 //             final Set<String> idsToRemove =
 //                 originalPlayerIds.difference(finalPlayerIds);
 //             final List<PlayerModel> playersToRemove = playersOnField
@@ -305,16 +294,11 @@
 //                       "Removed ${playersToRemove.length} substituted players.");
 //             }
 //
-//             // Update positions for existing players and add new ones
 //             for (final newPlayerState in finalLineup) {
 //               if (originalPlayerIds.contains(newPlayerState.id)) {
-//                 // This player was already on the field, just update them.
-//                 // A simple way is to remove the old and add the new state.
-//                 tacticBoard
-//                     .removeFieldItems([newPlayerState]); // Remove by ID match
+//                 tacticBoard.removeFieldItems([newPlayerState]);
 //                 tacticBoard.addItem(newPlayerState);
 //               } else {
-//                 // This is a new player (substituted in)
 //                 tacticBoard.addItem(newPlayerState);
 //                 zlog(data: "Added substituted player: ${newPlayerState.name}");
 //               }
@@ -322,7 +306,7 @@
 //           },
 //           fillColor: ColorManager.blue,
 //           child: Text(
-//             isRearranging ? "RE-ARRANGE" : "ADD", // Dynamic button text
+//             isRearranging ? "RE-ARRANGE" : "ADD",
 //             style: Theme.of(context).textTheme.labelLarge!.copyWith(
 //                   color: ColorManager.white,
 //                   fontWeight: FontWeight.bold,
@@ -333,6 +317,8 @@
 //     );
 //   }
 // }
+
+// file: presentation/tactic/view/component/playerV2/players_toolbar_home.dart
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
@@ -353,13 +339,11 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/player
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-// CHANGED: Create the StreamProvider here or in a separate file.
 final homePlayersStreamProvider = StreamProvider<List<PlayerModel>>((ref) {
   PlayerUtilsV2.getOrInitializeHomePlayers();
   return PlayerUtilsV2.watchHomePlayers();
 });
 
-// CHANGED: Converted to ConsumerStatefulWidget to handle local state for search/formation
 class PlayersToolbarHome extends ConsumerStatefulWidget {
   const PlayersToolbarHome({super.key, this.showFooter = true});
 
@@ -370,9 +354,6 @@ class PlayersToolbarHome extends ConsumerStatefulWidget {
 }
 
 class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
-  // REMOVED: The local `players` list is no longer needed.
-  // List<PlayerModel> players = [];
-
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   CategorizedFormationGroup? selectedFormation;
@@ -382,7 +363,6 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   @override
   void initState() {
     super.initState();
-    // REMOVED: No need to manually initiate players.
     _searchController.addListener(() {
       if (mounted) {
         setState(() {});
@@ -396,8 +376,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
     super.dispose();
   }
 
-  // This logic is now only for formations, which is fine.
-  initiateTeamFormationLocally({
+  void initiateTeamFormationLocally({
     required List<CategorizedFormationGroup> lineups,
   }) {
     teamFormation = lineups;
@@ -423,8 +402,6 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
     final lineup = ref.watch(lineupProvider);
-
-    // CHANGED: Watch the new stream provider.
     final homePlayersAsync = ref.watch(homePlayersStreamProvider);
 
     if (lineup.categorizedGroups.isNotEmpty && teamFormation.isEmpty) {
@@ -435,10 +412,8 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('Error: $err')),
       data: (players) {
-        // `players` now comes directly from the stream
-        // This list now correctly represents the "bench" or "roster"
         List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
-          sourcePlayers: players, // Use the data from the stream
+          sourcePlayers: players,
           fieldPlayers: bp.players,
         )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
 
@@ -464,13 +439,9 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
                   if (index == activeToolbarPlayers.length) {
                     return _buildAddPlayer();
                   }
-
                   PlayerModel player = activeToolbarPlayers[index];
-
                   return GestureDetector(
                       onLongPress: () async {
-                        // Logic is the same, but we no longer need setState.
-                        // The change will be saved to the DB and the stream will update the UI.
                         await PlayerUtilsV2.showEditPlayerDialog(
                           context: context,
                           player: player,
@@ -480,13 +451,13 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
                 }),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             if (widget.showFooter)
               _buildFooter(
                 benchPlayers: activeToolbarPlayers,
               )
             else
-              SizedBox.shrink(),
+              const SizedBox.shrink(),
           ],
         );
       },
@@ -496,19 +467,15 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
   Widget _buildAddPlayer() {
     return GestureDetector(
         onTap: () async {
-          // Logic is the same, but we no longer need setState.
-          // The new player will be saved to the DB and the stream will update the UI.
           await PlayerUtilsV2.showCreatePlayerDialog(
               context: context, playerType: PlayerType.HOME);
         },
-        child: Icon(
+        child: const Icon(
           FontAwesomeIcons.circlePlus,
           color: ColorManager.white,
         ));
   }
 
-  // The footer logic remains completely unchanged as it depends on local state
-  // and data passed into it, which is correct.
   Widget _buildFooter({required List<PlayerModel> benchPlayers}) {
     final boardState = ref.read(boardProvider);
     final playersOnField = boardState.players
@@ -531,7 +498,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
           },
           itemAsString: (item) => item.category.displayName,
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         DropdownSelector<FormationTemplate>(
           hint: "Select Lineup",
           label: "Line Up",
@@ -544,7 +511,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
           },
           itemAsString: (item) => item.name,
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         CustomButton(
           borderRadius: 3,
           onTap: () async {
@@ -565,11 +532,31 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
 
             if (!isRearranging) {
               zlog(data: "Performing initial lineup setup.");
-              // We need all players from the stream here, which we can get by re-reading the provider's state.
               final allPlayers =
                   ref.read(homePlayersStreamProvider).value ?? [];
               playersToArrange = allPlayers;
+
+              // --- THIS IS THE NEW INTELLIGENT ASSIGNMENT LOGIC ---
               initialAssignments = {};
+              List<PlayerModel> unassignedRosterPlayers =
+                  List.from(playersToArrange);
+
+              for (final targetPos in targetPositions) {
+                // Find a player in the roster that matches the role and jersey number from the template.
+                int matchIndex = unassignedRosterPlayers.indexWhere((p) =>
+                    p.role == targetPos.role &&
+                    p.jerseyNumber == targetPos.jerseyNumber);
+
+                if (matchIndex != -1) {
+                  // If a match is found, assign them.
+                  initialAssignments[targetPos.id] =
+                      unassignedRosterPlayers.removeAt(matchIndex);
+                } else {
+                  // Otherwise, leave the slot empty for the coach to fill.
+                  initialAssignments[targetPos.id] = null;
+                }
+              }
+              // --- END OF NEW LOGIC ---
             } else {
               zlog(data: "Performing lineup re-arrangement.");
               playersToArrange = playersOnField;
