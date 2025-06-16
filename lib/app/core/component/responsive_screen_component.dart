@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/extensions/responsive_screen_extension.dart';
 
-abstract class ResponsiveScreen extends StatefulWidget {
+abstract class ResponsiveScreen extends ConsumerStatefulWidget {
   const ResponsiveScreen({super.key});
 
   /// Force implementation of UI for mobile
@@ -18,7 +19,7 @@ abstract class ResponsiveScreen extends StatefulWidget {
 }
 
 abstract class ResponsiveScreenState<T extends ResponsiveScreen>
-    extends State<T> {
+    extends ConsumerState<T> {
   @override
   Widget build(BuildContext context) {
     // Switch on the context to determine the current screen size and render accordingly

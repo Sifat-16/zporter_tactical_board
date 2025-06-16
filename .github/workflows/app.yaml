@@ -1,0 +1,20 @@
+name: App-Deploy
+
+on:
+  push:
+    branches: [tactical_board_admin]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.29.0
+      - uses: bluefireteam/flutter-gh-pages@v9
+        with:
+          baseHref: /zporter_tactical_board/
+          webRenderer: canvaskit

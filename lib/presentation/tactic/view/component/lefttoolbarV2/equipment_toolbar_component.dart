@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_item.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_utils.dart';
 
 class EquipmentToolbarComponent extends StatefulWidget {
   const EquipmentToolbarComponent({super.key});
@@ -10,45 +13,33 @@ class EquipmentToolbarComponent extends StatefulWidget {
 
 class _EquipmentToolbarComponentState extends State<EquipmentToolbarComponent>
     with AutomaticKeepAliveClientMixin {
-  // List<EquipmentDataModel> equipments=[];
+  List<EquipmentModel> equipments = [];
 
-  // @override
-  // void didChangeDependencies() {
-  //   super.didChangeDependencies();
-  //   context.read<EquipmentBloc>().add(EquipmentLoadEvent(
-  //     equipments: EquipmentUtils.generateEquipmentModelList(),
-  //   ));
-  // }
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      setupEquipments();
+    });
+  }
 
-  // initiateEquipments(List<EquipmentDataModel> ep){
-  //   setState(() {
-  //     equipments = ep;
-  //   });
-  // }
+  setupEquipments() {
+    setState(() {
+      equipments = EquipmentUtils.generateEquipments();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Container();
-    // return BlocListener<EquipmentBloc, EquipmentState>(
-    //   listener: (context, state) {
-    //     if (state is EquipmentLoadedState) {
-    //       debug(data: "Equipment loaded");
-    //       initiateEquipments(state.equipments);
-    //     }
-    //   },
-    //   child: BlocBuilder<EquipmentBloc, EquipmentState>(
-    //     buildWhen: (previous, current) => current is EquipmentLoadedState,
-    //     builder: (context, state) {
-    //       return GridView.count(
-    //         crossAxisCount: 3,
-    //         children: List.generate(equipments.length, (index) {
-    //           return EquipmentComponent(equipmentDataModel: equipments[index]);
-    //         }),
-    //       );
-    //     },
-    //   ),
-    // );
+
+    return GridView.count(
+      crossAxisCount: 3,
+      children: List.generate(equipments.length, (index) {
+        return EquipmentItem(equipmentModel: equipments[index]);
+      }),
+    );
   }
 
   @override
