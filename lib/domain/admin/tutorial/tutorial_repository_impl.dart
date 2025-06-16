@@ -23,4 +23,8 @@ class TutorialRepositoryImpl implements TutorialRepository {
   @override
   Future<String> uploadVideo(File videoFile, String tutorialId) =>
       datasource.uploadVideo(videoFile, tutorialId);
+
+  @override
+  Future<String> uploadThumbnail(File imageFile, String tutorialId) =>
+      datasource.uploadThumbnail(imageFile, tutorialId);
 }

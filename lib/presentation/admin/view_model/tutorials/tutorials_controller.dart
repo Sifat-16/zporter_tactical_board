@@ -73,6 +73,44 @@ class TutorialsController extends StateNotifier<TutorialsState> {
       return ''; // Return empty string on failure
     }
   }
+
+  Future<void> uploadThumbnailForTutorial(
+      File imageFile, String tutorialId) async {
+    state = state.copyWith(status: TutorialStatus.uploading);
+    try {
+      // 1. Upload the image and get the URL
+      final thumbnailUrl =
+          await _repository.uploadThumbnail(imageFile, tutorialId);
+
+      // 2. Find the tutorial to update in the current state
+      final tutorialToUpdate =
+          state.tutorials.firstWhere((t) => t.id == tutorialId);
+
+      // 3. Create an updated model with the new thumbnail URL
+      final updatedTutorial =
+          tutorialToUpdate.copyWith(thumbnailUrl: thumbnailUrl);
+
+      // 4. Save the updated tutorial back to Firestore and update the local state
+      await updateTutorial(updatedTutorial);
+
+      state = state.copyWith(status: TutorialStatus.success);
+    } catch (e) {
+      state = state.copyWith(
+          status: TutorialStatus.error, errorMessage: e.toString());
+    }
+  }
+
+  Future<Tutorial?> addAndReturnTutorial(String name) async {
+    try {
+      final newTutorial = await _repository
+          .saveTutorial(Tutorial(id: '', name: name, thumbnailUrl: null));
+      state = state.copyWith(tutorials: [...state.tutorials, newTutorial]);
+      return newTutorial;
+    } catch (e) {
+      // Handle error
+      return null;
+    }
+  }
 }
 
 // --- PROVIDER ---
