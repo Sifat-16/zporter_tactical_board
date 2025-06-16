@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjust path
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/admin/view/animation/field/default_animation_field_screen.dart';
@@ -189,7 +190,8 @@ class _DefaultAnimationScreenState
   Widget _buildLoadingIndicator() {
     return const Expanded(
       child: Center(
-        child: CircularProgressIndicator(color: ColorManager.yellow),
+        child: ZLoader(logoAssetPath: "assets/image/logo.png"),
+        // child: CircularProgressIndicator(color: ColorManager.yellow),
       ),
     );
   }
@@ -324,10 +326,9 @@ class _DefaultAnimationScreenState
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder:
-                        (_) => DefaultAnimationFieldScreen(
-                          animationModel: animation,
-                        ),
+                    builder: (_) => DefaultAnimationFieldScreen(
+                      animationModel: animation,
+                    ),
                   ),
                 );
               },
@@ -338,10 +339,9 @@ class _DefaultAnimationScreenState
                 color: ColorManager.blueAccent,
               ),
               tooltip: 'Edit "${animation.name}"',
-              onPressed:
-                  () => _showCreateEditAnimationDialog(
-                    existingAnimation: animation,
-                  ),
+              onPressed: () => _showCreateEditAnimationDialog(
+                existingAnimation: animation,
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: ColorManager.red),

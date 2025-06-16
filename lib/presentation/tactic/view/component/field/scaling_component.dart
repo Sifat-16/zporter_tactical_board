@@ -1,33 +1,33 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart'; // Assuming Color is from here, or material.dart
 
+// Assuming FieldComponent is defined elsewhere, including its relevant properties
+// like 'size', 'selectionBorder', and 'onComponentScale'.
 import 'field_component.dart';
 
 enum ScalingHandlePosition { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
-class ScalingHandle extends CircleComponent with DragCallbacks {
+// Changed from CircleComponent to RectangleComponent
+class ScalingHandle extends RectangleComponent with DragCallbacks {
   final FieldComponent component;
-
   final ScalingHandlePosition scalingHandlePosition;
-
   final Color color;
-  final double interactionRadius = 15.0;
+  final double interactionRadius = 15.0; // Kept for circular interaction area
 
   ScalingHandle({
     required this.component,
-    required super.anchor,
+    required super.anchor, // Anchor for positioning this handle
     required this.scalingHandlePosition,
     this.color = const Color(0xFF00FF00),
-  }) : super(radius: 6.0, paint: Paint()..color = color) {
-    // add(
-    //   CircleHitbox(
-    //     radius: interactionRadius,
-    //     anchor: Anchor.center,
-    //     isSolid: true,
-    //   ),
-    // );
-  }
+    Vector2? handleSize, // Optional: specify size, defaults to a 12x12 square
+  }) : super(
+          // Set size for the rectangle, e.g., a 12x12 square
+          size: handleSize ?? Vector2.all(8.0),
+          paint: Paint()
+            ..style = PaintingStyle.stroke
+            ..color = color,
+        );
 
   @override
   bool containsLocalPoint(Vector2 point) {

@@ -3,7 +3,10 @@ import 'dart:ui';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
+import 'package:zporter_tactical_board/app/core/dialogs/animation_copy_dialog.dart';
+import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
@@ -12,6 +15,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/domain/admin/default_animation/default_animation_repository.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/delete_history_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
@@ -24,13 +28,14 @@ import 'package:zporter_tactical_board/domain/animation/usecase/save_history_use
 import 'package:zporter_tactical_board/presentation/admin/view/animation/default_animation_constants.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/default_animation_view_model/default_animation_controller.dart';
 import 'package:zporter_tactical_board/presentation/auth/view_model/auth_controller.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 final animationProvider =
     StateNotifierProvider<AnimationController, AnimationState>(
-      (ref) => AnimationController(ref),
-    );
+  (ref) => AnimationController(ref),
+);
 
 class AnimationController extends StateNotifier<AnimationState> {
   AnimationController(this.ref) : super(AnimationState());
@@ -68,10 +73,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedAnimationCollectionModel: animationCollectionModel,
       animations: animationCollectionModel?.animations ?? [],
       selectedAnimationModel: selectedAnimation,
-      selectedScene:
-          changeSelectedScene == true
-              ? selectedAnimation?.animationScenes.first
-              : state.selectedScene,
+      selectedScene: changeSelectedScene == true
+          ? selectedAnimation?.animationScenes.first
+          : state.selectedScene,
       showNewCollectionInput: false,
       showNewAnimationInput: false,
       showQuickSave: false,
@@ -85,21 +89,25 @@ class AnimationController extends StateNotifier<AnimationState> {
     try {
       collections = await _getAllAnimationCollectionUseCase.call(_getUserId());
 
-      if (collections.isEmpty) {
-        await _saveAnimationCollectionUseCase.call(
-          AnimationCollectionModel(
-            id: RandomGenerator.generateId(),
-            name: "General",
-            animations: [],
-            userId: ref.read(authProvider).userId ?? "",
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          ),
-        );
-        collections = await _getAllAnimationCollectionUseCase.call(
-          _getUserId(),
-        );
-      }
+      // collections = AnimationCollectionDefaultUtils.addDefaultCollections(
+      //     collections: collections,
+      //     userId: ref.read(authProvider).userId ?? "");
+
+      // if (collections.isEmpty) {
+      //   await _saveAnimationCollectionUseCase.call(
+      //     AnimationCollectionModel(
+      //       id: RandomGenerator.generateId(),
+      //       name: "General",
+      //       animations: [],
+      //       userId: ref.read(authProvider).userId ?? "",
+      //       createdAt: DateTime.now(),
+      //       updatedAt: DateTime.now(),
+      //     ),
+      //   );
+      //   collections = await _getAllAnimationCollectionUseCase.call(
+      //     _getUserId(),
+      //   );
+      // }
 
       try {
         int index = collections.indexWhere(
@@ -113,13 +121,13 @@ class AnimationController extends StateNotifier<AnimationState> {
               await _defaultAnimationRepository.getAllDefaultAnimations();
           AnimationCollectionModel animationCollectionModel =
               AnimationCollectionModel(
-                id: DefaultAnimationConstants.default_animation_collection_id,
-                name: "Default Animation",
-                animations: default_animations,
-                userId: ref.read(authProvider).userId ?? "",
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-              );
+            id: DefaultAnimationConstants.default_animation_collection_id,
+            name: "Other",
+            animations: default_animations,
+            userId: ref.read(authProvider).userId ?? "",
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
 
           collections.add(animationCollectionModel);
         }
@@ -141,17 +149,18 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void createNewCollection(String newCollectionName) async {
-    BotToast.showLoading();
+    // BotToast.showLoading();
+    showZLoader();
     try {
       AnimationCollectionModel animationCollectionModel =
           AnimationCollectionModel(
-            id: RandomGenerator.generateId(),
-            userId: _getUserId(),
-            name: newCollectionName,
-            animations: [],
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+        id: RandomGenerator.generateId(),
+        userId: _getUserId(),
+        name: newCollectionName,
+        animations: [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
 
       List<AnimationCollectionModel> collections = state.animationCollections;
 
@@ -180,28 +189,22 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
   }
 
-  void createNewAnimation(
-    String newAnimationName, {
-    AnimationItemModel? dummyAnimationPassed,
-  }) async {
-    BotToast.showLoading();
+  void createNewAnimation({required AnimationCreateItem newAnimation}) async {
+    // BotToast.showLoading();
+    showZLoader();
     try {
       AnimationModel animationModel = AnimationModel(
         userId: _getUserId(),
         fieldColor: BoardConstant.field_color,
         id: RandomGenerator.generateId(),
-        name: newAnimationName,
+        name: newAnimation.newAnimationName,
         animationScenes: [],
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      AnimationCollectionModel? animationCollectionModel =
-          state.selectedAnimationCollectionModel;
-      if (animationCollectionModel == null) {
-        BotToast.showText(text: "No Collection is selected");
-        return;
-      }
+      AnimationCollectionModel animationCollectionModel =
+          newAnimation.animationCollectionModel;
 
       if (_isDuplicateAnimation(
         animationCollectionModel.animations,
@@ -218,10 +221,9 @@ class AnimationController extends StateNotifier<AnimationState> {
           fieldColor: BoardConstant.field_color,
           id: RandomGenerator.generateId(),
           userId: _getUserId(),
-          fieldSize:
-              ref.read(boardProvider.notifier).fetchFieldSize() ??
+          fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
               Vector2(0, 0),
-          components: dummyAnimationPassed?.components ?? [],
+          components: newAnimation.items,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),
@@ -259,16 +261,16 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
   }
 
-  void copyAnimation(String name, AnimationModel animation) async {
+  void copyAnimation(AnimationCopyItem animationCopyItem) async {
     AnimationCollectionModel? animationCollectionModel =
-        state.selectedAnimationCollectionModel;
+        animationCopyItem.animationCollectionModel;
     if (animationCollectionModel == null) {
       BotToast.showText(text: "Please select a collection");
       return;
     }
-    AnimationModel newAnimationModel = animation.clone();
+    AnimationModel newAnimationModel = animationCopyItem.animationModel.clone();
     newAnimationModel.id = RandomGenerator.generateId();
-    newAnimationModel.name = name;
+    newAnimationModel.name = animationCopyItem.newAnimationName;
     newAnimationModel.createdAt = DateTime.now();
     newAnimationModel.updatedAt = DateTime.now();
 
@@ -281,7 +283,8 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
       return;
     }
-    BotToast.showLoading();
+    // BotToast.showLoading();
+    showZLoader();
     try {
       animationCollectionModel.animations.add(newAnimationModel);
       animationCollectionModel = await _saveAnimationCollectionUseCase.call(
@@ -323,6 +326,34 @@ class AnimationController extends StateNotifier<AnimationState> {
     return false;
   }
 
+  Future<void> saveAnimationTime({
+    required Duration newDuration,
+    required String sceneId,
+  }) async {
+    AnimationCollectionModel? selectedCollection =
+        state.selectedAnimationCollectionModel;
+    AnimationModel? selectedAnimation = state.selectedAnimationModel;
+    int index =
+        selectedAnimation?.animationScenes.indexWhere((a) => a.id == sceneId) ??
+            -1;
+    if (index != -1) {
+      try {
+        AnimationItemModel scene = selectedAnimation!.animationScenes[index];
+        scene = scene.copyWith(sceneDuration: newDuration);
+        selectedAnimation.animationScenes[index] = scene;
+        int animationIndex = selectedCollection!.animations.indexWhere(
+          (a) => a.id == selectedAnimation.id,
+        );
+        if (animationIndex != -1) {
+          selectedCollection.animations[animationIndex] = selectedAnimation;
+          try {
+            _saveAnimationCollectionUseCase.call(selectedCollection);
+          } catch (e) {}
+        } else {}
+      } catch (e) {}
+    }
+  }
+
   Future<AnimationItemModel?> _onAnimationSave({
     required AnimationCollectionModel selectedCollection,
     required AnimationModel selectedAnimation,
@@ -349,7 +380,8 @@ class AnimationController extends StateNotifier<AnimationState> {
         selectedCollection.animations[animationIndex] = selectedAnimation;
 
         if (showLoading) {
-          BotToast.showLoading();
+          // BotToast.showLoading();
+          showZLoader();
         }
 
         try {
@@ -436,8 +468,7 @@ class AnimationController extends StateNotifier<AnimationState> {
             userId: _getUserId(),
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
-            fieldSize:
-                ref.read(boardProvider.notifier).fetchFieldSize() ??
+            fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
                 Vector2(0, 0),
           ),
         );
@@ -530,8 +561,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           userId: _getUserId(),
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
-          fieldSize:
-              ref.read(boardProvider.notifier).fetchFieldSize() ??
+          fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
               Vector2.zero(),
         ),
       );
@@ -568,9 +598,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       zlog(data: "Default animation model List ${changeModel.components}");
       SaveDefaultAnimationParam defaultAnimationParam =
           SaveDefaultAnimationParam(
-            animationItems: defaultAnimations,
-            userId: _getUserId(),
-          );
+        animationItems: defaultAnimations,
+        userId: _getUserId(),
+      );
       _saveDefaultAnimationUseCase.call(defaultAnimationParam);
 
       state = state.copyWith(selectedScene: changeModel);
@@ -629,12 +659,38 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
   }
 
-  AnimationItemModel _generateDummyAnimationItem() {
+  void copyCurrentDefaultScene() {
+    AnimationItemModel? selectedScene = state.selectedScene;
+    if (selectedScene != null) {
+      List<AnimationItemModel> defaultItems = state.defaultAnimationItems;
+
+      AnimationItemModel item =
+          _generateDummyAnimationItem(items: selectedScene.components);
+      int index = defaultItems.indexWhere((t) => t.id == selectedScene.id);
+      if (index == -1) {
+        index = 0;
+      } else {
+        index += 1;
+      }
+
+      defaultItems.insert(index, item);
+
+      zlog(data: 'Default animation index ${defaultItems.length - 1}');
+      state = state.copyWith(
+        defaultAnimationItems: defaultItems,
+        defaultAnimationItemIndex: index,
+        selectedScene: defaultItems[index],
+      );
+    }
+  }
+
+  AnimationItemModel _generateDummyAnimationItem(
+      {List<FieldItemModel> items = const []}) {
     return AnimationItemModel(
       fieldColor: BoardConstant.field_color,
       id: RandomGenerator.generateId(),
       userId: _getUserId(),
-      components: [],
+      components: items,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
       fieldSize:
@@ -647,13 +703,14 @@ class AnimationController extends StateNotifier<AnimationState> {
     List<AnimationItemModel> defaultItems = state.defaultAnimationItems;
     AnimationItemModel deletedItem = defaultItems.removeAt(index);
 
-    BotToast.showLoading();
+    // BotToast.showLoading();
+    showZLoader();
     try {
       SaveDefaultAnimationParam defaultAnimationParam =
           SaveDefaultAnimationParam(
-            animationItems: defaultItems,
-            userId: _getUserId(),
-          );
+        animationItems: defaultItems,
+        userId: _getUserId(),
+      );
 
       defaultItems = await _saveDefaultAnimationUseCase.call(
         defaultAnimationParam,
@@ -844,8 +901,7 @@ class AnimationController extends StateNotifier<AnimationState> {
             userId: _getUserId(),
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
-            fieldSize:
-                ref.read(boardProvider.notifier).fetchFieldSize() ??
+            fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
                 Vector2(0, 0),
           ),
         );
@@ -866,4 +922,185 @@ class AnimationController extends StateNotifier<AnimationState> {
       BotToast.showText(text: "No animation found");
     }
   }
+
+  AnimationItemModel _updateSceneWithPlayer(
+      AnimationItemModel scene, PlayerModel newPlayerModel) {
+    bool sceneModified = false;
+    List<FieldItemModel> updatedComponents = scene.components.map((component) {
+      if (component is PlayerModel && component.id == newPlayerModel.id) {
+        if (component != newPlayerModel) {
+          // Only mark modified if it's actually different
+          sceneModified = true;
+          return newPlayerModel; // Replace with the new model
+        }
+      }
+      return component; // Keep existing component
+    }).toList();
+
+    if (sceneModified) {
+      // Create a new scene instance with updated components
+      return scene.copyWith(
+          components: updatedComponents, updatedAt: DateTime.now());
+    }
+    return scene; // Return original scene if no relevant player was updated or if newModel was identical
+  }
+
+  // Helper function to update scenes within an AnimationModel
+  AnimationModel _updateAnimationWithPlayer(
+      AnimationModel animation, PlayerModel newPlayerModel) {
+    bool animationModified = false;
+    List<AnimationItemModel> updatedScenes =
+        animation.animationScenes.map((scene) {
+      AnimationItemModel updatedScene =
+          _updateSceneWithPlayer(scene, newPlayerModel);
+      if (updatedScene != scene) {
+        // Check if the scene instance changed
+        animationModified = true;
+      }
+      return updatedScene;
+    }).toList();
+
+    if (animationModified) {
+      return animation.copyWith(
+          animationScenes: updatedScenes, updatedAt: DateTime.now());
+    }
+    return animation;
+  }
+
+  // Helper function to update animations within an AnimationCollectionModel
+  AnimationCollectionModel _updateCollectionWithPlayer(
+      AnimationCollectionModel collection, PlayerModel newPlayerModel) {
+    bool collectionModified = false;
+    List<AnimationModel> updatedAnimations =
+        collection.animations.map((animation) {
+      AnimationModel updatedAnimation =
+          _updateAnimationWithPlayer(animation, newPlayerModel);
+      if (updatedAnimation != animation) {
+        // Check if the animation instance changed
+        collectionModified = true;
+      }
+      return updatedAnimation;
+    }).toList();
+
+    if (collectionModified) {
+      return collection.copyWith(
+          animations: updatedAnimations, updatedAt: DateTime.now());
+    }
+    return collection;
+  }
+
+  // The main method to update the player model across various state parts
+  void updatePlayerModel({
+    required PlayerModel newModel,
+  }) {
+    // 1. Process List<AnimationCollectionModel>
+    List<AnimationCollectionModel> updatedCollectionModelList =
+        state.animationCollections.map((collection) {
+      return _updateCollectionWithPlayer(collection, newModel);
+    }).toList();
+
+    // 2. Process List<AnimationModel> (top-level animations)
+    List<AnimationModel> updatedAnimationList =
+        state.animations.map((animation) {
+      return _updateAnimationWithPlayer(animation, newModel);
+    }).toList();
+
+    // 3. Process List<AnimationItemModel> (default animations/scenes)
+    List<AnimationItemModel> updatedDefaultAnimationsList =
+        state.defaultAnimationItems.map((scene) {
+      return _updateSceneWithPlayer(scene, newModel);
+    }).toList();
+
+    // 4. Process selected items, ensuring they point to the updated instances from the lists if applicable
+    AnimationCollectionModel? finalSelectedCollection;
+    if (state.selectedAnimationCollectionModel != null) {
+      // Try to find the selected collection in the updated list first
+      finalSelectedCollection = updatedCollectionModelList.firstWhereOrNull(
+        (c) => c.id == state.selectedAnimationCollectionModel!.id,
+      );
+      // If not found in the list (e.g., it was a standalone object), or if found but was the original instance, process it directly
+      if (finalSelectedCollection == null ||
+          finalSelectedCollection == state.selectedAnimationCollectionModel) {
+        AnimationCollectionModel directlyProcessed =
+            _updateCollectionWithPlayer(
+                state.selectedAnimationCollectionModel!, newModel);
+        // Prefer the list version if it exists and was updated, otherwise use the directly processed one if it changed.
+        if (finalSelectedCollection != null &&
+            finalSelectedCollection != directlyProcessed &&
+            directlyProcessed != state.selectedAnimationCollectionModel) {
+          // This case is tricky, implies the one in the list was not updated but direct processing did.
+          // Usually, if it's in the list, list's version is canonical.
+        }
+        finalSelectedCollection = (finalSelectedCollection != null &&
+                finalSelectedCollection !=
+                    state.selectedAnimationCollectionModel)
+            ? finalSelectedCollection
+            : directlyProcessed;
+      }
+    }
+
+    AnimationModel? finalSelectedAnimation;
+    if (state.selectedAnimationModel != null) {
+      // Prefer finding in the selected collection's updated animations, then in the top-level updated animation list
+      finalSelectedAnimation =
+          finalSelectedCollection?.animations.firstWhereOrNull(
+                (a) => a.id == state.selectedAnimationModel!.id,
+              ) ??
+              updatedAnimationList.firstWhereOrNull(
+                (a) => a.id == state.selectedAnimationModel!.id,
+              );
+
+      if (finalSelectedAnimation == null ||
+          finalSelectedAnimation == state.selectedAnimationModel) {
+        AnimationModel directlyProcessed =
+            _updateAnimationWithPlayer(state.selectedAnimationModel!, newModel);
+        finalSelectedAnimation = (finalSelectedAnimation != null &&
+                finalSelectedAnimation != state.selectedAnimationModel)
+            ? finalSelectedAnimation
+            : directlyProcessed;
+      }
+    }
+
+    AnimationItemModel? finalSelectedScene;
+    if (state.selectedScene != null) {
+      // Prefer finding in the selected animation's updated scenes, then in the updated default animations list
+      finalSelectedScene =
+          finalSelectedAnimation?.animationScenes.firstWhereOrNull(
+                (s) => s.id == state.selectedScene!.id,
+              ) ??
+              updatedDefaultAnimationsList.firstWhereOrNull(
+                (s) => s.id == state.selectedScene!.id,
+              );
+      if (finalSelectedScene == null ||
+          finalSelectedScene == state.selectedScene) {
+        AnimationItemModel directlyProcessed =
+            _updateSceneWithPlayer(state.selectedScene!, newModel);
+        finalSelectedScene = (finalSelectedScene != null &&
+                finalSelectedScene != state.selectedScene)
+            ? finalSelectedScene
+            : directlyProcessed;
+      }
+    }
+
+    // Create the new state. This assumes your state object has a copyWith method or similar.
+    // Replace 'YourAppState' and its fields with your actual state class and properties.
+    state = state.copyWith(
+      animationCollections: updatedCollectionModelList,
+      animations: updatedAnimationList,
+      selectedAnimationCollectionModel: finalSelectedCollection,
+      selectedAnimationModel: finalSelectedAnimation,
+      selectedScene: finalSelectedScene,
+      defaultAnimationItems: updatedDefaultAnimationsList,
+    );
+  }
+
+  // void updatePlayerModel({required PlayerModel newModel}) {
+  //   List<AnimationCollectionModel> collectionModel = state.animationCollections;
+  //   List<AnimationModel> animationList = state.animations;
+  //   AnimationCollectionModel? selectedCollection =
+  //       state.selectedAnimationCollectionModel;
+  //   AnimationModel? selectedAnimation = state.selectedAnimationModel;
+  //   AnimationItemModel? selectedScene = state.selectedScene;
+  //   List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
+  // }
 }

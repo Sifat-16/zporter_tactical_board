@@ -31,22 +31,24 @@ mixin DrawingInputHandler on TacticBoardGame {
   // Circle Integration here
   // State variables for drawing circle (center fixed, drag sets radius)
   Vector2?
-  shapeCenterPoint; // FIXED Center point where circle drag starts (actual coords)
+      shapeCenterPoint; // FIXED Center point where circle drag starts (actual coords)
   CircleShapeDrawerComponent?
-  _currentCircleShape; // The circle component being drawn
+      _currentCircleShape; // The circle component being drawn
 
   Vector2?
-  squareCenterPoint; // FIXED Center where square drag starts (actual coords)
+      squareCenterPoint; // FIXED Center where square drag starts (actual coords)
   SquareShapeDrawerComponent? _currentSquareShape;
 
   PolygonShapeDrawerComponent?
-  _currentPolygonComponent; // Ref to the component being drawn
+      _currentPolygonComponent; // Ref to the component being drawn
   final double _polygonCloseThreshold =
       15.0; // Pixel distance to tap near start vertex to close
   // --- End Polygon Integration ---
 
   @override
   void onDragStart(DragStartEvent event) {
+    if (isAnimating) return;
+
     // Use ref directly as mixin is on TacticBoardGame which has RiverpodGameMixin
     final lp = ref.read(lineProvider);
     bool eventHandled = false;
@@ -144,6 +146,7 @@ mixin DrawingInputHandler on TacticBoardGame {
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
+    if (isAnimating) return;
     // Use ref directly
     final lp = ref.read(lineProvider);
     bool eventHandled = false;
@@ -171,9 +174,8 @@ mixin DrawingInputHandler on TacticBoardGame {
         lp.isShapeActiveToAddIntoGameField &&
         shapeCenterPoint != null && // Center point is fixed
         _currentCircleShape != null) {
-      final currentPoint =
-          event
-              .localStartPosition; // Current drag point (diametrically opposite)
+      final currentPoint = event
+          .localStartPosition; // Current drag point (diametrically opposite)
 
       // Calculate diameter and radius
       double diameter = shapeCenterPoint!.distanceTo(currentPoint);
@@ -185,9 +187,8 @@ mixin DrawingInputHandler on TacticBoardGame {
 
       // Update the component's position (center)
       _currentCircleShape!.position = actualCenter;
-      _currentCircleShape!
-          .circleModel
-          .radius = SizeHelper.getBoardRelativeDimension(
+      _currentCircleShape!.circleModel.radius =
+          SizeHelper.getBoardRelativeDimension(
         gameScreenSize: gameField.size,
         actualSize: newRadius,
       );
@@ -230,15 +231,13 @@ mixin DrawingInputHandler on TacticBoardGame {
       // Update the component's position (center)
       _currentSquareShape!.position = actualCenter;
 
-      _currentSquareShape
-          ?.squareModel
-          .side = SizeHelper.getBoardRelativeDimension(
+      _currentSquareShape?.squareModel.side =
+          SizeHelper.getBoardRelativeDimension(
         gameScreenSize: gameField.size,
         actualSize: actualSide,
       );
-      _currentSquareShape
-          ?.squareModel
-          .offset = SizeHelper.getBoardRelativeVector(
+      _currentSquareShape?.squareModel.offset =
+          SizeHelper.getBoardRelativeVector(
         gameScreenSize: gameField.size,
         actualPosition: actualCenter,
       );
@@ -258,6 +257,7 @@ mixin DrawingInputHandler on TacticBoardGame {
 
   @override
   void onDragEnd(DragEndEvent event) {
+    if (isAnimating) return;
     // Use ref directly
     final lp = ref.read(lineProvider);
     bool eventHandled = false;
@@ -392,6 +392,7 @@ mixin DrawingInputHandler on TacticBoardGame {
 
   @override
   void onDragCancel(DragCancelEvent event) {
+    if (isAnimating) return;
     // Use ref directly
     final lp = ref.read(lineProvider);
     bool eventHandled = false;
@@ -580,15 +581,15 @@ mixin DrawingInputHandler on TacticBoardGame {
 
   @override
   void onTapDown(TapDownInfo event) async {
+    if (isAnimating) return;
     final lp = ref.read(lineProvider);
     bool eventHandled = false;
 
     if (!eventHandled &&
         lp.isShapeActiveToAddIntoGameField &&
         lp.activeForm is PolygonShapeModel) {
-      final tapPosition =
-          event.raw.localPosition
-              .toVector2(); // Actual coordinate relative to game/board
+      final tapPosition = event.raw.localPosition
+          .toVector2(); // Actual coordinate relative to game/board
       zlog(
         data:
             "Polygon Tool Active - Tap Detected. Vertices placed: at $tapPosition",

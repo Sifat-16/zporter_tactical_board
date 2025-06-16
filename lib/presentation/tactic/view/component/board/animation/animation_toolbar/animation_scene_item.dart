@@ -1,13 +1,14 @@
-// --- Create a new file: animation_list_item.dart ---
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjust path
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/mini/mini_gamefield_widget.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 
-class AnimationSceneItem extends StatelessWidget {
+class AnimationSceneItem extends ConsumerStatefulWidget {
   final AnimationItemModel animation;
   final VoidCallback onMoreOptions;
   final Color fieldColor;
@@ -28,6 +29,23 @@ class AnimationSceneItem extends StatelessWidget {
   });
 
   @override
+  ConsumerState<AnimationSceneItem> createState() => _AnimationSceneItemState();
+}
+
+class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
+  String durationText = "";
+  int durationStepMilliseconds = 500;
+  int minDurationMilliseconds = 500; // 0.5 seconds
+  int maxDurationMilliseconds = 4000; // 4.0 seconds
+  int currentDurationInMills = 0;
+  @override
+  void initState() {
+    currentDurationInMills = widget.animation.sceneDuration.inMilliseconds;
+    durationText = "${(currentDurationInMills / 1000.0).toStringAsFixed(1)}s";
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Define styles based on image (adjust as needed)
     final textTheme = Theme.of(context).textTheme;
@@ -45,11 +63,8 @@ class AnimationSceneItem extends StatelessWidget {
       fontWeight: FontWeight.bold,
     );
 
-    // Calculate duration text (handle potential null)
-    final String durationText = "${3}s"; // Assuming durationSeconds exists
-
     return GestureDetector(
-      onTap: onItemTap,
+      onTap: widget.onItemTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
         child: Card(
@@ -60,7 +75,7 @@ class AnimationSceneItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
             side: BorderSide(
               color:
-                  isSelected
+                  widget.isSelected
                       ? ColorManager.yellowLight.withValues(alpha: 0.6)
                       : ColorManager.transparent,
             ),
@@ -75,13 +90,13 @@ class AnimationSceneItem extends StatelessWidget {
                   child: Stack(
                     children: [
                       MiniGameFieldWidget(
-                        fieldColor: fieldColor,
-                        borderColor: borderColor,
-                        items: animation.components,
+                        fieldColor: widget.fieldColor,
+                        borderColor: widget.borderColor,
+                        items: widget.animation.components,
                         logicalFieldSize:
-                            animation.fieldSize == Vector2.zero()
+                            widget.animation.fieldSize == Vector2.zero()
                                 ? Vector2(10000, 10000)
-                                : animation.fieldSize,
+                                : widget.animation.fieldSize,
                         // aspectRatio: MiniGameFieldWidget.defaultAspectRatio, // Use default
                       ),
                     ],
@@ -108,7 +123,7 @@ class AnimationSceneItem extends StatelessWidget {
                                       "This animation scene will be removed",
                                 );
                                 if (confirm == true) {
-                                  onDelete();
+                                  widget.onDelete();
                                 }
                               },
                               child: Text(
@@ -134,17 +149,78 @@ class AnimationSceneItem extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const Icon(
-                          Icons.keyboard_arrow_up,
-                          color: Colors.white,
+                        GestureDetector(
+                          onTap: () {
+                            int currentMillis = currentDurationInMills;
+                            int newMillis =
+                                currentMillis + durationStepMilliseconds;
+                            if (newMillis > maxDurationMilliseconds) {
+                              newMillis = maxDurationMilliseconds;
+                            } else {
+                              if (newMillis != currentMillis) {
+                                setState(() {
+                                  currentDurationInMills = newMillis;
+                                  durationText =
+                                      "${(currentDurationInMills / 1000.0).toStringAsFixed(1)}s";
+                                });
+                                ref
+                                    .read(animationProvider.notifier)
+                                    .saveAnimationTime(
+                                      newDuration: Duration(
+                                        milliseconds: newMillis,
+                                      ),
+                                      sceneId: widget.animation.id,
+                                    );
+                                zlog(
+                                  data:
+                                      "Increase duration tapped. New duration: ${newMillis}ms",
+                                );
+                              }
+                            }
+                          },
+                          child: const Icon(
+                            Icons.keyboard_arrow_up,
+                            color: Colors.white,
+                          ),
                         ), // TODO: Add functionality
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 2.0),
                           child: Text(durationText, style: durationStyle),
                         ),
-                        const Icon(
-                          Icons.keyboard_arrow_down,
-                          color: Colors.white,
+                        GestureDetector(
+                          onTap: () {
+                            int currentMillis = currentDurationInMills;
+                            int newMillis =
+                                currentMillis - durationStepMilliseconds;
+                            if (newMillis < minDurationMilliseconds) {
+                              newMillis = minDurationMilliseconds;
+                            } else {
+                              if (newMillis != currentMillis) {
+                                setState(() {
+                                  currentDurationInMills = newMillis;
+                                  durationText =
+                                      "${(currentDurationInMills / 1000.0).toStringAsFixed(1)}s";
+                                });
+
+                                ref
+                                    .read(animationProvider.notifier)
+                                    .saveAnimationTime(
+                                      newDuration: Duration(
+                                        milliseconds: newMillis,
+                                      ),
+                                      sceneId: widget.animation.id,
+                                    );
+                              }
+                              zlog(
+                                data:
+                                    "Decrease duration tapped. New duration: ${newMillis}ms",
+                              );
+                            }
+                          },
+                          child: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                          ),
                         ), // TODO: Add functionality// Use passed index string
                       ],
                     ),

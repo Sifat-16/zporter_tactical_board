@@ -10,7 +10,7 @@ class RotationHandle extends PositionComponent {
   final double rotationSpeed = 0.08;
 
   RotationHandle(this.component)
-    : super(anchor: Anchor.bottomCenter, priority: 3) {
+      : super(anchor: Anchor.bottomCenter, priority: 3) {
     add(
       CustomPaintComponent(
         painter: LinePainter(),
@@ -19,7 +19,7 @@ class RotationHandle extends PositionComponent {
       ),
     );
     add(
-      DraggableCircleComponent(
+      DraggableRectangleComponent(
         component: component,
         rotationSpeed: rotationSpeed,
         position: Vector2(0, -20),
@@ -36,10 +36,9 @@ class RotationHandle extends PositionComponent {
 class LinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = const Color(0xFF00FF00)
-          ..strokeWidth = 1;
+    final paint = Paint()
+      ..color = const Color(0xFF00FF00)
+      ..strokeWidth = 1;
     canvas.drawLine(Offset(0, 0), Offset(0, -size.height), paint);
   }
 
