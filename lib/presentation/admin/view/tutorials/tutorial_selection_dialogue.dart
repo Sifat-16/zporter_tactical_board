@@ -13,11 +13,10 @@ import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/t
 class TutorialSelectionDialog extends ConsumerWidget {
   const TutorialSelectionDialog({super.key});
 
-  // This new function shows the viewer dialog
+  // This function shows the viewer dialog
   void _showTutorialViewerDialog(BuildContext context, Tutorial tutorial) {
     showDialog(
       context: context,
-      // As requested, tapping the background barrier will not dismiss the dialog
       barrierDismissible: false,
       builder: (BuildContext context) {
         return TutorialViewerDialog(tutorial: tutorial);
@@ -57,37 +56,81 @@ class TutorialSelectionDialog extends ConsumerWidget {
               crossAxisCount: 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 3 / 2,
+              childAspectRatio: 4 / 3,
             ),
             itemCount: state.tutorials.length,
             itemBuilder: (context, index) {
               final tutorial = state.tutorials[index];
+              final hasThumbnail = tutorial.thumbnailUrl != null &&
+                  tutorial.thumbnailUrl!.isNotEmpty;
+
               return InkWell(
-                // --- THIS IS THE UPDATED PART ---
                 onTap: () {
-                  // First, close the current selection dialog
                   Navigator.of(context).pop();
-                  // Then, show the new viewer dialog
                   _showTutorialViewerDialog(context, tutorial);
                 },
                 child: Card(
                   color: ColorManager.dark1,
                   elevation: 4,
+                  clipBehavior: Clip.antiAlias,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8)),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        tutorial.name,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: ColorManager.white,
-                          fontWeight: FontWeight.bold,
+                  // --- THIS IS THE UPDATED LOGIC ---
+                  child: hasThumbnail
+                      // **Layout WITH Thumbnail**
+                      ? Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            Positioned.fill(
+                              child: Image.network(
+                                tutorial.thumbnailUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.broken_image,
+                                      color: ColorManager.grey);
+                                },
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.8),
+                                  Colors.transparent,
+                                ],
+                              )),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                tutorial.name,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                    color: ColorManager.white,
+                                    fontWeight: FontWeight.bold,
+                                    shadows: [Shadow(blurRadius: 2.0)]),
+                              ),
+                            ),
+                          ],
+                        )
+                      // **Layout WITHOUT Thumbnail**
+                      : Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              tutorial.name,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: ColorManager.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
                 ),
               );
             },

@@ -1,3 +1,5 @@
+// file: presentation/admin/view/tutorials/tutorial_editor_screen.dart
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,6 +13,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 // Adjust these imports to match your project's file structure
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_viewer_screen.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_state.dart';
 
@@ -34,47 +37,33 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
   void initState() {
     super.initState();
     Document document;
-
-    // Safely decode the JSON content, providing a fallback for empty/invalid data.
     try {
       if (widget.tutorial.contentJson.isNotEmpty) {
-        final decodedContent = jsonDecode(widget.tutorial.contentJson);
-        document = Document.fromJson(decodedContent);
+        document = Document.fromJson(jsonDecode(widget.tutorial.contentJson));
       } else {
-        // If there's no content, start with a blank document.
         document = Document();
       }
     } catch (e) {
-      // If JSON is malformed, show an error message in the editor.
       document = Document()..insert(0, 'Error loading content: $e');
     }
-
     _quillController = QuillController(
       document: document,
+      keepStyleOnNewLine: true,
       selection: const TextSelection.collapsed(offset: 0),
     );
   }
 
   @override
   void dispose() {
-    // Clean up the controller when the widget is removed.
     _quillController.dispose();
     super.dispose();
   }
 
-  /// Saves the editor's current content to Firestore via the controller.
   void _onSave() {
-    // Get the rich text content as a JSON string.
     final contentJson =
         jsonEncode(_quillController.document.toDelta().toJson());
-
-    // Create an updated tutorial model with the new content.
     final updatedTutorial = widget.tutorial.copyWith(contentJson: contentJson);
-
-    // Call the controller to save the data.
     ref.read(tutorialsProvider.notifier).updateTutorial(updatedTutorial);
-
-    // Show a confirmation message to the user.
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -85,31 +74,57 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
     }
   }
 
-  /// This callback is triggered when the user selects a video from the toolbar.
-  /// It handles the upload process.
-  /// NEW (CORRECTED) CALLBACK FOR VIDEO PICKING AND UPLOADING
-  /// This function now handles picking the file and uploading it.
+  /// **NEW**: Shows a preview of the current editor content.
+  void _showPreviewDialog() {
+    // Get the current, unsaved content from the editor.
+    final currentContentJson =
+        jsonEncode(_quillController.document.toDelta().toJson());
+
+    // Create a temporary tutorial object for the preview.
+    final previewTutorial =
+        widget.tutorial.copyWith(contentJson: currentContentJson);
+
+    // Show the viewer dialog with the temporary tutorial data.
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TutorialViewerDialog(tutorial: previewTutorial),
+    );
+  }
+
   Future<String?> _onRequestPickVideo(BuildContext context) async {
     final picker = ImagePicker();
-    // 1. Pick the video file
+
     final XFile? videoFile =
         await picker.pickVideo(source: ImageSource.gallery);
-
-    if (videoFile == null) {
-      // User cancelled the picker
-      return null;
-    }
-
-    // 2. Call the controller to handle the upload and get the URL
+    if (videoFile == null) return null;
     try {
-      final url = await ref
+      return await ref
           .read(tutorialsProvider.notifier)
           .uploadVideoForTutorial(File(videoFile.path), widget.tutorial.id);
-
-      // 3. Return the public URL to the editor
-      return url;
     } catch (e) {
-      zlog(data: "Error while trying to upload ${e}");
+      zlog(data: "Error while trying to upload $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error uploading video: $e')),
+        );
+      }
+      return null;
+    }
+  }
+
+  Future<String?> _onRequestPickImage(BuildContext context) async {
+    final picker = ImagePicker();
+
+    final XFile? imageFile =
+        await picker.pickImage(source: ImageSource.gallery);
+    if (imageFile == null) return null;
+    try {
+      return await ref
+          .read(tutorialsProvider.notifier)
+          .uploadVideoForTutorial(File(imageFile.path), widget.tutorial.id);
+    } catch (e) {
+      zlog(data: "Error while trying to upload $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error uploading video: $e')),
@@ -121,25 +136,26 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch the status from the provider to react to state changes (e.g., uploading).
     final status = ref.watch(tutorialsProvider.select((state) => state.status));
     final isUploading = status == TutorialStatus.uploading;
 
     return AbsorbPointer(
-      // Disable user interaction while a video is uploading.
       absorbing: isUploading,
       child: Scaffold(
-        // backgroundColor: ColorManager.black,
+        backgroundColor: ColorManager.black,
         appBar: AppBar(
-          title: Text(
-            widget.tutorial.name,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: ColorManager.black),
-          ),
-          backgroundColor: ColorManager.white,
+          title: Text(widget.tutorial.name,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: ColorManager.white)),
+          backgroundColor: ColorManager.transparent,
           elevation: 0,
-          iconTheme: const IconThemeData(color: ColorManager.black),
+          iconTheme: const IconThemeData(color: ColorManager.white),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.visibility_outlined),
+              tooltip: 'Preview Tutorial',
+              onPressed: _showPreviewDialog,
+            ),
             IconButton(
               icon: const Icon(Icons.save_outlined),
               tooltip: 'Save Content',
@@ -147,33 +163,269 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
             ),
           ],
         ),
-        // Stack allows us to overlay the loading indicator on top of the editor.
         body: Stack(
           children: [
             Column(
               children: [
-                // The editor's toolbar
                 QuillSimpleToolbar(
                   config: QuillSimpleToolbarConfig(
+                    buttonOptions: QuillSimpleToolbarButtonOptions(
+                      base: QuillToolbarToggleStyleButtonOptions(
+                        iconTheme: QuillIconTheme(
+                            iconButtonSelectedData:
+                                IconButtonData(color: Colors.yellow),
+                            iconButtonUnselectedData:
+                                IconButtonData(color: Colors.white)),
+                      ),
+                      fontSize: QuillToolbarFontSizeButtonOptions(
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      fontFamily: QuillToolbarFontFamilyButtonOptions(
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      bold: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      italic: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      undoHistory: QuillToolbarHistoryButtonOptions(
+                          iconTheme: QuillIconTheme(
+                        iconButtonSelectedData:
+                            IconButtonData(color: Colors.yellow),
+                        iconButtonUnselectedData:
+                            IconButtonData(color: Colors.white),
+                      )),
+                      redoHistory: QuillToolbarHistoryButtonOptions(
+                          iconTheme: QuillIconTheme(
+                        iconButtonSelectedData:
+                            IconButtonData(color: Colors.yellow),
+                        iconButtonUnselectedData:
+                            IconButtonData(color: Colors.white),
+                      )),
+                      underLine: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      strikeThrough: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                        iconButtonSelectedData:
+                            IconButtonData(color: Colors.yellow),
+                        iconButtonUnselectedData:
+                            IconButtonData(color: Colors.white),
+                      )),
+                      inlineCode: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      listBullets: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      listNumbers: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      codeBlock: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      quote: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      direction: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      selectHeaderStyleButtons:
+                          QuillToolbarSelectHeaderStyleButtonsOptions(
+                              iconTheme: QuillIconTheme(
+                        iconButtonSelectedData:
+                            IconButtonData(color: Colors.yellow),
+                        iconButtonUnselectedData:
+                            IconButtonData(color: Colors.white),
+                      )),
+                      selectHeaderStyleDropdownButton:
+                          QuillToolbarSelectHeaderStyleDropdownButtonOptions(
+                              iconTheme: QuillIconTheme(
+                        iconButtonSelectedData:
+                            IconButtonData(color: Colors.yellow),
+                        iconButtonUnselectedData:
+                            IconButtonData(color: Colors.white),
+                      )),
+                      superscript: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                        iconButtonSelectedData:
+                            IconButtonData(color: Colors.yellow),
+                        iconButtonUnselectedData:
+                            IconButtonData(color: Colors.white),
+                      )),
+                      subscript: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      small: QuillToolbarToggleStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      clearFormat: QuillToolbarClearFormatButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      selectLineHeightStyleDropdownButton:
+                          QuillToolbarSelectLineHeightStyleDropdownButtonOptions(
+                              iconTheme: QuillIconTheme(
+                                  iconButtonSelectedData:
+                                      IconButtonData(color: Colors.yellow),
+                                  iconButtonUnselectedData:
+                                      IconButtonData(color: Colors.white))),
+                      color: QuillToolbarColorButtonOptions(
+                          iconTheme: QuillIconTheme(
+                        iconButtonSelectedData:
+                            IconButtonData(color: Colors.yellow),
+                        iconButtonUnselectedData:
+                            IconButtonData(color: Colors.white),
+                      )),
+                      backgroundColor: QuillToolbarColorButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      linkStyle: QuillToolbarLinkStyleButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      linkStyle2: QuillToolbarLinkStyleButton2Options(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      search: QuillToolbarSearchButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      selectAlignmentButtons:
+                          QuillToolbarSelectAlignmentButtonOptions(
+                              iconTheme: QuillIconTheme(
+                                  iconButtonSelectedData:
+                                      IconButtonData(color: Colors.yellow),
+                                  iconButtonUnselectedData:
+                                      IconButtonData(color: Colors.white))),
+                      indentIncrease: QuillToolbarIndentButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      indentDecrease: QuillToolbarIndentButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      customButtons: QuillToolbarCustomButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                      clipboardCut: QuillToolbarClipboardButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white))),
+                    ),
                     embedButtons: FlutterQuillEmbeds.toolbarButtons(
+                      imageButtonOptions: QuillToolbarImageButtonOptions(
+                          iconTheme: QuillIconTheme(
+                              iconButtonSelectedData:
+                                  IconButtonData(color: Colors.yellow),
+                              iconButtonUnselectedData:
+                                  IconButtonData(color: Colors.white)),
+                          imageButtonConfig: QuillToolbarImageConfig(
+                              onRequestPickImage: _onRequestPickImage)),
                       videoButtonOptions: QuillToolbarVideoButtonOptions(
+                        iconTheme: QuillIconTheme(
+                            iconButtonSelectedData:
+                                IconButtonData(color: Colors.yellow),
+                            iconButtonUnselectedData:
+                                IconButtonData(color: Colors.white)),
                         videoConfig: QuillToolbarVideoConfig(
                           onRequestPickVideo: _onRequestPickVideo,
                         ),
                       ),
-                      // You can add options for image uploads here too if needed
                     ),
                   ),
                   controller: _quillController,
                 ),
                 const Divider(
                     height: 1, thickness: 1, color: ColorManager.dark2),
-                // The editor itself
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: QuillEditor.basic(
                       config: QuillEditorConfig(
+                        customStyles: DefaultStyles(
+                          // ** THIS IS THE CORRECTED PART **
+                          // Using VerticalSpacing as required by the constructor.
+                          paragraph: DefaultTextBlockStyle(
+                              const TextStyle(
+                                color: ColorManager.white,
+                                fontSize: 16,
+                                height: 1.5,
+                              ),
+                              const HorizontalSpacing(16, 0),
+                              const VerticalSpacing(16, 0), // Before the block
+                              const VerticalSpacing(0, 0), // After the block
+                              null),
+                          h1: DefaultTextBlockStyle(
+                              const TextStyle(
+                                  color: ColorManager.white,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold),
+                              const HorizontalSpacing(16, 0),
+                              const VerticalSpacing(16, 0),
+                              const VerticalSpacing(0, 0),
+                              null),
+                          link: const TextStyle(
+                            color: ColorManager.blueAccent,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
                         embedBuilders: FlutterQuillEmbeds.editorBuilders(),
                       ),
                       controller: _quillController,
@@ -182,11 +434,8 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
                 ),
               ],
             ),
-
-            // Conditionally show the loading overlay
             if (isUploading)
               Container(
-                // Semi-transparent background to dim the UI
                 color: Colors.black.withOpacity(0.7),
                 child: const Center(
                   child: Column(
@@ -194,14 +443,11 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
                     children: [
                       CircularProgressIndicator(color: ColorManager.yellow),
                       SizedBox(height: 20),
-                      Text(
-                        'Uploading Video...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text('Uploading File...',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
