@@ -330,4 +330,8 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(players: players);
     ref.read(animationProvider.notifier).updatePlayerModel(newModel: newModel);
   }
+
+  void updateBoardBackground(BoardBackground newBackground) {
+    state = state.copyWith(boardBackground: newBackground);
+  }
 }

@@ -119,6 +119,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         );
         zlog(data: "Build new tactic board");
         if (mounted) {
+          ref.read(boardProvider.notifier).updateBoardBackground(
+              selectedScene?.boardBackground ?? BoardBackground.full);
           ref.read(boardProvider.notifier).updateGameBoard(tacticBoardGame);
           ref.read(boardProvider.notifier).updateBoardColor(
                 ref.read(animationProvider.notifier).getFieldColor(),

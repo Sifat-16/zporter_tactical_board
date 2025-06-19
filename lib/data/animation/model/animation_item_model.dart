@@ -4,6 +4,7 @@ import 'package:flame/components.dart'; // For Vector2
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 class AnimationItemModel {
   String id;
@@ -15,6 +16,9 @@ class AnimationItemModel {
   Vector2 fieldSize;
   Duration sceneDuration; // ADDED: Duration for this specific scene's movements
 
+  // Inside the AnimationItemModel class, add this line with the other properties
+  BoardBackground boardBackground;
+
   AnimationItemModel({
     required this.id,
     required this.components,
@@ -23,6 +27,7 @@ class AnimationItemModel {
     required this.fieldColor,
     required this.updatedAt,
     required this.fieldSize,
+    this.boardBackground = BoardBackground.full,
     Duration? sceneDuration, // Optional in constructor to allow default
   }) : sceneDuration =
             sceneDuration ?? const Duration(seconds: 2); // Default to 2 seconds
@@ -36,6 +41,7 @@ class AnimationItemModel {
     Vector2? fieldSize,
     Color? fieldColor,
     Duration? sceneDuration, // ADDED
+    BoardBackground? boardBackground,
     // List<AnimationItemModel>? history, // 'history' was in your old copyWith, not used in constructor
   }) {
     return AnimationItemModel(
@@ -47,6 +53,7 @@ class AnimationItemModel {
       fieldColor: fieldColor ?? this.fieldColor,
       fieldSize: fieldSize ?? this.fieldSize.clone(),
       sceneDuration: sceneDuration ?? this.sceneDuration, // ADDED
+      boardBackground: boardBackground ?? this.boardBackground,
     );
   }
 
@@ -61,6 +68,7 @@ class AnimationItemModel {
       'fieldSize': FieldItemModel.vector2ToJson(fieldSize.clone()),
       'sceneDurationMilliseconds':
           sceneDuration.inMilliseconds, // ADDED: Store as milliseconds
+      'boardBackground': boardBackground.name,
     };
   }
 
@@ -78,6 +86,12 @@ class AnimationItemModel {
 
     final sceneDurationMilliseconds =
         json['sceneDurationMilliseconds'] as int?; // ADDED
+
+    final boardBackgroundString = json['boardBackground'] as String?;
+    final boardBackground = BoardBackground.values.firstWhere(
+      (e) => e.name == boardBackgroundString,
+      orElse: () => BoardBackground.full, // Default value if not found
+    );
 
     if (idValue == null ||
         componentsList == null ||
@@ -112,6 +126,7 @@ class AnimationItemModel {
       createdAt: DateTime.parse(createdAtString),
       updatedAt: DateTime.parse(updatedAtString),
       fieldSize: parsedFieldSize,
+      boardBackground: boardBackground,
       sceneDuration: sceneDurationMilliseconds != null // ADDED
           ? Duration(milliseconds: sceneDurationMilliseconds)
           : const Duration(seconds: 2), // Default if missing
@@ -127,6 +142,7 @@ class AnimationItemModel {
       components: components.map((e) => e.clone()).toList(),
       createdAt: createdAt,
       updatedAt: updatedAt,
+      boardBackground: boardBackground,
       fieldSize: fieldSize.clone(),
       sceneDuration: sceneDuration, // ADDED
     );
@@ -143,6 +159,7 @@ class AnimationItemModel {
     DateTime? updatedAt,
     Color? fieldColor,
     Vector2? fieldSize,
+    BoardBackground? boardBackground,
     Duration? sceneDuration, // ADDED
   }) {
     final now = DateTime.now();
@@ -154,6 +171,7 @@ class AnimationItemModel {
       userId: userId ?? "default_user_id",
       fieldColor: fieldColor ?? ColorManager.grey,
       fieldSize: fieldSize ?? Vector2(1280, 720),
+      boardBackground: boardBackground ?? BoardBackground.full,
       sceneDuration:
           sceneDuration ?? const Duration(seconds: 2), // ADDED default
     );

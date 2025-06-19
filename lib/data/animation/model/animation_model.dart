@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 import 'animation_item_model.dart'; // Import AnimationItemModel
 
@@ -12,6 +13,7 @@ class AnimationModel {
   List<AnimationItemModel> animationScenes;
   DateTime createdAt;
   DateTime updatedAt;
+  BoardBackground boardBackground;
 
   AnimationModel({
     required this.id,
@@ -21,6 +23,7 @@ class AnimationModel {
     required this.animationScenes,
     required this.createdAt,
     required this.updatedAt,
+    this.boardBackground = BoardBackground.full,
   });
 
   AnimationModel copyWith({
@@ -31,6 +34,7 @@ class AnimationModel {
     List<AnimationItemModel>? animationScenes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    BoardBackground? boardBackground,
   }) {
     return AnimationModel(
       id: id ?? this.id,
@@ -40,6 +44,7 @@ class AnimationModel {
       animationScenes: animationScenes ?? this.animationScenes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      boardBackground: boardBackground ?? this.boardBackground,
     );
   }
 
@@ -53,24 +58,29 @@ class AnimationModel {
           animationScenes.map((animation) => animation.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'boardBackground': boardBackground.name,
     };
   }
 
   factory AnimationModel.fromJson(Map<String, dynamic> json) {
+    final boardBackgroundString = json['boardBackground'] as String?;
+    final boardBackground = BoardBackground.values.firstWhere(
+      (e) => e.name == boardBackgroundString,
+      orElse: () => BoardBackground.full, // Default value
+    );
     return AnimationModel(
       id: json['_id'],
       name: json['name'],
       userId: json['userId'],
-      fieldColor:
-          json['fieldColor'] == null
-              ? ColorManager.grey
-              : Color((json['fieldColor'] as int?) ?? 0),
-      animationScenes:
-          (json['animationScenes'] as List)
-              .map(
-                (animationJson) => AnimationItemModel.fromJson(animationJson),
-              )
-              .toList(),
+      fieldColor: json['fieldColor'] == null
+          ? ColorManager.grey
+          : Color((json['fieldColor'] as int?) ?? 0),
+      animationScenes: (json['animationScenes'] as List)
+          .map(
+            (animationJson) => AnimationItemModel.fromJson(animationJson),
+          )
+          .toList(),
+      boardBackground: boardBackground,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
@@ -82,6 +92,7 @@ class AnimationModel {
       name: name,
       fieldColor: fieldColor,
       userId: userId,
+      boardBackground: boardBackground,
       animationScenes: animationScenes.map((e) => e.clone()).toList(),
       createdAt: createdAt, // DateTime is immutable
       updatedAt: updatedAt, // DateTime is immutable

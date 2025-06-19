@@ -31,6 +31,7 @@ import 'package:zporter_tactical_board/presentation/auth/view_model/auth_control
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 final animationProvider =
     StateNotifierProvider<AnimationController, AnimationState>(
@@ -199,6 +200,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         id: RandomGenerator.generateId(),
         name: newAnimation.newAnimationName,
         animationScenes: [],
+        boardBackground: ref.read(boardProvider).boardBackground,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -223,6 +225,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           userId: _getUserId(),
           fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
               Vector2(0, 0),
+          boardBackground: ref.read(boardProvider).boardBackground,
           components: newAnimation.items,
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
@@ -251,6 +254,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedAnimationModel: s,
       selectedScene: s?.animationScenes.firstOrNull,
     );
+    ref
+        .read(boardProvider.notifier)
+        .updateBoardBackground(s?.boardBackground ?? BoardBackground.full);
   }
 
   void clearAnimation() {
@@ -444,6 +450,9 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   void selectScene({required AnimationItemModel scene}) {
     state = state.copyWith(selectedScene: scene);
+    ref
+        .read(boardProvider.notifier)
+        .updateBoardBackground(scene.boardBackground);
   }
 
   void toggleAnimation() {
@@ -595,7 +604,9 @@ class AnimationController extends StateNotifier<AnimationState> {
           ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
       // changeModel.fieldColor = ref.read(boardProvider).boardColor;
       defaultAnimations[index] = changeModel;
-      zlog(data: "Default animation model List ${changeModel.components}");
+      zlog(
+          data:
+              "Default animation model List ${changeModel.components} - ${changeModel.boardBackground}");
       SaveDefaultAnimationParam defaultAnimationParam =
           SaveDefaultAnimationParam(
         animationItems: defaultAnimations,
@@ -1103,4 +1114,32 @@ class AnimationController extends StateNotifier<AnimationState> {
   //   AnimationItemModel? selectedScene = state.selectedScene;
   //   List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
   // }
+
+  void updateBoardBackground(BoardBackground newBackground) {
+    final selectedAnim = state.selectedAnimationModel;
+    final selectedScene = state.selectedScene;
+
+    if (selectedAnim != null && selectedScene != null) {
+      // --- Case 1: An animation with scenes is selected ---
+      // Update the main animation model
+      selectedAnim.boardBackground = newBackground;
+
+      // Ensure all child scenes also have the new background for consistency
+      for (var i = 0; i < selectedAnim.animationScenes.length; i++) {
+        selectedAnim.animationScenes[i].boardBackground = newBackground;
+      }
+
+      // The existing autosave function will handle saving this change to the database.
+      updateDatabaseOnChange(saveToDb: true);
+    } else if (selectedScene != null) {
+      // --- Case 2: Only a default scene is selected ---
+      selectedScene.boardBackground = newBackground;
+
+      // The existing autosave function for default scenes will handle this.
+      updateDatabaseOnChange(saveToDb: true);
+    }
+
+    // Finally, update the UI provider so the GameField redraws itself.
+    ref.read(boardProvider.notifier).updateBoardBackground(newBackground);
+  }
 }

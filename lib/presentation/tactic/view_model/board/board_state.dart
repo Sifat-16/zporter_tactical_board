@@ -14,6 +14,18 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 
 const Object _sentinel = Object();
 
+enum BoardBackground {
+  full,
+  halfUp,
+  // fullDuplicate, // This is for the duplicate full pitch in the layout
+  halfDown,
+  verticalCorridors,
+  clean,
+  // horizontalZones,
+  // goalNetFront,
+  // goalNetAngle,
+}
+
 class BoardState {
   final List<PlayerModel> players;
   final List<EquipmentModel> equipments;
@@ -39,6 +51,7 @@ class BoardState {
   final bool isDraggingElementToBoard;
   final bool refreshBoard;
   final AnimatingObj? animatingObj;
+  final BoardBackground boardBackground;
 
   const BoardState(
       {this.players = const [],
@@ -64,6 +77,7 @@ class BoardState {
       this.boardAngle = 0,
       this.showFullScreen = false,
       this.isDraggingElementToBoard = false,
+      this.boardBackground = BoardBackground.full,
       this.animatingObj});
 
   BoardState copyWith({
@@ -93,6 +107,7 @@ class BoardState {
     bool? isDraggingElementToBoard,
     bool? isAnimating,
     Object? animatingObj = _sentinel,
+    BoardBackground? boardBackground,
   }) {
     return BoardState(
         players: players ?? this.players,
@@ -124,6 +139,7 @@ class BoardState {
         isDraggingElementToBoard:
             isDraggingElementToBoard ?? this.isDraggingElementToBoard,
         refreshBoard: refreshBoard ?? this.refreshBoard,
+        boardBackground: boardBackground ?? this.boardBackground,
         animatingObj: animatingObj == _sentinel
             ? this.animatingObj
             : animatingObj as AnimatingObj?);
