@@ -172,7 +172,7 @@ class TacticBoard extends TacticBoardGame
           ); // Use join for a more stable string representation if order matters
 
       current =
-          "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()}";
+          "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
 
       if (_boardComparator == null) {
         _boardComparator = current;

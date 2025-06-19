@@ -152,7 +152,9 @@ import 'package:zporter_tactical_board/app/core/component/link_text.dart'; // As
 import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Assuming this path is correct
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart'; // Assuming this path is correct
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Assuming this path is correct
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart'; // Assuming this path is correct
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
+
+import 'components/field_preview_painter.dart'; // Assuming this path is correct
 
 class SettingsToolbarComponent extends ConsumerStatefulWidget {
   const SettingsToolbarComponent({super.key});
@@ -219,6 +221,9 @@ class _SettingsToolbarComponentState
 
                 // ImagePicker(label: "Background Image",  onChanged: (s){})
                 // Note: _buildAppInfo() is moved out of this ListView
+
+                const SizedBox(height: 20), // Add some spacing
+                _buildBackgroundSelector(),
               ],
             ),
           ),
@@ -324,6 +329,104 @@ class _SettingsToolbarComponentState
           // ),
         ],
       ),
+    );
+  }
+
+  // Add this entire method inside the _SettingsToolbarComponentState class.
+
+  // Replace the entire _buildBackgroundSelector method with this one
+  // Replace the entire _buildBackgroundSelector method with this one
+  Widget _buildBackgroundSelector() {
+    final currentBackground =
+        ref.watch(boardProvider.select((state) => state.boardBackground));
+
+    // Create a list of all the background types to build the grid
+    final backgroundOptions = BoardBackground.values;
+
+    // Helper function to create each selectable option
+    Widget buildOption(BoardBackground background) {
+      final isSelected = currentBackground == background;
+
+      return GestureDetector(
+        onTap: () {
+          // ref.read(boardProvider.notifier).updateBoardBackground(background);
+          ref
+              .read(animationProvider.notifier)
+              .updateBoardBackground(background);
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: isSelected ? ColorManager.yellow : Colors.grey.shade700,
+              width: isSelected ? 2.0 : 1.0,
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Use the painter with a transparent background
+                CustomPaint(
+                  size: Size.infinite, // Painter will fill the available space
+                  painter: FieldPreviewPainter(
+                    backgroundType: background,
+                    fieldColor: Colors.transparent, // As requested
+                    lineColor: Colors.white, // As requested
+                  ),
+                ),
+                // Show a checkmark if this item is selected
+                if (isSelected)
+                  Positioned(
+                    top: 4,
+                    left: 4,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(Icons.check,
+                          color: Colors.white, size: 16),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Field Options",
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge!
+              .copyWith(color: ColorManager.grey),
+        ),
+        const SizedBox(height: 10),
+        // Use GridView.builder to create the 2-column layout
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: backgroundOptions.length,
+          // Inside the GridView.builder widget...
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            // Change this value to make items wider than they are tall
+            childAspectRatio: 16 / 9, // e.g., an 80 width vs 60 height ratio
+          ),
+          itemBuilder: (context, index) {
+            return buildOption(backgroundOptions[index]);
+          },
+        ),
+      ],
     );
   }
 }
