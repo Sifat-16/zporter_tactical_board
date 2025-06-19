@@ -74,10 +74,9 @@ class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(4),
             side: BorderSide(
-              color:
-                  widget.isSelected
-                      ? ColorManager.yellowLight.withValues(alpha: 0.6)
-                      : ColorManager.transparent,
+              color: widget.isSelected
+                  ? ColorManager.yellowLight.withValues(alpha: 0.6)
+                  : ColorManager.transparent,
             ),
           ),
           clipBehavior: Clip.antiAlias,
@@ -93,6 +92,7 @@ class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
                         fieldColor: widget.fieldColor,
                         borderColor: widget.borderColor,
                         items: widget.animation.components,
+                        boardBackground: widget.animation.boardBackground,
                         logicalFieldSize:
                             widget.animation.fieldSize == Vector2.zero()
                                 ? Vector2(10000, 10000)
@@ -102,9 +102,7 @@ class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
                     ],
                   ),
                 ),
-
                 SizedBox(width: 10),
-
                 Column(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -131,9 +129,9 @@ class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
                                 style: Theme.of(
                                   context,
                                 ).textTheme.labelLarge!.copyWith(
-                                  color: ColorManager.red,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                      color: ColorManager.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                             ),
                           ),
@@ -141,9 +139,7 @@ class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
                       },
                       child: Icon(Icons.more_vert, color: Colors.white),
                     ),
-
                     SizedBox(height: 10),
-
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -224,9 +220,7 @@ class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
                         ), // TODO: Add functionality// Use passed index string
                       ],
                     ),
-
                     SizedBox(height: 10),
-
                     Container(),
                   ],
                 ),

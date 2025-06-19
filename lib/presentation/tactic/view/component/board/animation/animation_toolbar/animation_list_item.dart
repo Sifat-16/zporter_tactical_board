@@ -297,6 +297,7 @@ class AnimationListItem extends StatelessWidget {
                           height: fieldHeight,
                           child: MiniGameFieldWidget(
                             fieldColor: fieldColor,
+                            boardBackground: animation.boardBackground,
                             borderColor: borderColor,
                             items: const [],
                             logicalFieldSize: Vector2(10000, 10000),
