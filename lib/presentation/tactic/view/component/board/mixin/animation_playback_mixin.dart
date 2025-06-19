@@ -119,6 +119,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
         _currentSceneIndex = 0;
         _wasHardResetRecently = false;
       }
+
       zlog(
         data:
             "TacticBoardGameAnimation: onLoad finished. Animation playing: $_isAnimationPlaying",
@@ -201,6 +202,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     _activeMovingItemIdsInCurrentScene.clear();
     _currentSceneDelayTimerActive = false;
     _sceneProgressionTimer?.cancel();
+
     _proceedToNextScene();
   }
 

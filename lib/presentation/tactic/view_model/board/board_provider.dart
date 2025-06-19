@@ -29,6 +29,9 @@ class BoardController extends StateNotifier<BoardState> {
     if (fieldItemModel is PlayerModel) {
       state = state.copyWith(players: [...state.players, fieldItemModel]);
     } else if (fieldItemModel is EquipmentModel) {
+      zlog(
+          data:
+              "Executed the id generation process got - ${fieldItemModel.id}");
       state = state.copyWith(equipments: [...state.equipments, fieldItemModel]);
     }
     // else if (fieldItemModel is FreeDrawModelV2) {
@@ -96,12 +99,12 @@ class BoardController extends StateNotifier<BoardState> {
         state = state.copyWith(forceItemModelNull: true);
       } else {
         state = state.copyWith(selectedItemOnTheBoard: fieldItemModel);
+        zlog(
+          data:
+              "Selected item to work ${state.selectedItemOnTheBoard.runtimeType} - ${camefrom}",
+        );
       }
     }
-    zlog(
-      data:
-          "Selected item to work ${state.selectedItemOnTheBoard.runtimeType} - ${camefrom}",
-    );
   }
 
   void removeElement() {

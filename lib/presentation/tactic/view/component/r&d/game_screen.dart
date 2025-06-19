@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:widget_capture_x_plus/widget_capture_x_plus.dart';
 import 'package:widget_capture_x_plus/widget_capture_x_plus_controller.dart';
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/animation_sharer.dart';
 import 'package:zporter_tactical_board/app/helper/file_name_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -15,6 +16,7 @@ import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/animation_controls_widget.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
@@ -365,6 +367,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             transformedOffset + tacticBoardGame.gameField.position;
         fieldItemModel.offset = SizeHelper.getBoardRelativeVector(
             gameScreenSize: gameScreenSize, actualPosition: actualPosition);
+
+        if (fieldItemModel is EquipmentModel) {
+          fieldItemModel =
+              fieldItemModel.copyWith(id: RandomGenerator.generateId());
+        }
+
         await tacticBoardGame.addItem(fieldItemModel);
       },
       builder: (BuildContext context, List<Object?> candidateData,
@@ -461,182 +469,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   alignment: Alignment.bottomCenter,
                   child: Container(
                     height: 30,
-
-                    // padding: EdgeInsets.symmetric(vertical: 2, horizontal: 10),
-                    // child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    //   FormSpeedDialComponent(
-                    //       tacticBoardGame: tacticBoardGame,
-                    //       config: widget.config ??
-                    //           FormSpeedDialConfig(
-                    //             onShare: () async {
-                    //               AnimationModel? selectedAnimation = ref
-                    //                   .read(animationProvider)
-                    //                   .selectedAnimationModel;
-                    //               if (isBoardBusy(bp)) {
-                    //                 BotToast.showText(
-                    //                     text:
-                    //                         "Please wait for the current operation to complete.");
-                    //                 return;
-                    //               }
-                    //               if (selectedAnimation == null) {
-                    //                 await AnimationSharer.captureAndShare(
-                    //                     _gameBoundaryKey,
-                    //                     context: context,
-                    //                     fileName: FileNameGenerator
-                    //                         .generateZporterCaptureFilename());
-                    //               } else {
-                    //                 AnimationShareType? type =
-                    //                     await _showShareChoiceDialog(
-                    //                         context, 'Share As');
-                    //                 if (type == AnimationShareType.image) {
-                    //                   await AnimationSharer.captureAndShare(
-                    //                       _gameBoundaryKey,
-                    //                       context: context,
-                    //                       fileName: FileNameGenerator
-                    //                           .generateZporterCaptureFilename());
-                    //                 } else if (type ==
-                    //                     AnimationShareType.video) {
-                    //                   if (!mounted) return;
-                    //
-                    //                   // 1. Set state to exporting
-                    //                   if (mounted) {
-                    //                     ref
-                    //                         .read(boardProvider.notifier)
-                    //                         .toggleAnimating(
-                    //                             animatingObj:
-                    //                                 AnimatingObj.export());
-                    //                   }
-                    //
-                    //                   // 2. Show dialog (which starts recording) and await its result
-                    //                   final RecordingOutput? finalOutput =
-                    //                       await _showVideoExportProgressDialog();
-                    //                   zlog(
-                    //                       data:
-                    //                           "Awaited _showVideoExportProgressDialog. Final Output: ${finalOutput?.filePath}, Success: ${finalOutput?.success}");
-                    //
-                    //                   // 3. Dialog is closed, now reset board state fully
-                    //                   if (mounted) {
-                    //                     ref
-                    //                         .read(boardProvider.notifier)
-                    //                         .toggleAnimating(
-                    //                             animatingObj: null);
-                    //                   }
-                    //
-                    //                   // 4. Process the result
-                    //                   if (finalOutput != null &&
-                    //                       finalOutput.success &&
-                    //                       finalOutput.filePath != null) {
-                    //                     AnimationSharer.shareImageFile(
-                    //                       context: context,
-                    //                       finalOutput.filePath!,
-                    //                       text:
-                    //                           "Zporter Football Pad Animation",
-                    //                       subject:
-                    //                           "Check out this from my Zporter Football Pad",
-                    //                     );
-                    //                     zlog(
-                    //                         data:
-                    //                             "Video ready for sharing: ${finalOutput.filePath}");
-                    //                     // TODO: Share/Save finalOutput.filePath
-                    //                     // Example: await AnimationSharer.shareFile(finalOutput.filePath!);
-                    //                   } else if (finalOutput != null &&
-                    //                       !finalOutput.success) {
-                    //                     BotToast.showText(
-                    //                         text:
-                    //                             "Video export failed: ${finalOutput.errorMessage ?? 'Unknown error.'}");
-                    //                   } else {
-                    //                     // finalOutput is null
-                    //                     BotToast.showText(
-                    //                         text:
-                    //                             "Video export was cancelled or did not complete.");
-                    //                   }
-                    //                 }
-                    //               }
-                    //             },
-                    //             onDownload: () async {
-                    //               AnimationModel? selectedAnimation = ref
-                    //                   .read(animationProvider)
-                    //                   .selectedAnimationModel;
-                    //               if (isBoardBusy(bp)) {
-                    //                 BotToast.showText(
-                    //                     text:
-                    //                         "Please wait for the current operation to complete.");
-                    //                 return;
-                    //               }
-                    //               if (selectedAnimation == null) {
-                    //                 await AnimationDownloader.captureAndDownload(
-                    //                     _gameBoundaryKey,
-                    //                     fileName: FileNameGenerator
-                    //                         .generateZporterCaptureFilename());
-                    //               } else {
-                    //                 AnimationShareType? type =
-                    //                     await _showShareChoiceDialog(
-                    //                         context, 'Download As');
-                    //                 if (type == AnimationShareType.image) {
-                    //                   await AnimationDownloader
-                    //                       .captureAndDownload(
-                    //                           _gameBoundaryKey,
-                    //                           fileName: FileNameGenerator
-                    //                               .generateZporterCaptureFilename());
-                    //                 } else if (type ==
-                    //                     AnimationShareType.video) {
-                    //                   if (!mounted) return;
-                    //
-                    //                   // 1. Set state to exporting
-                    //                   if (mounted) {
-                    //                     ref
-                    //                         .read(boardProvider.notifier)
-                    //                         .toggleAnimating(
-                    //                             animatingObj:
-                    //                                 AnimatingObj.export());
-                    //                   }
-                    //
-                    //                   // 2. Show dialog (which starts recording) and await its result
-                    //                   final RecordingOutput? finalOutput =
-                    //                       await _showVideoExportProgressDialog();
-                    //                   zlog(
-                    //                       data:
-                    //                           "Awaited _showVideoExportProgressDialog. Final Output: ${finalOutput?.filePath}, Success: ${finalOutput?.success}");
-                    //
-                    //                   // 3. Dialog is closed, now reset board state fully
-                    //                   if (mounted) {
-                    //                     ref
-                    //                         .read(boardProvider.notifier)
-                    //                         .toggleAnimating(
-                    //                             animatingObj: null);
-                    //                   }
-                    //
-                    //                   // 4. Process the result
-                    //                   if (finalOutput != null &&
-                    //                       finalOutput.success &&
-                    //                       finalOutput.filePath != null) {
-                    //                     AnimationDownloader.downloadFile(
-                    //                         finalOutput.filePath!,
-                    //                         text:
-                    //                             "${FileNameGenerator.generateZporterCaptureFilename()}.mp4");
-                    //                     zlog(
-                    //                         data:
-                    //                             "Video ready for sharing: ${finalOutput.filePath}");
-                    //                     // TODO: Share/Save finalOutput.filePath
-                    //                     // Example: await AnimationSharer.shareFile(finalOutput.filePath!);
-                    //                   } else if (finalOutput != null &&
-                    //                       !finalOutput.success) {
-                    //                     BotToast.showText(
-                    //                         text:
-                    //                             "Video export failed: ${finalOutput.errorMessage ?? 'Unknown error.'}");
-                    //                   } else {
-                    //                     // finalOutput is null
-                    //                     BotToast.showText(
-                    //                         text:
-                    //                             "Video export was cancelled or did not complete.");
-                    //                   }
-                    //                 }
-                    //               }
-                    //             },
-                    //           )),
-                    // ]
-                    // )
-
                     child: FormSpeedDialComponent(
                         tacticBoardGame: tacticBoardGame,
                         config: widget.config ??

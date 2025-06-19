@@ -182,40 +182,87 @@ class _AnimationControlsWidgetState extends State<AnimationControlsWidget> {
     );
   }
 
+  // void _togglePlayPause() {
+  //   if (widget.animatingObj.isExporting) return;
+  //   if (!mounted) return;
+  //
+  //   if (_isCurrentlyPlaying) {
+  //     widget.game.pauseAnimation();
+  //     zlog(data: "AnimationControlsWidget: Pause button pressed.");
+  //   } else {
+  //     // If animation was finished and we press play, it should restart.
+  //     // playAnimation should ideally handle resuming or restarting from beginning if already completed.
+  //     if (widget.game.isAnimationCurrentlyPlaying ||
+  //         widget.game.isAnimationCurrentlyPaused) {
+  //       widget.game.playAnimation(); // Resume
+  //     } else {
+  //       // Animation was likely stopped or completed, restart.
+  //       // Re-initialize state for play and start.
+  //       _isCurrentlyPlaying =
+  //           true; // Set desired state before calling _startAnimation
+  //       _startAnimation();
+  //     }
+  //     zlog(data: "AnimationControlsWidget: Play button pressed.");
+  //   }
+  //   if (mounted) {
+  //     // Ensure state reflects action, especially if playAnimation() is async or complex
+  //     // For pause, it's immediate. For play, it might depend on game.playAnimation behavior.
+  //     // If playAnimation ensures it's playing, then this setState is correct.
+  //     setState(() {
+  //       if (!widget.game.isAnimationCurrentlyPlaying &&
+  //           !widget.game.isAnimationCurrentlyPaused &&
+  //           !_isCurrentlyPlaying) {
+  //         // If we tried to play but it didn't start (e.g. no scenes), don't set to playing
+  //       } else {
+  //         _isCurrentlyPlaying = !_isCurrentlyPlaying;
+  //       }
+  //     });
+  //   }
+  // }
+
+  // In zporter_tactical_board/presentation/tactic/view/component/animation/animation_controls_widget.dart
+
   void _togglePlayPause() {
     if (widget.animatingObj.isExporting) return;
     if (!mounted) return;
 
+    // If the button shows "Pause" (meaning we believe it's playing)
     if (_isCurrentlyPlaying) {
+      // Action: Pause the game.
       widget.game.pauseAnimation();
       zlog(data: "AnimationControlsWidget: Pause button pressed.");
-    } else {
-      // If animation was finished and we press play, it should restart.
-      // playAnimation should ideally handle resuming or restarting from beginning if already completed.
+
+      // Result: The animation is now paused. Update UI to show "Play".
+      setState(() {
+        _isCurrentlyPlaying = false;
+      });
+    }
+    // If the button shows "Play" (meaning we believe it's paused or stopped)
+    else {
+      // Action: Start or resume the game.
+
+      // Case A: The game is already loaded and just needs to be resumed.
       if (widget.game.isAnimationCurrentlyPlaying ||
           widget.game.isAnimationCurrentlyPaused) {
-        widget.game.playAnimation(); // Resume
-      } else {
-        // Animation was likely stopped or completed, restart.
-        // Re-initialize state for play and start.
-        _isCurrentlyPlaying =
-            true; // Set desired state before calling _startAnimation
-        _startAnimation();
+        widget.game.playAnimation(); // Assumes this resumes the animation
+        zlog(data: "AnimationControlsWidget: Resume button pressed.");
       }
-      zlog(data: "AnimationControlsWidget: Play button pressed.");
-    }
-    if (mounted) {
-      // Ensure state reflects action, especially if playAnimation() is async or complex
-      // For pause, it's immediate. For play, it might depend on game.playAnimation behavior.
-      // If playAnimation ensures it's playing, then this setState is correct.
+      // Case B: The game is fully stopped (e.g., after a reset) and needs to be started from the beginning.
+      else {
+        // To make `_startAnimation` work correctly, we must set the UI state
+        // to `true` *before* calling it. This allows `_startAnimation` to read
+        // the correct state and set the `autoplay` parameter to true.
+        _isCurrentlyPlaying = true;
+        _startAnimation();
+        zlog(
+            data:
+                "AnimationControlsWidget: Play (from beginning) button pressed.");
+      }
+
+      // Result: The animation is now playing. Update UI to show "Pause".
+      // This handles both resuming (Case A) and restarting (Case B).
       setState(() {
-        if (!widget.game.isAnimationCurrentlyPlaying &&
-            !widget.game.isAnimationCurrentlyPaused &&
-            !_isCurrentlyPlaying) {
-          // If we tried to play but it didn't start (e.g. no scenes), don't set to playing
-        } else {
-          _isCurrentlyPlaying = !_isCurrentlyPlaying;
-        }
+        _isCurrentlyPlaying = true;
       });
     }
   }

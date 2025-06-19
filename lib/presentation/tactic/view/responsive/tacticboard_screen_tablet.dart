@@ -458,24 +458,26 @@ class _TacticboardScreenTabletState
                           ),
                         ),
                       Container(
-                        // color: Colors.green,
+                        color: Colors.green,
                         width: context.widthPercent(22),
                         child: Row(
-                          spacing: 12,
+                          spacing: 10,
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            // Icon(
-                            //   Icons.add,
-                            //   color: Colors.white,
-                            // ),
-                            // Icon(
-                            //   Icons.add,
-                            //   color: Colors.white,
-                            // ),
-                            // Icon(
-                            //   Icons.add,
-                            //   color: Colors.white,
-                            // ),
+                            InkWell(
+                              onTap: () {
+                                ref
+                                    .read(animationProvider.notifier)
+                                    .copyCurrentDefaultScene();
+                                BotToast.showText(text: "Scene Copied");
+                              },
+                              child: Icon(
+                                Icons.copy,
+                                color: ColorManager.white,
+                                // size: 18,
+                              ),
+                              // tooltip: "Copy Current Scene",
+                            ),
                             InkWell(
                               onTap: () => ref
                                   .read(animationProvider.notifier)
@@ -487,23 +489,6 @@ class _TacticboardScreenTabletState
                               ),
                               // tooltip: "Add New Scene",
                             ),
-
-                            // --- NEW BUTTON ADDED HERE ---
-                            InkWell(
-                              onTap: () {
-                                ref
-                                    .read(animationProvider.notifier)
-                                    .copyCurrentDefaultScene();
-                                BotToast.showText(text: "Scene Copied");
-                              },
-                              child: Icon(
-                                Icons.copy,
-                                color: ColorManager.white,
-                                size: 18,
-                              ),
-                              // tooltip: "Copy Current Scene",
-                            ),
-                            // --- END OF NEW BUTTON ---
                             InkWell(
                               onTap: () async {
                                 bool? confirm = await showConfirmationDialog(

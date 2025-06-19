@@ -196,6 +196,7 @@ class _AnimationToolbarComponentState
               fillColor: ColorManager.blue,
               onTap: () {
                 BotToast.showText(text: "Animation saved");
+                ref.read(animationProvider.notifier).clearAnimation();
               },
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               borderRadius: 3,

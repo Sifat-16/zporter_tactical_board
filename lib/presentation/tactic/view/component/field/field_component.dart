@@ -59,6 +59,9 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
   void onMount() {
     addToGameWidgetBuild(() {
       ref.listen(boardProvider, (p0, p1) {
+        zlog(
+            data:
+                "Okay item on the field here selected ${p1.selectedItemOnTheBoard?.id} - ${object.id}");
         if (p1.selectedItemOnTheBoard == null ||
             p1.selectedItemOnTheBoard?.id != object.id) {
           _isSelected = false;
