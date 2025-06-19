@@ -260,21 +260,59 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
         ],
       );
 
-      String textToRender = playerName;
-      if (playerName.contains(' ')) {
-        textToRender = playerName.replaceFirst(' ', '\n');
+      // String textToRender = playerName;
+      // if (playerName.contains(' ')) {
+      //   textToRender = playerName.replaceFirst(' ', '\n');
+      // }
+
+      // --- START: MODIFIED NAME LOGIC ---
+      String truncate(String s) => s.length > 9 ? s.substring(0, 9) : s;
+
+      final parts =
+          playerName.trim().split(' ').where((p) => p.isNotEmpty).toList();
+      String textToRender;
+
+      if (parts.length > 1) {
+        final firstName = truncate(parts.first);
+        // Join the rest back together in case of multiple last/middle names
+        final lastName = truncate(parts.sublist(1).join(' '));
+        textToRender = '$firstName\n$lastName';
+      } else {
+        textToRender = truncate(playerName);
       }
+      // --- END: MODIFIED NAME LOGIC ---
+
+      // _nameTextPainter.text =
+      //     TextSpan(text: textToRender, style: nameTextStyle);
+      // _nameTextPainter.maxLines = 2;
+      // _nameTextPainter.textAlign = TextAlign.start;
+      // _nameTextPainter.ellipsis = '...';
+      // _nameTextPainter.layout(maxWidth: size.x);
+      //
+      // final nameOffset = Offset(
+      //   (size.x - _nameTextPainter.width) / 2,
+      //   size.y + 4.0,
+      // );
+      //
+      // _nameTextPainter.paint(canvas, nameOffset);
 
       _nameTextPainter.text =
           TextSpan(text: textToRender, style: nameTextStyle);
       _nameTextPainter.maxLines = 2;
-      _nameTextPainter.textAlign = TextAlign.start;
-      _nameTextPainter.ellipsis = '...';
-      _nameTextPainter.layout(maxWidth: size.x);
+
+      // Requirement 1: Centralize the text
+      _nameTextPainter.textAlign = TextAlign.center;
+
+      // Requirement 2: Take away ellipsis (by not setting the ellipsis property)
+      _nameTextPainter.ellipsis = null;
+
+      // Give the layout a bit more horizontal space than the icon itself
+      _nameTextPainter.layout(maxWidth: size.x * 1.5);
 
       final nameOffset = Offset(
-        (size.x - _nameTextPainter.width) / 2,
-        size.y + 4.0,
+        (size.x - _nameTextPainter.width) /
+            2, // This centers the entire text block
+        size.y + 4.0, // Position below the icon
       );
 
       _nameTextPainter.paint(canvas, nameOffset);
