@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
@@ -75,73 +76,131 @@ class _LineupArrangementDialogState extends State<LineupArrangementDialog> {
       context: context,
       builder: (context) {
         return SimpleDialog(
-          title: const Text('Assign Player to Position'),
-          backgroundColor: ColorManager.dark2,
-          titleTextStyle: TextStyle(color: ColorManager.white, fontSize: 18),
-          children: availableChoices.isEmpty
-              ? [
-                  const Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Text("No available players to assign.",
-                        style: TextStyle(color: Colors.white)),
-                  )
-                ]
-              : availableChoices.map((player) {
-                  final bool isCurrentlySelected =
-                      player.id == currentlyAssignedPlayer?.id;
-                  final imagePath = player.imagePath;
-                  final bool hasImage = imagePath != null &&
-                      imagePath.isNotEmpty &&
-                      File(imagePath).existsSync();
+            title: const Text('Assign Player to Position'),
+            backgroundColor: ColorManager.dark2,
+            titleTextStyle: TextStyle(color: ColorManager.white, fontSize: 18),
+            children: availableChoices.isEmpty
+                ? [
+                    const Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Text("No available players to assign.",
+                          style: TextStyle(color: Colors.white)),
+                    )
+                  ]
+                :
 
-                  // Highlight players from the bench to distinguish them
-                  final bool isBenchPlayer =
-                      widget.benchPlayers.any((p) => p.id == player.id);
+                // availableChoices.map((player) {
+                //         final bool isCurrentlySelected =
+                //             player.id == currentlyAssignedPlayer?.id;
+                //         final imagePath = player.imagePath;
+                //         final bool hasImage = imagePath != null &&
+                //             imagePath.isNotEmpty &&
+                //             File(imagePath).existsSync();
+                //
+                //         // Highlight players from the bench to distinguish them
+                //         final bool isBenchPlayer =
+                //             widget.benchPlayers.any((p) => p.id == player.id);
+                //
+                //         return SimpleDialogOption(
+                //           onPressed: () => Navigator.pop(context, player),
+                //           child: Row(
+                //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                //             children: [
+                //               Expanded(
+                //                 child: Text(
+                //                   '#${player.jerseyNumber} - ${player.name ?? player.role}',
+                //                   overflow: TextOverflow.ellipsis,
+                //                   style: TextStyle(
+                //                     color: isCurrentlySelected
+                //                         ? ColorManager.yellow
+                //                         : isBenchPlayer
+                //                             ? Colors.lightGreenAccent.withOpacity(0.8)
+                //                             : ColorManager.white,
+                //                     fontWeight: isCurrentlySelected
+                //                         ? FontWeight.bold
+                //                         : FontWeight.normal,
+                //                   ),
+                //                 ),
+                //               ),
+                //               if (isBenchPlayer)
+                //                 Text("(Sub) ",
+                //                     style: TextStyle(
+                //                         color:
+                //                             Colors.lightGreenAccent.withOpacity(0.6),
+                //                         fontSize: 12)),
+                //               const SizedBox(width: 8),
+                //               CircleAvatar(
+                //                 radius: 20,
+                //                 backgroundColor: ColorManager.dark1,
+                //                 backgroundImage:
+                //                     hasImage ? FileImage(File(imagePath)) : null,
+                //                 child: !hasImage
+                //                     ? Icon(Icons.person,
+                //                         size: 24,
+                //                         color: Colors.white.withOpacity(0.6))
+                //                     : null,
+                //               ),
+                //             ],
+                //           ),
+                //         );
+                //       }).toList(),
 
-                  return SimpleDialogOption(
-                    onPressed: () => Navigator.pop(context, player),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '#${player.jerseyNumber} - ${player.name ?? player.role}',
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: isCurrentlySelected
-                                  ? ColorManager.yellow
-                                  : isBenchPlayer
-                                      ? Colors.lightGreenAccent.withOpacity(0.8)
-                                      : ColorManager.white,
-                              fontWeight: isCurrentlySelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+                availableChoices.map((player) {
+                    final bool isCurrentlySelected =
+                        player.id == currentlyAssignedPlayer?.id;
+                    // --- MODIFIED: Check for Base64 image data ---
+                    final imageBase64 = player.imageBase64;
+                    final hasImage =
+                        imageBase64 != null && imageBase64.isNotEmpty;
+                    final bool isBenchPlayer =
+                        widget.benchPlayers.any((p) => p.id == player.id);
+
+                    return SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, player),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '#${player.jerseyNumber} - ${player.name ?? player.role}',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isCurrentlySelected
+                                    ? ColorManager.yellow
+                                    : isBenchPlayer
+                                        ? Colors.lightGreenAccent
+                                            .withOpacity(0.8)
+                                        : ColorManager.white,
+                                fontWeight: isCurrentlySelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
                             ),
                           ),
-                        ),
-                        if (isBenchPlayer)
-                          Text("(Sub) ",
-                              style: TextStyle(
-                                  color:
-                                      Colors.lightGreenAccent.withOpacity(0.6),
-                                  fontSize: 12)),
-                        const SizedBox(width: 8),
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: ColorManager.dark1,
-                          backgroundImage:
-                              hasImage ? FileImage(File(imagePath)) : null,
-                          child: !hasImage
-                              ? Icon(Icons.person,
-                                  size: 24,
-                                  color: Colors.white.withOpacity(0.6))
-                              : null,
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-        );
+                          if (isBenchPlayer)
+                            Text("(Sub) ",
+                                style: TextStyle(
+                                    color: Colors.lightGreenAccent
+                                        .withOpacity(0.6),
+                                    fontSize: 12)),
+                          const SizedBox(width: 8),
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundColor: ColorManager.dark1,
+                            // --- MODIFIED: Use MemoryImage for the background ---
+                            backgroundImage: hasImage
+                                ? MemoryImage(base64Decode(imageBase64))
+                                    as ImageProvider
+                                : null,
+                            child: !hasImage
+                                ? Icon(Icons.person,
+                                    size: 24,
+                                    color: Colors.white.withOpacity(0.6))
+                                : null,
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList());
       },
     );
 

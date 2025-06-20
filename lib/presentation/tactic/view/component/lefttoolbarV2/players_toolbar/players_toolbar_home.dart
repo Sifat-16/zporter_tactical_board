@@ -441,7 +441,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
                   }
                   PlayerModel player = activeToolbarPlayers[index];
                   return GestureDetector(
-                      onLongPress: () async {
+                      onDoubleTap: () async {
                         await PlayerUtilsV2.showEditPlayerDialog(
                           context: context,
                           player: player,

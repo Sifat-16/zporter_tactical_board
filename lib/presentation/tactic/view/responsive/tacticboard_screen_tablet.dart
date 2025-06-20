@@ -458,25 +458,29 @@ class _TacticboardScreenTabletState
                           ),
                         ),
                       Container(
-                        color: Colors.green,
+                        // color: Colors.green,
                         width: context.widthPercent(22),
                         child: Row(
                           spacing: 10,
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            InkWell(
-                              onTap: () {
-                                ref
-                                    .read(animationProvider.notifier)
-                                    .copyCurrentDefaultScene();
-                                BotToast.showText(text: "Scene Copied");
-                              },
-                              child: Icon(
-                                Icons.copy,
-                                color: ColorManager.white,
-                                // size: 18,
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2.0),
+                              child: InkWell(
+                                onTap: () {
+                                  ref
+                                      .read(animationProvider.notifier)
+                                      .copyCurrentDefaultScene();
+                                  BotToast.showText(text: "Scene Copied");
+                                },
+                                child: Icon(
+                                  Icons.copy,
+                                  color: ColorManager.white,
+                                  size: 20,
+                                ),
+                                // tooltip: "Copy Current Scene",
                               ),
-                              // tooltip: "Copy Current Scene",
                             ),
                             InkWell(
                               onTap: () => ref
@@ -489,24 +493,28 @@ class _TacticboardScreenTabletState
                               ),
                               // tooltip: "Add New Scene",
                             ),
-                            InkWell(
-                              onTap: () async {
-                                bool? confirm = await showConfirmationDialog(
-                                  context: context,
-                                  title: "Reset Board?",
-                                  content:
-                                      "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
-                                  confirmButtonText: "Reset",
-                                );
-                                if (confirm == true) {
-                                  ref
-                                      .read(animationProvider.notifier)
-                                      .deleteDefaultAnimation();
-                                }
-                              },
-                              child: Icon(Icons.delete_sweep_outlined,
-                                  color: ColorManager.white, size: 24),
-                              // tooltip: "Clear Current Scene",
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 2.0),
+                              child: InkWell(
+                                onTap: () async {
+                                  bool? confirm = await showConfirmationDialog(
+                                    context: context,
+                                    title: "Reset Board?",
+                                    content:
+                                        "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
+                                    confirmButtonText: "Reset",
+                                  );
+                                  if (confirm == true) {
+                                    ref
+                                        .read(animationProvider.notifier)
+                                        .deleteDefaultAnimation();
+                                  }
+                                },
+                                child: Icon(Icons.delete_sweep_outlined,
+                                    color: ColorManager.white),
+                                // tooltip: "Clear Current Scene",
+                              ),
                             ),
                           ],
                         ),
