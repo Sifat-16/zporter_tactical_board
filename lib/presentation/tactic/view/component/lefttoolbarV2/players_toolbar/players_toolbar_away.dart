@@ -130,7 +130,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                   }
                   PlayerModel player = activeToolbarPlayers[index];
                   return GestureDetector(
-                      onLongPress: () async {
+                      onDoubleTap: () async {
                         // The UI will update automatically via the stream after the DB is saved.
                         await PlayerUtilsV2.showEditPlayerDialog(
                           context: context,
