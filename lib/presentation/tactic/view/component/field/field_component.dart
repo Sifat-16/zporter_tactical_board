@@ -47,7 +47,6 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
   @override
   FutureOr<void> onLoad() async {
     await super.onLoad();
-
     anchor = Anchor.center;
     position = Vector2(
       game.gameField.size.x / 2,

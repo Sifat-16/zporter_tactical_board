@@ -345,39 +345,92 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return DragTarget<FieldItemModel>(
       /* ... (onAcceptWithDetails - Same as before) ... */
       onAcceptWithDetails: (details) async {
+        // if (!gameInitialized ||
+        //     isBoardBusy(bp) ||
+        //     _currentExportDialogContext != null) {
+        //   return;
+        // }
+        // FieldItemModel fieldItemModel = details.data;
+        // final RenderBox gameScreenBox = context.findRenderObject() as RenderBox;
+        // final Vector2 gameScreenSize = gameScreenBox.size.toVector2();
+        // final double gameScreenWidth = gameScreenSize.x;
+        // final Offset globalGameScreenOffset =
+        //     gameScreenBox.localToGlobal(Offset.zero);
+        // final Vector2 screenRelativeOffset =
+        //     details.offset.toVector2() - globalGameScreenOffset.toVector2();
+        // final double dx = screenRelativeOffset.x;
+        // final double dy = screenRelativeOffset.y;
+        // Vector2 transformedOffset = (quarterTurns == 1)
+        //     ? Vector2(dy, gameScreenWidth - dx)
+        //     : screenRelativeOffset;
+        // Vector2 actualPosition =
+        //     transformedOffset + tacticBoardGame.gameField.position;
+        // fieldItemModel.offset = SizeHelper.getBoardRelativeVector(
+        //     gameScreenSize: gameScreenSize, actualPosition: actualPosition);
+        //
+        // if (fieldItemModel is EquipmentModel) {
+        //   fieldItemModel =
+        //       fieldItemModel.copyWith(id: RandomGenerator.generateId());
+        // }
+        //
+        // await tacticBoardGame.addItem(fieldItemModel);
+
+        // 1. Initial checks to ensure the board is ready to accept items.
         if (!gameInitialized ||
             isBoardBusy(bp) ||
             _currentExportDialogContext != null) {
           return;
         }
+
+        // 2. Get the data for the item that was dropped.
         FieldItemModel fieldItemModel = details.data;
+
+        // 3. [NEW] Get the item's size to calculate its center.
+        // We provide a default size in case the model's size is null.
+        // You should use the same default you use in your components (e.g., AppSize.s32).
+        final Vector2 itemSize = fieldItemModel.size ?? Vector2(32.0, 32.0);
+
+        // 4. Find the position and size of the game widget on the screen.
         final RenderBox gameScreenBox = context.findRenderObject() as RenderBox;
         final Vector2 gameScreenSize = gameScreenBox.size.toVector2();
         final double gameScreenWidth = gameScreenSize.x;
         final Offset globalGameScreenOffset =
             gameScreenBox.localToGlobal(Offset.zero);
+
+        // 5. Calculate the cursor's drop position relative to the game widget's top-left corner.
         final Vector2 screenRelativeOffset =
             details.offset.toVector2() - globalGameScreenOffset.toVector2();
         final double dx = screenRelativeOffset.x;
         final double dy = screenRelativeOffset.y;
-        Vector2 transformedOffset = (quarterTurns == 1)
+
+        // 6. Determine the cursor's absolute position on the canvas, accounting for board rotation.
+        final Vector2 cursorPosition = (quarterTurns == 1)
             ? Vector2(dy, gameScreenWidth - dx)
             : screenRelativeOffset;
-        Vector2 actualPosition =
-            transformedOffset + tacticBoardGame.gameField.position;
-        fieldItemModel.offset = SizeHelper.getBoardRelativeVector(
-            gameScreenSize: gameScreenSize, actualPosition: actualPosition);
 
+        // 7. [NEW FIX] Adjust the position to place the ITEM'S CENTER under the cursor.
+        // We do this by subtracting half of the item's width and height.
+        final Vector2 centerOffset = itemSize / 2;
+        final Vector2 adjustedTargetPosition = cursorPosition + centerOffset;
+
+        // 8. [PREVIOUS FIX] Convert the adjusted absolute position into a relative offset for storage.
+        fieldItemModel.offset = SizeHelper.getBoardRelativeVector(
+          gameScreenSize: tacticBoardGame.gameField.size,
+          actualPosition:
+              adjustedTargetPosition, // Use the new adjusted position
+        );
+
+        // 9. If the item is equipment (like a cone), give it a new unique ID.
         if (fieldItemModel is EquipmentModel) {
           fieldItemModel =
               fieldItemModel.copyWith(id: RandomGenerator.generateId());
         }
 
+        // 10. Add the fully configured item to the tactic board.
         await tacticBoardGame.addItem(fieldItemModel);
       },
       builder: (BuildContext context, List<Object?> candidateData,
           List<dynamic> rejectedData) {
-        /* ... (Same structure as before) ... */
         if (!gameInitialized) {
           return Center(
               child: Text("Field is not initialized. Contact developer!!",

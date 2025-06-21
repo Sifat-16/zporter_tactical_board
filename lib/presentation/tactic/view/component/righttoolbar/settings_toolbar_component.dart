@@ -170,6 +170,8 @@ class _SettingsToolbarComponentState
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
     return Container(
+      decoration:
+          BoxDecoration(color: ColorManager.black.withValues(alpha: 0.8)),
       padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
       child: Column(
         // Changed from ListView to Column

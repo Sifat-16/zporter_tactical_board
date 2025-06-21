@@ -88,51 +88,55 @@ class _AnimationToolbarComponentState
     // Access the config
     final config = widget.config;
 
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                if (config
-                    .showCollectionSelector) // Conditionally show Collection Box
-                  _buildCollectionBox(
-                    collectionList: collectionList,
-                    selectedCollection: selectedCollection,
-                  ),
-                if (config
-                    .showAnimationSelector) // Conditionally show Animation Box
-                  _buildAnimationBox(
-                    collectionList: collectionList,
-                    animationList:
-                        animations, // Pass animations for the selected collection
-                    selectedAnimation: selectedAnimation,
-                    selectedCollection:
-                        selectedCollection, // Pass selectedCollection to decide if this box should show content
-                    config:
-                        config, // Pass config to control "Back to default" button visibility
-                  ),
-                if (config
-                    .showAnimationList) // Conditionally show Animation/Scene List
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: selectedAnimation == null
-                        ? _buildAnimationList(ap: ap)
-                        : _buildAnimationSceneList(ap: ap),
-                  ),
-              ],
+    return Container(
+      decoration:
+          BoxDecoration(color: ColorManager.black.withValues(alpha: 0.8)),
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  if (config
+                      .showCollectionSelector) // Conditionally show Collection Box
+                    _buildCollectionBox(
+                      collectionList: collectionList,
+                      selectedCollection: selectedCollection,
+                    ),
+                  if (config
+                      .showAnimationSelector) // Conditionally show Animation Box
+                    _buildAnimationBox(
+                      collectionList: collectionList,
+                      animationList:
+                          animations, // Pass animations for the selected collection
+                      selectedAnimation: selectedAnimation,
+                      selectedCollection:
+                          selectedCollection, // Pass selectedCollection to decide if this box should show content
+                      config:
+                          config, // Pass config to control "Back to default" button visibility
+                    ),
+                  if (config
+                      .showAnimationList) // Conditionally show Animation/Scene List
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: selectedAnimation == null
+                          ? _buildAnimationList(ap: ap)
+                          : _buildAnimationSceneList(ap: ap),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
-        if (config.showAnimationList)
-          if (selectedAnimation == null)
-            _buildAddAnimationCollectionPopup(
-              collectionList: collectionList,
-              selectedCollection: selectedCollection,
-            )
-          else
-            _buildPlayAnimationWidget(animationModel: selectedAnimation),
-      ],
+          if (config.showAnimationList)
+            if (selectedAnimation == null)
+              _buildAddAnimationCollectionPopup(
+                collectionList: collectionList,
+                selectedCollection: selectedCollection,
+              )
+            else
+              _buildPlayAnimationWidget(animationModel: selectedAnimation),
+        ],
+      ),
     );
   }
 

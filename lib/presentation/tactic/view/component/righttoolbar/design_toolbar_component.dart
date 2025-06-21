@@ -39,6 +39,8 @@ class _DesignToolbarComponentState
             ),
           )
         : Container(
+            decoration:
+                BoxDecoration(color: ColorManager.black.withValues(alpha: 0.7)),
             padding: EdgeInsets.symmetric(vertical: 25, horizontal: 10),
             child: ListView(
               children: [

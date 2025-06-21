@@ -165,7 +165,7 @@ class _TacticboardScreenTabletState
                     child: SafeArea(
                       child: Material(
                         elevation: 4.0,
-                        color: ColorManager.dark2,
+                        color: ColorManager.transparent,
                         // LefttoolbarComponent no longer takes the key
                         child: const LefttoolbarComponent(),
                       ),
@@ -182,7 +182,7 @@ class _TacticboardScreenTabletState
                     child: SafeArea(
                       child: Material(
                         elevation: 4.0,
-                        color: ColorManager.dark2,
+                        color: ColorManager.transparent,
                         child: RighttoolbarComponent(),
                       ),
                     ),
@@ -291,7 +291,7 @@ class _TacticboardScreenTabletState
               child: SafeArea(
                 child: Material(
                   elevation: 4.0,
-                  color: ColorManager.dark2,
+                  color: ColorManager.transparent,
                   child: const LefttoolbarComponent(),
                 ),
               ),
@@ -308,7 +308,7 @@ class _TacticboardScreenTabletState
               child: SafeArea(
                 child: Material(
                   elevation: 4.0,
-                  color: ColorManager.dark2,
+                  color: ColorManager.transparent,
                   child:
                       RighttoolbarComponent(), // Assuming this doesn't need 'const' or is stateful
                 ),
