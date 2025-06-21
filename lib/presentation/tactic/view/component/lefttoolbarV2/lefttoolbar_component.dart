@@ -168,7 +168,7 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
   Widget _buildCustomTabBar() {
     return Container(
       height: kToolbarHeight, // Standard toolbar height
-      color: ColorManager.black,
+      color: ColorManager.black.withValues(alpha: 0.5),
       child: Row(
         children: List.generate(_tabs.length, (index) {
           final bool isSelected = _tabController.index == index;
@@ -219,7 +219,6 @@ class _LefttoolbarComponentState extends State<LefttoolbarComponent>
         // --------------------------------------------------
         Expanded(
           child: Container(
-            decoration: BoxDecoration(color: ColorManager.black),
             child: PageView(
               physics: const NeverScrollableScrollPhysics(),
               controller: _pageController,

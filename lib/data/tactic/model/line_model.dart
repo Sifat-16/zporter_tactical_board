@@ -10,13 +10,24 @@ import 'field_item_model.dart'; // Make sure this path is correct
 enum FormType { TEXT, LINE, FREE_DRAW, UNKNOWN }
 
 enum LineType {
-  STRAIGHT_LINE,
-  STRAIGHT_LINE_DASHED,
-  STRAIGHT_LINE_ZIGZAG,
-  STRAIGHT_LINE_ZIGZAG_ARROW,
-  STRAIGHT_LINE_ARROW,
-  STRAIGHT_LINE_ARROW_DOUBLE,
-  RIGHT_TURN_ARROW,
+  // Player Movements with directional variations
+  WALK_ONE_WAY,
+  WALK_TWO_WAY,
+  JOG_ONE_WAY,
+  JOG_TWO_WAY,
+  SPRINT_ONE_WAY,
+  SPRINT_TWO_WAY,
+
+  // Singular Player Movement
+  JUMP,
+
+  // Ball Movements
+  PASS,
+  PASS_HIGH_CROSS,
+  DRIBBLE,
+  SHOOT,
+
+  // Fallback Type
   UNKNOWN,
 }
 
@@ -75,10 +86,9 @@ class LineModelV2 extends FieldItemModel {
     final updatedAt =
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
     final size = FieldItemModel.vector2FromJson(json['size']);
-    final color =
-        json['color'] != null
-            ? Color(json['color'])
-            : null; // Use base 'color' for line color
+    final color = json['color'] != null
+        ? Color(json['color'])
+        : null; // Use base 'color' for line color
     final opacity =
         (json['opacity'] as num?)?.toDouble() ?? 1.0; // Default opacity to 1.0
     final fieldItemType = FieldItemType.values.firstWhere(
@@ -87,17 +97,14 @@ class LineModelV2 extends FieldItemModel {
     );
 
     // --- Parse LineModel Specific Properties ---
-    final start =
-        FieldItemModel.vector2FromJson(json['start']) ??
+    final start = FieldItemModel.vector2FromJson(json['start']) ??
         offset; // Use offset as fallback for start
     final end = FieldItemModel.vector2FromJson(json['end']) ?? Vector2.zero();
     final thickness = (json['thickness'] as num?)?.toDouble() ?? 2.0;
     final lineType = LineType.values.firstWhere(
       (e) => describeEnum(e) == (json['lineType'] as String?),
-      orElse:
-          () =>
-              LineType
-                  .STRAIGHT_LINE, // Default to straight line if missing/invalid
+      orElse: () =>
+          LineType.UNKNOWN, // Default to straight line if missing/invalid
     );
     final name = json['name'] as String? ?? '';
     final imagePath = json['imagePath'] as String? ?? '';
@@ -187,18 +194,15 @@ class LineModelV2 extends FieldItemModel {
     bool clearControlPoints = false,
   }) {
     // Handle clearing control points
-    Vector2? cp1 =
-        clearControlPoints
-            ? null
-            : (controlPoint1 ?? this.controlPoint1?.clone());
-    Vector2? cp2 =
-        clearControlPoints
-            ? null
-            : (controlPoint2 ?? this.controlPoint2?.clone());
+    Vector2? cp1 = clearControlPoints
+        ? null
+        : (controlPoint1 ?? this.controlPoint1?.clone());
+    Vector2? cp2 = clearControlPoints
+        ? null
+        : (controlPoint2 ?? this.controlPoint2?.clone());
 
     // If start is provided, update offset accordingly if they should match
-    Vector2 finalOffset =
-        offset ??
+    Vector2 finalOffset = offset ??
         (start != null
             ? start.clone()
             : this.offset?.clone() ?? Vector2.zero());
@@ -215,8 +219,7 @@ class LineModelV2 extends FieldItemModel {
       size: size ?? this.size?.clone(),
       color: color ?? this.color, // Use base color
       opacity: opacity ?? this.opacity,
-      fieldItemType:
-          fieldItemType ??
+      fieldItemType: fieldItemType ??
           this.fieldItemType, // Allow changing type? Usually no.
       // LineModel properties
       start: start ?? this.start.clone(), // Ensure start is updated
