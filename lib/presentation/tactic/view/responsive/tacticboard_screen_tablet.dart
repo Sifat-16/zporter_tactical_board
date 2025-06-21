@@ -1,4 +1,5 @@
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart';
@@ -445,7 +446,7 @@ class _TacticboardScreenTabletState
                       ),
                       if (asp.defaultAnimationItems.isNotEmpty)
                         Container(
-                          // color: Colors.white,
+                          // color: Colors.green,
                           width: context.widthPercent(22),
                           child: CompactPaginator(
                             totalPages: asp.defaultAnimationItems.length,
@@ -464,23 +465,18 @@ class _TacticboardScreenTabletState
                           spacing: 10,
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2.0),
-                              child: InkWell(
-                                onTap: () {
-                                  ref
-                                      .read(animationProvider.notifier)
-                                      .copyCurrentDefaultScene();
-                                  BotToast.showText(text: "Scene Copied");
-                                },
-                                child: Icon(
-                                  Icons.copy,
-                                  color: ColorManager.white,
-                                  size: 20,
-                                ),
-                                // tooltip: "Copy Current Scene",
+                            InkWell(
+                              onTap: () {
+                                ref
+                                    .read(animationProvider.notifier)
+                                    .copyCurrentDefaultScene();
+                                BotToast.showText(text: "Scene Copied");
+                              },
+                              child: Icon(
+                                Icons.copy,
+                                color: ColorManager.white,
                               ),
+                              // tooltip: "Copy Current Scene",
                             ),
                             InkWell(
                               onTap: () => ref
@@ -488,33 +484,29 @@ class _TacticboardScreenTabletState
                                   .createNewDefaultAnimationItem(),
 
                               child: Icon(
-                                Icons.add,
+                                CupertinoIcons.add_circled,
                                 color: ColorManager.white,
                               ),
                               // tooltip: "Add New Scene",
                             ),
-                            Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 2.0),
-                              child: InkWell(
-                                onTap: () async {
-                                  bool? confirm = await showConfirmationDialog(
-                                    context: context,
-                                    title: "Reset Board?",
-                                    content:
-                                        "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
-                                    confirmButtonText: "Reset",
-                                  );
-                                  if (confirm == true) {
-                                    ref
-                                        .read(animationProvider.notifier)
-                                        .deleteDefaultAnimation();
-                                  }
-                                },
-                                child: Icon(Icons.delete_sweep_outlined,
-                                    color: ColorManager.white),
-                                // tooltip: "Clear Current Scene",
-                              ),
+                            InkWell(
+                              onTap: () async {
+                                bool? confirm = await showConfirmationDialog(
+                                  context: context,
+                                  title: "Reset Board?",
+                                  content:
+                                      "This will remove all elements currently placed on the tactical board, returning it to an empty state. Proceed?",
+                                  confirmButtonText: "Reset",
+                                );
+                                if (confirm == true) {
+                                  ref
+                                      .read(animationProvider.notifier)
+                                      .deleteDefaultAnimation();
+                                }
+                              },
+                              child: Icon(Icons.delete_sweep_outlined,
+                                  color: ColorManager.white),
+                              // tooltip: "Clear Current Scene",
                             ),
                           ],
                         ),

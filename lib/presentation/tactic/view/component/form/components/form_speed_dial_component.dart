@@ -318,6 +318,19 @@ class _FormSpeedDialComponentState
                       color: ColorManager.white,
                     ), // Your original color
                   ),
+                GestureDetector(
+                  onTap: () {
+                    ref.read(tutorialsProvider.notifier).fetchTutorials();
+                    _showTutorialSelectionDialog(context);
+                  },
+                  child: Center(
+                    child: Icon(
+                      CupertinoIcons.info,
+                      color: ColorManager.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -329,7 +342,7 @@ class _FormSpeedDialComponentState
             child: Row(
               mainAxisSize: MainAxisSize.min, // Your original mainAxisSize
               mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 10,
+              spacing: 15,
               children: [
                 if (config.showPointerActionsButton)
                   GestureDetector(
@@ -427,32 +440,17 @@ class _FormSpeedDialComponentState
               spacing: 10,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                // if (config.showPlayAnimationButton && animationModel != null)
-                //   Builder(
-                //     builder: (context) {
-                //       final Object heroTag =
-                //           'anim_${animationModel.id.toString()}';
-                //       return GestureDetector(
-                //         onTap: () {
-                //           Navigator.push(
-                //             context,
-                //             MaterialPageRoute(
-                //               builder:
-                //                   (context) => AnimationScreen(
-                //                     animationModel: animationModel,
-                //                     heroTag: heroTag,
-                //                   ),
-                //             ),
-                //           );
-                //         },
-                //         child: Icon(
-                //           // Your original Icon
-                //           Icons.play_circle_outline,
-                //           color: ColorManager.white,
-                //         ),
-                //       );
-                //     },
-                //   ),
+                GestureDetector(
+                  onTap: bp.selectedItemOnTheBoard?.canBeCopied == true
+                      ? () {
+                          ref.read(boardProvider.notifier).copyElement();
+                        }
+                      : null,
+                  child: Icon(Icons.copy,
+                      color: bp.selectedItemOnTheBoard?.canBeCopied == true
+                          ? ColorManager.white
+                          : ColorManager.white.withValues(alpha: 0.7)),
+                ),
                 if (config.showAddNewSceneButton)
                   _buildAddNewScene(
                     selectedCollection: collectionModel,
@@ -460,7 +458,6 @@ class _FormSpeedDialComponentState
                     selectedAnimation: animationModel,
                     selectedScene: selectedScene,
                   ),
-
                 if (config.showTrashButton)
                   GestureDetector(
                     onTap: () {
@@ -474,20 +471,6 @@ class _FormSpeedDialComponentState
                           isPlacingItem,
                     ),
                   ),
-
-                GestureDetector(
-                  onTap: () {
-                    ref.read(tutorialsProvider.notifier).fetchTutorials();
-                    _showTutorialSelectionDialog(context);
-                  },
-                  child: Center(
-                    child: Icon(
-                      CupertinoIcons.info,
-                      color: ColorManager.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
