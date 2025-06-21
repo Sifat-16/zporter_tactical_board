@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -12,11 +14,6 @@ class EquipmentUtils {
     ),
     EquipmentModel(
       id: RandomGenerator.generateId(),
-      name: "REFEREE-JERSEY",
-      imagePath: "referee-jersey.png",
-    ),
-    EquipmentModel(
-      id: RandomGenerator.generateId(),
       name: "HALF-CIRCLE",
       imagePath: "half-circle.png",
     ),
@@ -26,34 +23,69 @@ class EquipmentUtils {
       imagePath: "goal-post.png",
     ),
     EquipmentModel(
-      id: RandomGenerator.generateId(),
-      name: "CONE",
-      imagePath: "cone.png",
-    ),
+        id: RandomGenerator.generateId(),
+        name: "REFEREE-JERSEY",
+        imagePath: "referee-jersey.png",
+        color: Color(0xffE5432D)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "REFEREE-JERSEY",
+        imagePath: "referee-jersey.png",
+        color: Color(0xffE5B32D)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "REFEREE-JERSEY",
+        imagePath: "referee-jersey.png",
+        color: Color(0xff4A4DDE)),
     EquipmentModel(
       id: RandomGenerator.generateId(),
-      name: "TRAFFIC-CONE",
-      imagePath: "traffic-cone.png",
+      name: "REFEREE-JERSEY",
+      imagePath: "referee-jersey.png",
     ),
     EquipmentModel(
-      id: RandomGenerator.generateId(),
-      name: "BULLSEYE",
-      imagePath: "bullseye.png",
-    ),
+        id: RandomGenerator.generateId(),
+        name: "REFEREE-JERSEY",
+        imagePath: "referee-jersey.png",
+        color: Color(0xff5FDCA9)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "REFEREE-JERSEY",
+        imagePath: "referee-jersey.png",
+        color: Color(0xffA75FDC)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "CONE-FLAT",
+        imagePath: "cone-flat.png",
+        color: Color(0xffE5432D)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "CONE-FLAT",
+        imagePath: "cone-flat.png",
+        color: Color(0xffE5B32D)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "CONE-FLAT",
+        imagePath: "cone-flat.png",
+        color: Color(0xff4A4DDE)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "CONE",
+        imagePath: "cone.png",
+        color: Color(0xffE5432D)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "CONE",
+        imagePath: "cone.png",
+        color: Color(0xffE5B32D)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "CONE",
+        imagePath: "cone.png",
+        color: Color(0xff4A4DDE)),
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "CIRCLE",
       imagePath: "circle.png",
-    ),
-    EquipmentModel(
-      id: RandomGenerator.generateId(),
-      name: "POLE-DANCE",
-      imagePath: "pole-dance.png",
-    ),
-    EquipmentModel(
-      id: RandomGenerator.generateId(),
-      name: "DUMMY",
-      imagePath: "dummy.png",
     ),
     EquipmentModel(
       id: RandomGenerator.generateId(),
@@ -62,13 +94,53 @@ class EquipmentUtils {
     ),
     EquipmentModel(
       id: RandomGenerator.generateId(),
-      name: "BLOCK",
-      imagePath: "block.png",
+      name: "HURDLE",
+      imagePath: "hurdle.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "MANNEQUIN",
+      imagePath: "mannequin.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "POLE",
+      imagePath: "pole.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "TENNIS-NET",
+      imagePath: "tennis-net.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "IBOX2-JUMP",
+      imagePath: "ibox2-jump.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "RESISTANCE-BANDS",
+      imagePath: "resistance-bands.png",
     ),
     EquipmentModel(
       id: RandomGenerator.generateId(),
       name: "DUMBBELL",
       imagePath: "dumbbell.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "WHISTLE",
+      imagePath: "whistle.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "FLAG",
+      imagePath: "flag.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "SEAT",
+      imagePath: "seat.png",
     ),
     EquipmentModel(
       id: RandomGenerator.generateId(),
@@ -82,18 +154,8 @@ class EquipmentUtils {
     ),
     EquipmentModel(
       id: RandomGenerator.generateId(),
-      name: "STOPWATCH",
-      imagePath: "stopwatch.png",
-    ),
-    EquipmentModel(
-      id: RandomGenerator.generateId(),
-      name: "SMARTPHONE",
-      imagePath: "smartphone.png",
-    ),
-    EquipmentModel(
-      id: RandomGenerator.generateId(),
-      name: "WHISTLE",
-      imagePath: "whistle.png",
+      name: "TACTICS",
+      imagePath: "tactics.png",
     ),
     EquipmentModel(
       id: RandomGenerator.generateId(),
@@ -110,12 +172,64 @@ class EquipmentUtils {
       name: "PODIUM",
       imagePath: "podium.png",
     ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "TABLET",
+      imagePath: "tablet.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "SMARTPHONE",
+      imagePath: "smartphone.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "STOPWATCH",
+      imagePath: "stopwatch.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "VIDEO-CAMERA",
+      imagePath: "video-camera.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "CAMERA",
+      imagePath: "camera.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "SPEAKER-GROUP",
+      imagePath: "speaker-group.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "TAPE",
+      imagePath: "tape.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "WEIGHT",
+      imagePath: "weight.png",
+    ),
+    EquipmentModel(
+      id: RandomGenerator.generateId(),
+      name: "LIVE",
+      imagePath: "live.png",
+    ),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "GOAL-POST-DENSE",
+        imagePath: "goal-post-dense.png",
+        size: Vector2(192, 96)),
   ];
 
   static List<EquipmentModel> generateEquipments() {
     return _equipments
         .map(
-          (e) => e.copyWith(color: ColorManager.white, size: Vector2(32, 32)),
+          (e) => e.copyWith(
+              color: e.color ?? ColorManager.white,
+              size: e.size ?? Vector2(32, 32)),
         )
         .toList();
   }
