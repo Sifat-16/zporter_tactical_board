@@ -193,7 +193,8 @@ class AnimationSharer {
       );
       if (imagePath != null) {
         await shareImageFile(imagePath,
-            text: "${imagePath.split("/").last}",
+            text: Platform.isIOS ? null : "${imagePath.split("/").last}",
+            title: Platform.isIOS ? "${imagePath.split("/").last}" : null,
             subject: "Check out this from my Zporter Football Pad",
             context: context);
       }
@@ -201,7 +202,10 @@ class AnimationSharer {
   }
 
   static Future<void> shareImageFile(String filePath,
-      {String? text, String? subject, required BuildContext context}) async {
+      {String? text,
+      String? subject,
+      required BuildContext context,
+      String? title}) async {
     try {
       final xFile = XFile(filePath);
 
@@ -209,6 +213,7 @@ class AnimationSharer {
         ShareParams(
           files: [xFile],
           text: text,
+          title: title,
           subject: subject,
           sharePositionOrigin: Rect.fromLTWH(
               0,
