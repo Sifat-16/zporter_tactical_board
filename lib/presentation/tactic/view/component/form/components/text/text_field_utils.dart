@@ -160,4 +160,88 @@ class TextFieldUtils {
     // Return the calculated size
     return textPainter.size;
   }
+
+  static Future<TextModel?> editTextDialog(
+    BuildContext context,
+    TextModel existingText,
+  ) async {
+    // Pre-fill the controller with the existing text
+    final TextEditingController textController =
+        TextEditingController(text: existingText.text);
+
+    return await showDialog<TextModel?>(
+      context: context,
+      barrierDismissible: false, // User must tap button!
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Theme(
+              data: ThemeData.dark().copyWith(
+                textButtonTheme: TextButtonThemeData(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                inputDecorationTheme: InputDecorationTheme(
+                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  counterStyle: TextStyle(color: Colors.grey[400]),
+                ),
+              ),
+              child: AlertDialog(
+                backgroundColor: ColorManager.black,
+                title: const Text('Edit Text'), // <-- Changed title
+                content: TextField(
+                  controller: textController,
+                  maxLength: 300,
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: "Enter text here",
+                  ),
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Cancel'),
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop(null);
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('Save'), // <-- Changed button text
+                    onPressed: () {
+                      final text = textController.text.trim();
+                      if (text.isNotEmpty) {
+                        // Recalculate size based on new text
+                        Size size = calculateTextSize(
+                          text: text,
+                          style: const TextStyle(fontSize: 32),
+                          maxWidth: context.widthPercent(20),
+                        );
+
+                        // IMPORTANT: Clone the existing model to update it
+                        // This preserves the ID and other properties.
+                        final updatedTextModel = existingText.clone().copyWith(
+                              text: text,
+                              size: size.toVector2(),
+                            );
+                        Navigator.of(dialogContext).pop(updatedTextModel);
+                      } else {
+                        // If they cleared the text, consider it a deletion
+                        // or handle as you see fit. Here, we cancel.
+                        Navigator.of(dialogContext).pop(null);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }

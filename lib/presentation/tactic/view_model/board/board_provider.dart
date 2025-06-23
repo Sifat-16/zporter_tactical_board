@@ -13,6 +13,7 @@ import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
@@ -336,5 +337,27 @@ class BoardController extends StateNotifier<BoardState> {
 
   void updateBoardBackground(BoardBackground newBackground) {
     state = state.copyWith(boardBackground: newBackground);
+  }
+
+  void editTextComponent({required TextModel textModel}) {
+    /// here we will remove and then add the text model
+    try {
+      TacticBoardGame tacticBoard = state.tacticBoardGame!;
+      tacticBoard.remove(tacticBoard.children.firstWhere((e) {
+        if (e is FieldComponent) {
+          return e.object.id == textModel.id;
+        } else {
+          return false;
+        }
+      }));
+      List<TextModel> texts = state.texts;
+      texts.removeWhere((t) => t.id == textModel.id);
+
+      state = state.copyWith(texts: texts);
+      if (tacticBoard is TacticBoard) {
+        tacticBoard.updateDatabase();
+        tacticBoard.addItem(textModel);
+      }
+    } catch (e) {}
   }
 }

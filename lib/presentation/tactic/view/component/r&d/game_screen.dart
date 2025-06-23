@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/extensions.dart';
@@ -582,16 +583,30 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     if (finalOutput != null &&
                                         finalOutput.success &&
                                         finalOutput.filePath != null) {
-                                      AnimationSharer.shareImageFile(
-                                        context: context,
-                                        finalOutput.filePath!,
-                                        text: "Zporter Football Pad Animation",
-                                        subject:
-                                            "Check out this from my Zporter Football Pad",
-                                      );
-                                      zlog(
-                                          data:
-                                              "Video ready for sharing: ${finalOutput.filePath}");
+                                      try {
+                                        AnimationSharer.shareImageFile(
+                                          context: context,
+                                          finalOutput.filePath!,
+                                          // text: Platform.isIOS
+                                          //     ? null
+                                          //     : "Zporter Football Pad Animation",
+                                          // title: Platform.isIOS
+                                          //     ? "Zporter Football Pad Animation"
+                                          //     : null,
+                                          text: Platform.isIOS
+                                              ? null
+                                              : "${finalOutput.filePath!.split("/").last}",
+                                          title: Platform.isIOS
+                                              ? "${finalOutput.filePath!.split("/").last}"
+                                              : null,
+                                          subject:
+                                              "Check out this from my Zporter Football Pad",
+                                        );
+                                        zlog(
+                                            data:
+                                                "Video ready for sharing: ${finalOutput.filePath}");
+                                      } catch (e) {}
+
                                       // TODO: Share/Save finalOutput.filePath
                                       // Example: await AnimationSharer.shareFile(finalOutput.filePath!);
                                     } else if (finalOutput != null &&
