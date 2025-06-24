@@ -89,8 +89,6 @@ class _AnimationToolbarComponentState
     final config = widget.config;
 
     return Container(
-      decoration:
-          BoxDecoration(color: ColorManager.black.withValues(alpha: 0.8)),
       child: Column(
         children: [
           Expanded(

@@ -97,83 +97,10 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
     );
   }
 
-  // Widget _buildPlayerComponent({bool isDragging = false}) {
-  //   final theme = Theme.of(context);
-  //   final hasImage = containsPlayerImage(widget.playerModel.imagePath);
-  //   final roleTextStyle = theme.textTheme.labelLarge?.copyWith(
-  //         color: ColorManager.white,
-  //         fontWeight: FontWeight.bold,
-  //         fontSize: 12,
-  //       ) ??
-  //       const TextStyle(
-  //         color: ColorManager.white,
-  //         fontWeight: FontWeight.bold,
-  //         fontSize: 12,
-  //       );
-  //
-  //   final indexTextStyle = theme.textTheme.labelSmall?.copyWith(
-  //         color: ColorManager.white,
-  //         fontSize: 10,
-  //       ) ??
-  //       const TextStyle(color: ColorManager.white, fontSize: 9);
-  //
-  //   return Container(
-  //     key: ValueKey(
-  //       "player_${widget.playerModel.id}",
-  //     ),
-  //     decoration: BoxDecoration(
-  //       image: hasImage
-  //           ? DecorationImage(
-  //               image: FileImage(File(widget.playerModel.imagePath!)),
-  //               fit: BoxFit.cover,
-  //             )
-  //           : null,
-  //       color: hasImage
-  //           ? null
-  //           : (widget.playerModel.color ?? ColorManager.grey).withValues(
-  //               alpha: widget.playerModel.opacity ?? 1.0,
-  //             ),
-  //       borderRadius: BorderRadius.circular(AppSize.s4),
-  //       border: Border.all(
-  //         color: Colors.white.withValues(alpha: 0.5),
-  //         width: 0.5,
-  //       ),
-  //     ),
-  //     child: Stack(
-  //       clipBehavior: Clip.none,
-  //       alignment: Alignment.center,
-  //       children: [
-  //         if (!hasImage)
-  //           Center(
-  //             child: Text(
-  //               widget.playerModel.role,
-  //               style: roleTextStyle,
-  //               overflow: TextOverflow.clip,
-  //               maxLines: 1,
-  //               textAlign: TextAlign.center,
-  //             ),
-  //           ),
-  //         if (widget.playerModel.jerseyNumber > 0 && !isDragging)
-  //           Positioned(
-  //             top: -10,
-  //             right: -10,
-  //             child: Container(
-  //               padding: const EdgeInsets.symmetric(
-  //                 horizontal: 3.5,
-  //                 vertical: 1,
-  //               ),
-  //               child: Text(
-  //                 "${widget.playerModel.jerseyNumber}",
-  //                 style: indexTextStyle,
-  //               ),
-  //             ),
-  //           ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Widget _buildPlayerComponent({bool isDragging = false}) {
+    zlog(
+        data:
+            "Found the image here checking ${widget.playerModel.role} - ${widget.playerModel.jerseyNumber} - ${widget.playerModel.imageBase64}");
     final theme = Theme.of(context);
     // --- MODIFIED: Check imageBase64 instead of file path ---
     final imageBase64 = widget.playerModel.imageBase64;

@@ -756,6 +756,12 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
             .toList();
         // --- END OF FIX ---
 
+        playersFromDb.forEach((p) {
+          zlog(
+              data:
+                  "Found player for DB ${p.role} - ${p.jerseyNumber} - ${p.name} - ${p.imageBase64}");
+        });
+
         // All subsequent logic will now use the sanitized list.
         List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
           sourcePlayers: sanitizedPlayers, // Use the corrected list

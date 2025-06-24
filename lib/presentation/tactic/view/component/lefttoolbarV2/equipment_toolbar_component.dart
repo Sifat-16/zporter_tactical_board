@@ -86,8 +86,6 @@ class _EquipmentToolbarComponentState extends State<EquipmentToolbarComponent>
     const int itemsPerRow = 3;
 
     return Container(
-      decoration:
-          BoxDecoration(color: ColorManager.black.withValues(alpha: 0.7)),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final double itemHeight = constraints.maxWidth / itemsPerRow;

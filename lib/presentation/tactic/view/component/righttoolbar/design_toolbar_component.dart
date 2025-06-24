@@ -32,15 +32,13 @@ class _DesignToolbarComponentState
     return bp.selectedItemOnTheBoard == null
         ? Center(
             child: Text(
-              "No Item Selected",
+              "Tap and mark what to redesign",
               style: Theme.of(
                 context,
               ).textTheme.labelMedium!.copyWith(color: ColorManager.white),
             ),
           )
         : Container(
-            decoration:
-                BoxDecoration(color: ColorManager.black.withValues(alpha: 0.7)),
             padding: EdgeInsets.symmetric(vertical: 25, horizontal: 10),
             child: ListView(
               children: [

@@ -63,8 +63,6 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
         vertical: AppSize.s2,
         horizontal: AppSize.s4,
       ),
-      decoration:
-          BoxDecoration(color: ColorManager.black.withValues(alpha: 0.7)),
       child: Column(
         children: [
           Align(
