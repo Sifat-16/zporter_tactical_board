@@ -131,10 +131,10 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
   void update(double dt) {
     double effectiveDt = dt;
     if (dt > VERY_LARGE_DT_THRESHOLD) {
-      zlog(
-        data:
-            "TacticBoardGameAnimation: Very large dt detected: $dt. Capping to $REASONABLE_TIME_STEP_AFTER_FREEZE for this frame.",
-      );
+      // zlog(
+      //   data:
+      //       "TacticBoardGameAnimation: Very large dt detected: $dt. Capping to $REASONABLE_TIME_STEP_AFTER_FREEZE for this frame.",
+      // );
       effectiveDt = REASONABLE_TIME_STEP_AFTER_FREEZE;
     }
     // Ensure effectiveDt is positive for safety in calculations, though Flame usually provides positive dt

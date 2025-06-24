@@ -62,12 +62,58 @@ class AnimationModel {
     };
   }
 
+  // factory AnimationModel.fromJson(Map<String, dynamic> json) {
+  //   final boardBackgroundString = json['boardBackground'] as String?;
+  //   final boardBackground = BoardBackground.values.firstWhere(
+  //     (e) => e.name == boardBackgroundString,
+  //     orElse: () => BoardBackground.full, // Default value
+  //   );
+  //   return AnimationModel(
+  //     id: json['_id'],
+  //     name: json['name'],
+  //     userId: json['userId'],
+  //     fieldColor: json['fieldColor'] == null
+  //         ? ColorManager.grey
+  //         : Color((json['fieldColor'] as int?) ?? 0),
+  //     animationScenes: (json['animationScenes'] as List)
+  //         .map(
+  //           (animationJson) => AnimationItemModel.fromJson(animationJson),
+  //         )
+  //         .toList(),
+  //     boardBackground: boardBackground,
+  //     createdAt: DateTime.parse(json['createdAt'] as String),
+  //     updatedAt: DateTime.parse(json['updatedAt'] as String),
+  //   );
+  // }
+
   factory AnimationModel.fromJson(Map<String, dynamic> json) {
     final boardBackgroundString = json['boardBackground'] as String?;
     final boardBackground = BoardBackground.values.firstWhere(
       (e) => e.name == boardBackgroundString,
       orElse: () => BoardBackground.full, // Default value
     );
+
+    // --- MIGRATION & INDEXING LOGIC ---
+    final scenesList = (json['animationScenes'] as List)
+        .map(
+          (animationJson) => AnimationItemModel.fromJson(animationJson),
+        )
+        .toList();
+
+    // Check if any scene has the default index of 0, which implies it might be old data.
+    // This is a simple check; a more robust one could be checking if 'index' was null.
+    final bool needsIndexing = scenesList.any((s) => json['index'] == null);
+
+    if (needsIndexing) {
+      for (int i = 0; i < scenesList.length; i++) {
+        // Assign the list order as the index.
+        scenesList[i] = scenesList[i].copyWith(index: i);
+      }
+    }
+    // Always sort by the index to ensure the order is correct.
+    scenesList.sort((a, b) => a.index.compareTo(b.index));
+    // --- END OF LOGIC ---
+
     return AnimationModel(
       id: json['_id'],
       name: json['name'],
@@ -75,11 +121,8 @@ class AnimationModel {
       fieldColor: json['fieldColor'] == null
           ? ColorManager.grey
           : Color((json['fieldColor'] as int?) ?? 0),
-      animationScenes: (json['animationScenes'] as List)
-          .map(
-            (animationJson) => AnimationItemModel.fromJson(animationJson),
-          )
-          .toList(),
+      // Use the newly processed and sorted list
+      animationScenes: scenesList,
       boardBackground: boardBackground,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),

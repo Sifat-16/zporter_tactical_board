@@ -98,9 +98,6 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
   }
 
   Widget _buildPlayerComponent({bool isDragging = false}) {
-    zlog(
-        data:
-            "Found the image here checking ${widget.playerModel.role} - ${widget.playerModel.jerseyNumber} - ${widget.playerModel.imageBase64}");
     final theme = Theme.of(context);
     // --- MODIFIED: Check imageBase64 instead of file path ---
     final imageBase64 = widget.playerModel.imageBase64;

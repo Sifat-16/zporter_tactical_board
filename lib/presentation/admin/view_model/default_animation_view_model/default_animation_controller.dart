@@ -16,10 +16,10 @@ const String SYSTEM_USER_ID_FOR_DEFAULTS = "system_default_user_for_animations";
 
 final defaultAnimationControllerProvider =
     StateNotifierProvider<DefaultAnimationController, DefaultAnimationState>((
-      ref,
-    ) {
-      return DefaultAnimationController();
-    });
+  ref,
+) {
+  return DefaultAnimationController();
+});
 
 // --- Controller ---
 class DefaultAnimationController extends StateNotifier<DefaultAnimationState> {
@@ -66,12 +66,12 @@ class DefaultAnimationController extends StateNotifier<DefaultAnimationState> {
         id: RandomGenerator.generateId(), // Generate new ID
         name: animationDataFromDialog.name, // Name from dialog
         userId: SYSTEM_USER_ID_FOR_DEFAULTS, // Enforce system user ID
-        fieldColor:
-            animationDataFromDialog
-                .fieldColor, // Color from dialog (or default if not set there)
+        fieldColor: animationDataFromDialog
+            .fieldColor, // Color from dialog (or default if not set there)
         animationScenes: [
           AnimationItemModel(
             id: RandomGenerator.generateId(),
+            index: 0,
             components: [],
             createdAt: DateTime.now(),
             userId: SYSTEM_USER_ID_FOR_DEFAULTS,

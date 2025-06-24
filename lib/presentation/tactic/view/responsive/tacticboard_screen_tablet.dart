@@ -120,6 +120,8 @@ class _TacticboardScreenTabletState
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
 
+    zlog(data: "Build called for selected scene ${selectedScene?.id}");
+
     _leftPanelWidth = context.widthPercent(25);
     _rightPanelWidth = context.widthPercent(25);
 
