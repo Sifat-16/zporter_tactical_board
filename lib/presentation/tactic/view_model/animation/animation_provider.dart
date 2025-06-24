@@ -1164,6 +1164,7 @@ import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/domain/admin/default_animation/default_animation_repository.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/delete_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/delete_history_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_default_animation_items_usecase.dart';
@@ -1203,6 +1204,9 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   final GetDefaultSceneFromIdUseCase _getDefaultSceneFromIdUseCase =
       sl.get<GetDefaultSceneFromIdUseCase>();
+
+  final DeleteAnimationCollectionUseCase _deleteAnimationCollectionUseCase =
+      sl.get<DeleteAnimationCollectionUseCase>();
 
   final SaveHistoryUseCase _saveHistoryUseCase = sl.get<SaveHistoryUseCase>();
   final GetHistoryUseCase _getHistoryUseCase = sl.get<GetHistoryUseCase>();
@@ -2344,5 +2348,98 @@ class AnimationController extends StateNotifier<AnimationState> {
     state = state.copyWith(
       selectedAnimationModel: selectedAnim.clone(),
     );
+  }
+
+  Future<void> editCollectionName({
+    required AnimationCollectionModel collection,
+    required String newName,
+  }) async {
+    // Prevent editing the name of the default "Other" collection
+    if (collection.id ==
+        DefaultAnimationConstants.default_animation_collection_id) {
+      BotToast.showText(text: "The default collection cannot be renamed.");
+      return;
+    }
+
+    // Check for duplicate names among other collections
+    final otherCollections =
+        state.animationCollections.where((c) => c.id != collection.id);
+    if (otherCollections
+        .any((c) => c.name.toLowerCase() == newName.toLowerCase())) {
+      BotToast.showText(text: "A collection with this name already exists.");
+      return;
+    }
+
+    showZLoader();
+    try {
+      // 1. Create the updated model with the new name and timestamp
+      final updatedCollection =
+          collection.copyWith(name: newName, updatedAt: DateTime.now());
+
+      // 2. Save the change to the database
+      await _saveAnimationCollectionUseCase.call(updatedCollection);
+
+      // --- THE FIX: Update the state locally instead of re-fetching ---
+
+      // 3. Get a mutable copy of the current collections list from the state
+      final currentCollections =
+          List<AnimationCollectionModel>.from(state.animationCollections);
+
+      // 4. Find the index of the collection we just edited
+      final index = currentCollections.indexWhere((c) => c.id == collection.id);
+
+      // 5. If found, replace the old model with the updated one right in the list
+      if (index != -1) {
+        currentCollections[index] = updatedCollection;
+      }
+
+      // 6. Update the state precisely with the modified list and selected item.
+      // This is a much smaller update and will not cause a full screen re-render.
+      state = state.copyWith(
+        animationCollections: currentCollections,
+        // Also update the 'selected' model directly if it was the one being edited
+        selectedAnimationCollectionModel:
+            state.selectedAnimationCollectionModel?.id == updatedCollection.id
+                ? updatedCollection
+                : state.selectedAnimationCollectionModel,
+      );
+    } catch (e) {
+      zlog(data: "Failed to edit collection name: $e");
+      BotToast.showText(text: "Error updating collection.");
+    } finally {
+      BotToast.cleanAll();
+    }
+  }
+
+  Future<void> deleteCollection(
+      {required AnimationCollectionModel collectionToDelete}) async {
+    // Prevent deleting the default "Other" collection
+    if (collectionToDelete.id ==
+        DefaultAnimationConstants.default_animation_collection_id) {
+      BotToast.showText(text: "The default collection cannot be deleted.");
+      return;
+    }
+
+    showZLoader();
+    try {
+      await _deleteAnimationCollectionUseCase.call(collectionToDelete.id);
+
+      // Create a new list without the deleted collection
+      final currentCollections = state.animationCollections;
+      currentCollections.removeWhere((c) => c.id == collectionToDelete.id);
+
+      // If the deleted collection was the selected one, select the first available collection
+      if (state.selectedAnimationCollectionModel?.id == collectionToDelete.id) {
+        selectAnimationCollection(currentCollections.firstOrNull);
+      } else {
+        // Otherwise, just update the list but keep the current selection
+        state = state.copyWith(animationCollections: currentCollections);
+      }
+    } catch (e) {
+      zlog(data: "Failed to delete collection: $e");
+      BotToast.showText(text: "Error deleting collection.");
+    } finally {
+      BotToast.cleanAll();
+    }
   }
 }

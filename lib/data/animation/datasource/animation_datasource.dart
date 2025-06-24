@@ -9,7 +9,7 @@ abstract class AnimationDatasource {
 
   Future<AnimationCollectionModel> saveAnimationCollection({
     required AnimationCollectionModel
-    animationCollectionModel, // Contains userId
+        animationCollectionModel, // Contains userId
   });
 
   Future<List<AnimationItemModel>> getDefaultAnimations({
@@ -36,4 +36,6 @@ abstract class AnimationDatasource {
   Future<void> deleteHistory({required String id});
 
   Stream<HistoryModel?> getHistoryStream({required String id});
+
+  Future<void> deleteAnimationCollection({required String collectionId});
 }

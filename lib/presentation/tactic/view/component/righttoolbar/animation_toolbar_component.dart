@@ -473,11 +473,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/animation_copy_dialog.dart';
+import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/animation/default_animation_constants.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_list_item.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/animation/animation_toolbar/animation_scene_item.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
@@ -807,98 +809,204 @@ class _AnimationToolbarComponentState
           "Detected animation scene changes ${scenes.map((a) => a.sceneDuration.inMilliseconds).toList()}",
     );
 
-    return ReorderableListView.builder(
-      itemCount: scenes.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      onReorder: (oldIndex, newIndex) {
-        print("Re-order happening in toolbar");
-        ref.read(animationProvider.notifier).reorderScene(oldIndex, newIndex);
-      },
-      itemBuilder: (context, index) {
-        final animationItemModel = scenes[index];
-        final Color colorForThisField = ColorManager.grey;
+    return Theme(
+      data: ThemeData(canvasColor: ColorManager.yellow.withValues(alpha: 0.4)),
+      child: ReorderableListView.builder(
+        itemCount: scenes.length,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        onReorder: (oldIndex, newIndex) {
+          print("Re-order happening in toolbar");
+          ref.read(animationProvider.notifier).reorderScene(oldIndex, newIndex);
+        },
+        itemBuilder: (context, index) {
+          final animationItemModel = scenes[index];
+          final Color colorForThisField = ColorManager.grey;
 
-        return AnimationSceneItem(
-          key: ValueKey(animationItemModel.id), // Key is crucial for reordering
-          animation: animationItemModel,
-          sceneIndex: index + 1, // Pass the 1-based index for display
-          isFirst: index == 0,
-          isLast: index == scenes.length - 1,
-          isSelected: ap.selectedScene?.id == animationItemModel.id,
-          onItemTap: () {
-            ref
-                .read(animationProvider.notifier)
-                .selectScene(scene: animationItemModel);
-          },
-          fieldColor: colorForThisField,
-          onMoreOptions: () {
-            // TODO: Implement more options logic
-          },
-          onMoveUp: () {
-            ref
-                .read(animationProvider.notifier)
-                .moveScene(animationItemModel.id, moveUp: true);
-          },
-          onMoveDown: () {
-            ref
-                .read(animationProvider.notifier)
-                .moveScene(animationItemModel.id, moveUp: false);
-          },
-          onDelete: () {
-            if (widget.config.onSceneDelete == null) {
+          return AnimationSceneItem(
+            key: ValueKey(
+                animationItemModel.id), // Key is crucial for reordering
+            animation: animationItemModel,
+            sceneIndex: index + 1, // Pass the 1-based index for display
+            isFirst: index == 0,
+            isLast: index == scenes.length - 1,
+            isSelected: ap.selectedScene?.id == animationItemModel.id,
+            onItemTap: () {
               ref
                   .read(animationProvider.notifier)
-                  .deleteScene(scene: animationItemModel);
-            } else {
-              widget.config.onSceneDelete?.call(animationItemModel);
-            }
-          },
-          // ADD a function call for the onDuplicate callback
-          onDuplicate: () {
-            ref
-                .read(animationProvider.notifier)
-                .duplicateScene(sceneId: animationItemModel.id);
-          },
-          // ADD a function call for the onInsertBlank callback
-          onInsertBlank: () {
-            ref
-                .read(animationProvider.notifier)
-                .insertNewBlankScene(afterSceneId: animationItemModel.id);
-          },
-        );
-      },
+                  .selectScene(scene: animationItemModel);
+            },
+            fieldColor: colorForThisField,
+            onMoreOptions: () {
+              // TODO: Implement more options logic
+            },
+            onMoveUp: () {
+              ref
+                  .read(animationProvider.notifier)
+                  .moveScene(animationItemModel.id, moveUp: true);
+            },
+            onMoveDown: () {
+              ref
+                  .read(animationProvider.notifier)
+                  .moveScene(animationItemModel.id, moveUp: false);
+            },
+            onDelete: () {
+              if (widget.config.onSceneDelete == null) {
+                ref
+                    .read(animationProvider.notifier)
+                    .deleteScene(scene: animationItemModel);
+              } else {
+                widget.config.onSceneDelete?.call(animationItemModel);
+              }
+            },
+            // ADD a function call for the onDuplicate callback
+            onDuplicate: () {
+              ref
+                  .read(animationProvider.notifier)
+                  .duplicateScene(sceneId: animationItemModel.id);
+            },
+            // ADD a function call for the onInsertBlank callback
+            onInsertBlank: () {
+              ref
+                  .read(animationProvider.notifier)
+                  .insertNewBlankScene(afterSceneId: animationItemModel.id);
+            },
+          );
+        },
+      ),
     );
   }
+
+  // Widget _buildCollectionBox({
+  //   required List<AnimationCollectionModel> collectionList,
+  //   required AnimationCollectionModel? selectedCollection,
+  // }) {
+  //   return Align(
+  //     alignment: Alignment.bottomCenter,
+  //     child: Container(
+  //       color: ColorManager.transparent,
+  //       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+  //       child: Column(
+  //         children: [
+  //           DropdownSelector<AnimationCollectionModel?>(
+  //             key: UniqueKey(),
+  //             label: "Collection",
+  //             hint: "Select Collection",
+  //             items: collectionList,
+  //             initialValue: selectedCollection,
+  //             onChanged: (s) {
+  //               ref
+  //                   .read(animationProvider.notifier)
+  //                   .selectAnimationCollection(s, changeSelectedScene: false);
+  //               zlog(data: "Collection Chosen ${s?.name}");
+  //             },
+  //             itemAsString: (AnimationCollectionModel? item) {
+  //               return item?.name ?? "";
+  //             },
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildCollectionBox({
     required List<AnimationCollectionModel> collectionList,
     required AnimationCollectionModel? selectedCollection,
   }) {
+    // This dialog can be reused from your input dialogs file
+    Future<String?> showEditCollectionDialog(String initialValue) async {
+      return await showNewCollectionInputDialog(
+        context,
+        collectionList.map((c) => c.name.toLowerCase()).toList(),
+        initialValue: initialValue,
+      );
+    }
+
+    // // This is a standard confirmation dialog
+    // Future<bool?> showDeleteConfirmationDialog() async {
+    //   return await showDialog<bool>(
+    //     context: context,
+    //     builder: (context) => AlertDialog(
+    //       backgroundColor: ColorManager.dark2,
+    //       title: Text("Confirm Deletion",
+    //           style: TextStyle(color: ColorManager.white)),
+    //       content: Text(
+    //           "Are you sure you want to delete this collection and all of its animations? This action cannot be undone.",
+    //           style: TextStyle(color: ColorManager.white)),
+    //       actions: [
+    //         TextButton(
+    //             onPressed: () => Navigator.of(context).pop(false),
+    //             child: Text("Cancel")),
+    //         TextButton(
+    //             onPressed: () => Navigator.of(context).pop(true),
+    //             child:
+    //                 Text("Delete", style: TextStyle(color: ColorManager.red))),
+    //       ],
+    //     ),
+    //   );
+    // }
+
     return Align(
       alignment: Alignment.bottomCenter,
       child: Container(
         color: ColorManager.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
-        child: Column(
-          children: [
-            DropdownSelector<AnimationCollectionModel?>(
-              key: UniqueKey(),
-              label: "Collection",
-              hint: "Select Collection",
-              items: collectionList,
-              initialValue: selectedCollection,
-              onChanged: (s) {
-                ref
-                    .read(animationProvider.notifier)
-                    .selectAnimationCollection(s, changeSelectedScene: false);
-                zlog(data: "Collection Chosen ${s?.name}");
-              },
-              itemAsString: (AnimationCollectionModel? item) {
-                return item?.name ?? "";
-              },
-            ),
-          ],
+        child: DropdownSelector<AnimationCollectionModel?>(
+          key: UniqueKey(),
+          label: "Collection",
+          hint: "Select Collection",
+          items: collectionList,
+          initialValue: selectedCollection,
+          onChanged: (s) {
+            ref
+                .read(animationProvider.notifier)
+                .selectAnimationCollection(s, changeSelectedScene: false);
+          },
+          itemAsString: (AnimationCollectionModel? item) {
+            return item?.name ?? "";
+          },
+          // --- ADDED: Provide the new callbacks here ---
+          onEditItem: (collection) async {
+            if (collection == null) return;
+            // Prevent editing the default collection
+            if (collection.id ==
+                DefaultAnimationConstants.default_animation_collection_id) {
+              BotToast.showText(
+                  text: "The default collection cannot be modified.");
+              return;
+            }
+            final newName = await showEditCollectionDialog(collection.name);
+            if (newName != null && newName.isNotEmpty) {
+              ref.read(animationProvider.notifier).editCollectionName(
+                    collection: collection,
+                    newName: newName,
+                  );
+            }
+          },
+          onDeleteItem: (collection) async {
+            if (collection == null) return;
+            // Prevent deleting the default collection
+            if (collection.id ==
+                DefaultAnimationConstants.default_animation_collection_id) {
+              BotToast.showText(
+                  text: "The default collection cannot be modified.");
+              return;
+            }
+            final confirm = await showConfirmationDialog(
+              context: context,
+              confirmButtonColor: ColorManager.red,
+              confirmButtonText: "Delete",
+              title: "Confirm Deletion",
+              content:
+                  "Are you sure you want to delete this collection and all of its animations? This action cannot be undone.",
+            );
+            if (confirm == true) {
+              ref.read(animationProvider.notifier).deleteCollection(
+                    collectionToDelete: collection,
+                  );
+            }
+          },
         ),
       ),
     );

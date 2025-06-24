@@ -25,6 +25,7 @@ import 'package:zporter_tactical_board/domain/admin/tutorial/tutorial_repository
 import 'package:zporter_tactical_board/domain/admin/tutorial/tutorial_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_cache_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_repository_impl.dart';
+import 'package:zporter_tactical_board/domain/animation/usecase/delete_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/delete_history_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_animation_collection_usecase.dart';
 import 'package:zporter_tactical_board/domain/animation/usecase/get_all_default_animation_items_usecase.dart';
@@ -128,6 +129,12 @@ Future<void> initializeTacticBoardDependencies() async {
   sl.registerLazySingleton<DeleteHistoryUseCase>(
     () => DeleteHistoryUseCase(
       animationRepository: sl.get<AnimationRepository>(instanceName: "local"),
+    ),
+  );
+
+  sl.registerLazySingleton<DeleteAnimationCollectionUseCase>(
+    () => DeleteAnimationCollectionUseCase(
+      repository: sl.get<AnimationRepository>(instanceName: "local"),
     ),
   );
 
