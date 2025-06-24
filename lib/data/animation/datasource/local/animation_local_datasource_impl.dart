@@ -176,11 +176,11 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
           data:
               "Sembast Txn: Fetching existing default animation keys for user $userId...",
         );
-        final existingSembastKeys =
-            (await _defaultAnimationItemStore.findKeys(
-              txn,
-              finder: finder,
-            )).toSet();
+        final existingSembastKeys = (await _defaultAnimationItemStore.findKeys(
+          txn,
+          finder: finder,
+        ))
+            .toSet();
         zlog(
           level: Level.debug,
           data:
@@ -407,41 +407,36 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
     try {
       dbInstance = await SemDB.database; // Await the database future
       final recordStream = _historyStore.record(id).onSnapshot(dbInstance);
-      yield* recordStream
-          .map((snapshot) {
-            if (snapshot != null) {
-              try {
-                final historyModel = HistoryModel.fromJson(snapshot.value);
-                zlog(
-                  level: Level.debug,
-                  data: "Sembast Stream: Emitting updated history for ID: $id.",
-                );
-                return historyModel;
-              } catch (e, stackTrace) {
-                zlog(
-                  level: Level.error,
-                  data:
-                      "Sembast Stream: Error parsing history snapshot for ID $id: $e\n$stackTrace",
-                );
-                return null; // Emit null on parsing error
-              }
-            } else {
-              zlog(
-                level: Level.debug,
-                data:
-                    "Sembast Stream: Emitting null (no history found) for ID: $id.",
-              );
-              return null; // Emit null if record doesn't exist or value is null
-            }
-          })
-          .handleError((error, stackTrace) {
-            // Log errors within the stream's transformation pipeline
+      yield* recordStream.map((snapshot) {
+        if (snapshot != null) {
+          try {
+            final historyModel = HistoryModel.fromJson(snapshot.value);
+
+            return historyModel;
+          } catch (e, stackTrace) {
             zlog(
               level: Level.error,
               data:
-                  "Sembast Stream: Error in getHistory stream processing for ID $id: $error\n$stackTrace",
+                  "Sembast Stream: Error parsing history snapshot for ID $id: $e\n$stackTrace",
             );
-          });
+            return null; // Emit null on parsing error
+          }
+        } else {
+          zlog(
+            level: Level.debug,
+            data:
+                "Sembast Stream: Emitting null (no history found) for ID: $id.",
+          );
+          return null; // Emit null if record doesn't exist or value is null
+        }
+      }).handleError((error, stackTrace) {
+        // Log errors within the stream's transformation pipeline
+        zlog(
+          level: Level.error,
+          data:
+              "Sembast Stream: Error in getHistory stream processing for ID $id: $error\n$stackTrace",
+        );
+      });
     } catch (e, stackTrace) {
       // --- Handle Errors During Setup ---
       zlog(

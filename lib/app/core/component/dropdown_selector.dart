@@ -62,7 +62,6 @@ class _DropdownSelectorState<T> extends State<DropdownSelector<T>> {
               _selectedValue as T,
             ); // Display "" or item string
     });
-    zlog(data: "Selector update ${widget.initialValue.runtimeType}");
   }
 
   @override

@@ -15,7 +15,7 @@ mixin ShapePainterMixin {
     Canvas canvas,
     CircleShapeModel circle,
     Size
-    visualItemSize, // This parameter is now less directly used for drawing if we recalculate
+        visualItemSize, // This parameter is now less directly used for drawing if we recalculate
     Paint paintInstance,
     Size fieldSize, // Overall canvas size
   ) {
@@ -39,10 +39,10 @@ mixin ShapePainterMixin {
       );
       return;
     }
-    zlog(
-      data:
-          "Circle ${circle.id}: Drawing at ${centerOfCircle.toOffset()} with radius $actualRadius. Fill: ${circle.fillColor}, Stroke: ${circle.strokeColor}",
-    );
+    // zlog(
+    //   data:
+    //       "Circle ${circle.id}: Drawing at ${centerOfCircle.toOffset()} with radius $actualRadius. Fill: ${circle.fillColor}, Stroke: ${circle.strokeColor}",
+    // );
 
     // Save canvas state if we are applying local rotation for this item
     bool didRotate = false;
@@ -57,8 +57,7 @@ mixin ShapePainterMixin {
     }
 
     paintInstance
-      ..color =
-          circle.color?.withValues(alpha: circle.opacity ?? 1.0) ??
+      ..color = circle.color?.withValues(alpha: circle.opacity ?? 1.0) ??
           ColorManager.white.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(centerOfCircle.toOffset(), actualRadius, paintInstance);
@@ -142,11 +141,11 @@ mixin ShapePainterMixin {
     Canvas canvas,
     PolygonShapeModel polygon, // Strongly typed
     Size
-    visualItemSize, // This parameter is now less directly used for path construction
+        visualItemSize, // This parameter is now less directly used for path construction
     Paint paintInstance,
     Size fieldSize, // Overall canvas size
     double
-    overallItemScale, // For scaling relative vertices (logical size to screen size)
+        overallItemScale, // For scaling relative vertices (logical size to screen size)
   ) {
     final List<Vector2> relativeLogicalVertices = polygon.relativeVertices;
     if (relativeLogicalVertices.isEmpty) {
@@ -160,10 +159,10 @@ mixin ShapePainterMixin {
       actualPosition:
           polygon.offset ?? Vector2.zero(), // Logical offset of the polygon
     );
-    zlog(
-      data:
-          "Polygon ${polygon.id}: Drawing with anchor ${absoluteAnchorPoint}. Vertices count: ${relativeLogicalVertices.length}. Fill: ${polygon.fillColor}, Stroke: ${polygon.strokeColor}",
-    );
+    // zlog(
+    //   data:
+    //       "Polygon ${polygon.id}: Drawing with anchor ${absoluteAnchorPoint}. Vertices count: ${relativeLogicalVertices.length}. Fill: ${polygon.fillColor}, Stroke: ${polygon.strokeColor}",
+    // );
 
     // Save canvas state if we are applying local rotation for this item
     // Rotation will be around the absoluteAnchorPoint
@@ -217,8 +216,7 @@ mixin ShapePainterMixin {
     } else {}
 
     paintInstance
-      ..color =
-          polygon.color?.withValues(alpha: polygon.opacity ?? 1.0) ??
+      ..color = polygon.color?.withValues(alpha: polygon.opacity ?? 1.0) ??
           ColorManager.white.withValues(alpha: 0.1)
       ..style = PaintingStyle.fill;
     canvas.drawPath(path, paintInstance);
@@ -228,12 +226,12 @@ mixin ShapePainterMixin {
     required ShapeModel shape,
     required Canvas canvas,
     required Size
-    visualItemSize, // Primarily for the transformation block in MiniGameFieldPainter, less so here
+        visualItemSize, // Primarily for the transformation block in MiniGameFieldPainter, less so here
     required Paint itemPaint, // General paint instance
     required double
-    overallItemScale, // For scaling logical units (like polygon vertices)
+        overallItemScale, // For scaling logical units (like polygon vertices)
     required Size
-    fieldSize, // Full canvas size for absolute positioning calculations
+        fieldSize, // Full canvas size for absolute positioning calculations
   }) {
     // The main canvas transformations in MiniGameFieldPainter (save/translate/rotate/restore for items)
     // are now effectively bypassed for positioning and rotation by these methods if they handle it themselves.

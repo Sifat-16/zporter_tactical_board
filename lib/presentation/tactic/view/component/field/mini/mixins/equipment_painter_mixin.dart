@@ -17,20 +17,16 @@ mixin EquipmentPainterMixin {
     required TextPainter textPainter, // For placeholder text
   }) {
     Vector2 size = (equipment.size ?? Vector2(32, 32)) * .2;
-    Offset centerOfEquipment =
-        SizeHelper.getBoardActualVector(
-          gameScreenSize: fieldSize.toVector2(),
-          actualPosition: equipment.offset ?? Vector2.zero(),
-        ).toOffset();
+    Offset centerOfEquipment = SizeHelper.getBoardActualVector(
+      gameScreenSize: fieldSize.toVector2(),
+      actualPosition: equipment.offset ?? Vector2.zero(),
+    ).toOffset();
     final Rect equipmentDestRect = Rect.fromCenter(
       center: centerOfEquipment,
       height: size.y,
       width: size.x,
     );
-    zlog(
-      data:
-          "Drawing equipment ${equipment.name}. Loaded image is: ${loadedImage != null} - ${size} - ${equipment.size}",
-    );
+
     if (loadedImage != null) {
       final Paint imagePaint = Paint()..filterQuality = FilterQuality.low;
       canvas.drawImageRect(
