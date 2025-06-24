@@ -134,6 +134,12 @@ class PlayerUtilsV2 {
     Tuple3("SD", "F1XED0THERPLAYERID00015", -1), // Sporting Director / Other
   ];
 
+  static Tuple3<String, String, int>? findDefaultPlayerDataById(
+      String playerId) {
+    final allDefaultPlayers = [...homePlayers, ...awayPlayers];
+    return allDefaultPlayers.firstWhereOrNull((p) => p.item2 == playerId);
+  }
+
   /// Fetches home players from DB, or generates from static data and saves if DB is empty.
   static Future<List<PlayerModel>> getOrInitializeHomePlayers() async {
     final db = await SemDB.database;
@@ -661,40 +667,40 @@ class PlayerUtilsV2 {
   }
 }
 
-// class PlayerEditorDialog extends StatefulWidget {
-//   /// The player to edit. If null, the dialog is in "Create" mode.
-//   final PlayerModel? player;
-//
-//   /// The team type (Home/Away) the player belongs to. Required in both modes.
-//   final PlayerType playerType;
-//
-//   /// A list of all available roles for the dropdown.
-//   final List<String> availableRoles;
-//
-//   final Function(PlayerModel) onDelete;
-//
-//   /// A list of all available jersey numbers for the dropdown.
-//   final List<int> availableJerseyNumbers;
-//
-//   const PlayerEditorDialog({
-//     super.key,
-//     this.player,
-//     required this.onDelete,
-//     required this.playerType,
-//     required this.availableRoles,
-//     required this.availableJerseyNumbers,
-//   });
-//
-//   @override
-//   State<PlayerEditorDialog> createState() => _PlayerEditorDialogState();
-// }
-//
+class PlayerEditorDialog extends StatefulWidget {
+  /// The player to edit. If null, the dialog is in "Create" mode.
+  final PlayerModel? player;
+
+  /// The team type (Home/Away) the player belongs to. Required in both modes.
+  final PlayerType playerType;
+
+  /// A list of all available roles for the dropdown.
+  final List<String> availableRoles;
+
+  final Function(PlayerModel) onDelete;
+
+  /// A list of all available jersey numbers for the dropdown.
+  final List<int> availableJerseyNumbers;
+
+  const PlayerEditorDialog({
+    super.key,
+    this.player,
+    required this.onDelete,
+    required this.playerType,
+    required this.availableRoles,
+    required this.availableJerseyNumbers,
+  });
+
+  @override
+  State<PlayerEditorDialog> createState() => _PlayerEditorDialogState();
+}
+
 // class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 //   // State variables for form fields
 //   late final TextEditingController _nameController;
 //   late int? _selectedJerseyNumber;
 //   late String? _selectedRole;
-//   String? _currentImagePath;
+//   String? _currentImageBase64;
 //
 //   final ImagePicker _picker = ImagePicker();
 //
@@ -710,13 +716,13 @@ class PlayerUtilsV2 {
 //       _selectedJerseyNumber =
 //           widget.player!.jerseyNumber > 0 ? widget.player!.jerseyNumber : null;
 //       _selectedRole = widget.player!.role;
-//       _currentImagePath = widget.player!.imagePath;
+//       _currentImageBase64 = widget.player!.imageBase64;
 //     } else {
 //       // Create Mode: Initialize fields as empty
 //       _nameController = TextEditingController();
 //       _selectedJerseyNumber = null;
 //       _selectedRole = null;
-//       _currentImagePath = null;
+//       _currentImageBase64 = null;
 //     }
 //   }
 //
@@ -726,7 +732,7 @@ class PlayerUtilsV2 {
 //     super.dispose();
 //   }
 //
-//   /// Handles picking an image from gallery and running it through a circular cropper.
+//   /// Handles picking an image from gallery, cropping it, and converting to Base64.
 //   Future<void> _pickImage() async {
 //     try {
 //       final XFile? pickedFile =
@@ -735,7 +741,7 @@ class PlayerUtilsV2 {
 //
 //       final CroppedFile? croppedFile = await ImageCropper().cropImage(
 //         sourcePath: pickedFile.path,
-//         compressQuality: 100,
+//         compressQuality: 80, // Slightly compressed for better performance
 //         uiSettings: [
 //           AndroidUiSettings(
 //             toolbarTitle: 'Crop Player Icon',
@@ -758,20 +764,12 @@ class PlayerUtilsV2 {
 //
 //       if (croppedFile == null) return; // User cancelled cropping
 //
-//       // Copy the cropped file to a persistent location
-//       final Directory appDocDir = await getApplicationDocumentsDirectory();
-//       final String playerImageDir = p.join(appDocDir.path, 'zporter_player');
-//       await Directory(playerImageDir).create(recursive: true);
-//       String fileExtension = p.extension(croppedFile.path).isNotEmpty
-//           ? p.extension(croppedFile.path)
-//           : ".png";
-//       final String fileName =
-//           '${DateTime.now().millisecondsSinceEpoch}_${widget.player?.id ?? 'new'}$fileExtension';
-//       final String newPath = p.join(playerImageDir, fileName);
-//       await File(croppedFile.path).copy(newPath);
+//       // Convert cropped image to Base64 and update state
+//       final imageBytes = await croppedFile.readAsBytes();
+//       final base64String = base64Encode(imageBytes);
 //
 //       setState(() {
-//         _currentImagePath = newPath;
+//         _currentImageBase64 = base64String;
 //       });
 //     } catch (e) {
 //       zlog(data: 'Error during image pick/crop process: $e');
@@ -781,93 +779,81 @@ class PlayerUtilsV2 {
 //     }
 //   }
 //
-//   /// Handles the "Reset" button press. Reverts player data to its static default.
-//   Future<void> _onResetPressed() async {
-//     final playerToEdit = widget.player!; // This is only callable in Edit Mode
+//   /// Handles the "Delete" button press. Decides whether to reset or permanently delete.
+//   Future<void> _onDeleteOrResetPressed() async {
+//     final playerToEdit = widget.player!;
 //
-//     var staticData = PlayerUtilsV2.homePlayers
-//             .firstWhereOrNull((p) => p.item2 == playerToEdit.id) ??
-//         PlayerUtilsV2.awayPlayers
-//             .firstWhereOrNull((p) => p.item2 == playerToEdit.id);
+//     // 1. Check if the player is a default player using our helper
+//     final staticData = PlayerUtilsV2.findDefaultPlayerDataById(playerToEdit.id);
 //
-//     if (staticData == null) {
-//       if (mounted) {
-//         PlayerModel? p = widget.player;
-//         if (p == null) return;
-//         widget.onDelete.call(p);
-//         Navigator.of(context).pop(null);
-//         // BotToast.showText(text: "This player has no default data to reset to.");
-//       }
-//       return;
-//     }
+//     if (staticData != null) {
+//       // --- SCENARIO 1: IT IS A DEFAULT PLAYER -> RESET IT ---
+//       final String originalRole = staticData.item1;
+//       final int originalNumber = staticData.item3;
 //
-//     final String originalRole = staticData.item1;
-//     final int originalNumber = staticData.item3;
-//     int finalNumber;
-//
-//     bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-//         originalNumber, widget.playerType, playerToEdit.id);
-//     if (isTaken) {
-//       finalNumber = await PlayerUtilsV2.findClosestUntakenNumber(
+//       int finalNumber = await PlayerUtilsV2.findClosestUntakenNumber(
 //           originalNumber, widget.playerType, playerToEdit.id);
+//
+//       final PlayerModel resetPlayerModel = playerToEdit.copyWith(
+//         role: originalRole,
+//         jerseyNumber: finalNumber,
+//         name: '', // Reset name
+//         imageBase64: '', // Reset image
+//         imagePath: '', // Reset old image path just in case
+//       );
+//
+//       // Pop with the "reset" model. The calling function will save it.
+//       if (mounted) {
+//         Navigator.of(context).pop(resetPlayerModel);
+//       }
+//       BotToast.showText(text: "Player has been reset to default.");
 //     } else {
-//       finalNumber = originalNumber;
-//     }
-//
-//     final PlayerModel resetPlayerModel = playerToEdit.copyWith(
-//       role: originalRole,
-//       jerseyNumber: finalNumber,
-//       name: '',
-//       imagePath: '', // This is how we "remove" the image
-//     );
-//
-//     if (mounted) {
-//       Navigator.of(context).pop(resetPlayerModel);
+//       // --- SCENARIO 2 & 3: IT IS A USER-CREATED PLAYER -> DELETE IT ---
+//       widget.onDelete.call(playerToEdit);
+//       if (mounted) {
+//         Navigator.of(context).pop(null);
+//       } // Pop null to signify deletion
+//       BotToast.showText(text: "Player deleted permanently.");
 //     }
 //   }
 //
 //   /// Handles the "Save" button press for both Create and Edit modes.
 //   Future<void> _onSavePressed() async {
-//     // 1. Basic validation
 //     if (_selectedJerseyNumber == null || _selectedRole == null) {
-//       BotToast.showText(
-//           text: "Please fill all fields and select a role and jersey number.");
-//
+//       BotToast.showText(text: "Please select a role and jersey number.");
 //       return;
 //     }
 //
-//     // 2. Jersey number validation
-//     final String playerIdForCheck = isEditMode ? widget.player!.id : '';
+//     final String playerIdForCheck =
+//         isEditMode ? widget.player!.id : RandomGenerator.generateId();
 //     bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
 //         _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
 //
 //     if (isTaken) {
 //       BotToast.showText(
 //           text: 'Jersey number $_selectedJerseyNumber is already taken!');
-//
 //       return;
 //     }
 //
-//     // 3. Construct the resulting PlayerModel
 //     PlayerModel resultPlayer;
-//
 //     if (isEditMode) {
 //       resultPlayer = widget.player!.copyWith(
 //         name: _nameController.text.trim(),
 //         role: _selectedRole,
 //         jerseyNumber: _selectedJerseyNumber,
-//         imagePath: _currentImagePath,
+//         imageBase64: _currentImageBase64,
+//         imagePath: '', // Ensure old path is cleared
 //         updatedAt: DateTime.now(),
 //       );
 //     } else {
 //       final now = DateTime.now();
 //       resultPlayer = PlayerModel(
-//         id: RandomGenerator.generateId(),
+//         id: playerIdForCheck, // Use the ID we checked with
 //         playerType: widget.playerType,
 //         role: _selectedRole!,
 //         jerseyNumber: _selectedJerseyNumber!,
 //         name: _nameController.text.trim(),
-//         imagePath: _currentImagePath,
+//         imageBase64: _currentImageBase64,
 //         color: widget.playerType == PlayerType.HOME
 //             ? ColorManager.blueAccent
 //             : ColorManager.red,
@@ -877,15 +863,29 @@ class PlayerUtilsV2 {
 //         updatedAt: now,
 //       );
 //     }
-//
 //     if (mounted) {
 //       Navigator.of(context).pop(resultPlayer);
 //     }
 //   }
 //
+//   /// Decodes the Base64 string into an ImageProvider for the UI.
+//   ImageProvider? _getImageProvider() {
+//     if (_currentImageBase64 != null && _currentImageBase64!.isNotEmpty) {
+//       try {
+//         return MemoryImage(base64Decode(_currentImageBase64!));
+//       } catch (e) {
+//         zlog(data: "Error decoding Base64 for UI: $e");
+//         return null;
+//       }
+//     }
+//     return null;
+//   }
+//
 //   @override
 //   Widget build(BuildContext context) {
 //     final theme = Theme.of(context);
+//     final imageProvider = _getImageProvider();
+//
 //     return Dialog(
 //       backgroundColor: ColorManager.black,
 //       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
@@ -901,7 +901,6 @@ class PlayerUtilsV2 {
 //                 alignment: Alignment.centerLeft,
 //                 child: Text(
 //                   isEditMode ? 'Edit Player' : 'Create Player',
-//                   textAlign: TextAlign.center,
 //                   style: theme.textTheme.headlineSmall?.copyWith(
 //                       color: ColorManager.white, fontWeight: FontWeight.bold),
 //                 ),
@@ -911,26 +910,16 @@ class PlayerUtilsV2 {
 //                 child: GestureDetector(
 //                   onTap: _pickImage,
 //                   child: Container(
-//                     // --- FIX START ---
-//                     // Give the container a fixed size so it doesn't expand.
 //                     width: 100,
 //                     height: 100,
-//                     // --- FIX END ---
 //                     decoration: BoxDecoration(
 //                         borderRadius: BorderRadius.circular(10),
-//                         color: ColorManager.white.withValues(alpha: 0.4),
-//                         image: _currentImagePath != null &&
-//                                 File(_currentImagePath!).existsSync()
+//                         color: ColorManager.white.withOpacity(0.4),
+//                         image: imageProvider != null
 //                             ? DecorationImage(
-//                                 // 'cover' will fill the container, cropping the image if necessary.
-//                                 // 'contain' will fit the whole image inside, leaving empty space if aspect ratios differ.
-//                                 fit: BoxFit.cover,
-//                                 image: FileImage(File(_currentImagePath!)))
+//                                 fit: BoxFit.cover, image: imageProvider)
 //                             : null),
-//                     // The child is only shown when there's no image.
-//                     // It will be centered automatically inside the 100x100 container.
-//                     child: _currentImagePath == null ||
-//                             !File(_currentImagePath!).existsSync()
+//                     child: imageProvider == null
 //                         ? Icon(
 //                             Icons.add_a_photo_outlined,
 //                             size: 40,
@@ -945,53 +934,29 @@ class PlayerUtilsV2 {
 //                 children: [
 //                   Expanded(
 //                     child: DropdownSelector<int>(
-//                         label: 'Nr',
-//                         items: widget.availableJerseyNumbers,
-//                         initialValue: _selectedJerseyNumber,
-//                         hint: "Select Nr",
-//                         itemAsString: (item) => item.toString(),
-//                         onChanged: (value) async {
-//                           // Make onChanged async
-//                           if (value == null) {
-//                             setState(() {
-//                               _selectedJerseyNumber = null;
-//                             });
-//                             return;
-//                           }
-//
-//                           // Store current selection in case we need to revert
-//                           int? previousValidNumber = _selectedJerseyNumber;
-//
-//                           // Optimistically set for the check, but prepare to revert
-//                           // setState(() { _selectedJerseyNumber = value; }); // Let's not do this yet.
-//
-//                           bool isTaken =
-//                               await PlayerUtilsV2.isJerseyNumberTaken(
-//                                   value,
-//                                   widget.playerType,
-//                                   isEditMode ? '' : widget.player?.id ?? "");
-//
-//                           if (isTaken) {
-//                             // ** BOTTOAST INTEGRATION POINT **
-//                             // Replace ScaffoldMessenger with your BotToast call if available
-//                             // Example: BotToast.showText(text: 'Jersey number $value is already taken!');
-//                             BotToast.showText(
-//                                 text:
-//                                     'Jersey number $value is already taken! Please choose another.');
-//
-//                             // Revert selection:
-//                             // By setting state and having DropdownSelector rebuild with the 'previousValidNumber'
-//                             // as its initialValue, it should visually update.
-//                             setState(() {
-//                               _selectedJerseyNumber = previousValidNumber;
-//                             });
-//                           } else {
-//                             // Number is not taken, accept the new value
-//                             setState(() {
-//                               _selectedJerseyNumber = value;
-//                             });
-//                           }
-//                         }),
+//                       label: 'Nr',
+//                       items: widget.availableJerseyNumbers,
+//                       initialValue: _selectedJerseyNumber,
+//                       hint: "Select Nr",
+//                       itemAsString: (item) => item.toString(),
+//                       onChanged: (value) async {
+//                         if (value == null) {
+//                           setState(() => _selectedJerseyNumber = null);
+//                           return;
+//                         }
+//                         bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
+//                             value,
+//                             widget.playerType,
+//                             isEditMode ? widget.player!.id : '');
+//                         if (isTaken) {
+//                           BotToast.showText(
+//                               text: 'Jersey number $value is already taken!');
+//                           // NOTE: You might want to visually revert the dropdown here if needed.
+//                         } else {
+//                           setState(() => _selectedJerseyNumber = value);
+//                         }
+//                       },
+//                     ),
 //                   ),
 //                   const SizedBox(width: 16),
 //                   Expanded(
@@ -1031,19 +996,16 @@ class PlayerUtilsV2 {
 //                 children: [
 //                   if (isEditMode)
 //                     CustomButton(
-//                       padding:
-//                           EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+//                       padding: const EdgeInsets.symmetric(
+//                           vertical: 8, horizontal: 10),
 //                       borderRadius: 2,
 //                       fillColor: ColorManager.yellow,
-//                       onTap: _onResetPressed,
+//                       onTap: _onDeleteOrResetPressed,
 //                       child: Text(
 //                         "Delete",
-//                         style: Theme.of(context)
-//                             .textTheme
-//                             .labelMedium!
-//                             .copyWith(
-//                                 color: ColorManager.white,
-//                                 fontWeight: FontWeight.bold),
+//                         style: theme.textTheme.labelMedium!.copyWith(
+//                             color: ColorManager.white,
+//                             fontWeight: FontWeight.bold),
 //                       ),
 //                     )
 //                   else
@@ -1052,35 +1014,29 @@ class PlayerUtilsV2 {
 //                     mainAxisAlignment: MainAxisAlignment.end,
 //                     children: <Widget>[
 //                       CustomButton(
-//                         padding:
-//                             EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+//                         padding: const EdgeInsets.symmetric(
+//                             vertical: 8, horizontal: 10),
 //                         borderRadius: 2,
 //                         fillColor: ColorManager.dark1,
 //                         child: Text(
 //                           "Cancel",
-//                           style: Theme.of(context)
-//                               .textTheme
-//                               .labelMedium!
-//                               .copyWith(
-//                                   color: ColorManager.white,
-//                                   fontWeight: FontWeight.bold),
+//                           style: theme.textTheme.labelMedium!.copyWith(
+//                               color: ColorManager.white,
+//                               fontWeight: FontWeight.bold),
 //                         ),
 //                         onTap: () => Navigator.of(context).pop(null),
 //                       ),
 //                       const SizedBox(width: 8),
 //                       CustomButton(
-//                         padding:
-//                             EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+//                         padding: const EdgeInsets.symmetric(
+//                             vertical: 8, horizontal: 10),
 //                         borderRadius: 2,
 //                         fillColor: ColorManager.blue,
 //                         onTap: _onSavePressed,
 //                         child: Text("Save",
-//                             style: Theme.of(context)
-//                                 .textTheme
-//                                 .labelMedium!
-//                                 .copyWith(
-//                                     color: ColorManager.white,
-//                                     fontWeight: FontWeight.bold)),
+//                             style: theme.textTheme.labelMedium!.copyWith(
+//                                 color: ColorManager.white,
+//                                 fontWeight: FontWeight.bold)),
 //                       ),
 //                     ],
 //                   ),
@@ -1094,59 +1050,34 @@ class PlayerUtilsV2 {
 //   }
 // }
 
-class PlayerEditorDialog extends StatefulWidget {
-  /// The player to edit. If null, the dialog is in "Create" mode.
-  final PlayerModel? player;
-
-  /// The team type (Home/Away) the player belongs to. Required in both modes.
-  final PlayerType playerType;
-
-  /// A list of all available roles for the dropdown.
-  final List<String> availableRoles;
-
-  final Function(PlayerModel) onDelete;
-
-  /// A list of all available jersey numbers for the dropdown.
-  final List<int> availableJerseyNumbers;
-
-  const PlayerEditorDialog({
-    super.key,
-    this.player,
-    required this.onDelete,
-    required this.playerType,
-    required this.availableRoles,
-    required this.availableJerseyNumbers,
-  });
-
-  @override
-  State<PlayerEditorDialog> createState() => _PlayerEditorDialogState();
-}
-
 class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   // State variables for form fields
   late final TextEditingController _nameController;
   late int? _selectedJerseyNumber;
   late String? _selectedRole;
-
-  // --- MODIFIED: We now store the Base64 string in the state ---
   String? _currentImageBase64;
 
-  final ImagePicker _picker = ImagePicker();
+  // --- State variable to track if the player is a default one ---
+  bool _isDefaultPlayer = false;
 
-  /// A getter to easily check if the dialog is in "Edit" mode.
+  final ImagePicker _picker = ImagePicker();
   bool get isEditMode => widget.player != null;
 
   @override
   void initState() {
     super.initState();
     if (isEditMode) {
-      // Edit Mode: Initialize with existing player data
+      // Standard initialization from the player model
       _nameController = TextEditingController(text: widget.player!.name ?? '');
       _selectedJerseyNumber =
           widget.player!.jerseyNumber > 0 ? widget.player!.jerseyNumber : null;
       _selectedRole = widget.player!.role;
-      // --- MODIFIED: Initialize from the model's imageBase64 field ---
       _currentImageBase64 = widget.player!.imageBase64;
+
+      // --- Check the player's status when the dialog opens ---
+      final defaultData =
+          PlayerUtilsV2.findDefaultPlayerDataById(widget.player!.id);
+      _isDefaultPlayer = defaultData != null;
     } else {
       // Create Mode: Initialize fields as empty
       _nameController = TextEditingController();
@@ -1171,7 +1102,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
       final CroppedFile? croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
-        compressQuality: 80, // Slightly compressed for better performance
+        compressQuality: 80,
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Player Icon',
@@ -1194,7 +1125,6 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
       if (croppedFile == null) return; // User cancelled cropping
 
-      // --- NEW: Convert cropped image to Base64 and update state ---
       final imageBytes = await croppedFile.readAsBytes();
       final base64String = base64Encode(imageBytes);
 
@@ -1209,78 +1139,78 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     }
   }
 
-  /// Handles the "Reset" button press. Reverts player data to its static default.
-  Future<void> _onResetPressed() async {
+  /// Handles the "Delete" button press. Decides whether to reset or permanently delete.
+  Future<void> _onDeleteOrResetPressed() async {
     final playerToEdit = widget.player!;
 
-    var staticData = PlayerUtilsV2.homePlayers
-            .firstWhereOrNull((p) => p.item2 == playerToEdit.id) ??
-        PlayerUtilsV2.awayPlayers
-            .firstWhereOrNull((p) => p.item2 == playerToEdit.id);
+    final staticData = PlayerUtilsV2.findDefaultPlayerDataById(playerToEdit.id);
 
-    if (staticData == null) {
+    if (staticData != null) {
+      // --- It is a default player -> RESET IT ---
+      final String originalRole = staticData.item1;
+      final int originalNumber = staticData.item3;
+
+      int finalNumber = await PlayerUtilsV2.findClosestUntakenNumber(
+          originalNumber, widget.playerType, playerToEdit.id);
+
+      final PlayerModel resetPlayerModel = playerToEdit.copyWith(
+        role: originalRole,
+        jerseyNumber: finalNumber,
+        name: '',
+        imageBase64: '',
+        imagePath: '',
+      );
+
       if (mounted) {
-        widget.onDelete.call(playerToEdit);
+        Navigator.of(context).pop(resetPlayerModel);
+      }
+      BotToast.showText(text: "Player has been reset to default.");
+    } else {
+      // --- It is a user-created player -> DELETE IT ---
+      widget.onDelete.call(playerToEdit);
+      if (mounted) {
         Navigator.of(context).pop(null);
       }
-      return;
-    }
-
-    // ... (logic for finding closest untaken number remains the same)
-    final String originalRole = staticData.item1;
-    final int originalNumber = staticData.item3;
-    // Assume PlayerUtilsV2 methods are available
-    // ...
-
-    // --- MODIFIED: When resetting, clear the imageBase64 field ---
-    final PlayerModel resetPlayerModel = playerToEdit.copyWith(
-      name: '',
-      // Explicitly clear both image fields to remove the custom image
-      imagePath: '', // old field
-      imageBase64: '', // new field
-    );
-
-    if (mounted) {
-      // Here you would typically pop with the reset model to be saved
-      // For a delete-on-reset behavior:
-      widget.onDelete.call(playerToEdit);
-      Navigator.of(context).pop(null);
+      BotToast.showText(text: "Player deleted permanently.");
     }
   }
 
   /// Handles the "Save" button press for both Create and Edit modes.
   Future<void> _onSavePressed() async {
-    // 1. Basic validation
     if (_selectedJerseyNumber == null || _selectedRole == null) {
       BotToast.showText(text: "Please select a role and jersey number.");
       return;
     }
 
-    // 2. Jersey number validation (assumed to be correct)
-    // ...
+    final String playerIdForCheck =
+        isEditMode ? widget.player!.id : RandomGenerator.generateId();
+    bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
+        _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
 
-    // 3. Construct the resulting PlayerModel
+    if (isTaken) {
+      BotToast.showText(
+          text: 'Jersey number $_selectedJerseyNumber is already taken!');
+      return;
+    }
+
     PlayerModel resultPlayer;
-
     if (isEditMode) {
       resultPlayer = widget.player!.copyWith(
         name: _nameController.text.trim(),
         role: _selectedRole,
         jerseyNumber: _selectedJerseyNumber,
-        // --- MODIFIED: Save the Base64 string and clear the old path ---
         imageBase64: _currentImageBase64,
-        imagePath: '', // Ensure old path is cleared
+        imagePath: '',
         updatedAt: DateTime.now(),
       );
     } else {
       final now = DateTime.now();
       resultPlayer = PlayerModel(
-        id: RandomGenerator.generateId(),
+        id: playerIdForCheck,
         playerType: widget.playerType,
         role: _selectedRole!,
         jerseyNumber: _selectedJerseyNumber!,
         name: _nameController.text.trim(),
-        // --- MODIFIED: Save the Base64 string ---
         imageBase64: _currentImageBase64,
         color: widget.playerType == PlayerType.HOME
             ? ColorManager.blueAccent
@@ -1291,13 +1221,11 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         updatedAt: now,
       );
     }
-
     if (mounted) {
       Navigator.of(context).pop(resultPlayer);
     }
   }
 
-  // --- NEW HELPER ---
   /// Decodes the Base64 string into an ImageProvider for the UI.
   ImageProvider? _getImageProvider() {
     if (_currentImageBase64 != null && _currentImageBase64!.isNotEmpty) {
@@ -1316,6 +1244,11 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     final theme = Theme.of(context);
     final imageProvider = _getImageProvider();
 
+    final String buttonText =
+        _isDefaultPlayer ? "Reset to Default" : "Delete Permanently";
+    final Color buttonColor =
+        _isDefaultPlayer ? (ColorManager.yellow) : (ColorManager.red);
+
     return Dialog(
       backgroundColor: ColorManager.black,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
@@ -1331,7 +1264,6 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   isEditMode ? 'Edit Player' : 'Create Player',
-                  textAlign: TextAlign.center,
                   style: theme.textTheme.headlineSmall?.copyWith(
                       color: ColorManager.white, fontWeight: FontWeight.bold),
                 ),
@@ -1345,8 +1277,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                     height: 100,
                     decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
-                        color: ColorManager.white.withValues(alpha: 0.4),
-                        // --- MODIFIED: Use the MemoryImage provider ---
+                        color: ColorManager.white.withOpacity(0.4),
                         image: imageProvider != null
                             ? DecorationImage(
                                 fit: BoxFit.cover, image: imageProvider)
@@ -1362,9 +1293,6 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                 ),
               ),
               const SizedBox(height: 24),
-              // ... The rest of your UI (Dropdowns, TextField, Buttons)
-              // remains the same as in your original code.
-              // I'm including it here for completeness.
               Row(
                 children: [
                   Expanded(
@@ -1374,11 +1302,21 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                       initialValue: _selectedJerseyNumber,
                       hint: "Select Nr",
                       itemAsString: (item) => item.toString(),
-                      onChanged: (value) {
-                        // Simplified for brevity
-                        setState(() {
-                          _selectedJerseyNumber = value;
-                        });
+                      onChanged: (value) async {
+                        if (value == null) {
+                          setState(() => _selectedJerseyNumber = null);
+                          return;
+                        }
+                        bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
+                            value,
+                            widget.playerType,
+                            isEditMode ? widget.player!.id : '');
+                        if (isTaken) {
+                          BotToast.showText(
+                              text: 'Jersey number $value is already taken!');
+                        } else {
+                          setState(() => _selectedJerseyNumber = value);
+                        }
                       },
                     ),
                   ),
@@ -1420,20 +1358,16 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                 children: [
                   if (isEditMode)
                     CustomButton(
-                      padding:
-                          EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 10),
                       borderRadius: 2,
-                      fillColor: ColorManager.yellow,
-                      onTap:
-                          _onResetPressed, // Changed to call the delete/reset logic
+                      fillColor: buttonColor,
+                      onTap: _onDeleteOrResetPressed,
                       child: Text(
-                        "Delete", // Or "Reset to Default"
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelMedium!
-                            .copyWith(
-                                color: ColorManager.white,
-                                fontWeight: FontWeight.bold),
+                        buttonText,
+                        style: theme.textTheme.labelMedium!.copyWith(
+                            color: ColorManager.white,
+                            fontWeight: FontWeight.bold),
                       ),
                     )
                   else
@@ -1442,35 +1376,29 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: <Widget>[
                       CustomButton(
-                        padding:
-                            EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 10),
                         borderRadius: 2,
                         fillColor: ColorManager.dark1,
                         child: Text(
                           "Cancel",
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelMedium!
-                              .copyWith(
-                                  color: ColorManager.white,
-                                  fontWeight: FontWeight.bold),
+                          style: theme.textTheme.labelMedium!.copyWith(
+                              color: ColorManager.white,
+                              fontWeight: FontWeight.bold),
                         ),
                         onTap: () => Navigator.of(context).pop(null),
                       ),
                       const SizedBox(width: 8),
                       CustomButton(
-                        padding:
-                            EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 10),
                         borderRadius: 2,
                         fillColor: ColorManager.blue,
                         onTap: _onSavePressed,
                         child: Text("Save",
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelMedium!
-                                .copyWith(
-                                    color: ColorManager.white,
-                                    fontWeight: FontWeight.bold)),
+                            style: theme.textTheme.labelMedium!.copyWith(
+                                color: ColorManager.white,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

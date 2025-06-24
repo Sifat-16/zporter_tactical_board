@@ -299,8 +299,16 @@ class AnimationListItem extends StatelessWidget {
                             fieldColor: fieldColor,
                             boardBackground: animation.boardBackground,
                             borderColor: borderColor,
-                            items: const [],
-                            logicalFieldSize: Vector2(10000, 10000),
+                            items: animation
+                                    .animationScenes.firstOrNull?.components ??
+                                [],
+                            logicalFieldSize: animation.animationScenes
+                                        .firstOrNull?.fieldSize ==
+                                    Vector2.zero()
+                                ? Vector2(10000, 10000)
+                                : animation.animationScenes.firstOrNull
+                                        ?.fieldSize ??
+                                    Vector2(10000, 10000),
                           ),
                         ),
                         Align(

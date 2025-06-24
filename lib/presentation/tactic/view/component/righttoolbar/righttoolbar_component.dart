@@ -249,6 +249,8 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
         // --------------------------------------------------
         Expanded(
           child: Container(
+            decoration:
+                BoxDecoration(color: ColorManager.black.withValues(alpha: 0.7)),
             child: PageView(
               physics: const NeverScrollableScrollPhysics(),
               controller: _pageController,

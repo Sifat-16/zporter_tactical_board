@@ -244,8 +244,6 @@ class _FormsToolbarComponentState extends ConsumerState<FormsToolbarComponent>
     ];
 
     return Container(
-      decoration:
-          BoxDecoration(color: ColorManager.black.withValues(alpha: 0.7)),
       child: ListView(
         children: [
           _buildSectionHeader('Player movements'),
