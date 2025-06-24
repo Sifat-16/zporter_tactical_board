@@ -355,26 +355,41 @@ class _AnimationSceneItemState extends ConsumerState<AnimationSceneItem> {
                         return [
                           PopupMenuItem(
                             onTap: widget.onDuplicate,
-                            child: Text(
-                              "Duplicate Scene",
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelMedium!
-                                  .copyWith(
-                                    color: ColorManager.white,
-                                  ),
+                            // child: Text(
+                            //   "Duplicate Scene",
+                            //   style: Theme.of(context)
+                            //       .textTheme
+                            //       .labelMedium!
+                            //       .copyWith(
+                            //         color: ColorManager.white,
+                            //       ),
+                            // ),
+                            child: TextButton(
+                              onPressed: null,
+                              child: Text(
+                                "Duplicate Scene",
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge!.copyWith(
+                                      color: ColorManager.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
                             ),
                           ),
                           PopupMenuItem(
                             onTap: widget.onInsertBlank,
-                            child: Text(
-                              "Insert Blank Scene",
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelMedium!
-                                  .copyWith(
-                                    color: ColorManager.white,
-                                  ),
+                            child: TextButton(
+                              onPressed: null,
+                              child: Text(
+                                "Insert Blank Scene",
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelLarge!.copyWith(
+                                      color: ColorManager.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
                             ),
                           ),
                           PopupMenuItem(

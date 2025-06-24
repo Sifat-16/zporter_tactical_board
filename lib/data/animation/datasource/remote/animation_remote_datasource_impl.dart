@@ -395,4 +395,29 @@ class AnimationRemoteDatasourceImpl implements AnimationDatasource {
     // TODO: implement getHistoryStream
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> deleteAnimationCollection({required String collectionId}) async {
+    try {
+      await _animationCollectionRef.doc(collectionId).delete();
+      zlog(
+        level: Level.info,
+        data:
+            "Firestore: Successfully deleted animation collection ID: $collectionId",
+      );
+    } on FirebaseException catch (e) {
+      zlog(
+        level: Level.error,
+        data:
+            "Firebase error deleting animation collection $collectionId: ${e.code} - ${e.message}",
+      );
+      throw Exception("Error deleting animation collection: ${e.message}");
+    } catch (e) {
+      zlog(
+        level: Level.error,
+        data: "Error deleting animation collection $collectionId: $e",
+      );
+      throw Exception("Error deleting animation collection: $e");
+    }
+  }
 }

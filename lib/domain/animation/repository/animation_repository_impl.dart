@@ -33,7 +33,6 @@ class AnimationRepositoryImpl implements AnimationRepository {
   @override
   Future<List<AnimationItemModel>> saveDefaultAnimations({
     required List<AnimationItemModel> animationItems,
-
     required String userId,
   }) async {
     return await animationDatasource.saveDefaultAnimations(
@@ -69,5 +68,12 @@ class AnimationRepositoryImpl implements AnimationRepository {
   @override
   Stream<HistoryModel?> getHistoryStream({required String id}) {
     return animationDatasource.getHistoryStream(id: id);
+  }
+
+  @override
+  Future<void> deleteAnimationCollection({required String collectionId}) async {
+    // This implementation simply passes the call to the underlying datasource.
+    return await animationDatasource.deleteAnimationCollection(
+        collectionId: collectionId);
   }
 }

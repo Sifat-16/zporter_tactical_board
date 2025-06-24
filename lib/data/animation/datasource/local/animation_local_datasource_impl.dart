@@ -450,4 +450,33 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
       );
     } finally {}
   }
+
+  @override
+  Future<void> deleteAnimationCollection({required String collectionId}) async {
+    try {
+      final db = await SemDB.database;
+      final count =
+          await _animationCollectionStore.record(collectionId).delete(db);
+      if (count != null) {
+        zlog(
+          level: Level.info,
+          data:
+              "Sembast: Successfully deleted animation collection ID: $collectionId.",
+        );
+      } else {
+        zlog(
+          level: Level.debug,
+          data:
+              "Sembast: Tried to delete collection ID: $collectionId, but it was not found.",
+        );
+      }
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data:
+            "Sembast: Error deleting collection ID $collectionId: $e\n$stackTrace",
+      );
+      throw Exception("Error deleting animation collection locally: $e");
+    }
+  }
 }
