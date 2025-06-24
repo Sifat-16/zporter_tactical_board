@@ -329,11 +329,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     ref.listen(boardProvider, (prev, current) {
       if (prev?.showFullScreen != current.showFullScreen) {
-        if (gameInitialized) tacticBoardGame?.redrawLines();
+        if (gameInitialized) {
+          tacticBoardGame?.redrawLines();
+        }
       }
       if (current.refreshBoard == true) {
-        if (gameInitialized) tacticBoardGame?.redrawLines();
-        if (mounted) ref.read(boardProvider.notifier).toggleRefreshBoard(false);
+        if (gameInitialized) {
+          tacticBoardGame?.redrawLines();
+        }
+        if (mounted) {
+          ref.read(boardProvider.notifier).toggleRefreshBoard(false);
+        }
       }
       // If animatingObj is cleared externally while dialog is up, dismiss dialog
       if (prev?.animatingObj != null &&
