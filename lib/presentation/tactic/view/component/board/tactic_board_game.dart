@@ -4,6 +4,7 @@ import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
@@ -80,10 +81,11 @@ class TacticBoard extends TacticBoardGame
       size: Vector2(size.x - 22.5, size.y - 22.5),
       initialColor: scene?.fieldColor,
     );
-    ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
-    add(gameField); // add() is available via FlameGame
-    addInitialItems(scene?.components ?? []);
-
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
+      add(gameField); // add() is available via FlameGame
+      addInitialItems(scene?.components ?? []);
+    });
     // initiateFieldColor();
   }
 
@@ -119,10 +121,12 @@ class TacticBoard extends TacticBoardGame
         bool deselect = true;
 
         try {
-          FieldItemModel? f = ref.read(boardProvider).selectedItemOnTheBoard;
-          if (f is FreeDrawModelV2) {
-            deselect = false;
-          }
+          WidgetsBinding.instance.addPostFrameCallback((t) {
+            FieldItemModel? f = ref.read(boardProvider).selectedItemOnTheBoard;
+            if (f is FreeDrawModelV2) {
+              deselect = false;
+            }
+          });
         } catch (e) {}
 
         if (deselect) {
@@ -139,7 +143,9 @@ class TacticBoard extends TacticBoardGame
 
         bool isTrashModeActive = false;
         try {
-          isTrashModeActive = ref.read(lineProvider).isTrashActive;
+          WidgetsBinding.instance.addPostFrameCallback((t) {
+            isTrashModeActive = ref.read(lineProvider).isTrashActive;
+          });
         } catch (e) {}
 
         // if (isTrashModeActive) {
@@ -159,32 +165,34 @@ class TacticBoard extends TacticBoardGame
 
     // Check if the accumulated time has reached or exceeded the interval
     if (_timerAccumulator >= _checkInterval) {
-      // --- Your change detection logic goes here ---
+      WidgetsBinding.instance.addPostFrameCallback((t) {
+        // --- Your change detection logic goes here ---
 
-      // Assuming FieldItemModel is the correct type here
-      List<FieldItemModel> items =
-          ref.read(boardProvider.notifier).onAnimationSave();
+        // Assuming FieldItemModel is the correct type here
+        List<FieldItemModel> items =
+            ref.read(boardProvider.notifier).onAnimationSave();
 
-      // Consider if toJson() is expensive; maybe compare models directly if possible
-      String current = items.map((e) => e.toJson()).join(
-            ',',
-          ); // Use join for a more stable string representation if order matters
+        // Consider if toJson() is expensive; maybe compare models directly if possible
+        String current = items.map((e) => e.toJson()).join(
+              ',',
+            ); // Use join for a more stable string representation if order matters
 
-      current =
-          "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
+        current =
+            "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
 
-      if (_boardComparator == null) {
-        _boardComparator = current;
-      } else {
-        if (_boardComparator != current) {
-          // --- ACTION: Do something when a change is detected ---
-          // e.g., trigger autosave, update external UI, etc.
-          _boardComparator = current; // Update comparator to the new state
+        if (_boardComparator == null) {
+          _boardComparator = current;
+        } else {
+          if (_boardComparator != current) {
+            // --- ACTION: Do something when a change is detected ---
+            // e.g., trigger autosave, update external UI, etc.
+            _boardComparator = current; // Update comparator to the new state
 
-          updateDatabase();
-        } else {}
-      }
-      _timerAccumulator -= _checkInterval;
+            updateDatabase();
+          } else {}
+        }
+        _timerAccumulator -= _checkInterval;
+      });
     }
 
     // Other update logic can remain here and run every frame if needed
@@ -193,18 +201,15 @@ class TacticBoard extends TacticBoardGame
 
   updateDatabase() {
     if (!isAnimating) {
-      zlog(
-        data:
-            "Updated database... ${ref.read(boardProvider.notifier).onAnimationSave()}",
-      ); // Log that the check is running
-
-      ref
-          .read(animationProvider.notifier)
-          .updateDatabaseOnChange(saveToDb: saveToDb)
-          .then((a) {
-        zlog(data: "After save coming animation item model ${a?.toJson()}");
-        ref.read(animationProvider.notifier).saveHistory(scene: a);
-        onSceneSave?.call(a);
+      WidgetsBinding.instance.addPostFrameCallback((t) {
+        ref
+            .read(animationProvider.notifier)
+            .updateDatabaseOnChange(saveToDb: saveToDb)
+            .then((a) {
+          zlog(data: "After save coming animation item model ${a?.toJson()}");
+          ref.read(animationProvider.notifier).saveHistory(scene: a);
+          onSceneSave?.call(a);
+        });
       });
     } else {
       zlog(data: "Is animating");
@@ -212,9 +217,14 @@ class TacticBoard extends TacticBoardGame
   }
 
   void redrawLines() {
-    List<FieldItemModel> items =
-        ref.read(boardProvider.notifier).allFieldItems();
-    zlog(data: "items detected ${items}");
-    resetItems(items);
+    WidgetsBinding.instance.addPostFrameCallback((t) async {
+      try {
+        List<FieldItemModel> items =
+            ref.read(boardProvider.notifier).allFieldItems();
+        zlog(data: "items detected ${ref.exists(boardProvider)}", show: true);
+
+        resetItems(items);
+      } catch (e) {}
+    });
   }
 }
