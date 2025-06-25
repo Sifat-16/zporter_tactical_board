@@ -82,6 +82,7 @@ dependencies:
   flutter_quill: ^11.4.1
   flutter_quill_extensions: ^11.0.0
   appwrite: ^17.0.1
+  fluttertoast: ^8.2.12
 
 
 

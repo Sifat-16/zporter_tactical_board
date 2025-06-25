@@ -2,6 +2,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -578,14 +579,15 @@ class _FormSpeedDialComponentState
                     selectedAnimation: selectedAnimation,
                     selectedScene: selectedScene,
                   );
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Center(child: Text("Image added to animation")),
+
+              Fluttertoast.showToast(
+                  msg: "Image added to animation",
+                  toastLength: Toast.LENGTH_LONG,
+                  gravity: ToastGravity.BOTTOM,
+                  timeInSecForIosWeb: 1,
                   backgroundColor: ColorManager.black,
-                  showCloseIcon: true,
-                  duration: Duration(seconds: 4),
-                ),
-              );
+                  textColor: Colors.white,
+                  fontSize: 16.0);
 
               // BotToast.showText(
               //     text: "Image added to animation",
