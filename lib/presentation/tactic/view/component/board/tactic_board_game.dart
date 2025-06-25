@@ -46,6 +46,7 @@ abstract class TacticBoardGame extends FlameGame
   bool isAnimating = false;
   late DrawingBoardComponent drawingBoard;
   addItem(FieldItemModel item, {bool save = true});
+  late BuildContext context;
 }
 
 // ---- The Refactored TacticBoard Class ----
@@ -58,8 +59,13 @@ class TacticBoard extends TacticBoardGame
         AnimationPlaybackMixin {
   AnimationItemModel? scene;
   bool saveToDb;
+  BuildContext myContext;
   Function(AnimationItemModel?)? onSceneSave;
-  TacticBoard({required this.scene, this.saveToDb = true, this.onSceneSave});
+  TacticBoard(
+      {required this.scene,
+      this.saveToDb = true,
+      this.onSceneSave,
+      required this.myContext});
 
   // --- Variables for the 1-second timer ---
   double _timerAccumulator = 0.0; // Accumulates delta time
@@ -73,6 +79,7 @@ class TacticBoard extends TacticBoardGame
     await super.onLoad();
     setupBoardListeners(); // Call the listener setup method from the mixin
     _initiateField(); // Field setup specific to this game
+    context = myContext;
   }
 
   // Methods specific to TacticBoard remain here

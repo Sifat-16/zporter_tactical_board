@@ -299,7 +299,7 @@ class TextFieldComponent extends FieldComponent<TextModel>
     super.onDoubleTapDown(event);
     try {
       TextModel? edittedText = await TextFieldUtils.editTextDialog(
-        NavigationService.currentContext!,
+        game.context,
         object,
       );
       if (edittedText != null && edittedText.text != object.text) {

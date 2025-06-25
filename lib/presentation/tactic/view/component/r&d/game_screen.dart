@@ -117,6 +117,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
       setState(() {
         tacticBoardGame = TacticBoard(
+          myContext: context,
           scene: selectedScene,
           saveToDb: widget.saveToDb,
           onSceneSave: widget.onSceneSave,
