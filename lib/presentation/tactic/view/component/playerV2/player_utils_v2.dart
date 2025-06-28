@@ -24,6 +24,26 @@ import 'package:zporter_tactical_board/data/animation/model/animation_item_model
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_repository.dart';
 
+abstract class PlayerDialogResult {}
+
+/// Represents the action of updating the current player's details.
+class PlayerUpdateResult extends PlayerDialogResult {
+  final PlayerModel updatedPlayer;
+  PlayerUpdateResult(this.updatedPlayer);
+}
+
+/// Represents the action of swapping the current player with another from the roster.
+class PlayerSwapResult extends PlayerDialogResult {
+  /// The player currently being edited, who will be moved to the bench.
+  final PlayerModel playerToBench;
+
+  /// The player from the bench who will be moved to the field.
+  final PlayerModel playerToBringIn;
+
+  PlayerSwapResult(
+      {required this.playerToBench, required this.playerToBringIn});
+}
+
 class PlayerUtilsV2 {
   static DefaultLineupRepository _repository = sl.get();
   // --- Sembast Store Definitions ---
@@ -505,42 +525,83 @@ class PlayerUtilsV2 {
 
   /// Shows the dialog to edit player details.
   /// Returns the updated PlayerModel if saved, otherwise null.
-  static Future<PlayerModel?> showEditPlayerDialog({
+  // static Future<PlayerModel?> showEditPlayerDialog({
+  //   required BuildContext context,
+  //   required PlayerModel player,
+  // }) async {
+  //   final PlayerModel? resultPlayer = await showDialog<PlayerModel?>(
+  //     context: context,
+  //     barrierDismissible: false,
+  //     builder: (BuildContext dialogContext) {
+  //       return PlayerEditorDialog(
+  //         player: player, // Pass the player to trigger "Edit Mode"
+  //         playerType: player.playerType,
+  //         onDelete: (p) async {
+  //           await deletePlayerInDb(p);
+  //         },
+  //         availableRoles: getUniqueRoles(),
+  //         availableJerseyNumbers: getDefaultJerseyNumbers(),
+  //       );
+  //     },
+  //   );
+  //
+  //   // The existing save/update logic below this call remains the same and works perfectly.
+  //   if (resultPlayer != null) {
+  //     if (resultPlayer != player) {
+  //       zlog(data: 'Player model changed. Saving to database...');
+  //       try {
+  //         await updatePlayerInDb(resultPlayer);
+  //         return resultPlayer;
+  //       } catch (e) {
+  //         // ... error handling
+  //         return null;
+  //       }
+  //     } else {
+  //       return resultPlayer;
+  //     }
+  //   }
+  //   return null;
+  // }
+
+  static Future<PlayerDialogResult?> showEditPlayerDialog({
     required BuildContext context,
     required PlayerModel player,
+    // --- NEW: Pass in the list of available players on the bench ---
+    List<PlayerModel> rosterPlayers = const [],
   }) async {
-    final PlayerModel? resultPlayer = await showDialog<PlayerModel?>(
+    // --- MODIFIED: The dialog now returns our custom result type ---
+    final PlayerDialogResult? result = await showDialog<PlayerDialogResult?>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return PlayerEditorDialog(
-          player: player, // Pass the player to trigger "Edit Mode"
+          player: player,
           playerType: player.playerType,
           onDelete: (p) async {
             await deletePlayerInDb(p);
           },
           availableRoles: getUniqueRoles(),
           availableJerseyNumbers: getDefaultJerseyNumbers(),
+          // --- NEW: Pass the roster players to the dialog ---
+          availableReplacements: rosterPlayers,
         );
       },
     );
 
-    // The existing save/update logic below this call remains the same and works perfectly.
-    if (resultPlayer != null) {
-      if (resultPlayer != player) {
+    // --- MODIFIED: Handle the different result types ---
+    if (result is PlayerUpdateResult) {
+      // The user edited the player's details. Save them.
+      if (result.updatedPlayer != player) {
         zlog(data: 'Player model changed. Saving to database...');
         try {
-          await updatePlayerInDb(resultPlayer);
-          return resultPlayer;
+          await updatePlayerInDb(result.updatedPlayer);
         } catch (e) {
-          // ... error handling
-          return null;
+          zlog(data: 'Failed to update player: $e');
         }
-      } else {
-        return resultPlayer;
       }
     }
-    return null;
+    // Return the result (update, swap, or null) to the caller to handle board actions.
+    return result;
   }
 
   static Future<PlayerModel?> getPlayerFromDbById(String playerId) async {
@@ -682,6 +743,8 @@ class PlayerEditorDialog extends StatefulWidget {
   /// A list of all available jersey numbers for the dropdown.
   final List<int> availableJerseyNumbers;
 
+  final List<PlayerModel> availableReplacements;
+
   const PlayerEditorDialog({
     super.key,
     this.player,
@@ -689,366 +752,12 @@ class PlayerEditorDialog extends StatefulWidget {
     required this.playerType,
     required this.availableRoles,
     required this.availableJerseyNumbers,
+    this.availableReplacements = const [],
   });
 
   @override
   State<PlayerEditorDialog> createState() => _PlayerEditorDialogState();
 }
-
-// class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
-//   // State variables for form fields
-//   late final TextEditingController _nameController;
-//   late int? _selectedJerseyNumber;
-//   late String? _selectedRole;
-//   String? _currentImageBase64;
-//
-//   final ImagePicker _picker = ImagePicker();
-//
-//   /// A getter to easily check if the dialog is in "Edit" mode.
-//   bool get isEditMode => widget.player != null;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     if (isEditMode) {
-//       // Edit Mode: Initialize with existing player data
-//       _nameController = TextEditingController(text: widget.player!.name ?? '');
-//       _selectedJerseyNumber =
-//           widget.player!.jerseyNumber > 0 ? widget.player!.jerseyNumber : null;
-//       _selectedRole = widget.player!.role;
-//       _currentImageBase64 = widget.player!.imageBase64;
-//     } else {
-//       // Create Mode: Initialize fields as empty
-//       _nameController = TextEditingController();
-//       _selectedJerseyNumber = null;
-//       _selectedRole = null;
-//       _currentImageBase64 = null;
-//     }
-//   }
-//
-//   @override
-//   void dispose() {
-//     _nameController.dispose();
-//     super.dispose();
-//   }
-//
-//   /// Handles picking an image from gallery, cropping it, and converting to Base64.
-//   Future<void> _pickImage() async {
-//     try {
-//       final XFile? pickedFile =
-//           await _picker.pickImage(source: ImageSource.gallery);
-//       if (pickedFile == null) return; // User cancelled
-//
-//       final CroppedFile? croppedFile = await ImageCropper().cropImage(
-//         sourcePath: pickedFile.path,
-//         compressQuality: 80, // Slightly compressed for better performance
-//         uiSettings: [
-//           AndroidUiSettings(
-//             toolbarTitle: 'Crop Player Icon',
-//             toolbarColor: ColorManager.dark1,
-//             toolbarWidgetColor: ColorManager.white,
-//             initAspectRatio: CropAspectRatioPreset.square,
-//             lockAspectRatio: true,
-//             showCropGrid: false,
-//             backgroundColor: ColorManager.dark2,
-//             activeControlsWidgetColor: ColorManager.yellow,
-//           ),
-//           IOSUiSettings(
-//             title: 'Crop Player Icon',
-//             aspectRatioLockEnabled: true,
-//             resetAspectRatioEnabled: false,
-//             aspectRatioPickerButtonHidden: true,
-//           ),
-//         ],
-//       );
-//
-//       if (croppedFile == null) return; // User cancelled cropping
-//
-//       // Convert cropped image to Base64 and update state
-//       final imageBytes = await croppedFile.readAsBytes();
-//       final base64String = base64Encode(imageBytes);
-//
-//       setState(() {
-//         _currentImageBase64 = base64String;
-//       });
-//     } catch (e) {
-//       zlog(data: 'Error during image pick/crop process: $e');
-//       if (mounted) {
-//         BotToast.showText(text: "Error processing image. Please try again.");
-//       }
-//     }
-//   }
-//
-//   /// Handles the "Delete" button press. Decides whether to reset or permanently delete.
-//   Future<void> _onDeleteOrResetPressed() async {
-//     final playerToEdit = widget.player!;
-//
-//     // 1. Check if the player is a default player using our helper
-//     final staticData = PlayerUtilsV2.findDefaultPlayerDataById(playerToEdit.id);
-//
-//     if (staticData != null) {
-//       // --- SCENARIO 1: IT IS A DEFAULT PLAYER -> RESET IT ---
-//       final String originalRole = staticData.item1;
-//       final int originalNumber = staticData.item3;
-//
-//       int finalNumber = await PlayerUtilsV2.findClosestUntakenNumber(
-//           originalNumber, widget.playerType, playerToEdit.id);
-//
-//       final PlayerModel resetPlayerModel = playerToEdit.copyWith(
-//         role: originalRole,
-//         jerseyNumber: finalNumber,
-//         name: '', // Reset name
-//         imageBase64: '', // Reset image
-//         imagePath: '', // Reset old image path just in case
-//       );
-//
-//       // Pop with the "reset" model. The calling function will save it.
-//       if (mounted) {
-//         Navigator.of(context).pop(resetPlayerModel);
-//       }
-//       BotToast.showText(text: "Player has been reset to default.");
-//     } else {
-//       // --- SCENARIO 2 & 3: IT IS A USER-CREATED PLAYER -> DELETE IT ---
-//       widget.onDelete.call(playerToEdit);
-//       if (mounted) {
-//         Navigator.of(context).pop(null);
-//       } // Pop null to signify deletion
-//       BotToast.showText(text: "Player deleted permanently.");
-//     }
-//   }
-//
-//   /// Handles the "Save" button press for both Create and Edit modes.
-//   Future<void> _onSavePressed() async {
-//     if (_selectedJerseyNumber == null || _selectedRole == null) {
-//       BotToast.showText(text: "Please select a role and jersey number.");
-//       return;
-//     }
-//
-//     final String playerIdForCheck =
-//         isEditMode ? widget.player!.id : RandomGenerator.generateId();
-//     bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-//         _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
-//
-//     if (isTaken) {
-//       BotToast.showText(
-//           text: 'Jersey number $_selectedJerseyNumber is already taken!');
-//       return;
-//     }
-//
-//     PlayerModel resultPlayer;
-//     if (isEditMode) {
-//       resultPlayer = widget.player!.copyWith(
-//         name: _nameController.text.trim(),
-//         role: _selectedRole,
-//         jerseyNumber: _selectedJerseyNumber,
-//         imageBase64: _currentImageBase64,
-//         imagePath: '', // Ensure old path is cleared
-//         updatedAt: DateTime.now(),
-//       );
-//     } else {
-//       final now = DateTime.now();
-//       resultPlayer = PlayerModel(
-//         id: playerIdForCheck, // Use the ID we checked with
-//         playerType: widget.playerType,
-//         role: _selectedRole!,
-//         jerseyNumber: _selectedJerseyNumber!,
-//         name: _nameController.text.trim(),
-//         imageBase64: _currentImageBase64,
-//         color: widget.playerType == PlayerType.HOME
-//             ? ColorManager.blueAccent
-//             : ColorManager.red,
-//         offset: Vector2.zero(),
-//         size: Vector2(32, 32),
-//         createdAt: now,
-//         updatedAt: now,
-//       );
-//     }
-//     if (mounted) {
-//       Navigator.of(context).pop(resultPlayer);
-//     }
-//   }
-//
-//   /// Decodes the Base64 string into an ImageProvider for the UI.
-//   ImageProvider? _getImageProvider() {
-//     if (_currentImageBase64 != null && _currentImageBase64!.isNotEmpty) {
-//       try {
-//         return MemoryImage(base64Decode(_currentImageBase64!));
-//       } catch (e) {
-//         zlog(data: "Error decoding Base64 for UI: $e");
-//         return null;
-//       }
-//     }
-//     return null;
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final theme = Theme.of(context);
-//     final imageProvider = _getImageProvider();
-//
-//     return Dialog(
-//       backgroundColor: ColorManager.black,
-//       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-//       child: SizedBox(
-//         width: context.widthPercent(40),
-//         child: SingleChildScrollView(
-//           padding: const EdgeInsets.all(20.0),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             crossAxisAlignment: CrossAxisAlignment.stretch,
-//             children: <Widget>[
-//               Align(
-//                 alignment: Alignment.centerLeft,
-//                 child: Text(
-//                   isEditMode ? 'Edit Player' : 'Create Player',
-//                   style: theme.textTheme.headlineSmall?.copyWith(
-//                       color: ColorManager.white, fontWeight: FontWeight.bold),
-//                 ),
-//               ),
-//               const SizedBox(height: 24),
-//               Center(
-//                 child: GestureDetector(
-//                   onTap: _pickImage,
-//                   child: Container(
-//                     width: 100,
-//                     height: 100,
-//                     decoration: BoxDecoration(
-//                         borderRadius: BorderRadius.circular(10),
-//                         color: ColorManager.white.withOpacity(0.4),
-//                         image: imageProvider != null
-//                             ? DecorationImage(
-//                                 fit: BoxFit.cover, image: imageProvider)
-//                             : null),
-//                     child: imageProvider == null
-//                         ? Icon(
-//                             Icons.add_a_photo_outlined,
-//                             size: 40,
-//                             color: ColorManager.white.withOpacity(0.7),
-//                           )
-//                         : null,
-//                   ),
-//                 ),
-//               ),
-//               const SizedBox(height: 24),
-//               Row(
-//                 children: [
-//                   Expanded(
-//                     child: DropdownSelector<int>(
-//                       label: 'Nr',
-//                       items: widget.availableJerseyNumbers,
-//                       initialValue: _selectedJerseyNumber,
-//                       hint: "Select Nr",
-//                       itemAsString: (item) => item.toString(),
-//                       onChanged: (value) async {
-//                         if (value == null) {
-//                           setState(() => _selectedJerseyNumber = null);
-//                           return;
-//                         }
-//                         bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-//                             value,
-//                             widget.playerType,
-//                             isEditMode ? widget.player!.id : '');
-//                         if (isTaken) {
-//                           BotToast.showText(
-//                               text: 'Jersey number $value is already taken!');
-//                           // NOTE: You might want to visually revert the dropdown here if needed.
-//                         } else {
-//                           setState(() => _selectedJerseyNumber = value);
-//                         }
-//                       },
-//                     ),
-//                   ),
-//                   const SizedBox(width: 16),
-//                   Expanded(
-//                     child: DropdownSelector<String>(
-//                       label: 'Role',
-//                       items: widget.availableRoles,
-//                       initialValue: _selectedRole,
-//                       hint: "Select Role",
-//                       itemAsString: (item) => item,
-//                       onChanged: (value) =>
-//                           setState(() => _selectedRole = value),
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//               const SizedBox(height: 16),
-//               TextFormField(
-//                 controller: _nameController,
-//                 style: TextStyle(color: ColorManager.white),
-//                 decoration: InputDecoration(
-//                   labelText: 'Name',
-//                   labelStyle:
-//                       TextStyle(color: ColorManager.white.withOpacity(0.7)),
-//                   hintText: 'Enter name...',
-//                   hintStyle:
-//                       TextStyle(color: ColorManager.white.withOpacity(0.5)),
-//                   filled: true,
-//                   fillColor: ColorManager.dark2,
-//                   border: OutlineInputBorder(
-//                       borderRadius: BorderRadius.circular(8.0),
-//                       borderSide: BorderSide.none),
-//                 ),
-//               ),
-//               const SizedBox(height: 24),
-//               Row(
-//                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                 children: [
-//                   if (isEditMode)
-//                     CustomButton(
-//                       padding: const EdgeInsets.symmetric(
-//                           vertical: 8, horizontal: 10),
-//                       borderRadius: 2,
-//                       fillColor: ColorManager.yellow,
-//                       onTap: _onDeleteOrResetPressed,
-//                       child: Text(
-//                         "Delete",
-//                         style: theme.textTheme.labelMedium!.copyWith(
-//                             color: ColorManager.white,
-//                             fontWeight: FontWeight.bold),
-//                       ),
-//                     )
-//                   else
-//                     Container(),
-//                   Row(
-//                     mainAxisAlignment: MainAxisAlignment.end,
-//                     children: <Widget>[
-//                       CustomButton(
-//                         padding: const EdgeInsets.symmetric(
-//                             vertical: 8, horizontal: 10),
-//                         borderRadius: 2,
-//                         fillColor: ColorManager.dark1,
-//                         child: Text(
-//                           "Cancel",
-//                           style: theme.textTheme.labelMedium!.copyWith(
-//                               color: ColorManager.white,
-//                               fontWeight: FontWeight.bold),
-//                         ),
-//                         onTap: () => Navigator.of(context).pop(null),
-//                       ),
-//                       const SizedBox(width: 8),
-//                       CustomButton(
-//                         padding: const EdgeInsets.symmetric(
-//                             vertical: 8, horizontal: 10),
-//                         borderRadius: 2,
-//                         fillColor: ColorManager.blue,
-//                         onTap: _onSavePressed,
-//                         child: Text("Save",
-//                             style: theme.textTheme.labelMedium!.copyWith(
-//                                 color: ColorManager.white,
-//                                 fontWeight: FontWeight.bold)),
-//                       ),
-//                     ],
-//                   ),
-//                 ],
-//               )
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
 
 class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   // State variables for form fields
@@ -1061,6 +770,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   bool _isDefaultPlayer = false;
 
   final ImagePicker _picker = ImagePicker();
+  PlayerModel? _selectedReplacementPlayer;
   bool get isEditMode => widget.player != null;
 
   @override
@@ -1175,8 +885,71 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     }
   }
 
-  /// Handles the "Save" button press for both Create and Edit modes.
+  // /// Handles the "Save" button press for both Create and Edit modes.
+  // Future<void> _onSavePressed() async {
+  //   if (_selectedJerseyNumber == null || _selectedRole == null) {
+  //     BotToast.showText(text: "Please select a role and jersey number.");
+  //     return;
+  //   }
+  //
+  //   final String playerIdForCheck =
+  //       isEditMode ? widget.player!.id : RandomGenerator.generateId();
+  //   bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
+  //       _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
+  //
+  //   if (isTaken) {
+  //     BotToast.showText(
+  //         text: 'Jersey number $_selectedJerseyNumber is already taken!');
+  //     return;
+  //   }
+  //
+  //   PlayerModel resultPlayer;
+  //   if (isEditMode) {
+  //     resultPlayer = widget.player!.copyWith(
+  //       name: _nameController.text.trim(),
+  //       role: _selectedRole,
+  //       jerseyNumber: _selectedJerseyNumber,
+  //       imageBase64: _currentImageBase64,
+  //       imagePath: '',
+  //       updatedAt: DateTime.now(),
+  //     );
+  //   } else {
+  //     final now = DateTime.now();
+  //     resultPlayer = PlayerModel(
+  //       id: playerIdForCheck,
+  //       playerType: widget.playerType,
+  //       role: _selectedRole!,
+  //       jerseyNumber: _selectedJerseyNumber!,
+  //       name: _nameController.text.trim(),
+  //       imageBase64: _currentImageBase64,
+  //       color: widget.playerType == PlayerType.HOME
+  //           ? ColorManager.blueAccent
+  //           : ColorManager.red,
+  //       offset: Vector2.zero(),
+  //       size: Vector2(32, 32),
+  //       createdAt: now,
+  //       updatedAt: now,
+  //     );
+  //   }
+  //   if (mounted) {
+  //     Navigator.of(context).pop(resultPlayer);
+  //   }
+  // }
+
   Future<void> _onSavePressed() async {
+    // --- NEW: If a replacement is selected, perform the swap action ---
+    if (_selectedReplacementPlayer != null) {
+      final result = PlayerSwapResult(
+        playerToBench: widget.player!,
+        playerToBringIn: _selectedReplacementPlayer!,
+      );
+      if (mounted) {
+        Navigator.of(context).pop(result);
+      }
+      return;
+    }
+
+    // --- EXISTING LOGIC: If no replacement, perform an update ---
     if (_selectedJerseyNumber == null || _selectedRole == null) {
       BotToast.showText(text: "Please select a role and jersey number.");
       return;
@@ -1222,7 +995,8 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       );
     }
     if (mounted) {
-      Navigator.of(context).pop(resultPlayer);
+      // --- MODIFIED: Return the correct result type ---
+      Navigator.of(context).pop(PlayerUpdateResult(resultPlayer));
     }
   }
 
@@ -1248,6 +1022,9 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         _isDefaultPlayer ? "Reset to Default" : "Delete Permanently";
     final Color buttonColor =
         _isDefaultPlayer ? (ColorManager.yellow) : (ColorManager.red);
+
+    // --- NEW: A flag to disable editing fields if a replacement is chosen ---
+    final bool isReplacing = _selectedReplacementPlayer != null;
 
     return Dialog(
       backgroundColor: ColorManager.black,
@@ -1353,6 +1130,33 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                 ),
               ),
               const SizedBox(height: 24),
+              if (isEditMode) ...[
+                const Center(
+                  child: Text(
+                    "Or replace with",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownSelector<PlayerModel>(
+                  label: "Player",
+                  hint: "Select player from roster",
+                  items: widget.availableReplacements, // Use the passed-in list
+                  initialValue: _selectedReplacementPlayer,
+                  onChanged: (player) {
+                    setState(() {
+                      _selectedReplacementPlayer = player;
+                    });
+                  },
+                  // Nicely format the player's name in the dropdown
+                  itemAsString: (player) =>
+                      '${player.jerseyNumber}. ${player.name ?? 'Player'} - ${player.role}',
+                ),
+                const SizedBox(height: 24),
+              ],
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
