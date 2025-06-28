@@ -52,7 +52,7 @@ class TacticPage extends StatefulWidget {
 }
 
 class _TacticPageState extends State<TacticPage> {
-  bool isAdmin = true;
+  bool isAdmin = false;
   @override
   Widget build(BuildContext context) {
     return ProviderScope(

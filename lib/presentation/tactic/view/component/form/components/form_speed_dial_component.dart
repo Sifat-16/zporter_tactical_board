@@ -34,6 +34,8 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/
 import 'form_item_speed_dial.dart'; // Adjust path
 import 'line/form_line_item.dart'; // Adjust path
 
+FToast fToast = FToast();
+
 // --- Configuration Class for Button Visibility ---
 class FormSpeedDialConfig {
   final bool showFullScreenButton;
@@ -113,6 +115,9 @@ class _FormSpeedDialComponentState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setupForms();
+      try {
+        fToast.init(context);
+      } catch (e) {}
     });
   }
 
@@ -580,14 +585,16 @@ class _FormSpeedDialComponentState
                     selectedScene: selectedScene,
                   );
 
-              Fluttertoast.showToast(
-                  msg: "Image added to animation",
-                  toastLength: Toast.LENGTH_LONG,
-                  gravity: ToastGravity.BOTTOM,
-                  timeInSecForIosWeb: 1,
-                  backgroundColor: ColorManager.black,
-                  textColor: Colors.white,
-                  fontSize: 16.0);
+              _showToast();
+
+              // Fluttertoast.showToast(
+              //     msg: "Image added to animation",
+              //     toastLength: Toast.LENGTH_LONG,
+              //     gravity: ToastGravity.BOTTOM,
+              //     timeInSecForIosWeb: 1,
+              //     backgroundColor: ColorManager.black,
+              //     textColor: Colors.white,
+              //     fontSize: 16.0);
 
               // BotToast.showText(
               //     text: "Image added to animation",
@@ -675,6 +682,57 @@ class _FormSpeedDialComponentState
       builder: (BuildContext context) {
         // We return a dedicated widget for the dialog's content.
         return const TutorialSelectionDialog();
+      },
+    );
+  }
+
+  _showToast() {
+    Widget toast = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25.0),
+        border: Border.all(color: ColorManager.white.withValues(alpha: 0.1)),
+        color: Colors.black,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.check,
+            color: ColorManager.white,
+          ),
+          SizedBox(
+            width: 12.0,
+          ),
+          Text(
+            "Image added to animation",
+            style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                color: ColorManager.white, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+
+    // fToast.showToast(
+    //   child: toast,
+    //   gravity: ToastGravity.BOTTOM,
+    //   toastDuration: Duration(seconds: 2),
+    // );
+
+    // Custom Toast Position
+    fToast.showToast(
+      child: toast,
+      toastDuration: Duration(seconds: 3),
+      positionedToastBuilder: (context, child, gravity) {
+        return Positioned(
+          bottom: context.screenHeight * .1,
+          left: 0.0,
+          right: 0.0,
+          child: Align(
+            alignment: Alignment.center,
+            child: child,
+          ),
+        );
       },
     );
   }
