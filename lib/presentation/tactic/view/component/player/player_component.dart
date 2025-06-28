@@ -191,10 +191,10 @@ class PlayerComponent extends FieldComponent<PlayerModel>
 
     // 3. Show the dialog, now passing the roster players list.
     final result = await PlayerUtilsV2.showEditPlayerDialog(
-      context: game.buildContext!,
-      player: object, // The player currently on the field
-      rosterPlayers: rosterPlayers, // The players on the bench
-    );
+        context: game.buildContext!,
+        player: object, // The player currently on the field
+        rosterPlayers: rosterPlayers, // The players on the bench
+        showReplace: true);
 
     // 4. Handle the dialog's result.
     if (result is PlayerSwapResult) {

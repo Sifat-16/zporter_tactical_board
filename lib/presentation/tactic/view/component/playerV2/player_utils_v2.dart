@@ -496,6 +496,7 @@ class PlayerUtilsV2 {
         return PlayerEditorDialog(
           player: null, // Passing null triggers "Create Mode"
           playerType: playerType,
+          showReplace: false,
           onDelete: (p) async {},
           availableRoles: getUniqueRoles(),
           availableJerseyNumbers: getDefaultJerseyNumbers(),
@@ -563,12 +564,12 @@ class PlayerUtilsV2 {
   //   return null;
   // }
 
-  static Future<PlayerDialogResult?> showEditPlayerDialog({
-    required BuildContext context,
-    required PlayerModel player,
-    // --- NEW: Pass in the list of available players on the bench ---
-    List<PlayerModel> rosterPlayers = const [],
-  }) async {
+  static Future<PlayerDialogResult?> showEditPlayerDialog(
+      {required BuildContext context,
+      required PlayerModel player,
+      // --- NEW: Pass in the list of available players on the bench ---
+      List<PlayerModel> rosterPlayers = const [],
+      required bool showReplace}) async {
     // --- MODIFIED: The dialog now returns our custom result type ---
     final PlayerDialogResult? result = await showDialog<PlayerDialogResult?>(
       context: context,
@@ -576,6 +577,7 @@ class PlayerUtilsV2 {
       builder: (BuildContext dialogContext) {
         return PlayerEditorDialog(
           player: player,
+          showReplace: showReplace,
           playerType: player.playerType,
           onDelete: (p) async {
             await deletePlayerInDb(p);
@@ -745,6 +747,8 @@ class PlayerEditorDialog extends StatefulWidget {
 
   final List<PlayerModel> availableReplacements;
 
+  final bool showReplace;
+
   const PlayerEditorDialog({
     super.key,
     this.player,
@@ -753,6 +757,7 @@ class PlayerEditorDialog extends StatefulWidget {
     required this.availableRoles,
     required this.availableJerseyNumbers,
     this.availableReplacements = const [],
+    required this.showReplace,
   });
 
   @override
@@ -1046,91 +1051,187 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                 ),
               ),
               const SizedBox(height: 24),
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        color: ColorManager.white.withOpacity(0.4),
-                        image: imageProvider != null
-                            ? DecorationImage(
-                                fit: BoxFit.cover, image: imageProvider)
-                            : null),
-                    child: imageProvider == null
-                        ? Icon(
-                            Icons.add_a_photo_outlined,
-                            size: 40,
-                            color: ColorManager.white.withOpacity(0.7),
-                          )
-                        : null,
+              AbsorbPointer(
+                absorbing: isReplacing,
+                child: Opacity(
+                  opacity: isReplacing ? 0.5 : 1.0,
+                  child: Column(
+                    children: [
+                      Center(
+                        child: GestureDetector(
+                          onTap:
+                              _pickImage, // This is now controlled by AbsorbPointer
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                color: ColorManager.white.withOpacity(0.4),
+                                image: imageProvider != null
+                                    ? DecorationImage(
+                                        fit: BoxFit.cover, image: imageProvider)
+                                    : null),
+                            child: imageProvider == null
+                                ? Icon(
+                                    Icons.add_a_photo_outlined,
+                                    size: 40,
+                                    color: ColorManager.white.withOpacity(0.7),
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownSelector<int>(
+                              label: 'Nr',
+                              items: widget.availableJerseyNumbers,
+                              initialValue: _selectedJerseyNumber,
+                              hint: "Select Nr",
+                              itemAsString: (item) => item.toString(),
+                              onChanged: (value) async {
+                                if (value == null) {
+                                  setState(() => _selectedJerseyNumber = null);
+                                  return;
+                                }
+                                bool isTaken =
+                                    await PlayerUtilsV2.isJerseyNumberTaken(
+                                        value,
+                                        widget.playerType,
+                                        isEditMode ? widget.player!.id : '');
+                                if (isTaken) {
+                                  BotToast.showText(
+                                      text:
+                                          'Jersey number $value is already taken!');
+                                } else {
+                                  setState(() => _selectedJerseyNumber = value);
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: DropdownSelector<String>(
+                              label: 'Role',
+                              items: widget.availableRoles,
+                              initialValue: _selectedRole,
+                              hint: "Select Role",
+                              itemAsString: (item) => item,
+                              onChanged: (value) =>
+                                  setState(() => _selectedRole = value),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _nameController,
+                        style: TextStyle(color: ColorManager.white),
+                        decoration: InputDecoration(
+                          labelText: 'Name',
+                          labelStyle: TextStyle(
+                              color: ColorManager.white.withOpacity(0.7)),
+                          hintText: 'Edit name...',
+                          hintStyle: TextStyle(
+                              color: ColorManager.white.withOpacity(0.5)),
+                          filled: true,
+                          fillColor: ColorManager.dark2,
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8.0),
+                              borderSide: BorderSide.none),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+              // Center(
+              //   child: GestureDetector(
+              //     onTap: _pickImage,
+              //     child: Container(
+              //       width: 100,
+              //       height: 100,
+              //       decoration: BoxDecoration(
+              //           borderRadius: BorderRadius.circular(10),
+              //           color: ColorManager.white.withOpacity(0.4),
+              //           image: imageProvider != null
+              //               ? DecorationImage(
+              //                   fit: BoxFit.cover, image: imageProvider)
+              //               : null),
+              //       child: imageProvider == null
+              //           ? Icon(
+              //               Icons.add_a_photo_outlined,
+              //               size: 40,
+              //               color: ColorManager.white.withOpacity(0.7),
+              //             )
+              //           : null,
+              //     ),
+              //   ),
+              // ),
+              // const SizedBox(height: 24),
+              // Row(
+              //   children: [
+              //     Expanded(
+              //       child: DropdownSelector<int>(
+              //         label: 'Nr',
+              //         items: widget.availableJerseyNumbers,
+              //         initialValue: _selectedJerseyNumber,
+              //         hint: "Select Nr",
+              //         itemAsString: (item) => item.toString(),
+              //         onChanged: (value) async {
+              //           if (value == null) {
+              //             setState(() => _selectedJerseyNumber = null);
+              //             return;
+              //           }
+              //           bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
+              //               value,
+              //               widget.playerType,
+              //               isEditMode ? widget.player!.id : '');
+              //           if (isTaken) {
+              //             BotToast.showText(
+              //                 text: 'Jersey number $value is already taken!');
+              //           } else {
+              //             setState(() => _selectedJerseyNumber = value);
+              //           }
+              //         },
+              //       ),
+              //     ),
+              //     const SizedBox(width: 16),
+              //     Expanded(
+              //       child: DropdownSelector<String>(
+              //         label: 'Role',
+              //         items: widget.availableRoles,
+              //         initialValue: _selectedRole,
+              //         hint: "Select Role",
+              //         itemAsString: (item) => item,
+              //         onChanged: (value) =>
+              //             setState(() => _selectedRole = value),
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              // const SizedBox(height: 16),
+              // TextFormField(
+              //   controller: _nameController,
+              //   style: TextStyle(color: ColorManager.white),
+              //   decoration: InputDecoration(
+              //     labelText: 'Name',
+              //     labelStyle:
+              //         TextStyle(color: ColorManager.white.withOpacity(0.7)),
+              //     hintText: 'Enter name...',
+              //     hintStyle:
+              //         TextStyle(color: ColorManager.white.withOpacity(0.5)),
+              //     filled: true,
+              //     fillColor: ColorManager.dark2,
+              //     border: OutlineInputBorder(
+              //         borderRadius: BorderRadius.circular(8.0),
+              //         borderSide: BorderSide.none),
+              //   ),
+              // ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownSelector<int>(
-                      label: 'Nr',
-                      items: widget.availableJerseyNumbers,
-                      initialValue: _selectedJerseyNumber,
-                      hint: "Select Nr",
-                      itemAsString: (item) => item.toString(),
-                      onChanged: (value) async {
-                        if (value == null) {
-                          setState(() => _selectedJerseyNumber = null);
-                          return;
-                        }
-                        bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-                            value,
-                            widget.playerType,
-                            isEditMode ? widget.player!.id : '');
-                        if (isTaken) {
-                          BotToast.showText(
-                              text: 'Jersey number $value is already taken!');
-                        } else {
-                          setState(() => _selectedJerseyNumber = value);
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: DropdownSelector<String>(
-                      label: 'Role',
-                      items: widget.availableRoles,
-                      initialValue: _selectedRole,
-                      hint: "Select Role",
-                      itemAsString: (item) => item,
-                      onChanged: (value) =>
-                          setState(() => _selectedRole = value),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _nameController,
-                style: TextStyle(color: ColorManager.white),
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  labelStyle:
-                      TextStyle(color: ColorManager.white.withOpacity(0.7)),
-                  hintText: 'Enter name...',
-                  hintStyle:
-                      TextStyle(color: ColorManager.white.withOpacity(0.5)),
-                  filled: true,
-                  fillColor: ColorManager.dark2,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                      borderSide: BorderSide.none),
-                ),
-              ),
-              const SizedBox(height: 24),
-              if (isEditMode) ...[
+              if (isEditMode && widget.showReplace) ...[
                 const Center(
                   child: Text(
                     "Or replace with",
@@ -1141,19 +1242,40 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                DropdownSelector<PlayerModel>(
-                  label: "Player",
-                  hint: "Select player from roster",
-                  items: widget.availableReplacements, // Use the passed-in list
-                  initialValue: _selectedReplacementPlayer,
-                  onChanged: (player) {
-                    setState(() {
-                      _selectedReplacementPlayer = player;
-                    });
-                  },
-                  // Nicely format the player's name in the dropdown
-                  itemAsString: (player) =>
-                      '${player.jerseyNumber}. ${player.name ?? 'Player'} - ${player.role}',
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownSelector<PlayerModel>(
+                        label: "Player",
+                        hint: widget.availableReplacements.isEmpty
+                            ? "No Players Available"
+                            : "Select player from roster",
+                        items: widget
+                            .availableReplacements, // Use the passed-in list
+                        initialValue: _selectedReplacementPlayer,
+                        onChanged: (player) {
+                          setState(() {
+                            _selectedReplacementPlayer = player;
+                          });
+                        },
+                        // Nicely format the player's name in the dropdown
+                        itemAsString: (player) =>
+                            '${player.jerseyNumber}. ${player.name ?? 'Player'} - ${player.role}',
+                      ),
+                    ),
+                    if (isReplacing) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: ColorManager.red),
+                        onPressed: () {
+                          setState(() {
+                            _selectedReplacementPlayer = null;
+                          });
+                        },
+                        tooltip: 'Clear Selection',
+                      )
+                    ]
+                  ],
                 ),
                 const SizedBox(height: 24),
               ],
@@ -1165,8 +1287,9 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                       padding: const EdgeInsets.symmetric(
                           vertical: 8, horizontal: 10),
                       borderRadius: 2,
-                      fillColor: buttonColor,
-                      onTap: _onDeleteOrResetPressed,
+                      fillColor:
+                          isReplacing ? Colors.grey : ColorManager.yellow,
+                      onTap: isReplacing ? null : _onDeleteOrResetPressed,
                       child: Text(
                         buttonText,
                         style: theme.textTheme.labelMedium!.copyWith(
