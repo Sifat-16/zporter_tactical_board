@@ -136,6 +136,7 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
                         await PlayerUtilsV2.showEditPlayerDialog(
                           context: context,
                           player: player,
+                          showReplace: false,
                         );
                       },
                       child: PlayerComponentV2(playerModel: player));
