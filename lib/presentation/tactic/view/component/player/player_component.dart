@@ -12,6 +12,7 @@ import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -152,19 +153,77 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     _executeEditAction();
   }
 
+  // void _executeEditAction() async {
+  //   PlayerModel? updatedPlayer = await PlayerUtilsV2.showEditPlayerDialog(
+  //     context: game.buildContext!,
+  //     player: object,
+  //   );
+  //
+  //   if (updatedPlayer != null) {
+  //     object = updatedPlayer;
+  //     await _loadPlayerImage();
+  //     ref
+  //         .read(boardProvider.notifier)
+  //         .updatePlayerModel(newModel: updatedPlayer);
+  //   }
+  // }
+
+  /// --- MODIFIED: This method now contains all the logic for editing and swapping ---
   void _executeEditAction() async {
-    PlayerModel? updatedPlayer = await PlayerUtilsV2.showEditPlayerDialog(
+    // Ensure we have a build context.
+    if (game.buildContext == null) return;
+
+    // 1. Get all players on the board to determine who is on the bench.
+    final boardState = ref.read(boardProvider);
+    final allPlayersOnTeamFromDb = await (object.playerType == PlayerType.HOME
+        ? PlayerUtilsV2.getOrInitializeHomePlayers()
+        : PlayerUtilsV2.getOrInitializeAwayPlayers());
+
+    final Set<String> fieldPlayerIds = boardState.players
+        .where((p) => p.playerType == object.playerType)
+        .map((p) => p.id)
+        .toSet();
+
+    // 2. Filter to get the list of players available for replacement (the bench).
+    final List<PlayerModel> rosterPlayers = allPlayersOnTeamFromDb
+        .where((p) => !fieldPlayerIds.contains(p.id))
+        .toList();
+
+    // 3. Show the dialog, now passing the roster players list.
+    final result = await PlayerUtilsV2.showEditPlayerDialog(
       context: game.buildContext!,
-      player: object,
+      player: object, // The player currently on the field
+      rosterPlayers: rosterPlayers, // The players on the bench
     );
 
-    if (updatedPlayer != null) {
-      object = updatedPlayer;
-      await _loadPlayerImage();
+    // 4. Handle the dialog's result.
+    if (result is PlayerSwapResult) {
+      // The user chose to swap the player.
+      final TacticBoard tacticBoard = game as TacticBoard;
+
+      // The player coming in takes the exact position of the player going out.
+      final playerToBringIn = result.playerToBringIn.copyWith(
+        offset: result.playerToBench.offset,
+      );
+
+      // Perform the swap on the tactical board.
+      tacticBoard.removeFieldItems([result.playerToBench]);
+      tacticBoard.addItem(playerToBringIn);
+      zlog(
+          data:
+              "Swapped player ${result.playerToBench.id} with ${result.playerToBringIn.id}");
+    } else if (result is PlayerUpdateResult) {
+      // The user edited the player's details.
+      object = result.updatedPlayer;
+      await _loadPlayerImage(); // Reload image if it changed
+      // The utility function already saved to the DB,
+      // now we just ensure the provider and component are in sync.
       ref
           .read(boardProvider.notifier)
-          .updatePlayerModel(newModel: updatedPlayer);
+          .updatePlayerModel(newModel: result.updatedPlayer);
+      zlog(data: "Updated player details for ${result.updatedPlayer.id}");
     }
+    // If result is null, the user cancelled, so we do nothing.
   }
 
   @override
