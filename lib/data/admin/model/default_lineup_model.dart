@@ -23,11 +23,13 @@ class FormationCategory {
   final String categoryId; // Unique ID for the category, e.g., "11v11"
   final int numberOfPlayers; // E.g., 11, 9, 7, 5
   final String displayName; // E.g., "11 vs 11 Formations"
+  final int orderIndex;
 
   FormationCategory({
     required this.categoryId,
     required this.numberOfPlayers,
     required this.displayName,
+    this.orderIndex = 0,
   });
 
   factory FormationCategory.fromJson(Map<String, dynamic> json) {
@@ -35,6 +37,7 @@ class FormationCategory {
       categoryId: json['categoryId'] as String,
       numberOfPlayers: json['numberOfPlayers'] as int,
       displayName: json['displayName'] as String,
+      orderIndex: json['orderIndex'] as int? ?? 0,
     );
   }
 
@@ -43,7 +46,22 @@ class FormationCategory {
       'categoryId': categoryId,
       'numberOfPlayers': numberOfPlayers,
       'displayName': displayName,
+      'orderIndex': orderIndex,
     };
+  }
+
+  FormationCategory copyWith({
+    String? categoryId,
+    int? numberOfPlayers,
+    String? displayName,
+    int? orderIndex,
+  }) {
+    return FormationCategory(
+      categoryId: categoryId ?? this.categoryId,
+      numberOfPlayers: numberOfPlayers ?? this.numberOfPlayers,
+      displayName: displayName ?? this.displayName,
+      orderIndex: orderIndex ?? this.orderIndex,
+    );
   }
 }
 
@@ -53,12 +71,14 @@ class FormationTemplate {
   String categoryId; // Foreign key linking to FormationCategory.categoryId
   String name; // Formation name, e.g., "4-3-3", "4-4-2 Diamond"
   final AnimationItemModel scene; // <<< NEW FIELD: Optional scene data
+  final int orderIndex;
 
   FormationTemplate({
     required this.templateId,
     required this.categoryId,
     required this.name,
     required this.scene, // <<< ADDED to constructor (optional)
+    this.orderIndex = 0,
   });
 
   factory FormationTemplate.fromJson(Map<String, dynamic> json) {
@@ -84,6 +104,7 @@ class FormationTemplate {
       categoryId: json['categoryId'] as String,
       name: json['name'] as String,
       scene: sceneModel, // <<< ASSIGNED here
+      orderIndex: json['orderIndex'] as int? ?? 0,
     );
   }
 
@@ -92,9 +113,9 @@ class FormationTemplate {
       'templateId': templateId,
       'categoryId': categoryId,
       'name': name,
-      'scene':
-          scene
-              ?.toJson(), // <<< ADDED here: call toJson on scene if it's not null
+      'scene': scene
+          ?.toJson(), // <<< ADDED here: call toJson on scene if it's not null
+      'orderIndex': orderIndex,
     };
   }
 
@@ -103,13 +124,14 @@ class FormationTemplate {
     String? categoryId,
     String? name,
     AnimationItemModel? scene,
+    int? orderIndex, // NEW
   }) {
     return FormationTemplate(
       templateId: templateId ?? this.templateId,
       categoryId: categoryId ?? this.categoryId,
       name: name ?? this.name,
-
       scene: scene ?? this.scene,
+      orderIndex: orderIndex ?? this.orderIndex, // NEW
     );
   }
 }

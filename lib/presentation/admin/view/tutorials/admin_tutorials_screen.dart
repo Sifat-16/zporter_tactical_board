@@ -1,266 +1,3 @@
-// // file: presentation/admin/view/tutorials/admin_tutorials_screen.dart
-//
-// import 'dart:io';
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:image_picker/image_picker.dart';
-//
-// // Adjust these imports to match your project's file structure
-// import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-// import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart';
-// import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
-// import 'package:zporter_tactical_board/presentation/admin/view/tutorials/add_edit_tutorials_content_screen.dart';
-// import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_state.dart';
-//
-// class AdminTutorialsScreen extends ConsumerWidget {
-//   const AdminTutorialsScreen({super.key});
-//
-//   /// Shows a dialog to either create a new tutorial or rename an existing one.
-//   void _showAddOrEditDialog(BuildContext context, WidgetRef ref,
-//       [Tutorial? tutorial]) {
-//     final isEditing = tutorial != null;
-//     final controller =
-//         TextEditingController(text: isEditing ? tutorial.name : '');
-//
-//     showDialog(
-//       context: context,
-//       builder: (context) => AlertDialog(
-//         backgroundColor: ColorManager.dark2,
-//         title: Text(
-//           isEditing ? 'Rename Tutorial' : 'New Tutorial',
-//           style: const TextStyle(color: ColorManager.white),
-//         ),
-//         content: TextField(
-//           controller: controller,
-//           autofocus: true,
-//           style: const TextStyle(color: ColorManager.white),
-//           decoration: const InputDecoration(
-//             hintText: 'Enter tutorial name',
-//             hintStyle: TextStyle(color: ColorManager.grey),
-//           ),
-//         ),
-//         actions: [
-//           TextButton(
-//             child: const Text('Cancel'),
-//             onPressed: () => Navigator.of(context).pop(),
-//           ),
-//           TextButton(
-//             child: const Text('Save'),
-//             onPressed: () {
-//               final name = controller.text.trim();
-//               if (name.isNotEmpty) {
-//                 if (isEditing) {
-//                   ref
-//                       .read(tutorialsProvider.notifier)
-//                       .updateTutorial(tutorial.copyWith(name: name));
-//                 } else {
-//                   ref.read(tutorialsProvider.notifier).addTutorial(name);
-//                 }
-//                 Navigator.of(context).pop();
-//               }
-//             },
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-//
-//   /// Shows a confirmation dialog before deleting a tutorial.
-//   void _showDeleteDialog(
-//       BuildContext context, WidgetRef ref, Tutorial tutorial) {
-//     showDialog(
-//         context: context,
-//         builder: (context) => AlertDialog(
-//               backgroundColor: ColorManager.dark2,
-//               title: const Text('Confirm Delete',
-//                   style: TextStyle(color: ColorManager.white)),
-//               content: Text(
-//                   'Are you sure you want to delete "${tutorial.name}"?',
-//                   style: const TextStyle(color: ColorManager.grey)),
-//               actions: [
-//                 TextButton(
-//                     child: const Text('Cancel'),
-//                     onPressed: () => Navigator.of(context).pop()),
-//                 TextButton(
-//                   style:
-//                       TextButton.styleFrom(backgroundColor: ColorManager.red),
-//                   child: const Text('Delete',
-//                       style: TextStyle(color: ColorManager.white)),
-//                   onPressed: () {
-//                     ref
-//                         .read(tutorialsProvider.notifier)
-//                         .deleteTutorial(tutorial.id);
-//                     Navigator.of(context).pop();
-//                   },
-//                 )
-//               ],
-//             ));
-//   }
-//
-//   /// Handles picking an image from the gallery and starting the upload process.
-//   void _onUploadThumbnail(
-//       BuildContext context, WidgetRef ref, String tutorialId) async {
-//     final picker = ImagePicker();
-//     // Pick an image, limiting quality to save space and upload time.
-//     final XFile? imageFile =
-//         await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-//
-//     if (imageFile == null) return; // User cancelled the picker
-//
-//     // Call the controller method to handle the upload.
-//     // The UI will react to the 'uploading' state change.
-//     ref
-//         .read(tutorialsProvider.notifier)
-//         .uploadThumbnailForTutorial(File(imageFile.path), tutorialId);
-//   }
-//
-//   @override
-//   Widget build(BuildContext context, WidgetRef ref) {
-//     final state = ref.watch(tutorialsProvider);
-//     final status = state.status;
-//
-//     return Scaffold(
-//       backgroundColor: ColorManager.black,
-//       appBar: AppBar(
-//         title: const Text(
-//           'Manage Tutorials',
-//           style: TextStyle(color: ColorManager.white),
-//         ),
-//         backgroundColor: ColorManager.black,
-//         elevation: 0,
-//         iconTheme: const IconThemeData(color: ColorManager.white),
-//       ),
-//       body: Stack(
-//         children: [
-//           if (status == TutorialStatus.loading && state.tutorials.isEmpty)
-//             const Center(
-//                 child: CircularProgressIndicator(color: ColorManager.yellow))
-//           else if (status == TutorialStatus.error)
-//             Center(
-//                 child: Text(
-//                     'Error: ${state.errorMessage ?? "An unknown error occurred."}'))
-//           else
-//             ListView.builder(
-//               padding: const EdgeInsets.only(bottom: 80), // Space for the FAB
-//               itemCount: state.tutorials.length,
-//               itemBuilder: (context, index) {
-//                 final tutorial = state.tutorials[index];
-//                 return Card(
-//                   color: ColorManager.dark1,
-//                   margin:
-//                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-//                   child: ListTile(
-//                     contentPadding: const EdgeInsets.symmetric(
-//                         vertical: 8.0, horizontal: 16.0),
-//                     // Display the thumbnail image
-//                     leading: SizedBox(
-//                       width: 80,
-//                       height: 60,
-//                       child: ClipRRect(
-//                         borderRadius: BorderRadius.circular(8.0),
-//                         child: tutorial.thumbnailUrl != null
-//                             ? Image.network(
-//                                 tutorial.thumbnailUrl!,
-//                                 fit: BoxFit.cover,
-//                                 // Show a loading indicator while the image is fetching
-//                                 loadingBuilder:
-//                                     (context, child, loadingProgress) {
-//                                   if (loadingProgress == null) return child;
-//                                   return const Center(
-//                                       child: CircularProgressIndicator(
-//                                           strokeWidth: 2.0));
-//                                 },
-//                                 // Show an error icon if the image fails to load
-//                                 errorBuilder: (context, error, stackTrace) =>
-//                                     const Icon(Icons.image_not_supported,
-//                                         color: ColorManager.grey, size: 40),
-//                               )
-//                             : const Icon(Icons.image_search,
-//                                 color: ColorManager.grey, size: 40),
-//                       ),
-//                     ),
-//                     title: Text(tutorial.name,
-//                         style: const TextStyle(
-//                             color: ColorManager.white,
-//                             fontWeight: FontWeight.bold)),
-//                     subtitle: Padding(
-//                       padding: const EdgeInsets.only(top: 4.0),
-//                       child: InkWell(
-//                         onTap: () =>
-//                             _onUploadThumbnail(context, ref, tutorial.id),
-//                         child: const Row(
-//                           mainAxisSize: MainAxisSize.min,
-//                           children: [
-//                             Icon(Icons.upload_file,
-//                                 color: ColorManager.blueAccent, size: 16),
-//                             SizedBox(width: 4),
-//                             Text('Change Thumbnail',
-//                                 style:
-//                                     TextStyle(color: ColorManager.blueAccent)),
-//                           ],
-//                         ),
-//                       ),
-//                     ),
-//                     onTap: () {
-//                       // Tap to open the content editor
-//                       Navigator.of(context).push(MaterialPageRoute(
-//                         builder: (_) =>
-//                             TutorialEditorScreen(tutorial: tutorial),
-//                       ));
-//                     },
-//                     trailing: Row(
-//                       mainAxisSize: MainAxisSize.min,
-//                       children: [
-//                         IconButton(
-//                           icon: const Icon(Icons.edit_outlined,
-//                               color: ColorManager.blueAccent),
-//                           tooltip: 'Rename',
-//                           onPressed: () =>
-//                               _showAddOrEditDialog(context, ref, tutorial),
-//                         ),
-//                         IconButton(
-//                           icon: const Icon(Icons.delete_outline,
-//                               color: ColorManager.red),
-//                           tooltip: 'Delete',
-//                           onPressed: () =>
-//                               _showDeleteDialog(context, ref, tutorial),
-//                         ),
-//                       ],
-//                     ),
-//                   ),
-//                 );
-//               },
-//             ),
-//
-//           // Show a loading overlay during uploads
-//           if (status == TutorialStatus.uploading)
-//             Container(
-//               color: Colors.black.withOpacity(0.5),
-//               child: const Center(
-//                 child: Column(
-//                   mainAxisSize: MainAxisSize.min,
-//                   children: [
-//                     CircularProgressIndicator(color: ColorManager.yellow),
-//                     SizedBox(height: 16),
-//                     Text('Uploading...',
-//                         style: TextStyle(color: Colors.white, fontSize: 16)),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//         ],
-//       ),
-//       floatingActionButton: FloatingActionButton.extended(
-//         onPressed: () => _showAddOrEditDialog(context, ref),
-//         backgroundColor: ColorManager.green,
-//         icon: const Icon(Icons.add, color: ColorManager.white),
-//         label: const Text('New Tutorial',
-//             style: TextStyle(color: ColorManager.white)),
-//       ),
-//     );
-//   }
-// }
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -341,12 +78,13 @@ class AdminTutorialsScreen extends ConsumerWidget {
                 child: Text(
                     'Error: ${state.errorMessage ?? "An unknown error occurred."}'))
           else
-            ListView.builder(
+            ReorderableListView.builder(
               padding: const EdgeInsets.only(bottom: 80),
               itemCount: state.tutorials.length,
               itemBuilder: (context, index) {
                 final tutorial = state.tutorials[index];
                 return Card(
+                  key: ValueKey(tutorial.id),
                   color: ColorManager.dark1,
                   margin:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -401,6 +139,11 @@ class AdminTutorialsScreen extends ConsumerWidget {
                     ),
                   ),
                 );
+              },
+              onReorder: (int oldIndex, int newIndex) {
+                ref
+                    .read(tutorialsProvider.notifier)
+                    .reorderTutorials(oldIndex, newIndex);
               },
             ),
           if (status == TutorialStatus.uploading)

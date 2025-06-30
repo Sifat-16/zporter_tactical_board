@@ -14,6 +14,7 @@ class AnimationModel {
   DateTime createdAt;
   DateTime updatedAt;
   BoardBackground boardBackground;
+  int orderIndex;
 
   AnimationModel({
     required this.id,
@@ -24,6 +25,7 @@ class AnimationModel {
     required this.createdAt,
     required this.updatedAt,
     this.boardBackground = BoardBackground.full,
+    this.orderIndex = 0,
   });
 
   AnimationModel copyWith({
@@ -35,6 +37,7 @@ class AnimationModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     BoardBackground? boardBackground,
+    int? orderIndex,
   }) {
     return AnimationModel(
       id: id ?? this.id,
@@ -45,6 +48,7 @@ class AnimationModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       boardBackground: boardBackground ?? this.boardBackground,
+      orderIndex: orderIndex ?? this.orderIndex,
     );
   }
 
@@ -59,6 +63,7 @@ class AnimationModel {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'boardBackground': boardBackground.name,
+      'orderIndex': orderIndex,
     };
   }
 
@@ -126,6 +131,7 @@ class AnimationModel {
       boardBackground: boardBackground,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      orderIndex: json['orderIndex'] as int? ?? 0,
     );
   }
 

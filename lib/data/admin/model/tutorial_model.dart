@@ -3,12 +3,14 @@ class Tutorial {
   final String name;
   final String contentJson;
   final String? thumbnailUrl;
+  final int orderIndex;
 
   const Tutorial({
     required this.id,
     required this.name,
     this.contentJson = '',
     this.thumbnailUrl,
+    this.orderIndex = 0,
   });
 
   Tutorial copyWith({
@@ -16,12 +18,14 @@ class Tutorial {
     String? name,
     String? contentJson,
     String? thumbnailUrl,
+    int? orderIndex,
   }) {
     return Tutorial(
       id: id ?? this.id,
       name: name ?? this.name,
       contentJson: contentJson ?? this.contentJson,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      orderIndex: orderIndex ?? this.orderIndex,
     );
   }
 
@@ -31,6 +35,7 @@ class Tutorial {
       'name': name,
       'contentJson': contentJson,
       'thumbnailUrl': thumbnailUrl,
+      'orderIndex': orderIndex,
     };
   }
 
@@ -40,6 +45,7 @@ class Tutorial {
       name: map['name'] ?? '',
       contentJson: map['contentJson'] ?? '',
       thumbnailUrl: map['thumbnailUrl'],
+      orderIndex: map['orderIndex'] as int? ?? 0,
     );
   }
 }

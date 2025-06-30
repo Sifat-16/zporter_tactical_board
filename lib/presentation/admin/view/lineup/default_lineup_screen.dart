@@ -46,6 +46,45 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     // Initial data fetch is handled by the LineupController's constructor/init method.
   }
 
+  // void _buildUnifiedList(
+  //   List<FormationCategory> categories,
+  //   List<FormationTemplate> templates,
+  // ) {
+  //   List<ListItem> items = [];
+  //   if (!mounted) return;
+  //
+  //   if (categories.isEmpty && templates.isEmpty) {
+  //     setState(() {
+  //       _unifiedListItems = [];
+  //     });
+  //     return;
+  //   }
+  //
+  //   for (var category in categories) {
+  //     items.add(
+  //       CategoryHeaderItem(
+  //         category.displayName,
+  //         category.categoryId,
+  //         category.numberOfPlayers,
+  //       ),
+  //     );
+  //     final templatesForCategory = templates
+  //         .where((template) => template.categoryId == category.categoryId)
+  //         .toList();
+  //
+  //     if (templatesForCategory.isEmpty) {
+  //       items.add(NoLineupsItem(category.categoryId));
+  //     } else {
+  //       for (var template in templatesForCategory) {
+  //         items.add(LineupTemplateItem(template));
+  //       }
+  //     }
+  //   }
+  //   setState(() {
+  //     _unifiedListItems = items;
+  //   });
+  // }
+
   void _buildUnifiedList(
     List<FormationCategory> categories,
     List<FormationTemplate> templates,
@@ -60,7 +99,11 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
       return;
     }
 
-    for (var category in categories) {
+    // MODIFIED: Sort categories by their orderIndex first
+    List<FormationCategory> sortedCategories = List.from(categories)
+      ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
+    for (var category in sortedCategories) {
       items.add(
         CategoryHeaderItem(
           category.displayName,
@@ -68,10 +111,12 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
           category.numberOfPlayers,
         ),
       );
-      final templatesForCategory =
-          templates
-              .where((template) => template.categoryId == category.categoryId)
-              .toList();
+
+      // MODIFIED: Sort templates within each category by their orderIndex
+      final templatesForCategory = templates
+          .where((template) => template.categoryId == category.categoryId)
+          .toList()
+        ..sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
       if (templatesForCategory.isEmpty) {
         items.add(NoLineupsItem(category.categoryId));
@@ -84,6 +129,75 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     setState(() {
       _unifiedListItems = items;
     });
+  }
+
+  // --- NEW: Reorder Logic ---
+  void _onReorder(int oldIndex, int newIndex) {
+    // This adjustment is needed when moving an item downwards in the list.
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+
+    final ListItem movedItem = _unifiedListItems[oldIndex];
+
+    // --- Restriction Logic: Prevent moving templates between categories ---
+    String getCategoryForIndex(int index) {
+      for (int i = index; i >= 0; i--) {
+        if (_unifiedListItems[i] is CategoryHeaderItem) {
+          return (_unifiedListItems[i] as CategoryHeaderItem).categoryId;
+        }
+      }
+      return '';
+    }
+
+    if (movedItem is LineupTemplateItem) {
+      final oldCategory = getCategoryForIndex(oldIndex);
+      final newCategory = getCategoryForIndex(newIndex);
+      if (oldCategory != newCategory) {
+        // Disallow the move by not updating the state
+
+        return;
+      }
+    }
+    // --- End Restriction Logic ---
+
+    // Update the local list for immediate UI feedback
+    setState(() {
+      final item = _unifiedListItems.removeAt(oldIndex);
+      _unifiedListItems.insert(newIndex, item);
+    });
+
+    // --- Persist the changes ---
+    final lineupState = ref.read(lineupProvider);
+    List<FormationCategory> updatedCategories = [];
+    List<FormationTemplate> updatedTemplates = [];
+
+    int categoryOrder = 0;
+    Map<String, int> templateOrderMap = {};
+
+    for (final item in _unifiedListItems) {
+      if (item is CategoryHeaderItem) {
+        final category = lineupState.categories
+            .firstWhere((c) => c.categoryId == item.categoryId);
+        updatedCategories.add(category.copyWith(orderIndex: categoryOrder++));
+        templateOrderMap[item.categoryId] =
+            0; // Reset template counter for this category
+      } else if (item is LineupTemplateItem) {
+        final template = lineupState.allTemplates
+            .firstWhere((t) => t.templateId == item.template.templateId);
+        final categoryId = template.categoryId;
+
+        int currentOrder = templateOrderMap[categoryId] ?? 0;
+        updatedTemplates.add(template.copyWith(orderIndex: currentOrder));
+        templateOrderMap[categoryId] = currentOrder + 1;
+      }
+    }
+
+    // Call the controller to save the new order
+    ref.read(lineupProvider.notifier).updateLineupOrder(
+          updatedCategories: updatedCategories,
+          updatedTemplates: updatedTemplates,
+        );
   }
 
   // --- Dialog Methods ---
@@ -216,12 +330,11 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     final lineupState = ref.read(lineupProvider);
     final categoryToEdit = lineupState.categories.firstWhere(
       (cat) => cat.categoryId == categoryItem.categoryId,
-      orElse:
-          () => FormationCategory(
-            categoryId: categoryItem.categoryId,
-            displayName: categoryItem.title,
-            numberOfPlayers: categoryItem.numberOfPlayers,
-          ),
+      orElse: () => FormationCategory(
+        categoryId: categoryItem.categoryId,
+        displayName: categoryItem.title,
+        numberOfPlayers: categoryItem.numberOfPlayers,
+      ),
     );
 
     TextEditingController displayNameController = TextEditingController(
@@ -450,18 +563,75 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     );
   }
 
+  // Widget _buildCategoryHeaderWidget(CategoryHeaderItem item) {
+  //   return Padding(
+  //     padding: const EdgeInsets.only(
+  //       left: 16.0,
+  //       right: 8.0,
+  //       top: 24.0,
+  //       bottom: 10.0,
+  //     ),
+  //     child: Row(
+  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //       crossAxisAlignment: CrossAxisAlignment.center,
+  //       children: [
+  //         Expanded(
+  //           child: Text(
+  //             item.title,
+  //             style: TextStyle(
+  //               color: ColorManager.yellow,
+  //               fontSize: 20,
+  //               fontWeight: FontWeight.bold,
+  //             ),
+  //             overflow: TextOverflow.ellipsis,
+  //           ),
+  //         ),
+  //         Row(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             IconButton(
+  //               icon: Icon(
+  //                 Icons.edit_note_outlined,
+  //                 color: ColorManager.blueAccent.withOpacity(0.8),
+  //                 size: 24,
+  //               ),
+  //               tooltip: 'Edit Category "${item.title}"',
+  //               onPressed: () => _editCategoryDialog(item),
+  //               padding: const EdgeInsets.all(8.0),
+  //               constraints: const BoxConstraints(),
+  //             ),
+  //             IconButton(
+  //               icon: Icon(
+  //                 Icons.delete_sweep_outlined,
+  //                 color: ColorManager.red.withOpacity(0.8),
+  //                 size: 24,
+  //               ),
+  //               tooltip: 'Delete Category "${item.title}"',
+  //               onPressed: () => _deleteCategoryDialog(item),
+  //               padding: const EdgeInsets.all(8.0),
+  //               constraints: const BoxConstraints(),
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
   Widget _buildCategoryHeaderWidget(CategoryHeaderItem item) {
     return Padding(
-      padding: const EdgeInsets.only(
-        left: 16.0,
-        right: 8.0,
-        top: 24.0,
-        bottom: 10.0,
-      ),
+      key: ValueKey('cat_${item.categoryId}'), // KEY ADDED HERE
+      padding:
+          const EdgeInsets.only(left: 4.0, right: 8.0, top: 24.0, bottom: 10.0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          ReorderableDragStartListener(
+            index: _unifiedListItems.indexOf(item),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.0),
+              child: Icon(Icons.drag_handle, color: ColorManager.grey),
+            ),
+          ),
           Expanded(
             child: Text(
               item.title,
@@ -505,17 +675,81 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     );
   }
 
+  // Widget _buildLineupTemplateWidget(LineupTemplateItem item) {
+  //   final template = item.template;
+  //   return Card(
+  //     color: ColorManager.dark1,
+  //     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+  //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  //     elevation: 2,
+  //     child: ListTile(
+  //       contentPadding: const EdgeInsets.symmetric(
+  //         horizontal: 16.0,
+  //         vertical: 8.0,
+  //       ),
+  //       title: Text(
+  //         template.name,
+  //         style: const TextStyle(
+  //           color: ColorManager.white,
+  //           fontSize: 16,
+  //           fontWeight: FontWeight.w500,
+  //         ),
+  //       ),
+  //       trailing: Row(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           IconButton(
+  //             onPressed: () {
+  //               Navigator.push(
+  //                 context,
+  //                 MaterialPageRoute(
+  //                   builder: (context) =>
+  //                       DefaultLineupFieldScreen(template: template),
+  //                 ),
+  //               );
+  //             },
+  //             icon: ImageIcon(
+  //               AssetImage("assets/image/soccer-field.png"),
+  //               color: ColorManager.white,
+  //             ),
+  //           ),
+  //           IconButton(
+  //             icon: const Icon(
+  //               Icons.edit_outlined,
+  //               color: ColorManager.blueAccent,
+  //             ),
+  //             tooltip: 'Edit Lineup "${template.name}"',
+  //             onPressed: () => _editLineupTemplateDialog(template),
+  //           ),
+  //           IconButton(
+  //             icon: const Icon(Icons.delete_outline, color: ColorManager.red),
+  //             tooltip: 'Delete Lineup "${template.name}"',
+  //             onPressed: () => _deleteLineupTemplateDialog(template),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+
   Widget _buildLineupTemplateWidget(LineupTemplateItem item) {
     final template = item.template;
     return Card(
+      key: ValueKey(
+          template.templateId), // IMPORTANT: Add a unique key for reordering
       color: ColorManager.dark1,
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       elevation: 2,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 8.0,
+        contentPadding:
+            const EdgeInsets.only(left: 4.0, right: 8.0, top: 4.0, bottom: 4.0),
+        leading: ReorderableDragStartListener(
+          index: _unifiedListItems.indexOf(item),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: Icon(Icons.drag_handle, color: ColorManager.grey),
+          ),
         ),
         title: Text(
           template.name,
@@ -533,9 +767,8 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (context) =>
-                            DefaultLineupFieldScreen(template: template),
+                    builder: (context) =>
+                        DefaultLineupFieldScreen(template: template),
                   ),
                 );
               },
@@ -544,7 +777,6 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
                 color: ColorManager.white,
               ),
             ),
-
             IconButton(
               icon: const Icon(
                 Icons.edit_outlined,
@@ -566,6 +798,7 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
 
   Widget _buildNoLineupsInCategoryWidget(NoLineupsItem item) {
     return Padding(
+      key: ValueKey('no-lineup_${item.categoryId}'), // KEY ADDED HERE
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
       child: Text(
         'No lineups in this category yet.',
@@ -578,13 +811,37 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     );
   }
 
+  // Widget _buildMainContentList() {
+  //   return Expanded(
+  //     child: ListView.builder(
+  //       padding: const EdgeInsets.only(bottom: 16.0),
+  //       itemCount: _unifiedListItems.length,
+  //       itemBuilder: (context, index) {
+  //         final item = _unifiedListItems[index];
+  //         if (item is CategoryHeaderItem) {
+  //           return _buildCategoryHeaderWidget(item);
+  //         } else if (item is LineupTemplateItem) {
+  //           return _buildLineupTemplateWidget(item);
+  //         } else if (item is NoLineupsItem) {
+  //           return _buildNoLineupsInCategoryWidget(item);
+  //         }
+  //         return const SizedBox.shrink();
+  //       },
+  //     ),
+  //   );
+  // }
+
+  // MODIFIED: Cleaned up the builder logic
   Widget _buildMainContentList() {
     return Expanded(
-      child: ListView.builder(
+      child: ReorderableListView.builder(
         padding: const EdgeInsets.only(bottom: 16.0),
         itemCount: _unifiedListItems.length,
+        onReorder: _onReorder,
         itemBuilder: (context, index) {
           final item = _unifiedListItems[index];
+
+          // The key is now handled inside each respective build helper method.
           if (item is CategoryHeaderItem) {
             return _buildCategoryHeaderWidget(item);
           } else if (item is LineupTemplateItem) {
@@ -592,7 +849,9 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
           } else if (item is NoLineupsItem) {
             return _buildNoLineupsInCategoryWidget(item);
           }
-          return const SizedBox.shrink();
+
+          // Fallback, should not be reached with current logic
+          return SizedBox(key: ValueKey('fallback_$index'));
         },
       ),
     );

@@ -26,8 +26,10 @@ class DefaultLineupDatasourceImpl implements DefaultLineupDatasource {
   @override
   Future<List<FormationCategory>> getFormationCategories() async {
     try {
+      // MODIFICATION: Removed .orderBy('orderIndex') to fetch all documents
       final QuerySnapshot<Map<String, dynamic>> snapshot =
           await _categoryCollectionRef.get();
+
       if (snapshot.docs.isEmpty) {
         zlog(
           level: Level.debug,
@@ -35,10 +37,9 @@ class DefaultLineupDatasourceImpl implements DefaultLineupDatasource {
         );
         return [];
       }
-      final categories =
-          snapshot.docs
-              .map((doc) => FormationCategory.fromJson(doc.data()))
-              .toList();
+      final categories = snapshot.docs
+          .map((doc) => FormationCategory.fromJson(doc.data()))
+          .toList();
       zlog(
         level: Level.debug,
         data: "Firestore: Fetched ${categories.length} formation categories.",
@@ -60,8 +61,10 @@ class DefaultLineupDatasourceImpl implements DefaultLineupDatasource {
   @override
   Future<List<FormationTemplate>> getAllFormationTemplates() async {
     try {
+      // MODIFICATION: Removed .orderBy('orderIndex') to fetch all documents
       final QuerySnapshot<Map<String, dynamic>> snapshot =
           await _templateCollectionRef.get();
+
       if (snapshot.docs.isEmpty) {
         zlog(
           level: Level.debug,
@@ -69,10 +72,9 @@ class DefaultLineupDatasourceImpl implements DefaultLineupDatasource {
         );
         return [];
       }
-      final templates =
-          snapshot.docs
-              .map((doc) => FormationTemplate.fromJson(doc.data()))
-              .toList();
+      final templates = snapshot.docs
+          .map((doc) => FormationTemplate.fromJson(doc.data()))
+          .toList();
       zlog(
         level: Level.debug,
         data: "Firestore: Fetched ${templates.length} formation templates.",
@@ -112,10 +114,9 @@ class DefaultLineupDatasourceImpl implements DefaultLineupDatasource {
         );
         return [];
       }
-      final templates =
-          snapshot.docs
-              .map((doc) => FormationTemplate.fromJson(doc.data()))
-              .toList();
+      final templates = snapshot.docs
+          .map((doc) => FormationTemplate.fromJson(doc.data()))
+          .toList();
       zlog(
         level: Level.debug,
         data:
@@ -372,6 +373,40 @@ class DefaultLineupDatasourceImpl implements DefaultLineupDatasource {
     } catch (e) {
       zlog(level: Level.error, data: "Error deleting category $categoryId: $e");
       throw Exception("Error deleting category: $e");
+    }
+  }
+
+  @override
+  Future<void> updateLineupOrder({
+    required List<FormationCategory> categories,
+    required List<FormationTemplate> templates,
+  }) async {
+    try {
+      final batch = _firestore.batch();
+
+      for (final category in categories) {
+        final docRef = _categoryCollectionRef.doc(category.categoryId);
+        batch.update(docRef, {'orderIndex': category.orderIndex});
+      }
+
+      for (final template in templates) {
+        final docRef = _templateCollectionRef.doc(template.templateId);
+        batch.update(docRef, {'orderIndex': template.orderIndex});
+      }
+
+      await batch.commit();
+      zlog(
+          level: Level.info,
+          data: "Firestore: Successfully updated lineup order.");
+    } on FirebaseException catch (e) {
+      zlog(
+          level: Level.error,
+          data:
+              "Firebase error updating lineup order: ${e.code} - ${e.message}");
+      throw Exception("Error updating lineup order: ${e.message}");
+    } catch (e) {
+      zlog(level: Level.error, data: "Error updating lineup order: $e");
+      throw Exception("Error updating lineup order: $e");
     }
   }
 }

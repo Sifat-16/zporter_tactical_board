@@ -26,6 +26,7 @@ class DefaultAnimationDatasourceImpl implements DefaultAnimationDatasource {
       data: "Firestore DS: Fetching all default animations...",
     );
     try {
+      // ## THE FIX: Removed .orderBy() to fetch all documents ##
       final QuerySnapshot<Map<String, dynamic>> snapshot =
           await _defaultAnimationsRef.get();
 
@@ -47,7 +48,6 @@ class DefaultAnimationDatasourceImpl implements DefaultAnimationDatasource {
             data:
                 "Firestore DS: Error parsing default animation document ${doc.id}: $e\n$stackTrace",
           );
-          // Optionally skip problematic documents or rethrow
         }
       }
       zlog(
@@ -156,6 +156,42 @@ class DefaultAnimationDatasourceImpl implements DefaultAnimationDatasource {
             "Firestore DS: Generic error deleting default animation $animationId: $e\n$stackTrace",
       );
       throw Exception("Error deleting default animation: $e");
+    }
+  }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) async {
+    final batch = _firestore.batch();
+    zlog(
+      level: Level.info,
+      data:
+          "Firestore DS: Batch-saving ${animations.length} default animations...",
+    );
+    try {
+      for (final animation in animations) {
+        final docRef = _defaultAnimationsRef.doc(animation.id);
+        // Using .set() is robust as it creates or completely overwrites the document
+        // with the latest data, which is what we want after a reorder.
+        batch.set(docRef, animation.toJson());
+      }
+      await batch.commit();
+      zlog(
+        level: Level.debug,
+        data: "Firestore DS: Batch-save complete.",
+      );
+    } on FirebaseException catch (e) {
+      zlog(
+        level: Level.error,
+        data:
+            "Firestore DS: Firebase error in saveAllDefaultAnimations: ${e.code} - ${e.message}",
+      );
+      throw Exception("Error batch-saving default animations: ${e.message}");
+    } catch (e) {
+      zlog(
+        level: Level.error,
+        data: "Firestore DS: Generic error in saveAllDefaultAnimations: $e",
+      );
+      throw Exception("Error batch-saving default animations: $e");
     }
   }
 }

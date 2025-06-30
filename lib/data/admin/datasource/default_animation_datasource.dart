@@ -6,4 +6,6 @@ abstract class DefaultAnimationDatasource {
   Future<AnimationModel> saveDefaultAnimation(AnimationModel animationModel);
 
   Future<void> deleteDefaultAnimation(String animationId);
+
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations);
 }

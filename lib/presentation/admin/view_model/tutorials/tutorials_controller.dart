@@ -14,10 +14,24 @@ class TutorialsController extends StateNotifier<TutorialsState> {
     fetchTutorials();
   }
 
+  // Future<void> fetchTutorials() async {
+  //   try {
+  //     state = state.copyWith(status: TutorialStatus.loading);
+  //     final tutorials = await _repository.getAllTutorials();
+  //     state =
+  //         state.copyWith(status: TutorialStatus.success, tutorials: tutorials);
+  //   } catch (e) {
+  //     state = state.copyWith(
+  //         status: TutorialStatus.error, errorMessage: e.toString());
+  //   }
+  // }
+
   Future<void> fetchTutorials() async {
     try {
       state = state.copyWith(status: TutorialStatus.loading);
       final tutorials = await _repository.getAllTutorials();
+      // MODIFIED: Sort the list after fetching
+      tutorials.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       state =
           state.copyWith(status: TutorialStatus.success, tutorials: tutorials);
     } catch (e) {
@@ -49,12 +63,30 @@ class TutorialsController extends StateNotifier<TutorialsState> {
     }
   }
 
+  // Future<void> deleteTutorial(String tutorialId) async {
+  //   try {
+  //     await _repository.deleteTutorial(tutorialId);
+  //     final updatedList =
+  //         state.tutorials.where((t) => t.id != tutorialId).toList();
+  //     state = state.copyWith(tutorials: updatedList);
+  //   } catch (e) {
+  //     // Handle error
+  //   }
+  // }
+
   Future<void> deleteTutorial(String tutorialId) async {
     try {
       await _repository.deleteTutorial(tutorialId);
-      final updatedList =
+      final listAfterDelete =
           state.tutorials.where((t) => t.id != tutorialId).toList();
-      state = state.copyWith(tutorials: updatedList);
+
+      // MODIFIED: Re-index the remaining items and save the new order
+      for (int i = 0; i < listAfterDelete.length; i++) {
+        listAfterDelete[i] = listAfterDelete[i].copyWith(orderIndex: i);
+      }
+
+      await _repository.saveAllTutorials(listAfterDelete);
+      state = state.copyWith(tutorials: listAfterDelete);
     } catch (e) {
       // Handle error
     }
@@ -102,13 +134,40 @@ class TutorialsController extends StateNotifier<TutorialsState> {
 
   Future<Tutorial?> addAndReturnTutorial(String name) async {
     try {
-      final newTutorial = await _repository
-          .saveTutorial(Tutorial(id: '', name: name, thumbnailUrl: null));
+      // Add orderIndex to the new tutorial
+      final newTutorial = await _repository.saveTutorial(
+        Tutorial(id: '', name: name, orderIndex: state.tutorials.length),
+      );
       state = state.copyWith(tutorials: [...state.tutorials, newTutorial]);
       return newTutorial;
     } catch (e) {
-      // Handle error
       return null;
+    }
+  }
+
+  Future<void> reorderTutorials(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+
+    final list = List<Tutorial>.from(state.tutorials);
+    final item = list.removeAt(oldIndex);
+    list.insert(newIndex, item);
+
+    // Re-assign the correct orderIndex to all items
+    for (int i = 0; i < list.length; i++) {
+      list[i] = list[i].copyWith(orderIndex: i);
+    }
+
+    // Optimistically update the UI
+    state = state.copyWith(tutorials: list, status: TutorialStatus.success);
+
+    // Persist the changes
+    try {
+      await _repository.saveAllTutorials(list);
+    } catch (e) {
+      // On failure, refetch to revert the UI to the last known good state
+      fetchTutorials();
     }
   }
 }

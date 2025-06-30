@@ -100,4 +100,21 @@ class TutorialDatasourceHybridImpl implements TutorialDatasource {
       throw Exception("Thumbnail upload failed.");
     }
   }
+
+  @override
+  Future<void> saveAllTutorials(List<Tutorial> tutorials) async {
+    zlog(data: "Firestore DS: Batch-saving ${tutorials.length} tutorials...");
+    final batch = _firestore.batch();
+    try {
+      for (final tutorial in tutorials) {
+        final docRef = _tutorialsRef.doc(tutorial.id);
+        batch.set(docRef, tutorial.toJson());
+      }
+      await batch.commit();
+      zlog(data: "Firestore DS: Batch-save for tutorials complete.");
+    } catch (e) {
+      zlog(data: "Firestore DS: Error batch-saving tutorials: $e");
+      throw Exception("Error saving tutorial order: $e");
+    }
+  }
 }

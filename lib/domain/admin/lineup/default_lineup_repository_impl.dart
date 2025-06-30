@@ -165,4 +165,12 @@ class DefaultLineupRepositoryImpl implements DefaultLineupRepository {
     );
     return groupedData;
   }
+
+  @override
+  Future<void> updateLineupOrder(
+      {required List<FormationCategory> categories,
+      required List<FormationTemplate> templates}) {
+    return localDataSource.updateLineupOrder(
+        categories: categories, templates: templates);
+  }
 }

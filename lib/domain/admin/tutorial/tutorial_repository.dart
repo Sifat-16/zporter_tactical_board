@@ -8,4 +8,5 @@ abstract class TutorialRepository {
   Future<void> deleteTutorial(String tutorialId);
   Future<String> uploadVideo(File videoFile, String tutorialId);
   Future<String> uploadThumbnail(File imageFile, String tutorialId);
+  Future<void> saveAllTutorials(List<Tutorial> tutorials);
 }

@@ -29,6 +29,30 @@ class DefaultAnimationController extends StateNotifier<DefaultAnimationState> {
 
   final DefaultAnimationRepository _repository = sl.get();
 
+  // Future<void> loadAllDefaultAnimations() async {
+  //   state = state.copyWith(
+  //     status: DefaultAnimationStatus.loading,
+  //     clearError: true,
+  //   );
+  //   zlog(data: "Controller: Loading all default animations...");
+  //   try {
+  //     final animations = await _repository.getAllDefaultAnimations();
+  //     zlog(data: "Controller: Loaded ${animations.length} default animations.");
+  //     state = state.copyWith(
+  //       status: DefaultAnimationStatus.success,
+  //       defaultAnimations: animations,
+  //     );
+  //   } catch (e, stackTrace) {
+  //     zlog(
+  //       data: "Controller: Error loading default animations: $e\n$stackTrace",
+  //     );
+  //     state = state.copyWith(
+  //       status: DefaultAnimationStatus.error,
+  //       errorMessage: e.toString(),
+  //     );
+  //   }
+  // }
+
   Future<void> loadAllDefaultAnimations() async {
     state = state.copyWith(
       status: DefaultAnimationStatus.loading,
@@ -37,7 +61,13 @@ class DefaultAnimationController extends StateNotifier<DefaultAnimationState> {
     zlog(data: "Controller: Loading all default animations...");
     try {
       final animations = await _repository.getAllDefaultAnimations();
-      zlog(data: "Controller: Loaded ${animations.length} default animations.");
+
+      // ## THE FIX: Sort the list here in the controller ##
+      animations.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
+      zlog(
+          data:
+              "Controller: Loaded and sorted ${animations.length} default animations.");
       state = state.copyWith(
         status: DefaultAnimationStatus.success,
         defaultAnimations: animations,
@@ -68,6 +98,7 @@ class DefaultAnimationController extends StateNotifier<DefaultAnimationState> {
         userId: SYSTEM_USER_ID_FOR_DEFAULTS, // Enforce system user ID
         fieldColor: animationDataFromDialog
             .fieldColor, // Color from dialog (or default if not set there)
+        orderIndex: state.defaultAnimations.length,
         animationScenes: [
           AnimationItemModel(
             id: RandomGenerator.generateId(),
@@ -169,32 +200,98 @@ class DefaultAnimationController extends StateNotifier<DefaultAnimationState> {
     }
   }
 
+  // Future<void> deleteDefaultAnimation(String animationId) async {
+  //   state = state.copyWith(
+  //     status: DefaultAnimationStatus.loading,
+  //     clearError: true,
+  //   );
+  //   try {
+  //     await _repository.deleteDefaultAnimation(animationId);
+  //
+  //     // Remove from local state list
+  //     final updatedList = List<AnimationModel>.from(state.defaultAnimations)
+  //       ..removeWhere((anim) => anim.id == animationId);
+  //     state = state.copyWith(
+  //       status: DefaultAnimationStatus.success,
+  //       defaultAnimations: updatedList,
+  //     );
+  //     zlog(
+  //       data: "Controller: Deleted default animation with ID '$animationId'.",
+  //     );
+  //   } catch (e, stackTrace) {
+  //     zlog(
+  //       data: "Controller: Error deleting default animation: $e\n$stackTrace",
+  //     );
+  //     state = state.copyWith(
+  //       status: DefaultAnimationStatus.error,
+  //       errorMessage: e.toString(),
+  //     );
+  //   }
+  // }
+
   Future<void> deleteDefaultAnimation(String animationId) async {
     state = state.copyWith(
-      status: DefaultAnimationStatus.loading,
-      clearError: true,
-    );
+        status: DefaultAnimationStatus.loading, clearError: true);
     try {
       await _repository.deleteDefaultAnimation(animationId);
 
-      // Remove from local state list
       final updatedList = List<AnimationModel>.from(state.defaultAnimations)
         ..removeWhere((anim) => anim.id == animationId);
+
+      // MODIFIED: Re-index the remaining items after deletion
+      for (int i = 0; i < updatedList.length; i++) {
+        updatedList[i] = updatedList[i].copyWith(orderIndex: i);
+      }
+
+      // Save the updated order of the remaining items
+      await _repository.saveAllDefaultAnimations(updatedList);
+
       state = state.copyWith(
-        status: DefaultAnimationStatus.success,
-        defaultAnimations: updatedList,
-      );
+          status: DefaultAnimationStatus.success,
+          defaultAnimations: updatedList);
       zlog(
-        data: "Controller: Deleted default animation with ID '$animationId'.",
-      );
+          data:
+              "Controller: Deleted default animation with ID '$animationId' and re-indexed list.");
     } catch (e, stackTrace) {
       zlog(
-        data: "Controller: Error deleting default animation: $e\n$stackTrace",
-      );
+          data:
+              "Controller: Error deleting default animation: $e\n$stackTrace");
       state = state.copyWith(
-        status: DefaultAnimationStatus.error,
-        errorMessage: e.toString(),
-      );
+          status: DefaultAnimationStatus.error, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> reorderDefaultAnimations(int oldIndex, int newIndex) async {
+    // This adjustment is needed for ReorderableListView's logic
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+
+    final list = List<AnimationModel>.from(state.defaultAnimations);
+    final item = list.removeAt(oldIndex);
+    list.insert(newIndex, item);
+
+    // Re-assign the correct orderIndex to all items in the list
+    for (int i = 0; i < list.length; i++) {
+      list[i] = list[i].copyWith(orderIndex: i);
+    }
+
+    // Optimistically update the UI with the new order
+    state = state.copyWith(
+        defaultAnimations: list, status: DefaultAnimationStatus.success);
+
+    // Persist the entire re-ordered list to the database
+    try {
+      // Assumes your repository has a method to save all animations at once.
+      // This is more efficient than saving one by one.
+      await _repository.saveAllDefaultAnimations(list);
+      zlog(
+          data:
+              "Controller: Successfully saved new order of default animations.");
+    } catch (e) {
+      zlog(data: "Controller: Failed to save new animation order: $e");
+      // If saving fails, revert by reloading from the database to ensure consistency
+      await loadAllDefaultAnimations();
     }
   }
 

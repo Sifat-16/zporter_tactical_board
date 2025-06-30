@@ -6,6 +6,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 
 class AnimationLocalDatasourceImpl implements AnimationDatasource {
@@ -477,6 +478,31 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
             "Sembast: Error deleting collection ID $collectionId: $e\n$stackTrace",
       );
       throw Exception("Error deleting animation collection locally: $e");
+    }
+  }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) async {
+    final db = await SemDB.database;
+    try {
+      await db.transaction((txn) async {
+        for (final animation in animations) {
+          await _defaultAnimationItemStore
+              .record(animation.id)
+              .put(txn, animation.toJson());
+        }
+      });
+      zlog(
+        level: Level.info,
+        data:
+            "Sembast: Successfully batch-saved ${animations.length} default animations.",
+      );
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: "Sembast: Error in saveAllDefaultAnimations: $e\n$stackTrace",
+      );
+      throw Exception("Error saving default animations locally: $e");
     }
   }
 }

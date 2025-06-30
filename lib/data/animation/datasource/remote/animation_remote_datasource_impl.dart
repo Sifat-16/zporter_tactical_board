@@ -5,6 +5,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 
 class AnimationRemoteDatasourceImpl implements AnimationDatasource {
@@ -134,9 +135,15 @@ class AnimationRemoteDatasourceImpl implements AnimationDatasource {
   }) async {
     try {
       // --- ADDED: Filter by userId ---
+      // final QuerySnapshot<Map<String, dynamic>> snapshot =
+      //     await _defaultAnimationItemRef
+      //         .where('userId', isEqualTo: userId)
+      //         .get();
+
       final QuerySnapshot<Map<String, dynamic>> snapshot =
           await _defaultAnimationItemRef
               .where('userId', isEqualTo: userId)
+              .orderBy('orderIndex') // ADD THIS LINE
               .get();
 
       List<AnimationItemModel> animationItems = [];
@@ -418,6 +425,37 @@ class AnimationRemoteDatasourceImpl implements AnimationDatasource {
         data: "Error deleting animation collection $collectionId: $e",
       );
       throw Exception("Error deleting animation collection: $e");
+    }
+  }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) async {
+    final batch = _firestore.batch();
+    try {
+      for (final animation in animations) {
+        final docRef = _defaultAnimationItemRef.doc(animation.id);
+        // Use set with merge:true to be safe, it updates or creates.
+        batch.set(docRef, animation.toJson(), SetOptions(merge: true));
+      }
+      await batch.commit();
+      zlog(
+        level: Level.info,
+        data:
+            "Firestore: Successfully batch-saved ${animations.length} default animations.",
+      );
+    } on FirebaseException catch (e) {
+      zlog(
+        level: Level.error,
+        data:
+            "Firebase error in saveAllDefaultAnimations: ${e.code} - ${e.message}",
+      );
+      throw Exception("Error saving default animations: ${e.message}");
+    } catch (e) {
+      zlog(
+        level: Level.error,
+        data: "Error in saveAllDefaultAnimations: $e",
+      );
+      throw Exception("Error saving default animations: $e");
     }
   }
 }
