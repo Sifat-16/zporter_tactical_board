@@ -1215,18 +1215,44 @@ class AnimationController extends StateNotifier<AnimationState> {
   final DefaultAnimationRepository _defaultAnimationRepository =
       sl.get<DefaultAnimationRepository>();
 
+  // void selectAnimationCollection(
+  //   AnimationCollectionModel? animationCollectionModel, {
+  //   AnimationModel? animationSelect,
+  //   bool changeSelectedScene = true,
+  // }) {
+  //   AnimationModel? selectedAnimation = animationSelect;
+  //   state = state.copyWith(
+  //     selectedAnimationCollectionModel: animationCollectionModel,
+  //     animations: animationCollectionModel?.animations ?? [],
+  //     selectedAnimationModel: selectedAnimation,
+  //     selectedScene: changeSelectedScene == true
+  //         ? selectedAnimation?.animationScenes.first
+  //         : state.selectedScene,
+  //     showNewCollectionInput: false,
+  //     showNewAnimationInput: false,
+  //     showQuickSave: false,
+  //   );
+  // }
+
   void selectAnimationCollection(
     AnimationCollectionModel? animationCollectionModel, {
     AnimationModel? animationSelect,
     bool changeSelectedScene = true,
   }) {
     AnimationModel? selectedAnimation = animationSelect;
+
+    // --- THE FIX IS HERE ---
+    // Get the animations list from the selected collection
+    final animationsToSort = animationCollectionModel?.animations ?? [];
+    // Sort this list by the orderIndex before updating the state
+    animationsToSort.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
     state = state.copyWith(
       selectedAnimationCollectionModel: animationCollectionModel,
-      animations: animationCollectionModel?.animations ?? [],
+      animations: animationsToSort, // Use the new sorted list
       selectedAnimationModel: selectedAnimation,
       selectedScene: changeSelectedScene == true
-          ? selectedAnimation?.animationScenes.first
+          ? selectedAnimation?.animationScenes.firstOrNull
           : state.selectedScene,
       showNewCollectionInput: false,
       showNewAnimationInput: false,
@@ -1265,8 +1291,33 @@ class AnimationController extends StateNotifier<AnimationState> {
         }
       } catch (e) {}
 
-      AnimationCollectionModel? selectedAnimation =
-          state.selectedAnimationCollectionModel ?? collections.firstOrNull;
+      // AnimationCollectionModel? selectedAnimation =
+      //     state.selectedAnimationCollectionModel ?? collections.firstOrNull;
+      // state = state.copyWith(
+      //   animationCollections: collections,
+      //   isLoadingAnimationCollections: false,
+      // );
+      //
+      // zlog(data: "All collection ${collections}");
+      //
+      // selectAnimationCollection(selectedAnimation);
+
+      // --- ADDED SORTING FOR COLLECTIONS ---
+      // This ensures the collection dropdown is also in order.
+      collections.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
+      AnimationCollectionModel? selectedCollection =
+          state.selectedAnimationCollectionModel;
+
+      // Ensure the selected collection is still valid
+      if (selectedCollection != null) {
+        if (!collections.any((c) => c.id == selectedCollection!.id)) {
+          selectedCollection = collections.firstOrNull;
+        }
+      } else {
+        selectedCollection = collections.firstOrNull;
+      }
+
       state = state.copyWith(
         animationCollections: collections,
         isLoadingAnimationCollections: false,
@@ -1274,7 +1325,8 @@ class AnimationController extends StateNotifier<AnimationState> {
 
       zlog(data: "All collection ${collections}");
 
-      selectAnimationCollection(selectedAnimation);
+      // This will now correctly sort the animations within the selected collection
+      selectAnimationCollection(selectedCollection);
     } catch (e) {
       zlog(data: "Animation collection fetching issue ${e}");
     }
@@ -2440,6 +2492,48 @@ class AnimationController extends StateNotifier<AnimationState> {
       BotToast.showText(text: "Error deleting collection.");
     } finally {
       BotToast.cleanAll();
+    }
+  }
+
+  Future<void> reorderAnimations(int oldIndex, int newIndex) async {
+    final selectedCollection = state.selectedAnimationCollectionModel;
+    if (selectedCollection == null) return;
+
+    // Use a mutable copy of the animations list from the selected collection
+    final animations = List<AnimationModel>.from(selectedCollection.animations);
+
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+
+    final item = animations.removeAt(oldIndex);
+    animations.insert(newIndex, item);
+
+    // Re-assign orderIndex to all items in the list
+    for (int i = 0; i < animations.length; i++) {
+      animations[i] = animations[i].copyWith(orderIndex: i);
+    }
+
+    // Create an updated collection model
+    final updatedCollection = selectedCollection.copyWith(
+      animations: animations,
+      updatedAt: DateTime.now(),
+    );
+
+    // Optimistically update the UI
+    state = state.copyWith(
+      selectedAnimationCollectionModel: updatedCollection,
+      animations: animations,
+    );
+
+    // Persist the entire updated collection to the database
+    try {
+      await _saveAnimationCollectionUseCase.call(updatedCollection);
+    } catch (e) {
+      // Handle error, maybe revert state
+      zlog(data: "Failed to save reordered animations: $e");
+      // Consider re-fetching to ensure consistency
+      getAllCollections();
     }
   }
 }

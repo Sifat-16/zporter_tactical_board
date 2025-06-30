@@ -7,6 +7,7 @@ class AnimationCollectionModel {
   String userId;
   DateTime createdAt;
   DateTime updatedAt;
+  int orderIndex;
 
   AnimationCollectionModel({
     required this.id,
@@ -15,6 +16,7 @@ class AnimationCollectionModel {
     required this.userId,
     required this.createdAt,
     required this.updatedAt,
+    this.orderIndex = 0,
   });
 
   AnimationCollectionModel copyWith({
@@ -24,6 +26,7 @@ class AnimationCollectionModel {
     DateTime? createdAt,
     String? userId,
     DateTime? updatedAt,
+    int? orderIndex,
   }) {
     return AnimationCollectionModel(
       id: id ?? this.id,
@@ -32,6 +35,7 @@ class AnimationCollectionModel {
       animations: animations ?? this.animations,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      orderIndex: orderIndex ?? this.orderIndex,
     );
   }
 
@@ -43,6 +47,7 @@ class AnimationCollectionModel {
       'animations': animations.map((animation) => animation.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      'orderIndex': orderIndex,
     };
   }
 
@@ -51,12 +56,12 @@ class AnimationCollectionModel {
       id: json['_id'],
       name: json['name'],
       userId: json['userId'],
-      animations:
-          (json['animations'] as List)
-              .map((animationJson) => AnimationModel.fromJson(animationJson))
-              .toList(),
+      animations: (json['animations'] as List)
+          .map((animationJson) => AnimationModel.fromJson(animationJson))
+          .toList(),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
+      orderIndex: json['orderIndex'] as int? ?? 0,
     );
   }
 

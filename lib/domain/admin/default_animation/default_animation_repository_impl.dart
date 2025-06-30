@@ -24,4 +24,9 @@ class DefaultAnimationRepositoryImpl implements DefaultAnimationRepository {
   Future<void> deleteDefaultAnimation(String animationId) async {
     return datasource.deleteDefaultAnimation(animationId);
   }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) async {
+    return datasource.saveAllDefaultAnimations(animations);
+  }
 }

@@ -5,6 +5,7 @@ import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
 
@@ -499,6 +500,68 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
       );
       // Re-throw the exception to be handled by the UI layer (e.g., show an error message).
       throw Exception("Failed to delete animation collection: $e");
+    }
+  }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) async {
+    bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
+
+    if (!isOnline) {
+      // --- OFFLINE PATH: Save to local, trigger remote async ---
+      zlog(
+        level: Level.info,
+        data:
+            "[Repo] Network Offline: Saving all ${animations.length} default animations to LOCAL.",
+      );
+      try {
+        await _localDs.saveAllDefaultAnimations(animations);
+        zlog(
+          level: Level.debug,
+          data:
+              "[Repo] Triggering background remote save for all default animations...",
+        );
+        // Fire-and-forget the remote save
+        _remoteDs.saveAllDefaultAnimations(animations).catchError((e, s) {
+          zlog(
+            level: Level.error,
+            data:
+                "[Repo] Background remote save FAILED for all default animations: $e\n$s",
+          );
+        });
+      } catch (localError) {
+        zlog(
+          level: Level.error,
+          data:
+              "[Repo] OFFLINE SAVE FAILED: Could not save all default animations locally: $localError",
+        );
+        throw Exception(
+            "Failed to save default animations locally while offline: $localError");
+      }
+    } else {
+      // --- ONLINE PATH: Save to remote, then update local cache ---
+      zlog(
+        level: Level.info,
+        data:
+            "[Repo] Network Online: Saving all ${animations.length} default animations to REMOTE first...",
+      );
+      try {
+        await _remoteDs.saveAllDefaultAnimations(animations);
+        zlog(
+            level: Level.debug,
+            data: "[Repo] Remote save successful. Updating local cache...");
+        await _localDs.saveAllDefaultAnimations(animations);
+        zlog(
+            level: Level.debug,
+            data: "[Repo] Local cache updated successfully.");
+      } catch (e) {
+        zlog(
+          level: Level.error,
+          data:
+              "[Repo] ONLINE SAVE FAILED: Could not save all default animations: $e",
+        );
+        throw Exception("Failed to save default animations while online: $e");
+      }
     }
   }
 } // End of class AnimationCacheRepositoryImpl

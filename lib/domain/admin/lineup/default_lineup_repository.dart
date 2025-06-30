@@ -6,7 +6,7 @@ abstract class DefaultLineupRepository {
     String categoryId,
   );
   Future<List<FormationTemplate>>
-  getAllFormationTemplates(); // To filter by category client-side or for _buildUnifiedList
+      getAllFormationTemplates(); // To filter by category client-side or for _buildUnifiedList
 
   Future<void> addFormationCategory(
     FormationCategory category,
@@ -17,4 +17,9 @@ abstract class DefaultLineupRepository {
   Future<void> updateFormationCategory(FormationCategory category);
   Future<void> deleteFormationCategory(String categoryId);
   Future<List<CategorizedFormationGroup>> getCategorizedLineupGroups();
+
+  Future<void> updateLineupOrder({
+    required List<FormationCategory> categories,
+    required List<FormationTemplate> templates,
+  });
 }

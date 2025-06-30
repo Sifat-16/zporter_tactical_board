@@ -287,8 +287,9 @@ class _DefaultAnimationScreenState
     );
   }
 
-  Widget _buildAnimationListItem(AnimationModel animation) {
+  Widget _buildAnimationListItem(AnimationModel animation, int index) {
     return Card(
+      key: ValueKey(animation.id),
       color: ColorManager.dark1,
       margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 8.0),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -298,10 +299,9 @@ class _DefaultAnimationScreenState
           horizontal: 16.0,
           vertical: 10.0,
         ),
-        leading: Icon(
-          Icons.movie_filter_outlined,
-          color: animation.fieldColor,
-          size: 30,
+        leading: ReorderableDragStartListener(
+          index: index,
+          child: const Icon(Icons.drag_handle, color: ColorManager.grey),
         ),
         title: Text(
           animation.name,
@@ -354,14 +354,35 @@ class _DefaultAnimationScreenState
     );
   }
 
+  // Widget _buildAnimationList(List<AnimationModel> animations) {
+  //   return Expanded(
+  //     child: ListView.builder(
+  //       padding: const EdgeInsets.only(bottom: 16.0),
+  //       itemCount: animations.length,
+  //       itemBuilder: (context, index) {
+  //         final animation = animations[index];
+  //         return _buildAnimationListItem(animation);
+  //       },
+  //     ),
+  //   );
+  // }
+
   Widget _buildAnimationList(List<AnimationModel> animations) {
     return Expanded(
-      child: ListView.builder(
+      // MODIFIED: Use ReorderableListView.builder
+      child: ReorderableListView.builder(
         padding: const EdgeInsets.only(bottom: 16.0),
         itemCount: animations.length,
         itemBuilder: (context, index) {
           final animation = animations[index];
-          return _buildAnimationListItem(animation);
+          // Pass index to the item builder for the drag listener
+          return _buildAnimationListItem(animation, index);
+        },
+        onReorder: (oldIndex, newIndex) {
+          // Call the new method in the controller
+          ref
+              .read(defaultAnimationControllerProvider.notifier)
+              .reorderDefaultAnimations(oldIndex, newIndex);
         },
       ),
     );

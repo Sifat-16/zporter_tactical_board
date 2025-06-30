@@ -1,6 +1,7 @@
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
 
@@ -75,5 +76,10 @@ class AnimationRepositoryImpl implements AnimationRepository {
     // This implementation simply passes the call to the underlying datasource.
     return await animationDatasource.deleteAnimationCollection(
         collectionId: collectionId);
+  }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) {
+    return animationDatasource.saveAllDefaultAnimations(animations);
   }
 }

@@ -4,4 +4,6 @@ abstract class DefaultAnimationRepository {
   Future<List<AnimationModel>> getAllDefaultAnimations();
   Future<AnimationModel> saveDefaultAnimation(AnimationModel animationModel);
   Future<void> deleteDefaultAnimation(String animationId);
+
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations);
 }
