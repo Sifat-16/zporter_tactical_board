@@ -83,6 +83,7 @@ dependencies:
   flutter_quill_extensions: ^11.0.0
   appwrite: ^17.0.1
   fluttertoast: ^8.2.12
+  googleapis_auth: ^2.0.0
 
 
 
@@ -119,6 +120,7 @@ flutter:
     - assets/lottie/
     - assets/image/
     - assets/images/
+    - assets/secure/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
