@@ -11,8 +11,10 @@ import 'package:zporter_tactical_board/data/admin/datasource/default_lineup_data
 import 'package:zporter_tactical_board/data/admin/datasource/local/lineup_cache_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/remote/default_animation_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/remote/default_lineup_datasource_impl.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/remote/notification_admin_datasource.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/remote/tutorial_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/tutorial_datasource.dart';
+import 'package:zporter_tactical_board/data/admin/service/notification_admin_service.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/local/animation_local_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/remote/animation_remote_datasource_impl.dart';
@@ -21,6 +23,8 @@ import 'package:zporter_tactical_board/domain/admin/default_animation/default_an
 import 'package:zporter_tactical_board/domain/admin/default_animation/default_animation_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_repository.dart';
 import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_repository_impl.dart';
+import 'package:zporter_tactical_board/domain/admin/notification/notification_admin_repository.dart';
+import 'package:zporter_tactical_board/domain/admin/notification/notification_admin_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/admin/tutorial/tutorial_repository.dart';
 import 'package:zporter_tactical_board/domain/admin/tutorial/tutorial_repository_impl.dart';
 import 'package:zporter_tactical_board/domain/animation/repository/animation_cache_repository_impl.dart';
@@ -185,5 +189,22 @@ Future<void> initializeTacticBoardDependencies() async {
 
   sl.registerLazySingleton<TutorialRepository>(
     () => TutorialRepositoryImpl(datasource: sl.get()),
+  );
+
+  // Admin Notifications
+
+  sl.registerLazySingleton<NotificationAdminService>(
+    () => NotificationAdminService(),
+  );
+
+  sl.registerLazySingleton<NotificationAdminDataSource>(
+    () => NotificationAdminDataSourceImpl(FirebaseFirestore.instance),
+  );
+
+  sl.registerLazySingleton<NotificationAdminRepository>(
+    () => NotificationAdminRepositoryImpl(
+      sl.get<NotificationAdminService>(),
+      sl.get<NotificationAdminDataSource>(),
+    ),
   );
 }
