@@ -63,7 +63,6 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
         vertical: AppSize.s2,
         horizontal: AppSize.s4,
       ),
-      decoration: BoxDecoration(color: ColorManager.black),
       child: Column(
         children: [
           Align(
@@ -80,10 +79,9 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
               ), // Remove padding between tab labels
               isScrollable: false,
               dividerHeight: 0,
-              tabs:
-                  _tabs.map((tab) {
-                    return Tab(text: tab['title']);
-                  }).toList(),
+              tabs: _tabs.map((tab) {
+                return Tab(text: tab['title']);
+              }).toList(),
             ),
           ),
 
@@ -96,19 +94,18 @@ class _PlayersToolbarComponentState extends State<PlayersToolbarComponent>
               onPageChanged: (index) {
                 _tabController.animateTo(index); // Sync TabBar with PageView
               },
-              children:
-                  _tabs.map((tab) {
-                    dynamic type = tab['content'];
-                    if (type is Widget) {
-                      return type;
-                    }
-                    return Center(
-                      child: Text(
-                        tab['content'],
-                        style: TextStyle(color: ColorManager.white),
-                      ),
-                    );
-                  }).toList(),
+              children: _tabs.map((tab) {
+                dynamic type = tab['content'];
+                if (type is Widget) {
+                  return type;
+                }
+                return Center(
+                  child: Text(
+                    tab['content'],
+                    style: TextStyle(color: ColorManager.white),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],

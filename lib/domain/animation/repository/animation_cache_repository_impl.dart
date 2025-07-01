@@ -5,6 +5,7 @@ import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
 
@@ -15,8 +16,8 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   AnimationCacheRepositoryImpl({
     required AnimationDatasource localDatasource,
     required AnimationDatasource remoteDatasource,
-  }) : _localDs = localDatasource,
-       _remoteDs = remoteDatasource;
+  })  : _localDs = localDatasource,
+        _remoteDs = remoteDatasource;
 
   // --- READ OPERATIONS ---
   // ... (Keep the previous Read implementations with fallback) ...
@@ -213,22 +214,21 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         _remoteDs
             .saveAnimationCollection(animationCollectionModel: savedLocalModel)
             .then((_) {
-              zlog(
-                level: Level.debug,
-                data:
-                    "[Repo] Background remote save ACKNOWLEDGED by SDK for ${savedLocalModel.id}.",
-              );
-              // Optional: Update local syncStatus to 'synced' if tracking it
-              // _localDs.updateSyncStatus(savedLocalModel.id, 'synced');
-            })
-            .catchError((e, s) {
-              zlog(
-                level: Level.error,
-                data:
-                    "[Repo] Background remote save FAILED for ${savedLocalModel.id}: $e\n$s",
-              );
-              // Data remains locally saved. TODO: Implement retry/manual sync later if needed.
-            });
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Background remote save ACKNOWLEDGED by SDK for ${savedLocalModel.id}.",
+          );
+          // Optional: Update local syncStatus to 'synced' if tracking it
+          // _localDs.updateSyncStatus(savedLocalModel.id, 'synced');
+        }).catchError((e, s) {
+          zlog(
+            level: Level.error,
+            data:
+                "[Repo] Background remote save FAILED for ${savedLocalModel.id}: $e\n$s",
+          );
+          // Data remains locally saved. TODO: Implement retry/manual sync later if needed.
+        });
 
         // 2c. Return the Local Result Immediately
         return savedLocalModel;
@@ -294,7 +294,6 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   @override
   Future<List<AnimationItemModel>> saveDefaultAnimations({
     required List<AnimationItemModel> animationItems,
-
     required String userId,
   }) async {
     // 1. Check Connectivity Status
@@ -309,12 +308,11 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
       );
       try {
         // Prepare items for local save (e.g., ensure IDs, set pending status if tracked)
-        final itemsToSaveLocally =
-            animationItems.map((item) {
-              // Example: if (item.id.isEmpty) item = item.copyWith(id: RandomId());
-              // Example: return item.copyWith(syncStatus: 'pending');
-              return item;
-            }).toList();
+        final itemsToSaveLocally = animationItems.map((item) {
+          // Example: if (item.id.isEmpty) item = item.copyWith(id: RandomId());
+          // Example: return item.copyWith(syncStatus: 'pending');
+          return item;
+        }).toList();
 
         // 2a. Save Locally First (Await this)
         final savedLocalItemsResult = await _localDs.saveDefaultAnimations(
@@ -338,25 +336,24 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         );
         _remoteDs
             .saveDefaultAnimations(
-              animationItems: savedLocalItems,
-              userId: userId,
-            ) // Use locally saved items
+          animationItems: savedLocalItems,
+          userId: userId,
+        ) // Use locally saved items
             .then((_) {
-              zlog(
-                level: Level.debug,
-                data:
-                    "[Repo] Background remote save/sync ACKNOWLEDGED by SDK for default items.",
-              );
-              // Optional: Update sync status for items locally if tracked
-            })
-            .catchError((e, s) {
-              zlog(
-                level: Level.error,
-                data:
-                    "[Repo] Background remote save/sync FAILED for default items: $e\n$s",
-              );
-              // TODO: Handle background failure if needed
-            });
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Background remote save/sync ACKNOWLEDGED by SDK for default items.",
+          );
+          // Optional: Update sync status for items locally if tracked
+        }).catchError((e, s) {
+          zlog(
+            level: Level.error,
+            data:
+                "[Repo] Background remote save/sync FAILED for default items: $e\n$s",
+          );
+          // TODO: Handle background failure if needed
+        });
 
         // 2c. Read back from Local to return consistent state
         final currentLocalItems = await _localDs.getDefaultAnimations(
@@ -429,7 +426,6 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   @override
   Future<AnimationItemModel?> getDefaultSceneFromId({
     required String id,
-
     required String userId,
   }) async {
     return await _localDs.getDefaultSceneFromId(id: id, userId: userId);
@@ -453,5 +449,119 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   @override
   Stream<HistoryModel?> getHistoryStream({required String id}) {
     return _localDs.getHistoryStream(id: id);
+  }
+
+  @override
+  Future<void> deleteAnimationCollection({required String collectionId}) async {
+    // We check for connectivity because deletion is a critical destructive action.
+    // For a more robust offline-first app, you could mark for deletion locally.
+    // For now, we enforce online deletion.
+    bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
+
+    if (!isOnline) {
+      zlog(
+        level: Level.warning,
+        data:
+            "[Repo] Network Offline: Cannot perform delete operation for collection $collectionId. Deletion requires an internet connection.",
+      );
+      throw Exception("Cannot delete collection while offline.");
+    }
+
+    // --- ONLINE PATH ---
+    zlog(
+      level: Level.info,
+      data:
+          "[Repo] Network Online: Deleting Collection $collectionId from REMOTE first...",
+    );
+    try {
+      // 1. Delete from Remote First
+      await _remoteDs.deleteAnimationCollection(collectionId: collectionId);
+      zlog(
+        level: Level.info,
+        data:
+            "[Repo] Deleted collection $collectionId from REMOTE successfully.",
+      );
+
+      // 2. On remote success, delete from Local Cache to maintain sync
+      zlog(
+        level: Level.debug,
+        data: "[Repo] Deleting collection $collectionId from LOCAL cache...",
+      );
+      await _localDs.deleteAnimationCollection(collectionId: collectionId);
+      zlog(
+        level: Level.debug,
+        data: "[Repo] Deleted collection $collectionId from LOCAL cache.",
+      );
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data:
+            "[Repo] ONLINE DELETE FAILED: Error during deleteAnimationCollection (Remote or Local): $e\n$stackTrace",
+      );
+      // Re-throw the exception to be handled by the UI layer (e.g., show an error message).
+      throw Exception("Failed to delete animation collection: $e");
+    }
+  }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) async {
+    bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
+
+    if (!isOnline) {
+      // --- OFFLINE PATH: Save to local, trigger remote async ---
+      zlog(
+        level: Level.info,
+        data:
+            "[Repo] Network Offline: Saving all ${animations.length} default animations to LOCAL.",
+      );
+      try {
+        await _localDs.saveAllDefaultAnimations(animations);
+        zlog(
+          level: Level.debug,
+          data:
+              "[Repo] Triggering background remote save for all default animations...",
+        );
+        // Fire-and-forget the remote save
+        _remoteDs.saveAllDefaultAnimations(animations).catchError((e, s) {
+          zlog(
+            level: Level.error,
+            data:
+                "[Repo] Background remote save FAILED for all default animations: $e\n$s",
+          );
+        });
+      } catch (localError) {
+        zlog(
+          level: Level.error,
+          data:
+              "[Repo] OFFLINE SAVE FAILED: Could not save all default animations locally: $localError",
+        );
+        throw Exception(
+            "Failed to save default animations locally while offline: $localError");
+      }
+    } else {
+      // --- ONLINE PATH: Save to remote, then update local cache ---
+      zlog(
+        level: Level.info,
+        data:
+            "[Repo] Network Online: Saving all ${animations.length} default animations to REMOTE first...",
+      );
+      try {
+        await _remoteDs.saveAllDefaultAnimations(animations);
+        zlog(
+            level: Level.debug,
+            data: "[Repo] Remote save successful. Updating local cache...");
+        await _localDs.saveAllDefaultAnimations(animations);
+        zlog(
+            level: Level.debug,
+            data: "[Repo] Local cache updated successfully.");
+      } catch (e) {
+        zlog(
+          level: Level.error,
+          data:
+              "[Repo] ONLINE SAVE FAILED: Could not save all default animations: $e",
+        );
+        throw Exception("Failed to save default animations while online: $e");
+      }
+    }
   }
 } // End of class AnimationCacheRepositoryImpl

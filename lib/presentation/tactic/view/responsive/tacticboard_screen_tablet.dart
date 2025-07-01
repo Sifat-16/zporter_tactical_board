@@ -1,4 +1,5 @@
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart';
@@ -119,8 +120,10 @@ class _TacticboardScreenTabletState
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
 
-    _leftPanelWidth = context.widthPercent(22.5);
-    _rightPanelWidth = context.widthPercent(22.5);
+    zlog(data: "Build called for selected scene ${selectedScene?.id}");
+
+    _leftPanelWidth = context.widthPercent(25);
+    _rightPanelWidth = context.widthPercent(25);
 
     if (ap.isLoadingAnimationCollections) {
       return const Scaffold(
@@ -164,7 +167,7 @@ class _TacticboardScreenTabletState
                     child: SafeArea(
                       child: Material(
                         elevation: 4.0,
-                        color: ColorManager.dark2,
+                        color: ColorManager.transparent,
                         // LefttoolbarComponent no longer takes the key
                         child: const LefttoolbarComponent(),
                       ),
@@ -181,7 +184,7 @@ class _TacticboardScreenTabletState
                     child: SafeArea(
                       child: Material(
                         elevation: 4.0,
-                        color: ColorManager.dark2,
+                        color: ColorManager.transparent,
                         child: RighttoolbarComponent(),
                       ),
                     ),
@@ -290,7 +293,7 @@ class _TacticboardScreenTabletState
               child: SafeArea(
                 child: Material(
                   elevation: 4.0,
-                  color: ColorManager.dark2,
+                  color: ColorManager.transparent,
                   child: const LefttoolbarComponent(),
                 ),
               ),
@@ -307,7 +310,7 @@ class _TacticboardScreenTabletState
               child: SafeArea(
                 child: Material(
                   elevation: 4.0,
-                  color: ColorManager.dark2,
+                  color: ColorManager.transparent,
                   child:
                       RighttoolbarComponent(), // Assuming this doesn't need 'const' or is stateful
                 ),
@@ -445,7 +448,7 @@ class _TacticboardScreenTabletState
                       ),
                       if (asp.defaultAnimationItems.isNotEmpty)
                         Container(
-                          // color: Colors.white,
+                          // color: Colors.green,
                           width: context.widthPercent(22),
                           child: CompactPaginator(
                             totalPages: asp.defaultAnimationItems.length,
@@ -461,34 +464,9 @@ class _TacticboardScreenTabletState
                         // color: Colors.green,
                         width: context.widthPercent(22),
                         child: Row(
-                          spacing: 12,
+                          spacing: 10,
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                            // Icon(
-                            //   Icons.add,
-                            //   color: Colors.white,
-                            // ),
-                            // Icon(
-                            //   Icons.add,
-                            //   color: Colors.white,
-                            // ),
-                            // Icon(
-                            //   Icons.add,
-                            //   color: Colors.white,
-                            // ),
-                            InkWell(
-                              onTap: () => ref
-                                  .read(animationProvider.notifier)
-                                  .createNewDefaultAnimationItem(),
-
-                              child: Icon(
-                                Icons.add,
-                                color: ColorManager.white,
-                              ),
-                              // tooltip: "Add New Scene",
-                            ),
-
-                            // --- NEW BUTTON ADDED HERE ---
                             InkWell(
                               onTap: () {
                                 ref
@@ -499,11 +477,20 @@ class _TacticboardScreenTabletState
                               child: Icon(
                                 Icons.copy,
                                 color: ColorManager.white,
-                                size: 18,
                               ),
                               // tooltip: "Copy Current Scene",
                             ),
-                            // --- END OF NEW BUTTON ---
+                            InkWell(
+                              onTap: () => ref
+                                  .read(animationProvider.notifier)
+                                  .createNewDefaultAnimationItem(),
+
+                              child: Icon(
+                                CupertinoIcons.add_circled,
+                                color: ColorManager.white,
+                              ),
+                              // tooltip: "Add New Scene",
+                            ),
                             InkWell(
                               onTap: () async {
                                 bool? confirm = await showConfirmationDialog(
@@ -520,7 +507,7 @@ class _TacticboardScreenTabletState
                                 }
                               },
                               child: Icon(Icons.delete_sweep_outlined,
-                                  color: ColorManager.white, size: 24),
+                                  color: ColorManager.white),
                               // tooltip: "Clear Current Scene",
                             ),
                           ],

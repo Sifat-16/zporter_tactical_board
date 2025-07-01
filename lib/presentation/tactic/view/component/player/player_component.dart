@@ -1,24 +1,29 @@
-import 'dart:async' as a;
+import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data'; // Required for Uint8List
-import 'dart:ui' as ui; // Required for ui.Image and decodeImageFromList
+import 'dart:math';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:flutter/gestures.dart'; // Required for kLongPressTimeout
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-class PlayerComponent extends FieldComponent<PlayerModel> {
+/// PlayerComponent built based on the working EquipmentComponent structure.
+/// It handles rendering a player and mirrors the state/gesture handling of a known-good component.
+class PlayerComponent extends FieldComponent<PlayerModel>
+    with DoubleTapCallbacks {
   PlayerComponent({required super.object});
 
+  // --- Rendering utilities ---
   final Paint _backgroundPaint = Paint();
   final TextPainter _textPainter =
       TextPainter(textDirection: TextDirection.ltr);
@@ -27,31 +32,38 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   final TextPainter _nameTextPainter = TextPainter(
       textDirection: TextDirection.ltr, textAlign: TextAlign.center);
 
-  // --- MODIFIED: State variables for gesture differentiation ---
-  a.Timer? _longPressTimer;
-  bool _isDragging = false;
-  bool _longPressFired = false;
-  final Duration _longPressDelay = kLongPressTimeout;
-
   Sprite? _playerImageSprite;
 
-  /// Loads the player image from a local file path.
+  /// Loads the player image from Base64 or a fallback file path.
   Future<void> _loadPlayerImage() async {
     _playerImageSprite = null;
-    final imagePath = object.imagePath;
-    if (imagePath == null || imagePath.isEmpty) return;
-    try {
-      final file = File(imagePath);
-      if (await file.exists()) {
-        final Uint8List bytes = await file.readAsBytes();
+    final imageBase64 = object.imageBase64;
+
+    if (imageBase64 != null && imageBase64.isNotEmpty) {
+      try {
+        final Uint8List bytes = base64Decode(imageBase64);
         final ui.Image image = await decodeImageFromList(bytes);
         _playerImageSprite = Sprite(image);
-      } else {
-        zlog(data: "Player image file does not exist at path: $imagePath");
+        return;
+      } catch (e) {
+        zlog(data: "Failed to decode player image from Base64. Error: $e");
+        _playerImageSprite = null;
       }
-    } catch (e) {
-      zlog(data: "Failed to load/decode player image. Error: $e");
-      _playerImageSprite = null;
+    }
+
+    final imagePath = object.imagePath;
+    if (imagePath != null && imagePath.isNotEmpty) {
+      try {
+        final file = File(imagePath);
+        if (await file.exists()) {
+          final Uint8List bytes = await file.readAsBytes();
+          final ui.Image image = await decodeImageFromList(bytes);
+          _playerImageSprite = Sprite(image);
+        }
+      } catch (e) {
+        zlog(data: "Failed to load player image from file path. Error: $e");
+        _playerImageSprite = null;
+      }
     }
   }
 
@@ -60,6 +72,8 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     await super.onLoad();
     sprite = await game.loadSprite("ball.png", srcSize: Vector2.zero());
     await _loadPlayerImage();
+
+    // Set initial state exactly like in EquipmentComponent.
     size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
     position = SizeHelper.getBoardActualVector(
       gameScreenSize: game.gameField.size,
@@ -68,85 +82,53 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     angle = object.angle ?? 0;
   }
 
-  // --- NEW: Corrected Gesture Handling Logic ---
-
   @override
-  void onTapDown(TapDownEvent event) {
-    super.onTapDown(event);
-    // Reset flags at the beginning of a new gesture.
-
-    ref
-        .read(boardProvider.notifier)
-        .toggleSelectItemEvent(fieldItemModel: object);
-    _isDragging = false;
-    _longPressFired = false;
-
-    // Start the long-press timer.
-    _longPressTimer = a.Timer(_longPressDelay, () {
-      _executeLongPress();
-    });
+  void onMount() {
+    super.onMount();
+    _syncWithDatabase();
   }
 
-  @override
-  void onDragStart(DragStartEvent event) {
-    super.onDragStart(event);
-    _isDragging = true;
-    // A drag has started, so it's not a long press.
-    _longPressTimer?.cancel();
-  }
+  /// THE CORRECTED SYNC METHOD
+  Future<void> _syncWithDatabase() async {
+    try {
+      final dbPlayer = await PlayerUtilsV2.getPlayerFromDbById(object.id);
+      if (dbPlayer == null) return;
 
-  @override
-  void onDragEnd(DragEndEvent event) {
-    super.onDragEnd(event);
-    // Reset the dragging flag.
-    _isDragging = false;
-  }
+      final bool needsUpdate = dbPlayer.role != object.role ||
+          dbPlayer.jerseyNumber != object.jerseyNumber ||
+          dbPlayer.imageBase64 != object.imageBase64 ||
+          dbPlayer.name != object.name;
 
-  @override
-  void onTapUp(TapUpEvent event) {
-    super.onTapUp(event);
-    // The finger was lifted, so it's not a long press.
-    _longPressTimer?.cancel();
+      if (needsUpdate) {
+        zlog(data: "Syncing player ${object.id}: Data mismatch found.");
+        final oldImage = object.imageBase64;
 
-    // // A tap is only valid if the user was not dragging AND the long press did not fire.
-    // if (!_isDragging && !_longPressFired) {
-    //   // This is a confirmed tap, execute the selection logic.
-    //
-    // }
-  }
+        // This creates a NEW instance of the player model.
+        final newModelInstance = object.copyWith(
+          role: dbPlayer.role,
+          jerseyNumber: dbPlayer.jerseyNumber,
+          imageBase64: dbPlayer.imageBase64,
+          name: dbPlayer.name,
+        );
 
-  @override
-  void onTapCancel(TapCancelEvent event) {
-    super.onTapCancel(event);
-    // Also cancel the timer if the tap is canceled.
-    _longPressTimer?.cancel();
-    _isDragging = false;
-    _longPressFired = false;
-  }
+        // Update the component's local object.
+        object = newModelInstance;
 
-  /// This function contains the logic that was previously in onLongTapDown.
-  void _executeLongPress() async {
-    // A long press has occurred. Set the flag to true.
-    _longPressFired = true;
-    zlog(data: "Long press executed for player ${object.id}");
+        // *** THE FIX: We MUST notify the provider about this new instance ***
+        ref
+            .read(boardProvider.notifier)
+            .updatePlayerModel(newModel: newModelInstance);
 
-    PlayerModel? updatedPlayer = await PlayerUtilsV2.showEditPlayerDialog(
-      context: game.buildContext!,
-      player: object,
-    );
-
-    if (updatedPlayer != null) {
-      object = updatedPlayer;
-      await _loadPlayerImage();
-      ref
-          .read(boardProvider.notifier)
-          .updatePlayerModel(newModel: updatedPlayer);
-    } else {
-      zlog(data: 'Player edit cancelled.');
+        if (dbPlayer.imageBase64 != oldImage) {
+          await _loadPlayerImage();
+        }
+      }
+    } catch (e) {
+      zlog(data: "Error during player sync: $e");
     }
   }
 
-  // --- The rest of the component is unchanged ---
+  // --- GESTURE AND STATE HANDLING (UNCHANGED) ---
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
@@ -155,6 +137,93 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
       gameScreenSize: game.gameField.size,
       actualPosition: position,
     );
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
+    ref
+        .read(boardProvider.notifier)
+        .toggleSelectItemEvent(fieldItemModel: object);
+  }
+
+  @override
+  void onDoubleTapDown(DoubleTapDownEvent event) {
+    super.onDoubleTapDown(event);
+    _executeEditAction();
+  }
+
+  // void _executeEditAction() async {
+  //   PlayerModel? updatedPlayer = await PlayerUtilsV2.showEditPlayerDialog(
+  //     context: game.buildContext!,
+  //     player: object,
+  //   );
+  //
+  //   if (updatedPlayer != null) {
+  //     object = updatedPlayer;
+  //     await _loadPlayerImage();
+  //     ref
+  //         .read(boardProvider.notifier)
+  //         .updatePlayerModel(newModel: updatedPlayer);
+  //   }
+  // }
+
+  /// --- MODIFIED: This method now contains all the logic for editing and swapping ---
+  void _executeEditAction() async {
+    // Ensure we have a build context.
+    if (game.buildContext == null) return;
+
+    // 1. Get all players on the board to determine who is on the bench.
+    final boardState = ref.read(boardProvider);
+    final allPlayersOnTeamFromDb = await (object.playerType == PlayerType.HOME
+        ? PlayerUtilsV2.getOrInitializeHomePlayers()
+        : PlayerUtilsV2.getOrInitializeAwayPlayers());
+
+    final Set<String> fieldPlayerIds = boardState.players
+        .where((p) => p.playerType == object.playerType)
+        .map((p) => p.id)
+        .toSet();
+
+    // 2. Filter to get the list of players available for replacement (the bench).
+    final List<PlayerModel> rosterPlayers = allPlayersOnTeamFromDb
+        .where((p) => !fieldPlayerIds.contains(p.id))
+        .toList();
+
+    // 3. Show the dialog, now passing the roster players list.
+    final result = await PlayerUtilsV2.showEditPlayerDialog(
+        context: game.buildContext!,
+        player: object, // The player currently on the field
+        rosterPlayers: rosterPlayers, // The players on the bench
+        showReplace: true);
+
+    // 4. Handle the dialog's result.
+    if (result is PlayerSwapResult) {
+      // The user chose to swap the player.
+      final TacticBoard tacticBoard = game as TacticBoard;
+
+      // The player coming in takes the exact position of the player going out.
+      final playerToBringIn = result.playerToBringIn.copyWith(
+        offset: result.playerToBench.offset,
+      );
+
+      // Perform the swap on the tactical board.
+      tacticBoard.removeFieldItems([result.playerToBench]);
+      tacticBoard.addItem(playerToBringIn);
+      zlog(
+          data:
+              "Swapped player ${result.playerToBench.id} with ${result.playerToBringIn.id}");
+    } else if (result is PlayerUpdateResult) {
+      // The user edited the player's details.
+      object = result.updatedPlayer;
+      await _loadPlayerImage(); // Reload image if it changed
+      // The utility function already saved to the DB,
+      // now we just ensure the provider and component are in sync.
+      ref
+          .read(boardProvider.notifier)
+          .updatePlayerModel(newModel: result.updatedPlayer);
+      zlog(data: "Updated player details for ${result.updatedPlayer.id}");
+    }
+    // If result is null, the user cancelled, so we do nothing.
   }
 
   @override
@@ -173,10 +242,19 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
   }
 
   @override
+  void onComponentScale(Vector2 newSize) {
+    super.onComponentScale(newSize);
+    object.size = newSize;
+  }
+
+  // --- RENDER METHOD (UNCHANGED) ---
+  @override
   void render(Canvas canvas) {
     super.render(canvas);
+
     size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
     final baseOpacity = (object.opacity ?? 1.0).clamp(0.0, 1.0);
+
     final rect = size.toRect();
     const cornerRadiusValue = 6.0;
     final rrect =
@@ -198,8 +276,7 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
               : (object.playerType == PlayerType.AWAY
                   ? ColorManager.red
                   : ColorManager.grey));
-      final Color effectiveColor = baseColor.withOpacity(baseOpacity);
-      _backgroundPaint.color = effectiveColor;
+      _backgroundPaint.color = baseColor.withOpacity(baseOpacity);
       _backgroundPaint.style = PaintingStyle.fill;
       canvas.drawRRect(rrect, _backgroundPaint);
 
@@ -224,29 +301,24 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
     canvas.restore();
 
     String jerseyNumber = object.jerseyNumber.toString();
-    if (jerseyNumber == "-1") {
-      jerseyNumber = "";
-    }
+    if (jerseyNumber == "-1") jerseyNumber = "";
+
     if (object.showNr && jerseyNumber.isNotEmpty) {
       final double jerseyFontSize = size.x * 0.3;
-      final jerseyTextColor = Colors.white.withOpacity(baseOpacity);
       _jerseyTextPainter.text = TextSpan(
         text: jerseyNumber,
         style: TextStyle(
-          color: jerseyTextColor,
+          color: Colors.white.withOpacity(baseOpacity),
           fontSize: jerseyFontSize,
           fontWeight: FontWeight.w900,
           shadows: [
-            Shadow(blurRadius: 2, color: Colors.black.withOpacity(0.8)),
+            Shadow(blurRadius: 2, color: Colors.black.withOpacity(0.8))
           ],
         ),
       );
       _jerseyTextPainter.layout();
-      final Offset numberTextDrawOffset = Offset(
-        size.x - (size.x * .1),
-        -size.y * .15,
-      );
-      _jerseyTextPainter.paint(canvas, numberTextDrawOffset);
+      _jerseyTextPainter.paint(
+          canvas, Offset(size.x - (size.x * .1), -size.y * .15));
     }
 
     final playerName = object.name;
@@ -255,73 +327,31 @@ class PlayerComponent extends FieldComponent<PlayerModel> {
         color: Colors.white.withOpacity(baseOpacity),
         fontSize: size.x * 0.25,
         fontWeight: FontWeight.w600,
-        shadows: [
-          Shadow(blurRadius: 2, color: Colors.black.withOpacity(0.9)),
-        ],
+        shadows: [Shadow(blurRadius: 2, color: Colors.black.withOpacity(0.9))],
       );
 
-      String textToRender = playerName;
-      if (playerName.contains(' ')) {
-        textToRender = playerName.replaceFirst(' ', '\n');
+      String truncate(String s) => s.length > 9 ? s.substring(0, 9) : s;
+      final parts =
+          playerName.trim().split(' ').where((p) => p.isNotEmpty).toList();
+      String textToRender;
+
+      if (parts.length > 1) {
+        final firstName = truncate(parts.first);
+        final lastName = truncate(parts.sublist(1).join(' '));
+        textToRender = '$firstName\n$lastName';
+      } else {
+        textToRender = truncate(playerName);
       }
 
       _nameTextPainter.text =
           TextSpan(text: textToRender, style: nameTextStyle);
       _nameTextPainter.maxLines = 2;
-      _nameTextPainter.textAlign = TextAlign.start;
-      _nameTextPainter.ellipsis = '...';
-      _nameTextPainter.layout(maxWidth: size.x);
-
-      final nameOffset = Offset(
-        (size.x - _nameTextPainter.width) / 2,
-        size.y + 4.0,
-      );
-
+      _nameTextPainter.textAlign = TextAlign.center;
+      _nameTextPainter.ellipsis = null;
+      _nameTextPainter.layout(maxWidth: size.x * 1.5);
+      final nameOffset =
+          Offset((size.x - _nameTextPainter.width) / 2, size.y + 4.0);
       _nameTextPainter.paint(canvas, nameOffset);
     }
-  }
-
-  @override
-  void onComponentScale(Vector2 size) {
-    super.onComponentScale(size);
-    object.size = size;
-  }
-
-  Future<void> _syncWithDatabase() async {
-    try {
-      final dbPlayer = await PlayerUtilsV2.getPlayerFromDbById(object.id);
-
-      if (dbPlayer == null) {
-        return;
-      }
-
-      final bool needsUpdate = dbPlayer.role != object.role ||
-          dbPlayer.jerseyNumber != object.jerseyNumber ||
-          dbPlayer.imagePath != object.imagePath;
-
-      if (needsUpdate) {
-        zlog(
-            data:
-                "Syncing player ${object.id}: Data mismatch found. Updating component.");
-
-        final oldImagePath = object.imagePath;
-
-        object = object.copyWith(
-          role: dbPlayer.role,
-          jerseyNumber: dbPlayer.jerseyNumber,
-          imagePath: dbPlayer.imagePath,
-        );
-
-        if (dbPlayer.imagePath != oldImagePath) {
-          await _loadPlayerImage();
-        }
-      }
-    } catch (e) {}
-  }
-
-  @override
-  void onMount() {
-    super.onMount();
-    _syncWithDatabase();
   }
 }

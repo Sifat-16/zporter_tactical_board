@@ -32,7 +32,7 @@ class _DesignToolbarComponentState
     return bp.selectedItemOnTheBoard == null
         ? Center(
             child: Text(
-              "No Item Selected",
+              "Tap and mark what to redesign",
               style: Theme.of(
                 context,
               ).textTheme.labelMedium!.copyWith(color: ColorManager.white),

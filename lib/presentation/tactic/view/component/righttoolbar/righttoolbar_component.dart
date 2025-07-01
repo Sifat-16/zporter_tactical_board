@@ -197,7 +197,7 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
   Widget _buildCustomTabBar() {
     return Container(
       height: kToolbarHeight, // Standard toolbar height
-      color: ColorManager.black,
+      color: ColorManager.black.withValues(alpha: 0.7),
       child: Row(
         // The Row itself doesn't scroll, but the content inside each tab can wrap.
         children: List.generate(_tabs.length, (index) {
@@ -249,7 +249,8 @@ class _RighttoolbarComponentState extends ConsumerState<RighttoolbarComponent>
         // --------------------------------------------------
         Expanded(
           child: Container(
-            decoration: BoxDecoration(color: ColorManager.black),
+            decoration:
+                BoxDecoration(color: ColorManager.black.withValues(alpha: 0.7)),
             child: PageView(
               physics: const NeverScrollableScrollPhysics(),
               controller: _pageController,

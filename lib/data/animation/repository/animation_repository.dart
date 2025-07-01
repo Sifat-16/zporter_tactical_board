@@ -1,5 +1,6 @@
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 
 abstract class AnimationRepository {
@@ -9,7 +10,7 @@ abstract class AnimationRepository {
 
   Future<AnimationCollectionModel> saveAnimationCollection({
     required AnimationCollectionModel
-    animationCollectionModel, // Contains userId
+        animationCollectionModel, // Contains userId
   });
 
   Future<List<AnimationItemModel>> getDefaultAnimations({
@@ -36,4 +37,7 @@ abstract class AnimationRepository {
   Future<void> deleteHistory({required String id});
 
   Stream<HistoryModel?> getHistoryStream({required String id});
+  Future<void> deleteAnimationCollection({required String collectionId});
+
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations);
 }

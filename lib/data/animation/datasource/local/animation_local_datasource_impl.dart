@@ -6,6 +6,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 
 class AnimationLocalDatasourceImpl implements AnimationDatasource {
@@ -176,11 +177,11 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
           data:
               "Sembast Txn: Fetching existing default animation keys for user $userId...",
         );
-        final existingSembastKeys =
-            (await _defaultAnimationItemStore.findKeys(
-              txn,
-              finder: finder,
-            )).toSet();
+        final existingSembastKeys = (await _defaultAnimationItemStore.findKeys(
+          txn,
+          finder: finder,
+        ))
+            .toSet();
         zlog(
           level: Level.debug,
           data:
@@ -407,41 +408,36 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
     try {
       dbInstance = await SemDB.database; // Await the database future
       final recordStream = _historyStore.record(id).onSnapshot(dbInstance);
-      yield* recordStream
-          .map((snapshot) {
-            if (snapshot != null) {
-              try {
-                final historyModel = HistoryModel.fromJson(snapshot.value);
-                zlog(
-                  level: Level.debug,
-                  data: "Sembast Stream: Emitting updated history for ID: $id.",
-                );
-                return historyModel;
-              } catch (e, stackTrace) {
-                zlog(
-                  level: Level.error,
-                  data:
-                      "Sembast Stream: Error parsing history snapshot for ID $id: $e\n$stackTrace",
-                );
-                return null; // Emit null on parsing error
-              }
-            } else {
-              zlog(
-                level: Level.debug,
-                data:
-                    "Sembast Stream: Emitting null (no history found) for ID: $id.",
-              );
-              return null; // Emit null if record doesn't exist or value is null
-            }
-          })
-          .handleError((error, stackTrace) {
-            // Log errors within the stream's transformation pipeline
+      yield* recordStream.map((snapshot) {
+        if (snapshot != null) {
+          try {
+            final historyModel = HistoryModel.fromJson(snapshot.value);
+
+            return historyModel;
+          } catch (e, stackTrace) {
             zlog(
               level: Level.error,
               data:
-                  "Sembast Stream: Error in getHistory stream processing for ID $id: $error\n$stackTrace",
+                  "Sembast Stream: Error parsing history snapshot for ID $id: $e\n$stackTrace",
             );
-          });
+            return null; // Emit null on parsing error
+          }
+        } else {
+          zlog(
+            level: Level.debug,
+            data:
+                "Sembast Stream: Emitting null (no history found) for ID: $id.",
+          );
+          return null; // Emit null if record doesn't exist or value is null
+        }
+      }).handleError((error, stackTrace) {
+        // Log errors within the stream's transformation pipeline
+        zlog(
+          level: Level.error,
+          data:
+              "Sembast Stream: Error in getHistory stream processing for ID $id: $error\n$stackTrace",
+        );
+      });
     } catch (e, stackTrace) {
       // --- Handle Errors During Setup ---
       zlog(
@@ -454,5 +450,59 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
         Exception("Error setting up history stream locally for ID $id: $e"),
       );
     } finally {}
+  }
+
+  @override
+  Future<void> deleteAnimationCollection({required String collectionId}) async {
+    try {
+      final db = await SemDB.database;
+      final count =
+          await _animationCollectionStore.record(collectionId).delete(db);
+      if (count != null) {
+        zlog(
+          level: Level.info,
+          data:
+              "Sembast: Successfully deleted animation collection ID: $collectionId.",
+        );
+      } else {
+        zlog(
+          level: Level.debug,
+          data:
+              "Sembast: Tried to delete collection ID: $collectionId, but it was not found.",
+        );
+      }
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data:
+            "Sembast: Error deleting collection ID $collectionId: $e\n$stackTrace",
+      );
+      throw Exception("Error deleting animation collection locally: $e");
+    }
+  }
+
+  @override
+  Future<void> saveAllDefaultAnimations(List<AnimationModel> animations) async {
+    final db = await SemDB.database;
+    try {
+      await db.transaction((txn) async {
+        for (final animation in animations) {
+          await _defaultAnimationItemStore
+              .record(animation.id)
+              .put(txn, animation.toJson());
+        }
+      });
+      zlog(
+        level: Level.info,
+        data:
+            "Sembast: Successfully batch-saved ${animations.length} default animations.",
+      );
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: "Sembast: Error in saveAllDefaultAnimations: $e\n$stackTrace",
+      );
+      throw Exception("Error saving default animations locally: $e");
+    }
   }
 }

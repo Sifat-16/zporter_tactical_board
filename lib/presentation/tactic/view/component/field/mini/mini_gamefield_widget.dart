@@ -100,6 +100,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Adjus
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 // Import your models
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 import 'mini_game_field_painter.dart';
 // Assuming FormModel and its sub-models might be used later
@@ -123,6 +124,7 @@ class MiniGameFieldWidget extends StatefulWidget {
   final Color borderColor;
   final List<FieldItemModel> items;
   final Vector2 logicalFieldSize;
+  final BoardBackground boardBackground;
 
   static const double defaultAspectRatio = 105 / 68;
 
@@ -133,6 +135,7 @@ class MiniGameFieldWidget extends StatefulWidget {
     this.borderColor = ColorManager.black,
     required this.items,
     required this.logicalFieldSize,
+    required this.boardBackground,
   });
 
   @override
@@ -183,12 +186,10 @@ class _MiniGameFieldWidgetState extends State<MiniGameFieldWidget> {
       try {
         // Only load if not already in our new map for this batch
         if (!newImageMap.containsKey(assetPath)) {
-          zlog(data: "MiniGameWidget: Loading image: $assetPath");
           final ui.Image loadedImage = await loadUiImage(assetPath);
           newImageMap[assetPath] = loadedImage;
         }
       } catch (e) {
-        zlog(data: "MiniGameWidget: Error loading image '$assetPath': $e");
         // Optionally, handle the error, e.g., by using a default placeholder image
         // or just letting it be null so the painter draws a placeholder.
       }
@@ -198,10 +199,6 @@ class _MiniGameFieldWidgetState extends State<MiniGameFieldWidget> {
       setState(() {
         _loadedImages = newImageMap;
         _areImagesReady = true; // Images are now ready (or loading failed)
-        zlog(
-          data:
-              "MiniGameWidget: Images processed. Loaded: ${_loadedImages.length}",
-        );
       });
     }
   }
@@ -252,6 +249,7 @@ class _MiniGameFieldWidgetState extends State<MiniGameFieldWidget> {
               items: widget.items,
               logicalFieldSize: widget.logicalFieldSize,
               loadedImages: _loadedImages, // Pass the map of loaded images
+              boardBackground: widget.boardBackground,
             ),
           ),
         );

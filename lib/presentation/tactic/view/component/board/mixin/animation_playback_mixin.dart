@@ -119,6 +119,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
         _currentSceneIndex = 0;
         _wasHardResetRecently = false;
       }
+
       zlog(
         data:
             "TacticBoardGameAnimation: onLoad finished. Animation playing: $_isAnimationPlaying",
@@ -130,10 +131,10 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
   void update(double dt) {
     double effectiveDt = dt;
     if (dt > VERY_LARGE_DT_THRESHOLD) {
-      zlog(
-        data:
-            "TacticBoardGameAnimation: Very large dt detected: $dt. Capping to $REASONABLE_TIME_STEP_AFTER_FREEZE for this frame.",
-      );
+      // zlog(
+      //   data:
+      //       "TacticBoardGameAnimation: Very large dt detected: $dt. Capping to $REASONABLE_TIME_STEP_AFTER_FREEZE for this frame.",
+      // );
       effectiveDt = REASONABLE_TIME_STEP_AFTER_FREEZE;
     }
     // Ensure effectiveDt is positive for safety in calculations, though Flame usually provides positive dt
@@ -201,6 +202,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     _activeMovingItemIdsInCurrentScene.clear();
     _currentSceneDelayTimerActive = false;
     _sceneProgressionTimer?.cancel();
+
     _proceedToNextScene();
   }
 

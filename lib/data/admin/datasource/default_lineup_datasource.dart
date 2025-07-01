@@ -13,4 +13,9 @@ abstract class DefaultLineupDatasource {
   Future<void> deleteFormationTemplate(String templateId);
   Future<void> updateFormationCategory(FormationCategory category);
   Future<void> deleteFormationCategory(String categoryId);
+
+  Future<void> updateLineupOrder({
+    required List<FormationCategory> categories,
+    required List<FormationTemplate> templates,
+  });
 }

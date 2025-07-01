@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -8,7 +9,7 @@ const Object _sentinel = Object();
 
 class AnimationState {
   AnimationCollectionModel?
-  selectedAnimationCollectionModel; // Made final for immutability best practice
+      selectedAnimationCollectionModel; // Made final for immutability best practice
   List<AnimationCollectionModel> animationCollections;
   bool isLoadingAnimationCollections;
   List<AnimationModel> animations;
@@ -64,14 +65,12 @@ class AnimationState {
       isLoadingAnimationCollections:
           isLoadingAnimationCollections ?? this.isLoadingAnimationCollections,
       animations: animations ?? this.animations,
-      selectedAnimationModel:
-          selectedAnimationModel == _sentinel
-              ? this.selectedAnimationModel
-              : selectedAnimationModel as AnimationModel?,
-      selectedScene:
-          selectedScene == _sentinel
-              ? this.selectedScene
-              : selectedScene as AnimationItemModel?,
+      selectedAnimationModel: selectedAnimationModel == _sentinel
+          ? this.selectedAnimationModel
+          : selectedAnimationModel as AnimationModel?,
+      selectedScene: selectedScene == _sentinel
+          ? this.selectedScene
+          : selectedScene as AnimationItemModel?,
       showAnimation: showAnimation ?? this.showAnimation,
       showNewCollectionInput:
           showNewCollectionInput ?? this.showNewCollectionInput,

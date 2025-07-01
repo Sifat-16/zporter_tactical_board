@@ -2,6 +2,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -32,6 +33,8 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/
 
 import 'form_item_speed_dial.dart'; // Adjust path
 import 'line/form_line_item.dart'; // Adjust path
+
+FToast fToast = FToast();
 
 // --- Configuration Class for Button Visibility ---
 class FormSpeedDialConfig {
@@ -112,127 +115,185 @@ class _FormSpeedDialComponentState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setupForms();
+      try {
+        fToast.init(context);
+      } catch (e) {}
     });
   }
 
   void setupForms() {
     setState(() {
-      lines = LineUtils.generateLines();
+      lines = LineUtils.generateLines()
+          .where((line) =>
+              line.name.contains(' ') ||
+              ['Walk', 'Jog', 'Sprint', 'Jump', 'Pass', 'Dribble', 'Shoot']
+                  .contains(line.name))
+          .toList();
       shapes = ShapeUtils.generateShapes();
       texts = TextFieldUtils.generateTexts();
     });
   }
 
+  // --- HELPER WIDGETS ---
+
+  // UPDATED: Now accepts an alignment parameter
+  Widget _buildMovementColumn(String title, List<Widget> items,
+      {CrossAxisAlignment alignment = CrossAxisAlignment.start}) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: alignment, // Use the provided alignment
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Text(
+              title,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ...items,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMovementItem(
+      String label, List<LineModelV2> models, BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: Colors.white70),
+          ),
+          const SizedBox(height: 12),
+          ...models.map((line) {
+            return FormLineItem(
+                lineModelV2: line, onTap: () => Navigator.pop(context));
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
   void _showActionGrid(BuildContext context) {
-    if (lines.isEmpty && shapes.isEmpty && texts.isEmpty) {
+    if (lines.isEmpty && shapes.isEmpty) {
       setupForms();
     }
 
-    final totalItems = lines.length + shapes.length + texts.length;
-    final lineNotifier = ref.read(lineProvider.notifier);
+    final playerMovements = {
+      'Walk': lines.where((l) => l.name.contains('Walk')).toList(),
+      'Jog': lines.where((l) => l.name.contains('Jog')).toList(),
+      'Sprint': lines.where((l) => l.name.contains('Sprint')).toList(),
+      'Jump': lines.where((l) => l.name == 'Jump').toList(),
+    };
+    final ballMovements = {
+      'Pass': lines.where((l) => l.name == 'Pass').toList(),
+      'Pass high/cross':
+          lines.where((l) => l.name == 'Pass high/cross').toList(),
+      'Dribble': lines.where((l) => l.name == 'Dribble').toList(),
+      'Shoot': lines.where((l) => l.name == 'Shoot').toList(),
+    };
+
+    // UPDATED: Build the list for the "Other" column with spacing
+    final otherItemsWithSpacing = <Widget>[
+      ...shapes.map((shape) => Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: FormShapeItem(
+                shapeModel: shape, onTap: () => Navigator.pop(context)),
+          )),
+      FormTextItem(
+        textModel: texts.first,
+        onTap: () async {
+          Navigator.pop(context);
+          TextModel? textModel = await TextFieldUtils.insertTextDialog(context);
+          if (textModel != null) {
+            final TacticBoardGame? tacticBoardGame =
+                ref.read(boardProvider).tacticBoardGame;
+            if (tacticBoardGame is TacticBoard) {
+              tacticBoardGame.addNewTextOnTheField(object: textModel);
+            }
+          }
+        },
+      ),
+    ];
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      backgroundColor: ColorManager.dark2.withOpacity(
-        0.8,
-      ), // Adjusted from withValues
+      backgroundColor: ColorManager.black,
       builder: (BuildContext bottomSheetContext) {
-        final screenHeight = MediaQuery.of(context).size.height;
-
-        return Container(
-          height: screenHeight * 0.6,
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 5,
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                decoration: BoxDecoration(
-                  color: ColorManager.grey,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              Text(
-                'Select Action',
-                style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: ColorManager.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  itemCount: totalItems,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 10.0,
-                    mainAxisSpacing: 10.0,
-                    childAspectRatio: 1.0,
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8),
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 24.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[700],
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  itemBuilder: (BuildContext gridContext, int index) {
-                    if (index < texts.length) {
-                      final textModel = texts[index];
-                      return FormTextItem(
-                        textModel: textModel,
-                        onTap: () async {
-                          Navigator.pop(bottomSheetContext);
-                          TextModel? textModel =
-                              await TextFieldUtils.insertTextDialog(context);
-                          if (textModel != null) {
-                            TacticBoardGame? tacticBoardGame =
-                                ref.read(boardProvider).tacticBoardGame;
-                            if (tacticBoardGame is TacticBoard) {
-                              tacticBoardGame.addNewTextOnTheField(
-                                object: textModel,
-                              );
-                            }
-                          }
-                          zlog(
-                            data:
-                                "The text model generated ${textModel?.toJson()}",
-                          );
-                        },
-                      );
-                    } else if (index < (lines.length + texts.length)) {
-                      final lineIndex = index - texts.length;
-                      final lineModel = lines[lineIndex];
-                      return FormLineItem(
-                        lineModelV2: lineModel,
-                        onTap: () {
-                          lineNotifier
-                              .loadActiveLineModelToAddIntoGameFieldEvent(
-                            lineModelV2: lineModel,
-                          );
-                          Navigator.pop(bottomSheetContext);
-                        },
-                      );
-                    } else {
-                      final shapeIndex = index - lines.length - texts.length;
-                      if (shapeIndex < shapes.length) {
-                        final shapeModel = shapes[shapeIndex];
-                        return FormShapeItem(
-                          shapeModel: shapeModel,
-                          onTap: () {
-                            lineNotifier
-                                .loadActiveShapeModelToAddIntoGameFieldEvent(
-                              shapeModel: shapeModel,
-                            );
-                            Navigator.pop(bottomSheetContext);
-                          },
-                        );
-                      } else {
-                        return Container(color: Colors.red); // Error indicator
-                      }
-                    }
-                  },
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 32.0),
+                  child: Text(
+                    'Select action or form',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Player Movements Column (left-aligned)
+                    _buildMovementColumn(
+                      'Player movements',
+                      playerMovements.entries
+                          .where((e) => e.value.isNotEmpty)
+                          .map((entry) => _buildMovementItem(
+                              entry.key, entry.value, bottomSheetContext))
+                          .toList(),
+                    ),
+                    const SizedBox(width: 32),
+                    // Ball Movements Column (left-aligned)
+                    _buildMovementColumn(
+                      'Ball movements',
+                      ballMovements.entries
+                          .where((e) => e.value.isNotEmpty)
+                          .map((entry) => _buildMovementItem(
+                              entry.key, entry.value, bottomSheetContext))
+                          .toList(),
+                    ),
+                    const SizedBox(width: 32),
+                    // Other Column (UPDATED to be center-aligned)
+                    _buildMovementColumn(
+                      'Other',
+                      otherItemsWithSpacing, // Use the new list with spacing
+                      alignment: CrossAxisAlignment
+                          .center, // Center this column's content
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -277,7 +338,6 @@ class _FormSpeedDialComponentState
             child: Row(
               mainAxisAlignment:
                   MainAxisAlignment.end, // Your original alignment
-              spacing: 10,
               children: [
                 if (config.showBackButton)
                   GestureDetector(
@@ -298,6 +358,7 @@ class _FormSpeedDialComponentState
                       color: ColorManager.white,
                     ),
                   ),
+                const SizedBox(width: 10),
                 if (config.showShareButton)
                   GestureDetector(
                     onTap: () async {
@@ -308,6 +369,7 @@ class _FormSpeedDialComponentState
                       color: ColorManager.white,
                     ), // Your original color
                   ),
+                const SizedBox(width: 10),
                 if (config.showDownloadButton)
                   GestureDetector(
                     onTap: () {
@@ -318,6 +380,20 @@ class _FormSpeedDialComponentState
                       color: ColorManager.white,
                     ), // Your original color
                   ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () {
+                    ref.read(tutorialsProvider.notifier).fetchTutorials();
+                    _showTutorialSelectionDialog(context);
+                  },
+                  child: Center(
+                    child: Icon(
+                      CupertinoIcons.info,
+                      color: ColorManager.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -329,7 +405,6 @@ class _FormSpeedDialComponentState
             child: Row(
               mainAxisSize: MainAxisSize.min, // Your original mainAxisSize
               mainAxisAlignment: MainAxisAlignment.center,
-              spacing: 10,
               children: [
                 if (config.showPointerActionsButton)
                   GestureDetector(
@@ -361,6 +436,7 @@ class _FormSpeedDialComponentState
                             ),
                           ),
                   ),
+                const SizedBox(width: 15),
                 if (config.showFreeDrawButton)
                   GestureDetector(
                     onTap: () {
@@ -374,6 +450,7 @@ class _FormSpeedDialComponentState
                           isPlacingItem,
                     ),
                   ),
+                const SizedBox(width: 15),
                 if (config.showEraserButton)
                   GestureDetector(
                     onTap: () {
@@ -392,6 +469,7 @@ class _FormSpeedDialComponentState
                               : defaultInactiveColor,
                     ),
                   ),
+                const SizedBox(width: 15),
                 if (config.showUndoButton && selectedScene != null)
                   StreamBuilder(
                     stream: _historyStream.call(selectedScene.id),
@@ -424,35 +502,20 @@ class _FormSpeedDialComponentState
             // color: Colors.red,
             width: context.widthPercent(22),
             child: Row(
-              spacing: 10,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                // if (config.showPlayAnimationButton && animationModel != null)
-                //   Builder(
-                //     builder: (context) {
-                //       final Object heroTag =
-                //           'anim_${animationModel.id.toString()}';
-                //       return GestureDetector(
-                //         onTap: () {
-                //           Navigator.push(
-                //             context,
-                //             MaterialPageRoute(
-                //               builder:
-                //                   (context) => AnimationScreen(
-                //                     animationModel: animationModel,
-                //                     heroTag: heroTag,
-                //                   ),
-                //             ),
-                //           );
-                //         },
-                //         child: Icon(
-                //           // Your original Icon
-                //           Icons.play_circle_outline,
-                //           color: ColorManager.white,
-                //         ),
-                //       );
-                //     },
-                //   ),
+                GestureDetector(
+                  onTap: bp.selectedItemOnTheBoard?.canBeCopied == true
+                      ? () {
+                          ref.read(boardProvider.notifier).copyElement();
+                        }
+                      : null,
+                  child: Icon(Icons.copy,
+                      color: bp.selectedItemOnTheBoard?.canBeCopied == true
+                          ? ColorManager.white
+                          : ColorManager.white.withOpacity(0.7)),
+                ),
+                const SizedBox(width: 10),
                 if (config.showAddNewSceneButton)
                   _buildAddNewScene(
                     selectedCollection: collectionModel,
@@ -460,7 +523,7 @@ class _FormSpeedDialComponentState
                     selectedAnimation: animationModel,
                     selectedScene: selectedScene,
                   ),
-
+                const SizedBox(width: 10),
                 if (config.showTrashButton)
                   GestureDetector(
                     onTap: () {
@@ -474,20 +537,6 @@ class _FormSpeedDialComponentState
                           isPlacingItem,
                     ),
                   ),
-
-                GestureDetector(
-                  onTap: () {
-                    ref.read(tutorialsProvider.notifier).fetchTutorials();
-                    _showTutorialSelectionDialog(context);
-                  },
-                  child: Center(
-                    child: Icon(
-                      CupertinoIcons.info,
-                      color: ColorManager.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -535,14 +584,17 @@ class _FormSpeedDialComponentState
                     selectedAnimation: selectedAnimation,
                     selectedScene: selectedScene,
                   );
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Center(child: Text("Image added to animation")),
-                  backgroundColor: ColorManager.black,
-                  showCloseIcon: true,
-                  duration: Duration(seconds: 4),
-                ),
-              );
+
+              _showToast();
+
+              // Fluttertoast.showToast(
+              //     msg: "Image added to animation",
+              //     toastLength: Toast.LENGTH_LONG,
+              //     gravity: ToastGravity.BOTTOM,
+              //     timeInSecForIosWeb: 1,
+              //     backgroundColor: ColorManager.black,
+              //     textColor: Colors.white,
+              //     fontSize: 16.0);
 
               // BotToast.showText(
               //     text: "Image added to animation",
@@ -630,6 +682,57 @@ class _FormSpeedDialComponentState
       builder: (BuildContext context) {
         // We return a dedicated widget for the dialog's content.
         return const TutorialSelectionDialog();
+      },
+    );
+  }
+
+  _showToast() {
+    Widget toast = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(25.0),
+        border: Border.all(color: ColorManager.white.withValues(alpha: 0.1)),
+        color: Colors.black,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.check,
+            color: ColorManager.white,
+          ),
+          SizedBox(
+            width: 12.0,
+          ),
+          Text(
+            "Image added to animation",
+            style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                color: ColorManager.white, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+
+    // fToast.showToast(
+    //   child: toast,
+    //   gravity: ToastGravity.BOTTOM,
+    //   toastDuration: Duration(seconds: 2),
+    // );
+
+    // Custom Toast Position
+    fToast.showToast(
+      child: toast,
+      toastDuration: Duration(seconds: 3),
+      positionedToastBuilder: (context, child, gravity) {
+        return Positioned(
+          bottom: context.screenHeight * .1,
+          left: 0.0,
+          right: 0.0,
+          child: Align(
+            alignment: Alignment.center,
+            child: child,
+          ),
+        );
       },
     );
   }

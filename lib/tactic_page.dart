@@ -4,6 +4,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/services/navigation_service.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/admin_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen.dart';
 
@@ -17,6 +18,7 @@ class TacticApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (_, child) {
         return MaterialApp(
+          navigatorKey: NavigationService.navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'Zporter Board',
           builder: BotToastInit(),
@@ -50,7 +52,7 @@ class TacticPage extends StatefulWidget {
 }
 
 class _TacticPageState extends State<TacticPage> {
-  bool isAdmin = true;
+  bool isAdmin = false;
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
