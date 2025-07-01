@@ -10,6 +10,7 @@ class AnimationModel {
   String name;
   String userId;
   Color fieldColor;
+  String? collectionId;
   List<AnimationItemModel> animationScenes;
   DateTime createdAt;
   DateTime updatedAt;
@@ -20,6 +21,7 @@ class AnimationModel {
     required this.id,
     required this.name,
     required this.userId,
+    this.collectionId,
     required this.fieldColor,
     required this.animationScenes,
     required this.createdAt,
@@ -33,6 +35,7 @@ class AnimationModel {
     String? name,
     String? userId,
     Color? fieldColor,
+    String? collectionId,
     List<AnimationItemModel>? animationScenes,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -43,6 +46,7 @@ class AnimationModel {
       id: id ?? this.id,
       userId: userId ?? this.userId,
       name: name ?? this.name,
+      collectionId: collectionId ?? this.collectionId,
       fieldColor: fieldColor ?? this.fieldColor,
       animationScenes: animationScenes ?? this.animationScenes,
       createdAt: createdAt ?? this.createdAt,
@@ -58,6 +62,7 @@ class AnimationModel {
       'name': name,
       'userId': userId,
       'fieldColor': fieldColor.toARGB32(),
+      'collectionId': collectionId,
       'animationScenes':
           animationScenes.map((animation) => animation.toJson()).toList(),
       'createdAt': createdAt.toIso8601String(),
@@ -128,6 +133,7 @@ class AnimationModel {
           : Color((json['fieldColor'] as int?) ?? 0),
       // Use the newly processed and sorted list
       animationScenes: scenesList,
+      collectionId: json['collectionId'] as String?,
       boardBackground: boardBackground,
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),

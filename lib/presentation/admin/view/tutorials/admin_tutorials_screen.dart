@@ -54,6 +54,24 @@ class AdminTutorialsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildCreateNewButton(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0), // Add padding
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.add, color: ColorManager.white),
+        label: const Text('New Tutorial'),
+        onPressed: () => _showAddEditTutorialDialog(context, ref),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: ColorManager.green,
+          foregroundColor: ColorManager.white,
+          minimumSize: const Size(double.infinity, 50),
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(tutorialsProvider);
@@ -68,108 +86,117 @@ class AdminTutorialsScreen extends ConsumerWidget {
         elevation: 0,
         iconTheme: const IconThemeData(color: ColorManager.white),
       ),
-      body: Stack(
+      body: Column(
         children: [
-          if (status == TutorialStatus.loading && state.tutorials.isEmpty)
-            const Center(
-                child: CircularProgressIndicator(color: ColorManager.yellow))
-          else if (status == TutorialStatus.error)
-            Center(
-                child: Text(
-                    'Error: ${state.errorMessage ?? "An unknown error occurred."}'))
-          else
-            ReorderableListView.builder(
-              padding: const EdgeInsets.only(bottom: 80),
-              itemCount: state.tutorials.length,
-              itemBuilder: (context, index) {
-                final tutorial = state.tutorials[index];
-                return Card(
-                  key: ValueKey(tutorial.id),
-                  color: ColorManager.dark1,
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 16.0),
-                    leading: SizedBox(
-                      width: 80,
-                      height: 60,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: tutorial.thumbnailUrl != null
-                            ? Image.network(
-                                tutorial.thumbnailUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.image_not_supported,
-                                    color: ColorManager.grey),
-                              )
-                            : const Icon(Icons.image_search,
-                                color: ColorManager.grey, size: 40),
+          _buildCreateNewButton(context, ref),
+          Expanded(
+            child: Stack(
+              children: [
+                if (status == TutorialStatus.loading && state.tutorials.isEmpty)
+                  const Center(
+                      child:
+                          CircularProgressIndicator(color: ColorManager.yellow))
+                else if (status == TutorialStatus.error)
+                  Center(
+                      child: Text(
+                          'Error: ${state.errorMessage ?? "An unknown error occurred."}'))
+                else
+                  ReorderableListView.builder(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    itemCount: state.tutorials.length,
+                    itemBuilder: (context, index) {
+                      final tutorial = state.tutorials[index];
+                      return Card(
+                        key: ValueKey(tutorial.id),
+                        color: ColorManager.dark1,
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 8.0, horizontal: 16.0),
+                          leading: SizedBox(
+                            width: 80,
+                            height: 60,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: tutorial.thumbnailUrl != null
+                                  ? Image.network(
+                                      tutorial.thumbnailUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(
+                                          Icons.image_not_supported,
+                                          color: ColorManager.grey),
+                                    )
+                                  : const Icon(Icons.image_search,
+                                      color: ColorManager.grey, size: 40),
+                            ),
+                          ),
+                          title: Text(tutorial.name,
+                              style: const TextStyle(
+                                  color: ColorManager.white,
+                                  fontWeight: FontWeight.bold)),
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) =>
+                                  TutorialEditorScreen(tutorial: tutorial),
+                            ));
+                          },
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined,
+                                    color: ColorManager.blueAccent),
+                                tooltip: 'Edit Details',
+                                onPressed: () => _showAddEditTutorialDialog(
+                                    context, ref, tutorial),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline,
+                                    color: ColorManager.red),
+                                tooltip: 'Delete',
+                                onPressed: () =>
+                                    _showDeleteDialog(context, ref, tutorial),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    onReorder: (int oldIndex, int newIndex) {
+                      ref
+                          .read(tutorialsProvider.notifier)
+                          .reorderTutorials(oldIndex, newIndex);
+                    },
+                  ),
+                if (status == TutorialStatus.uploading)
+                  Container(
+                    color: Colors.black.withOpacity(0.5),
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: ColorManager.yellow),
+                          SizedBox(height: 16),
+                          Text('Processing...',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 16)),
+                        ],
                       ),
                     ),
-                    title: Text(tutorial.name,
-                        style: const TextStyle(
-                            color: ColorManager.white,
-                            fontWeight: FontWeight.bold)),
-                    onTap: () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) =>
-                            TutorialEditorScreen(tutorial: tutorial),
-                      ));
-                    },
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined,
-                              color: ColorManager.blueAccent),
-                          tooltip: 'Edit Details',
-                          onPressed: () => _showAddEditTutorialDialog(
-                              context, ref, tutorial),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: ColorManager.red),
-                          tooltip: 'Delete',
-                          onPressed: () =>
-                              _showDeleteDialog(context, ref, tutorial),
-                        ),
-                      ],
-                    ),
                   ),
-                );
-              },
-              onReorder: (int oldIndex, int newIndex) {
-                ref
-                    .read(tutorialsProvider.notifier)
-                    .reorderTutorials(oldIndex, newIndex);
-              },
+              ],
             ),
-          if (status == TutorialStatus.uploading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: ColorManager.yellow),
-                    SizedBox(height: 16),
-                    Text('Processing...',
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
-                  ],
-                ),
-              ),
-            ),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddEditTutorialDialog(context, ref),
-        backgroundColor: ColorManager.green,
-        icon: const Icon(Icons.add, color: ColorManager.white),
-        label: const Text('New Tutorial',
-            style: TextStyle(color: ColorManager.white)),
-      ),
+      // floatingActionButton: FloatingActionButton.extended(
+      //   onPressed: () => _showAddEditTutorialDialog(context, ref),
+      //   backgroundColor: ColorManager.green,
+      //   icon: const Icon(Icons.add, color: ColorManager.white),
+      //   label: const Text('New Tutorial',
+      //       style: TextStyle(color: ColorManager.white)),
+      // ),
     );
   }
 }

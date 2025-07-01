@@ -563,61 +563,6 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     );
   }
 
-  // Widget _buildCategoryHeaderWidget(CategoryHeaderItem item) {
-  //   return Padding(
-  //     padding: const EdgeInsets.only(
-  //       left: 16.0,
-  //       right: 8.0,
-  //       top: 24.0,
-  //       bottom: 10.0,
-  //     ),
-  //     child: Row(
-  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //       crossAxisAlignment: CrossAxisAlignment.center,
-  //       children: [
-  //         Expanded(
-  //           child: Text(
-  //             item.title,
-  //             style: TextStyle(
-  //               color: ColorManager.yellow,
-  //               fontSize: 20,
-  //               fontWeight: FontWeight.bold,
-  //             ),
-  //             overflow: TextOverflow.ellipsis,
-  //           ),
-  //         ),
-  //         Row(
-  //           mainAxisSize: MainAxisSize.min,
-  //           children: [
-  //             IconButton(
-  //               icon: Icon(
-  //                 Icons.edit_note_outlined,
-  //                 color: ColorManager.blueAccent.withOpacity(0.8),
-  //                 size: 24,
-  //               ),
-  //               tooltip: 'Edit Category "${item.title}"',
-  //               onPressed: () => _editCategoryDialog(item),
-  //               padding: const EdgeInsets.all(8.0),
-  //               constraints: const BoxConstraints(),
-  //             ),
-  //             IconButton(
-  //               icon: Icon(
-  //                 Icons.delete_sweep_outlined,
-  //                 color: ColorManager.red.withOpacity(0.8),
-  //                 size: 24,
-  //               ),
-  //               tooltip: 'Delete Category "${item.title}"',
-  //               onPressed: () => _deleteCategoryDialog(item),
-  //               padding: const EdgeInsets.all(8.0),
-  //               constraints: const BoxConstraints(),
-  //             ),
-  //           ],
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
   Widget _buildCategoryHeaderWidget(CategoryHeaderItem item) {
     return Padding(
       key: ValueKey('cat_${item.categoryId}'), // KEY ADDED HERE
@@ -674,63 +619,6 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
       ),
     );
   }
-
-  // Widget _buildLineupTemplateWidget(LineupTemplateItem item) {
-  //   final template = item.template;
-  //   return Card(
-  //     color: ColorManager.dark1,
-  //     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-  //     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-  //     elevation: 2,
-  //     child: ListTile(
-  //       contentPadding: const EdgeInsets.symmetric(
-  //         horizontal: 16.0,
-  //         vertical: 8.0,
-  //       ),
-  //       title: Text(
-  //         template.name,
-  //         style: const TextStyle(
-  //           color: ColorManager.white,
-  //           fontSize: 16,
-  //           fontWeight: FontWeight.w500,
-  //         ),
-  //       ),
-  //       trailing: Row(
-  //         mainAxisSize: MainAxisSize.min,
-  //         children: [
-  //           IconButton(
-  //             onPressed: () {
-  //               Navigator.push(
-  //                 context,
-  //                 MaterialPageRoute(
-  //                   builder: (context) =>
-  //                       DefaultLineupFieldScreen(template: template),
-  //                 ),
-  //               );
-  //             },
-  //             icon: ImageIcon(
-  //               AssetImage("assets/image/soccer-field.png"),
-  //               color: ColorManager.white,
-  //             ),
-  //           ),
-  //           IconButton(
-  //             icon: const Icon(
-  //               Icons.edit_outlined,
-  //               color: ColorManager.blueAccent,
-  //             ),
-  //             tooltip: 'Edit Lineup "${template.name}"',
-  //             onPressed: () => _editLineupTemplateDialog(template),
-  //           ),
-  //           IconButton(
-  //             icon: const Icon(Icons.delete_outline, color: ColorManager.red),
-  //             tooltip: 'Delete Lineup "${template.name}"',
-  //             onPressed: () => _deleteLineupTemplateDialog(template),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
 
   Widget _buildLineupTemplateWidget(LineupTemplateItem item) {
     final template = item.template;
@@ -811,27 +699,6 @@ class _DefaultLineupScreenState extends ConsumerState<DefaultLineupScreen> {
     );
   }
 
-  // Widget _buildMainContentList() {
-  //   return Expanded(
-  //     child: ListView.builder(
-  //       padding: const EdgeInsets.only(bottom: 16.0),
-  //       itemCount: _unifiedListItems.length,
-  //       itemBuilder: (context, index) {
-  //         final item = _unifiedListItems[index];
-  //         if (item is CategoryHeaderItem) {
-  //           return _buildCategoryHeaderWidget(item);
-  //         } else if (item is LineupTemplateItem) {
-  //           return _buildLineupTemplateWidget(item);
-  //         } else if (item is NoLineupsItem) {
-  //           return _buildNoLineupsInCategoryWidget(item);
-  //         }
-  //         return const SizedBox.shrink();
-  //       },
-  //     ),
-  //   );
-  // }
-
-  // MODIFIED: Cleaned up the builder logic
   Widget _buildMainContentList() {
     return Expanded(
       child: ReorderableListView.builder(

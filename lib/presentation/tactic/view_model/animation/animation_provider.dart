@@ -1260,75 +1260,133 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
   }
 
+  // Future<void> getAllCollections() async {
+  //   state = state.copyWith(isLoadingAnimationCollections: true);
+  //   List<AnimationCollectionModel> collections = state.animationCollections;
+  //
+  //   try {
+  //     collections = await _getAllAnimationCollectionUseCase.call(_getUserId());
+  //
+  //     try {
+  //       int index = collections.indexWhere(
+  //         (t) =>
+  //             t.id.toLowerCase() ==
+  //             DefaultAnimationConstants.default_animation_collection_id,
+  //       );
+  //
+  //       if (index == -1) {
+  //         List<AnimationModel> default_animations =
+  //             await _defaultAnimationRepository.getAllDefaultAnimations();
+  //         AnimationCollectionModel animationCollectionModel =
+  //             AnimationCollectionModel(
+  //           id: DefaultAnimationConstants.default_animation_collection_id,
+  //           name: "Other",
+  //           animations: default_animations,
+  //           userId: ref.read(authProvider).userId ?? "",
+  //           createdAt: DateTime.now(),
+  //           updatedAt: DateTime.now(),
+  //         );
+  //
+  //         collections.add(animationCollectionModel);
+  //       }
+  //     } catch (e) {}
+  //
+  //     // AnimationCollectionModel? selectedAnimation =
+  //     //     state.selectedAnimationCollectionModel ?? collections.firstOrNull;
+  //     // state = state.copyWith(
+  //     //   animationCollections: collections,
+  //     //   isLoadingAnimationCollections: false,
+  //     // );
+  //     //
+  //     // zlog(data: "All collection ${collections}");
+  //     //
+  //     // selectAnimationCollection(selectedAnimation);
+  //
+  //     // --- ADDED SORTING FOR COLLECTIONS ---
+  //     // This ensures the collection dropdown is also in order.
+  //     collections.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+  //
+  //     AnimationCollectionModel? selectedCollection =
+  //         state.selectedAnimationCollectionModel;
+  //
+  //     // Ensure the selected collection is still valid
+  //     if (selectedCollection != null) {
+  //       if (!collections.any((c) => c.id == selectedCollection!.id)) {
+  //         selectedCollection = collections.firstOrNull;
+  //       }
+  //     } else {
+  //       selectedCollection = collections.firstOrNull;
+  //     }
+  //
+  //     state = state.copyWith(
+  //       animationCollections: collections,
+  //       isLoadingAnimationCollections: false,
+  //     );
+  //
+  //     zlog(data: "All collection ${collections}");
+  //
+  //     // This will now correctly sort the animations within the selected collection
+  //     selectAnimationCollection(selectedCollection);
+  //   } catch (e) {
+  //     zlog(data: "Animation collection fetching issue ${e}");
+  //   }
+  // }
+
   Future<void> getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
-    List<AnimationCollectionModel> collections = state.animationCollections;
 
     try {
-      collections = await _getAllAnimationCollectionUseCase.call(_getUserId());
+      // Step 1: Fetch both user collections and default collections concurrently.
+      final results = await Future.wait([
+        _getAllAnimationCollectionUseCase
+            .call(_getUserId()), // User's personal collections
+        _defaultAnimationRepository
+            .getAllDefaultAnimationCollections(), // Admin-created collections
+        _defaultAnimationRepository
+            .getAllDefaultAnimations(), // All individual default animations
+      ]);
 
-      try {
-        int index = collections.indexWhere(
-          (t) =>
-              t.id.toLowerCase() ==
-              DefaultAnimationConstants.default_animation_collection_id,
-        );
+      final userCollections = results[0] as List<AnimationCollectionModel>;
+      final defaultCollections = results[1] as List<AnimationCollectionModel>;
+      final allDefaultAnimations = results[2] as List<AnimationModel>;
 
-        if (index == -1) {
-          List<AnimationModel> default_animations =
-              await _defaultAnimationRepository.getAllDefaultAnimations();
-          AnimationCollectionModel animationCollectionModel =
-              AnimationCollectionModel(
-            id: DefaultAnimationConstants.default_animation_collection_id,
-            name: "Other",
-            animations: default_animations,
-            userId: ref.read(authProvider).userId ?? "",
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+      // Step 2: Populate the default collections with their animations
+      for (var collection in defaultCollections) {
+        final animationsForThisCollection = allDefaultAnimations
+            .where((anim) => anim.collectionId == collection.id)
+            .toList();
+        animationsForThisCollection
+            .sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+        collection.animations = animationsForThisCollection;
+      }
 
-          collections.add(animationCollectionModel);
-        }
-      } catch (e) {}
+      // Step 3: Merge the two lists
+      final combinedCollections = [...userCollections, ...defaultCollections];
 
-      // AnimationCollectionModel? selectedAnimation =
-      //     state.selectedAnimationCollectionModel ?? collections.firstOrNull;
-      // state = state.copyWith(
-      //   animationCollections: collections,
-      //   isLoadingAnimationCollections: false,
-      // );
-      //
-      // zlog(data: "All collection ${collections}");
-      //
-      // selectAnimationCollection(selectedAnimation);
+      // Step 4: Sort the final merged list of collections
+      combinedCollections.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
-      // --- ADDED SORTING FOR COLLECTIONS ---
-      // This ensures the collection dropdown is also in order.
-      collections.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-
+      // Step 5: Update the state with the complete list
       AnimationCollectionModel? selectedCollection =
           state.selectedAnimationCollectionModel;
-
-      // Ensure the selected collection is still valid
       if (selectedCollection != null) {
-        if (!collections.any((c) => c.id == selectedCollection!.id)) {
-          selectedCollection = collections.firstOrNull;
+        if (!combinedCollections.any((c) => c.id == selectedCollection!.id)) {
+          selectedCollection = combinedCollections.firstOrNull;
         }
       } else {
-        selectedCollection = collections.firstOrNull;
+        selectedCollection = combinedCollections.firstOrNull;
       }
 
       state = state.copyWith(
-        animationCollections: collections,
+        animationCollections: combinedCollections,
         isLoadingAnimationCollections: false,
       );
 
-      zlog(data: "All collection ${collections}");
-
-      // This will now correctly sort the animations within the selected collection
+      // This will correctly select the first collection and populate its animations
       selectAnimationCollection(selectedCollection);
     } catch (e) {
-      zlog(data: "Animation collection fetching issue ${e}");
+      zlog(data: "Animation collection fetching issue: $e");
+      state = state.copyWith(isLoadingAnimationCollections: false);
     }
   }
 
