@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/animation/default_animation_screen.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/lineup/default_lineup_screen.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/notification/admin_notification_screen.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/tutorials/admin_tutorials_screen.dart';
 
 class AdminScreenTablet extends StatefulWidget {
@@ -85,6 +86,17 @@ class _AdminScreenTabletState extends State<AdminScreenTablet> {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => AdminTutorialsScreen()),
+                );
+              },
+            ),
+            const SizedBox(height: 25),
+            // *** NEW: Notifications Button ***
+            _buildAdminButton(
+              text: 'Send Notifications',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (_) => const AdminNotificationScreen()),
                 );
               },
             ),
