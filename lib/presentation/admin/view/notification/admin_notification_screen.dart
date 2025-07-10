@@ -107,14 +107,14 @@ class _AdminNotificationScreenState
           value: 'pro_offers', child: Text('Pro Offers Topic')),
       const DropdownMenuItem(
           value: 'app_updates', child: Text('App Updates Topic')),
-      ...state.users
-          .where((user) => user.fcmToken != null && user.fcmToken!.isNotEmpty)
-          .map((user) {
-        return DropdownMenuItem(
-          value: user.fcmToken!,
-          child: Text('User: ${user.name}'),
-        );
-      }),
+      // ...state.users
+      //     .where((user) => user.fcmToken != null && user.fcmToken!.isNotEmpty)
+      //     .map((user) {
+      //   return DropdownMenuItem(
+      //     value: user.fcmToken!,
+      //     child: Text('User: ${user.name}'),
+      //   );
+      // }),
     ];
 
     return Container(
