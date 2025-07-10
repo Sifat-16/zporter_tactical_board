@@ -222,6 +222,11 @@ class EquipmentUtils {
         name: "GOAL-POST-DENSE",
         imagePath: "goal-post-dense.png",
         size: Vector2(192, 96)),
+    EquipmentModel(
+        id: RandomGenerator.generateId(),
+        name: "GOAL-POST-DENSE-TOP",
+        imagePath: "goal-post-top.png",
+        size: Vector2(192, 96)),
   ];
 
   static List<EquipmentModel> generateEquipments() {
