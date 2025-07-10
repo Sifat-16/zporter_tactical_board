@@ -1001,7 +1001,8 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     }
     if (mounted) {
       // --- MODIFIED: Return the correct result type ---
-      Navigator.of(context).pop(PlayerUpdateResult(resultPlayer));
+      // Navigator.of(context).pop(PlayerUpdateResult(resultPlayer));
+      Navigator.of(context).pop(resultPlayer);
     }
   }
 

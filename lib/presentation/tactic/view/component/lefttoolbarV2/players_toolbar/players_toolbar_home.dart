@@ -207,105 +207,200 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
         CustomButton(
           borderRadius: 3,
           onTap: () {
-            // --- START: DIRECT-APPLICATION LOGIC ---
-            TacticBoard? tacticBoard =
+            // // --- START: DIRECT-APPLICATION LOGIC ---
+            // TacticBoard? tacticBoard =
+            //     boardState.tacticBoardGame as TacticBoard?;
+            // AnimationItemModel? scene = selectedLineUp?.scene;
+            //
+            // if (scene == null || tacticBoard == null) {
+            //   BotToast.showText(text: "Please select a lineup first.");
+            //   return;
+            // }
+            //
+            // final List<PlayerModel> targetPositions =
+            //     scene.components.whereType<PlayerModel>().toList();
+            //
+            // // 1. PREPARE PLAYER POOLS
+            // playersOnField
+            //     .sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+            // final List<PlayerModel> sortedBench = List.from(benchPlayers)
+            //   ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+            //
+            // final Map<String, PlayerModel> uniquePlayers = {};
+            // for (var p in playersOnField) {
+            //   uniquePlayers.putIfAbsent(p.id, () => p);
+            // }
+            // for (var p in sortedBench) {
+            //   uniquePlayers.putIfAbsent(p.id, () => p);
+            // }
+            // final List<PlayerModel> availablePlayers =
+            //     uniquePlayers.values.toList();
+            //
+            // zlog(
+            //     data:
+            //         "Applying new formation with ${targetPositions.length} positions. Available players: ${availablePlayers.length}.");
+            //
+            // // 2. PERFORM AUTOMATIC ASSIGNMENT
+            // final List<PlayerModel> finalLineup = [];
+            // final Set<String> assignedPlayerIds = {};
+            //
+            // // PASS 1: Assign players by matching role.
+            // for (final targetPos in targetPositions) {
+            //   final roleMatchIndex = availablePlayers.indexWhere((p) =>
+            //       !assignedPlayerIds.contains(p.id) &&
+            //       p.role == targetPos.role);
+            //
+            //   if (roleMatchIndex != -1) {
+            //     final playerToAssign = availablePlayers[roleMatchIndex];
+            //     finalLineup
+            //         .add(playerToAssign.copyWith(offset: targetPos.offset));
+            //     assignedPlayerIds.add(playerToAssign.id);
+            //   }
+            // }
+            //
+            // // PASS 2: Fill remaining spots with leftover players.
+            // final unassignedPositions = targetPositions
+            //     .where((tp) => !finalLineup.any((p) => p.offset == tp.offset))
+            //     .toList();
+            //
+            // final remainingPlayers = availablePlayers
+            //     .where((p) => !assignedPlayerIds.contains(p.id))
+            //     .toList();
+            //
+            // for (int i = 0; i < unassignedPositions.length; i++) {
+            //   if (i < remainingPlayers.length) {
+            //     final playerToAssign = remainingPlayers[i];
+            //     finalLineup.add(playerToAssign.copyWith(
+            //         offset: unassignedPositions[i].offset));
+            //     assignedPlayerIds.add(playerToAssign.id);
+            //   }
+            // }
+            //
+            // zlog(
+            //     data:
+            //         "New lineup calculated. Total players: ${finalLineup.length}.");
+            //
+            // // 3. APPLY CHANGES DIRECTLY TO THE TACTICAL BOARD
+            // final Set<String> originalPlayerIdsOnField =
+            //     playersOnField.map((p) => p.id).toSet();
+            // final Set<String> finalPlayerIdsInLineup =
+            //     finalLineup.map((p) => p.id).toSet();
+            //
+            // final Set<String> idsToRemove =
+            //     originalPlayerIdsOnField.difference(finalPlayerIdsInLineup);
+            // final List<PlayerModel> playersToRemove = playersOnField
+            //     .where((p) => idsToRemove.contains(p.id))
+            //     .toList();
+            //
+            // if (playersToRemove.isNotEmpty) {
+            //   tacticBoard.removeFieldItems(playersToRemove);
+            //   zlog(
+            //       data:
+            //           "Removed ${playersToRemove.length} players from the field.");
+            // }
+            //
+            // for (final newPlayerState in finalLineup) {
+            //   zlog(data: "Player size getting ${newPlayerState.size}");
+            //   tacticBoard.removeFieldItems([newPlayerState]);
+            //   tacticBoard.addItem(newPlayerState);
+            // }
+            // zlog(data: "Applied ${finalLineup.length} players to the field.");
+            // // --- END: DIRECT-APPLICATION LOGIC ---
+
+            // =================================================================== //
+            // START: CORRECTED "PLAYER-FIRST" LINEUP LOGIC (HOME)               //
+            // =================================================================== //
+            final TacticBoard? tacticBoard =
                 boardState.tacticBoardGame as TacticBoard?;
-            AnimationItemModel? scene = selectedLineUp?.scene;
+            final AnimationItemModel? scene = selectedLineUp?.scene;
 
             if (scene == null || tacticBoard == null) {
               BotToast.showText(text: "Please select a lineup first.");
               return;
             }
 
+            // --- 1. IDENTIFY ACTORS AND PREPARE LISTS ---
+            final List<PlayerModel> currentPlayersOnField = playersOnField;
+            final List<PlayerModel> currentPlayersOnBench = benchPlayers;
             final List<PlayerModel> targetPositions =
                 scene.components.whereType<PlayerModel>().toList();
 
-            // 1. PREPARE PLAYER POOLS
-            playersOnField
-                .sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-            final List<PlayerModel> sortedBench = List.from(benchPlayers)
-              ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-
-            final Map<String, PlayerModel> uniquePlayers = {};
-            for (var p in playersOnField) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            for (var p in sortedBench) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            final List<PlayerModel> availablePlayers =
-                uniquePlayers.values.toList();
-
-            zlog(
-                data:
-                    "Applying new formation with ${targetPositions.length} positions. Available players: ${availablePlayers.length}.");
-
-            // 2. PERFORM AUTOMATIC ASSIGNMENT
             final List<PlayerModel> finalLineup = [];
-            final Set<String> assignedPlayerIds = {};
 
-            // PASS 1: Assign players by matching role.
-            for (final targetPos in targetPositions) {
-              final roleMatchIndex = availablePlayers.indexWhere((p) =>
-                  !assignedPlayerIds.contains(p.id) &&
-                  p.role == targetPos.role);
+            // Mutable lists that we will consume during assignment
+            List<PlayerModel> playersToAssign =
+                List.from(currentPlayersOnField);
+            List<PlayerModel> unfilledPositions = List.from(targetPositions);
 
-              if (roleMatchIndex != -1) {
-                final playerToAssign = availablePlayers[roleMatchIndex];
-                finalLineup
-                    .add(playerToAssign.copyWith(offset: targetPos.offset));
-                assignedPlayerIds.add(playerToAssign.id);
+            // --- 2. PASS 1: PERFECT ROLE MATCHES ---
+            // First, try to fill positions with players on the field who have a matching role.
+            List<PlayerModel> tempPlayers = [];
+            List<PlayerModel> tempPositions = [];
+
+            for (var player in playersToAssign) {
+              final positionIndex = unfilledPositions
+                  .indexWhere((pos) => pos.role == player.role);
+              if (positionIndex != -1) {
+                final position = unfilledPositions.removeAt(positionIndex);
+                finalLineup.add(player.copyWith(offset: position.offset));
+              } else {
+                // If player's role doesn't exist in the new formation, save them for the next pass
+                tempPlayers.add(player);
               }
             }
+            // `playersToAssign` now contains only players from the field who couldn't find a perfect role match.
+            playersToAssign = tempPlayers;
 
-            // PASS 2: Fill remaining spots with leftover players.
-            final unassignedPositions = targetPositions
-                .where((tp) => !finalLineup.any((p) => p.offset == tp.offset))
-                .toList();
-
-            final remainingPlayers = availablePlayers
-                .where((p) => !assignedPlayerIds.contains(p.id))
-                .toList();
-
-            for (int i = 0; i < unassignedPositions.length; i++) {
-              if (i < remainingPlayers.length) {
-                final playerToAssign = remainingPlayers[i];
-                finalLineup.add(playerToAssign.copyWith(
-                    offset: unassignedPositions[i].offset));
-                assignedPlayerIds.add(playerToAssign.id);
-              }
+            // --- 3. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
+            // THIS IS THE CRITICAL FIX: It ensures that players who started on the field, stay on the field,
+            // even if their role isn't 'perfect'. They fill the leftover spots.
+            while (playersToAssign.isNotEmpty && unfilledPositions.isNotEmpty) {
+              final player = playersToAssign.removeAt(0);
+              final position = unfilledPositions.removeAt(0);
+              finalLineup.add(player.copyWith(offset: position.offset));
             }
 
-            zlog(
-                data:
-                    "New lineup calculated. Total players: ${finalLineup.length}.");
+            // --- 4. PASS 3: HANDLE PLAYER COUNT DIFFERENCES ---
+            // If the new formation has MORE spots, fill them from the bench.
+            if (unfilledPositions.isNotEmpty) {
+              zlog(
+                  data:
+                      "New formation requires more players. Filling from bench.");
+              List<PlayerModel> benchCandidates =
+                  List.from(currentPlayersOnBench);
+              // (Optional but good): Add role-matching here for bench players if you want
+              while (
+                  benchCandidates.isNotEmpty && unfilledPositions.isNotEmpty) {
+                final player = benchCandidates.removeAt(0);
+                final position = unfilledPositions.removeAt(0);
+                finalLineup.add(player.copyWith(offset: position.offset));
+              }
+            }
+            // If new formation has FEWER spots, the remaining players in `playersToAssign` are implicitly benched.
 
-            // 3. APPLY CHANGES DIRECTLY TO THE TACTICAL BOARD
-            final Set<String> originalPlayerIdsOnField =
-                playersOnField.map((p) => p.id).toSet();
-            final Set<String> finalPlayerIdsInLineup =
+            // --- 5. APPLY CHANGES TO THE TACTICAL BOARD (Granular Update) ---
+            final Set<String> finalPlayerIds =
                 finalLineup.map((p) => p.id).toSet();
-
-            final Set<String> idsToRemove =
-                originalPlayerIdsOnField.difference(finalPlayerIdsInLineup);
-            final List<PlayerModel> playersToRemove = playersOnField
-                .where((p) => idsToRemove.contains(p.id))
+            final List<PlayerModel> playersToRemove = currentPlayersOnField
+                .where((p) => !finalPlayerIds.contains(p.id))
                 .toList();
 
             if (playersToRemove.isNotEmpty) {
               tacticBoard.removeFieldItems(playersToRemove);
-              zlog(
-                  data:
-                      "Removed ${playersToRemove.length} players from the field.");
+              zlog(data: "Benched ${playersToRemove.length} players.");
             }
 
-            for (final newPlayerState in finalLineup) {
-              zlog(data: "Player size getting ${newPlayerState.size}");
-              tacticBoard.removeFieldItems([newPlayerState]);
-              tacticBoard.addItem(newPlayerState);
+            for (final playerState in finalLineup) {
+              tacticBoard
+                  .removeFieldItems([playerState]); // Removes by ID if exists
+              tacticBoard.addItem(playerState); // Adds the new/updated state
             }
-            zlog(data: "Applied ${finalLineup.length} players to the field.");
-            // --- END: DIRECT-APPLICATION LOGIC ---
+
+            zlog(
+                data: "Board updated. ${finalLineup.length} players on field.");
+            // =================================================================== //
+            // END: CORRECTED "PLAYER-FIRST" LINEUP LOGIC (HOME)                 //
+            // =================================================================== //
           },
           fillColor: ColorManager.blue,
           child: Text(

@@ -201,20 +201,136 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         CustomButton(
           borderRadius: 3,
           onTap: () {
-            // --- START: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
-            TacticBoard? tacticBoard =
+            // // --- START: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
+            // TacticBoard? tacticBoard =
+            //     boardState.tacticBoardGame as TacticBoard?;
+            // AnimationItemModel? scene = selectedLineUp?.scene;
+            //
+            // if (scene == null || tacticBoard == null) {
+            //   BotToast.showText(text: "Please select a lineup first.");
+            //   return;
+            // }
+            //
+            // final List<PlayerModel> homeTemplatePlayers =
+            //     scene.components.whereType<PlayerModel>().toList();
+            // List<PlayerModel> targetAwayPositions = [];
+            // for (final homePlayer in homeTemplatePlayers) {
+            //   Vector2 mirroredOffset = Vector2(
+            //     1 -
+            //         ((homePlayer.offset?.x ?? 0) -
+            //             (SizeHelper.getBoardRelativeVector(
+            //                   gameScreenSize: tacticBoard.gameField.size,
+            //                   actualPosition: homePlayer.size ?? Vector2.zero(),
+            //                 ).x *
+            //                 1.25 /
+            //                 2)),
+            //     1 -
+            //         ((homePlayer.offset?.y ?? 0) -
+            //             (SizeHelper.getBoardRelativeVector(
+            //                   gameScreenSize: tacticBoard.gameField.size,
+            //                   actualPosition: homePlayer.size ?? Vector2.zero(),
+            //                 ).y /
+            //                 2)),
+            //   );
+            //   targetAwayPositions.add(
+            //     homePlayer.copyWith(
+            //       offset: mirroredOffset,
+            //       playerType: PlayerType.AWAY,
+            //     ),
+            //   );
+            // }
+            //
+            // playersOnField
+            //     .sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+            // final List<PlayerModel> sortedBench = List.from(benchPlayers)
+            //   ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+            //
+            // final Map<String, PlayerModel> uniquePlayers = {};
+            // for (var p in playersOnField) {
+            //   uniquePlayers.putIfAbsent(p.id, () => p);
+            // }
+            // for (var p in sortedBench) {
+            //   uniquePlayers.putIfAbsent(p.id, () => p);
+            // }
+            // final List<PlayerModel> availablePlayers =
+            //     uniquePlayers.values.toList();
+            //
+            // final List<PlayerModel> finalLineup = [];
+            // final Set<String> assignedPlayerIds = {};
+            //
+            // for (final targetPos in targetAwayPositions) {
+            //   final roleMatchIndex = availablePlayers.indexWhere((p) =>
+            //       !assignedPlayerIds.contains(p.id) &&
+            //       p.role == targetPos.role);
+            //
+            //   if (roleMatchIndex != -1) {
+            //     final playerToAssign = availablePlayers[roleMatchIndex];
+            //     finalLineup
+            //         .add(playerToAssign.copyWith(offset: targetPos.offset));
+            //     assignedPlayerIds.add(playerToAssign.id);
+            //   }
+            // }
+            //
+            // final unassignedPositions = targetAwayPositions
+            //     .where((tp) => !finalLineup.any((p) => p.offset == tp.offset))
+            //     .toList();
+            //
+            // final remainingPlayers = availablePlayers
+            //     .where((p) => !assignedPlayerIds.contains(p.id))
+            //     .toList();
+            //
+            // for (int i = 0; i < unassignedPositions.length; i++) {
+            //   if (i < remainingPlayers.length) {
+            //     final playerToAssign = remainingPlayers[i];
+            //     finalLineup.add(playerToAssign.copyWith(
+            //         offset: unassignedPositions[i].offset));
+            //     assignedPlayerIds.add(playerToAssign.id);
+            //   }
+            // }
+            //
+            // final Set<String> originalPlayerIdsOnField =
+            //     playersOnField.map((p) => p.id).toSet();
+            // final Set<String> finalPlayerIdsInLineup =
+            //     finalLineup.map((p) => p.id).toSet();
+            //
+            // final Set<String> idsToRemove =
+            //     originalPlayerIdsOnField.difference(finalPlayerIdsInLineup);
+            // final List<PlayerModel> playersToRemove = playersOnField
+            //     .where((p) => idsToRemove.contains(p.id))
+            //     .toList();
+            //
+            // if (playersToRemove.isNotEmpty) {
+            //   tacticBoard.removeFieldItems(playersToRemove);
+            // }
+            //
+            // for (final newPlayerState in finalLineup) {
+            //   tacticBoard.removeFieldItems([newPlayerState]);
+            //   tacticBoard.addItem(newPlayerState);
+            // }
+            // zlog(
+            //     data:
+            //         "Applied ${finalLineup.length} away players to the field.");
+            // // --- END: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
+
+            // =================================================================== //
+            // START: CORRECTED "PLAYER-FIRST" LINEUP LOGIC (AWAY)               //
+            // =================================================================== //
+            final TacticBoard? tacticBoard =
                 boardState.tacticBoardGame as TacticBoard?;
-            AnimationItemModel? scene = selectedLineUp?.scene;
+            final AnimationItemModel? scene = selectedLineUp?.scene;
 
             if (scene == null || tacticBoard == null) {
               BotToast.showText(text: "Please select a lineup first.");
               return;
             }
 
-            final List<PlayerModel> homeTemplatePlayers =
-                scene.components.whereType<PlayerModel>().toList();
-            List<PlayerModel> targetAwayPositions = [];
-            for (final homePlayer in homeTemplatePlayers) {
+            // --- 1. IDENTIFY ACTORS AND PREPARE LISTS ---
+            final List<PlayerModel> currentPlayersOnField = playersOnField;
+            final List<PlayerModel> currentPlayersOnBench = benchPlayers;
+
+            // --- Get home template and MIRROR positions for AWAY team ---
+            final List<PlayerModel> targetPositions =
+                scene.components.whereType<PlayerModel>().map((homePlayer) {
               Vector2 mirroredOffset = Vector2(
                 1 -
                     ((homePlayer.offset?.x ?? 0) -
@@ -232,85 +348,73 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                             ).y /
                             2)),
               );
-              targetAwayPositions.add(
-                homePlayer.copyWith(
-                  offset: mirroredOffset,
-                  playerType: PlayerType.AWAY,
-                ),
-              );
-            }
-
-            playersOnField
-                .sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-            final List<PlayerModel> sortedBench = List.from(benchPlayers)
-              ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-
-            final Map<String, PlayerModel> uniquePlayers = {};
-            for (var p in playersOnField) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            for (var p in sortedBench) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            final List<PlayerModel> availablePlayers =
-                uniquePlayers.values.toList();
+              return homePlayer.copyWith(
+                  offset: mirroredOffset, playerType: PlayerType.AWAY);
+            }).toList();
 
             final List<PlayerModel> finalLineup = [];
-            final Set<String> assignedPlayerIds = {};
 
-            for (final targetPos in targetAwayPositions) {
-              final roleMatchIndex = availablePlayers.indexWhere((p) =>
-                  !assignedPlayerIds.contains(p.id) &&
-                  p.role == targetPos.role);
+            List<PlayerModel> playersToAssign =
+                List.from(currentPlayersOnField);
+            List<PlayerModel> unfilledPositions = List.from(targetPositions);
 
-              if (roleMatchIndex != -1) {
-                final playerToAssign = availablePlayers[roleMatchIndex];
-                finalLineup
-                    .add(playerToAssign.copyWith(offset: targetPos.offset));
-                assignedPlayerIds.add(playerToAssign.id);
+            // --- 2. PASS 1: PERFECT ROLE MATCHES ---
+            List<PlayerModel> tempPlayers = [];
+            for (var player in playersToAssign) {
+              final positionIndex = unfilledPositions
+                  .indexWhere((pos) => pos.role == player.role);
+              if (positionIndex != -1) {
+                final position = unfilledPositions.removeAt(positionIndex);
+                finalLineup.add(player.copyWith(offset: position.offset));
+              } else {
+                tempPlayers.add(player);
+              }
+            }
+            playersToAssign = tempPlayers;
+
+            // --- 3. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
+            // This ensures field players are kept on the field.
+            while (playersToAssign.isNotEmpty && unfilledPositions.isNotEmpty) {
+              final player = playersToAssign.removeAt(0);
+              final position = unfilledPositions.removeAt(0);
+              finalLineup.add(player.copyWith(offset: position.offset));
+            }
+
+            // --- 4. PASS 3: HANDLE PLAYER COUNT DIFFERENCES ---
+            if (unfilledPositions.isNotEmpty) {
+              List<PlayerModel> benchCandidates =
+                  List.from(currentPlayersOnBench);
+              while (
+                  benchCandidates.isNotEmpty && unfilledPositions.isNotEmpty) {
+                final player = benchCandidates.removeAt(0);
+                final position = unfilledPositions.removeAt(0);
+                finalLineup.add(player.copyWith(offset: position.offset));
               }
             }
 
-            final unassignedPositions = targetAwayPositions
-                .where((tp) => !finalLineup.any((p) => p.offset == tp.offset))
-                .toList();
-
-            final remainingPlayers = availablePlayers
-                .where((p) => !assignedPlayerIds.contains(p.id))
-                .toList();
-
-            for (int i = 0; i < unassignedPositions.length; i++) {
-              if (i < remainingPlayers.length) {
-                final playerToAssign = remainingPlayers[i];
-                finalLineup.add(playerToAssign.copyWith(
-                    offset: unassignedPositions[i].offset));
-                assignedPlayerIds.add(playerToAssign.id);
-              }
-            }
-
-            final Set<String> originalPlayerIdsOnField =
-                playersOnField.map((p) => p.id).toSet();
-            final Set<String> finalPlayerIdsInLineup =
+            // --- 5. APPLY CHANGES TO THE TACTICAL BOARD (Granular Update) ---
+            final Set<String> finalPlayerIds =
                 finalLineup.map((p) => p.id).toSet();
-
-            final Set<String> idsToRemove =
-                originalPlayerIdsOnField.difference(finalPlayerIdsInLineup);
-            final List<PlayerModel> playersToRemove = playersOnField
-                .where((p) => idsToRemove.contains(p.id))
+            final List<PlayerModel> playersToRemove = currentPlayersOnField
+                .where((p) => !finalPlayerIds.contains(p.id))
                 .toList();
 
             if (playersToRemove.isNotEmpty) {
               tacticBoard.removeFieldItems(playersToRemove);
+              zlog(data: "Benched ${playersToRemove.length} away players.");
             }
 
-            for (final newPlayerState in finalLineup) {
-              tacticBoard.removeFieldItems([newPlayerState]);
-              tacticBoard.addItem(newPlayerState);
+            for (final playerState in finalLineup) {
+              tacticBoard.removeFieldItems([playerState]);
+              tacticBoard.addItem(playerState);
             }
+
             zlog(
                 data:
-                    "Applied ${finalLineup.length} away players to the field.");
-            // --- END: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
+                    "Away board updated. ${finalLineup.length} players on field.");
+            // =================================================================== //
+            // END: CORRECTED "PLAYER-FIRST" LINEUP LOGIC (AWAY)                 //
+            // =================================================================== //
           },
           fillColor: ColorManager.blue,
           child: Text(
