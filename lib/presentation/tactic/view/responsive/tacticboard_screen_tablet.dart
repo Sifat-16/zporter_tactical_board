@@ -12,6 +12,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_selection_dialogue.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
@@ -397,6 +398,16 @@ class _TacticboardScreenTabletState
     return screenContent;
   }
 
+  void _showTutorialSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // We return a dedicated widget for the dialog's content.
+        return const TutorialSelectionDialog();
+      },
+    );
+  }
+
   Widget _buildCentralContent(
     BuildContext context,
     WidgetRef ref,
@@ -444,6 +455,18 @@ class _TacticboardScreenTabletState
                     children: [
                       Container(
                         width: context.widthPercent(22),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {
+                              _showTutorialSelectionDialog(context);
+                            },
+                            child: Icon(
+                              Icons.school_outlined,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                         // color: Colors.yellow,
                       ),
                       if (asp.defaultAnimationItems.isNotEmpty)

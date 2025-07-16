@@ -380,20 +380,20 @@ class _FormSpeedDialComponentState
                       color: ColorManager.white,
                     ), // Your original color
                   ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () {
-                    ref.read(tutorialsProvider.notifier).fetchTutorials();
-                    _showTutorialSelectionDialog(context);
-                  },
-                  child: Center(
-                    child: Icon(
-                      CupertinoIcons.info,
-                      color: ColorManager.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
+                // const SizedBox(width: 10),
+                // GestureDetector(
+                //   onTap: () {
+                //     ref.read(tutorialsProvider.notifier).fetchTutorials();
+                //     _showTutorialSelectionDialog(context);
+                //   },
+                //   child: Center(
+                //     child: Icon(
+                //       CupertinoIcons.info,
+                //       color: ColorManager.white,
+                //       size: 24,
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -676,15 +676,15 @@ class _FormSpeedDialComponentState
     );
   }
 
-  void _showTutorialSelectionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // We return a dedicated widget for the dialog's content.
-        return const TutorialSelectionDialog();
-      },
-    );
-  }
+  // void _showTutorialSelectionDialog(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       // We return a dedicated widget for the dialog's content.
+  //       return const TutorialSelectionDialog();
+  //     },
+  //   );
+  // }
 
   _showToast() {
     Widget toast = Container(

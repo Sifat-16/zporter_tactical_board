@@ -1,5 +1,3 @@
-// file: presentation/admin/view/tutorials/tutorial_editor_screen.dart
-
 import 'dart:convert';
 import 'dart:io';
 
