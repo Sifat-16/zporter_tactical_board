@@ -427,7 +427,7 @@ class _TutorialSelectionDialogState
                         return Container(
                           width: itemWidth,
                           margin: const EdgeInsets.symmetric(horizontal: 12.0),
-                          child: _TutorialCard(
+                          child: TutorialCard(
                             tutorial: tutorial,
                             isSelected: selectedIndexes.contains(index),
                             onTap: () {
@@ -484,11 +484,11 @@ class _TutorialSelectionDialogState
   }
 }
 
-class _TutorialCard extends StatelessWidget {
+class TutorialCard extends StatelessWidget {
   final Tutorial tutorial;
   final VoidCallback onTap;
   final bool isSelected;
-  const _TutorialCard(
+  const TutorialCard(
       {required this.tutorial, required this.onTap, required this.isSelected});
 
   // --- NEW: Helper widget to get the correct play icon ---
