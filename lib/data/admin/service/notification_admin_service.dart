@@ -1,3 +1,93 @@
+// import 'dart:convert';
+// import 'package:flutter/services.dart' show rootBundle;
+// import 'package:googleapis_auth/auth_io.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:flutter/foundation.dart';
+//
+// /// A service to handle sending notifications via the FCM v1 HTTP API using a service account.
+// class NotificationAdminService {
+//   // The project ID from your service account JSON file.
+//   // You can find it in the file, or it's the same as in your firebase.json.
+//   static const String _projectId = 'zporter-board-dev';
+//
+//   // This will hold the authenticated HTTP client.
+//   http.Client? _authClient;
+//
+//   // Scopes required for FCM.
+//   static const _scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+//
+//   /// Gets an authenticated HTTP client using the service account credentials.
+//   Future<http.Client> _getAuthClient() async {
+//     if (_authClient != null) return _authClient!;
+//
+//     // Load the service account JSON from assets.
+//     final jsonString =
+//         await rootBundle.loadString('assets/secure/fcm_service_account.json');
+//     final credentials =
+//         ServiceAccountCredentials.fromJson(json.decode(jsonString));
+//
+//     // Get the authenticated client.
+//     final client = await clientViaServiceAccount(credentials, _scopes);
+//     _authClient = client;
+//     return client;
+//   }
+//
+//   /// Sends a notification to a specific target (topic or device token).
+//   Future<({bool success, String? error})> sendNotification({
+//     required String title,
+//     required String body,
+//     required String target,
+//   }) async {
+//     try {
+//       final client = await _getAuthClient();
+//       final Uri url = Uri.parse(
+//           'https://fcm.googleapis.com/v1/projects/$_projectId/messages:send');
+//
+//       final Map<String, String> messageTarget;
+//       if (!target.contains(':') && !target.contains(' ')) {
+//         messageTarget = {'topic': target};
+//       } else {
+//         messageTarget = {'token': target};
+//       }
+//
+//       print("Here comes the target ${target} - ${messageTarget}");
+//
+//       final bodyPayload = {
+//         'message': {
+//           ...messageTarget,
+//           'notification': {
+//             'title': title,
+//             'body': body,
+//           },
+//           'data': {
+//             'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+//           },
+//         }
+//       };
+//
+//       final response = await client.post(
+//         url,
+//         headers: {'Content-Type': 'application/json'},
+//         body: json.encode(bodyPayload),
+//       );
+//
+//       if (response.statusCode == 200) {
+//         debugPrint('Notification sent successfully: ${response.body}');
+//         return (success: true, error: null);
+//       } else {
+//         final errorBody =
+//             'Failed to send notification. Status: ${response.statusCode}. Body: ${response.body}';
+//         debugPrint(errorBody);
+//         return (success: false, error: errorBody);
+//       }
+//     } catch (e) {
+//       final errorBody = 'Error sending notification: $e';
+//       debugPrint(errorBody);
+//       return (success: false, error: errorBody);
+//     }
+//   }
+// }
+
 import 'dart:convert';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:googleapis_auth/auth_io.dart';
@@ -7,7 +97,6 @@ import 'package:flutter/foundation.dart';
 /// A service to handle sending notifications via the FCM v1 HTTP API using a service account.
 class NotificationAdminService {
   // The project ID from your service account JSON file.
-  // You can find it in the file, or it's the same as in your firebase.json.
   static const String _projectId = 'zporter-board-dev';
 
   // This will hold the authenticated HTTP client.
@@ -20,13 +109,11 @@ class NotificationAdminService {
   Future<http.Client> _getAuthClient() async {
     if (_authClient != null) return _authClient!;
 
-    // Load the service account JSON from assets.
     final jsonString =
         await rootBundle.loadString('assets/secure/fcm_service_account.json');
     final credentials =
         ServiceAccountCredentials.fromJson(json.decode(jsonString));
 
-    // Get the authenticated client.
     final client = await clientViaServiceAccount(credentials, _scopes);
     _authClient = client;
     return client;
@@ -37,12 +124,15 @@ class NotificationAdminService {
     required String title,
     required String body,
     required String target,
+    String? imageUrl, // New: For the notification's cover image.
+    Map<String, String>? data, // New: For custom data like mediaUrls.
   }) async {
     try {
       final client = await _getAuthClient();
       final Uri url = Uri.parse(
           'https://fcm.googleapis.com/v1/projects/$_projectId/messages:send');
 
+      // Determine if the target is a topic or a specific token.
       final Map<String, String> messageTarget;
       if (!target.contains(':') && !target.contains(' ')) {
         messageTarget = {'topic': target};
@@ -50,25 +140,32 @@ class NotificationAdminService {
         messageTarget = {'token': target};
       }
 
-      print("Here comes the target ${target} - ${messageTarget}");
+      // Build the 'notification' part of the payload, adding the image if it exists.
+      final notificationPayload = {
+        'title': title,
+        'body': body,
+        if (imageUrl != null) 'image': imageUrl,
+      };
 
-      final bodyPayload = {
+      // Build the 'data' part, merging any provided data.
+      final dataPayload = {
+        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+        if (data != null) ...data,
+      };
+
+      // Construct the final request body.
+      final requestBody = {
         'message': {
           ...messageTarget,
-          'notification': {
-            'title': title,
-            'body': body,
-          },
-          'data': {
-            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-          },
+          'notification': notificationPayload,
+          'data': dataPayload,
         }
       };
 
       final response = await client.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode(bodyPayload),
+        body: json.encode(requestBody),
       );
 
       if (response.statusCode == 200) {

@@ -2,6 +2,7 @@ import 'package:appwrite/appwrite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
@@ -14,6 +15,7 @@ import 'package:zporter_tactical_board/data/admin/datasource/remote/default_line
 import 'package:zporter_tactical_board/data/admin/datasource/remote/notification_admin_datasource.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/remote/tutorial_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/tutorial_datasource.dart';
+import 'package:zporter_tactical_board/data/admin/service/file_storage_service.dart';
 import 'package:zporter_tactical_board/data/admin/service/notification_admin_service.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/local/animation_local_datasource_impl.dart';
@@ -206,5 +208,9 @@ Future<void> initializeTacticBoardDependencies() async {
       sl.get<NotificationAdminService>(),
       sl.get<NotificationAdminDataSource>(),
     ),
+  );
+
+  sl.registerLazySingleton<FileStorageService>(
+    () => FileStorageService(FirebaseStorage.instance),
   );
 }
