@@ -524,46 +524,6 @@ class PlayerUtilsV2 {
     return null;
   }
 
-  /// Shows the dialog to edit player details.
-  /// Returns the updated PlayerModel if saved, otherwise null.
-  // static Future<PlayerModel?> showEditPlayerDialog({
-  //   required BuildContext context,
-  //   required PlayerModel player,
-  // }) async {
-  //   final PlayerModel? resultPlayer = await showDialog<PlayerModel?>(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder: (BuildContext dialogContext) {
-  //       return PlayerEditorDialog(
-  //         player: player, // Pass the player to trigger "Edit Mode"
-  //         playerType: player.playerType,
-  //         onDelete: (p) async {
-  //           await deletePlayerInDb(p);
-  //         },
-  //         availableRoles: getUniqueRoles(),
-  //         availableJerseyNumbers: getDefaultJerseyNumbers(),
-  //       );
-  //     },
-  //   );
-  //
-  //   // The existing save/update logic below this call remains the same and works perfectly.
-  //   if (resultPlayer != null) {
-  //     if (resultPlayer != player) {
-  //       zlog(data: 'Player model changed. Saving to database...');
-  //       try {
-  //         await updatePlayerInDb(resultPlayer);
-  //         return resultPlayer;
-  //       } catch (e) {
-  //         // ... error handling
-  //         return null;
-  //       }
-  //     } else {
-  //       return resultPlayer;
-  //     }
-  //   }
-  //   return null;
-  // }
-
   static Future<PlayerDialogResult?> showEditPlayerDialog(
       {required BuildContext context,
       required PlayerModel player,
@@ -889,57 +849,6 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       BotToast.showText(text: "Player deleted permanently.");
     }
   }
-
-  // /// Handles the "Save" button press for both Create and Edit modes.
-  // Future<void> _onSavePressed() async {
-  //   if (_selectedJerseyNumber == null || _selectedRole == null) {
-  //     BotToast.showText(text: "Please select a role and jersey number.");
-  //     return;
-  //   }
-  //
-  //   final String playerIdForCheck =
-  //       isEditMode ? widget.player!.id : RandomGenerator.generateId();
-  //   bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-  //       _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
-  //
-  //   if (isTaken) {
-  //     BotToast.showText(
-  //         text: 'Jersey number $_selectedJerseyNumber is already taken!');
-  //     return;
-  //   }
-  //
-  //   PlayerModel resultPlayer;
-  //   if (isEditMode) {
-  //     resultPlayer = widget.player!.copyWith(
-  //       name: _nameController.text.trim(),
-  //       role: _selectedRole,
-  //       jerseyNumber: _selectedJerseyNumber,
-  //       imageBase64: _currentImageBase64,
-  //       imagePath: '',
-  //       updatedAt: DateTime.now(),
-  //     );
-  //   } else {
-  //     final now = DateTime.now();
-  //     resultPlayer = PlayerModel(
-  //       id: playerIdForCheck,
-  //       playerType: widget.playerType,
-  //       role: _selectedRole!,
-  //       jerseyNumber: _selectedJerseyNumber!,
-  //       name: _nameController.text.trim(),
-  //       imageBase64: _currentImageBase64,
-  //       color: widget.playerType == PlayerType.HOME
-  //           ? ColorManager.blueAccent
-  //           : ColorManager.red,
-  //       offset: Vector2.zero(),
-  //       size: Vector2(32, 32),
-  //       createdAt: now,
-  //       updatedAt: now,
-  //     );
-  //   }
-  //   if (mounted) {
-  //     Navigator.of(context).pop(resultPlayer);
-  //   }
-  // }
 
   Future<void> _onSavePressed() async {
     // --- NEW: If a replacement is selected, perform the swap action ---

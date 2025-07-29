@@ -200,121 +200,110 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         const SizedBox(height: 10),
         CustomButton(
           borderRadius: 3,
-          onTap: () {
-            // // --- START: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
-            // TacticBoard? tacticBoard =
-            //     boardState.tacticBoardGame as TacticBoard?;
-            // AnimationItemModel? scene = selectedLineUp?.scene;
-            //
-            // if (scene == null || tacticBoard == null) {
-            //   BotToast.showText(text: "Please select a lineup first.");
-            //   return;
-            // }
-            //
-            // final List<PlayerModel> homeTemplatePlayers =
-            //     scene.components.whereType<PlayerModel>().toList();
-            // List<PlayerModel> targetAwayPositions = [];
-            // for (final homePlayer in homeTemplatePlayers) {
-            //   Vector2 mirroredOffset = Vector2(
-            //     1 -
-            //         ((homePlayer.offset?.x ?? 0) -
-            //             (SizeHelper.getBoardRelativeVector(
-            //                   gameScreenSize: tacticBoard.gameField.size,
-            //                   actualPosition: homePlayer.size ?? Vector2.zero(),
-            //                 ).x *
-            //                 1.25 /
-            //                 2)),
-            //     1 -
-            //         ((homePlayer.offset?.y ?? 0) -
-            //             (SizeHelper.getBoardRelativeVector(
-            //                   gameScreenSize: tacticBoard.gameField.size,
-            //                   actualPosition: homePlayer.size ?? Vector2.zero(),
-            //                 ).y /
-            //                 2)),
-            //   );
-            //   targetAwayPositions.add(
-            //     homePlayer.copyWith(
-            //       offset: mirroredOffset,
-            //       playerType: PlayerType.AWAY,
-            //     ),
-            //   );
-            // }
-            //
-            // playersOnField
-            //     .sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-            // final List<PlayerModel> sortedBench = List.from(benchPlayers)
-            //   ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-            //
-            // final Map<String, PlayerModel> uniquePlayers = {};
-            // for (var p in playersOnField) {
-            //   uniquePlayers.putIfAbsent(p.id, () => p);
-            // }
-            // for (var p in sortedBench) {
-            //   uniquePlayers.putIfAbsent(p.id, () => p);
-            // }
-            // final List<PlayerModel> availablePlayers =
-            //     uniquePlayers.values.toList();
-            //
-            // final List<PlayerModel> finalLineup = [];
-            // final Set<String> assignedPlayerIds = {};
-            //
-            // for (final targetPos in targetAwayPositions) {
-            //   final roleMatchIndex = availablePlayers.indexWhere((p) =>
-            //       !assignedPlayerIds.contains(p.id) &&
-            //       p.role == targetPos.role);
-            //
-            //   if (roleMatchIndex != -1) {
-            //     final playerToAssign = availablePlayers[roleMatchIndex];
-            //     finalLineup
-            //         .add(playerToAssign.copyWith(offset: targetPos.offset));
-            //     assignedPlayerIds.add(playerToAssign.id);
-            //   }
-            // }
-            //
-            // final unassignedPositions = targetAwayPositions
-            //     .where((tp) => !finalLineup.any((p) => p.offset == tp.offset))
-            //     .toList();
-            //
-            // final remainingPlayers = availablePlayers
-            //     .where((p) => !assignedPlayerIds.contains(p.id))
-            //     .toList();
-            //
-            // for (int i = 0; i < unassignedPositions.length; i++) {
-            //   if (i < remainingPlayers.length) {
-            //     final playerToAssign = remainingPlayers[i];
-            //     finalLineup.add(playerToAssign.copyWith(
-            //         offset: unassignedPositions[i].offset));
-            //     assignedPlayerIds.add(playerToAssign.id);
-            //   }
-            // }
-            //
-            // final Set<String> originalPlayerIdsOnField =
-            //     playersOnField.map((p) => p.id).toSet();
-            // final Set<String> finalPlayerIdsInLineup =
-            //     finalLineup.map((p) => p.id).toSet();
-            //
-            // final Set<String> idsToRemove =
-            //     originalPlayerIdsOnField.difference(finalPlayerIdsInLineup);
-            // final List<PlayerModel> playersToRemove = playersOnField
-            //     .where((p) => idsToRemove.contains(p.id))
-            //     .toList();
-            //
-            // if (playersToRemove.isNotEmpty) {
-            //   tacticBoard.removeFieldItems(playersToRemove);
-            // }
-            //
-            // for (final newPlayerState in finalLineup) {
-            //   tacticBoard.removeFieldItems([newPlayerState]);
-            //   tacticBoard.addItem(newPlayerState);
-            // }
-            // zlog(
-            //     data:
-            //         "Applied ${finalLineup.length} away players to the field.");
-            // // --- END: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
+          // onTap: () {
+          //   final TacticBoard? tacticBoard =
+          //       boardState.tacticBoardGame as TacticBoard?;
+          //   final AnimationItemModel? scene = selectedLineUp?.scene;
+          //
+          //   if (scene == null || tacticBoard == null) {
+          //     BotToast.showText(text: "Please select a lineup first.");
+          //     return;
+          //   }
+          //
+          //   // --- 1. IDENTIFY ACTORS AND PREPARE LISTS ---
+          //   final List<PlayerModel> currentPlayersOnField = playersOnField;
+          //   final List<PlayerModel> currentPlayersOnBench = benchPlayers;
+          //
+          //   // --- Get home template and MIRROR positions for AWAY team ---
+          //   final List<PlayerModel> targetPositions =
+          //       scene.components.whereType<PlayerModel>().map((homePlayer) {
+          //     Vector2 mirroredOffset = Vector2(
+          //       1 -
+          //           ((homePlayer.offset?.x ?? 0) -
+          //               (SizeHelper.getBoardRelativeVector(
+          //                     gameScreenSize: tacticBoard.gameField.size,
+          //                     actualPosition: homePlayer.size ?? Vector2.zero(),
+          //                   ).x *
+          //                   1.25 /
+          //                   2)),
+          //       1 -
+          //           ((homePlayer.offset?.y ?? 0) -
+          //               (SizeHelper.getBoardRelativeVector(
+          //                     gameScreenSize: tacticBoard.gameField.size,
+          //                     actualPosition: homePlayer.size ?? Vector2.zero(),
+          //                   ).y /
+          //                   2)),
+          //     );
+          //     return homePlayer.copyWith(
+          //         offset: mirroredOffset, playerType: PlayerType.AWAY);
+          //   }).toList();
+          //
+          //   final List<PlayerModel> finalLineup = [];
+          //
+          //   List<PlayerModel> playersToAssign =
+          //       List.from(currentPlayersOnField);
+          //   List<PlayerModel> unfilledPositions = List.from(targetPositions);
+          //
+          //   // --- 2. PASS 1: PERFECT ROLE MATCHES ---
+          //   List<PlayerModel> tempPlayers = [];
+          //   for (var player in playersToAssign) {
+          //     final positionIndex = unfilledPositions
+          //         .indexWhere((pos) => pos.role == player.role);
+          //     if (positionIndex != -1) {
+          //       final position = unfilledPositions.removeAt(positionIndex);
+          //       finalLineup.add(player.copyWith(offset: position.offset));
+          //     } else {
+          //       tempPlayers.add(player);
+          //     }
+          //   }
+          //   playersToAssign = tempPlayers;
+          //
+          //   // --- 3. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
+          //   // This ensures field players are kept on the field.
+          //   while (playersToAssign.isNotEmpty && unfilledPositions.isNotEmpty) {
+          //     final player = playersToAssign.removeAt(0);
+          //     final position = unfilledPositions.removeAt(0);
+          //     finalLineup.add(player.copyWith(offset: position.offset));
+          //   }
+          //
+          //   // --- 4. PASS 3: HANDLE PLAYER COUNT DIFFERENCES ---
+          //   if (unfilledPositions.isNotEmpty) {
+          //     List<PlayerModel> benchCandidates =
+          //         List.from(currentPlayersOnBench);
+          //     while (
+          //         benchCandidates.isNotEmpty && unfilledPositions.isNotEmpty) {
+          //       final player = benchCandidates.removeAt(0);
+          //       final position = unfilledPositions.removeAt(0);
+          //       finalLineup.add(player.copyWith(offset: position.offset));
+          //     }
+          //   }
+          //
+          //   // --- 5. APPLY CHANGES TO THE TACTICAL BOARD (Granular Update) ---
+          //   final Set<String> finalPlayerIds =
+          //       finalLineup.map((p) => p.id).toSet();
+          //   final List<PlayerModel> playersToRemove = currentPlayersOnField
+          //       .where((p) => !finalPlayerIds.contains(p.id))
+          //       .toList();
+          //
+          //   if (playersToRemove.isNotEmpty) {
+          //     tacticBoard.removeFieldItems(playersToRemove);
+          //     zlog(data: "Benched ${playersToRemove.length} away players.");
+          //   }
+          //
+          //   for (final playerState in finalLineup) {
+          //     tacticBoard.removeFieldItems([playerState]);
+          //     tacticBoard.addItem(playerState);
+          //   }
+          //
+          //   zlog(
+          //       data:
+          //           "Away board updated. ${finalLineup.length} players on field.");
+          //   // =================================================================== //
+          //   // END: CORRECTED "PLAYER-FIRST" LINEUP LOGIC (AWAY)                 //
+          //   // =================================================================== //
+          // },
 
-            // =================================================================== //
-            // START: CORRECTED "PLAYER-FIRST" LINEUP LOGIC (AWAY)               //
-            // =================================================================== //
+          onTap: () {
             final TacticBoard? tacticBoard =
                 boardState.tacticBoardGame as TacticBoard?;
             final AnimationItemModel? scene = selectedLineUp?.scene;
@@ -324,13 +313,35 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
               return;
             }
 
-            // --- 1. IDENTIFY ACTORS AND PREPARE LISTS ---
-            final List<PlayerModel> currentPlayersOnField = playersOnField;
+            // =================================================================== //
+            // START: NEW "PLAYER-FIRST" LINEUP LOGIC (AWAY)                     //
+            // =================================================================== //
+            zlog(
+                data:
+                    "Applying new AWAY formation with a 'Player-First' strategy.");
+
+            // --- 1. GATHER ACTORS ---
+            // The definitive list of AWAY players currently ON THE FIELD.
+            final List<PlayerModel> currentPlayersOnField = boardState.players
+                .where((p) => p.playerType == PlayerType.AWAY)
+                .toList();
+
+            // The definitive list of AWAY players currently ON THE BENCH.
             final List<PlayerModel> currentPlayersOnBench = benchPlayers;
 
-            // --- Get home template and MIRROR positions for AWAY team ---
+            zlog(
+                data:
+                    "Away Field: ${currentPlayersOnField.length}, Bench: ${currentPlayersOnBench.length}");
+
+            // --- 2. GENERATE MIRRORED AWAY POSITIONS FROM HOME TEMPLATE ---
+            // Formation templates are always stored from the Home perspective.
+            // We must mirror the positions for the Away team.
+            final List<PlayerModel> homeTemplatePositions =
+                scene.components.whereType<PlayerModel>().toList();
+
             final List<PlayerModel> targetPositions =
-                scene.components.whereType<PlayerModel>().map((homePlayer) {
+                homeTemplatePositions.map((homePlayer) {
+              // This is your existing, correct mirroring logic.
               Vector2 mirroredOffset = Vector2(
                 1 -
                     ((homePlayer.offset?.x ?? 0) -
@@ -348,42 +359,59 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                             ).y /
                             2)),
               );
+              // Return a new PlayerModel representing the mirrored position.
               return homePlayer.copyWith(
                   offset: mirroredOffset, playerType: PlayerType.AWAY);
             }).toList();
 
+            zlog(data: "Target Away Positions: ${targetPositions.length}");
+
+            // This will hold our final calculated lineup.
             final List<PlayerModel> finalLineup = [];
 
+            // Create mutable lists that we can remove items from as we assign them.
             List<PlayerModel> playersToAssign =
                 List.from(currentPlayersOnField);
             List<PlayerModel> unfilledPositions = List.from(targetPositions);
 
-            // --- 2. PASS 1: PERFECT ROLE MATCHES ---
-            List<PlayerModel> tempPlayers = [];
-            for (var player in playersToAssign) {
+            // --- 3. PASS 1: ASSIGN FIELD PLAYERS WITH PERFECT ROLE MATCHES ---
+            List<PlayerModel> remainingFieldPlayers = [];
+            for (final player in playersToAssign) {
               final positionIndex = unfilledPositions
                   .indexWhere((pos) => pos.role == player.role);
+
               if (positionIndex != -1) {
                 final position = unfilledPositions.removeAt(positionIndex);
                 finalLineup.add(player.copyWith(offset: position.offset));
               } else {
-                tempPlayers.add(player);
+                remainingFieldPlayers.add(player);
               }
             }
-            playersToAssign = tempPlayers;
+            zlog(
+                data:
+                    "Pass 1 (Away Role Match): Assigned ${finalLineup.length} players. ${remainingFieldPlayers.length} field players remain.");
 
-            // --- 3. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
-            // This ensures field players are kept on the field.
-            while (playersToAssign.isNotEmpty && unfilledPositions.isNotEmpty) {
-              final player = playersToAssign.removeAt(0);
+            // --- 4. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
+            // Ensures the same XI players stay on the field.
+            while (remainingFieldPlayers.isNotEmpty &&
+                unfilledPositions.isNotEmpty) {
+              final player = remainingFieldPlayers.removeAt(0);
               final position = unfilledPositions.removeAt(0);
               finalLineup.add(player.copyWith(offset: position.offset));
             }
+            zlog(
+                data:
+                    "Pass 2 (Away Fill Field): Assigned remaining field players. Total on field: ${finalLineup.length}.");
 
-            // --- 4. PASS 3: HANDLE PLAYER COUNT DIFFERENCES ---
+            // --- 5. PASS 3: HANDLE PLAYER COUNT MISMATCHES ---
+            // Case A: New formation needs MORE players.
             if (unfilledPositions.isNotEmpty) {
+              zlog(
+                  data:
+                      "Away formation requires ${unfilledPositions.length} more players. Filling from bench.");
               List<PlayerModel> benchCandidates =
                   List.from(currentPlayersOnBench);
+
               while (
                   benchCandidates.isNotEmpty && unfilledPositions.isNotEmpty) {
                 final player = benchCandidates.removeAt(0);
@@ -391,29 +419,37 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                 finalLineup.add(player.copyWith(offset: position.offset));
               }
             }
+            // Case B: New formation needs FEWER players is handled implicitly.
 
-            // --- 5. APPLY CHANGES TO THE TACTICAL BOARD (Granular Update) ---
+            // --- 6. APPLY THE CHANGES TO THE TACTICAL BOARD (ATOMIC UPDATE) ---
             final Set<String> finalPlayerIds =
                 finalLineup.map((p) => p.id).toSet();
+
+            // Find players to remove: those on the field now but NOT in the final lineup.
             final List<PlayerModel> playersToRemove = currentPlayersOnField
                 .where((p) => !finalPlayerIds.contains(p.id))
                 .toList();
 
             if (playersToRemove.isNotEmpty) {
               tacticBoard.removeFieldItems(playersToRemove);
-              zlog(data: "Benched ${playersToRemove.length} away players.");
+              zlog(
+                  data:
+                      "Benched ${playersToRemove.length} away players: ${playersToRemove.map((p) => p.jerseyNumber).join(', ')}");
             }
 
+            // Add or Update players in the final lineup.
             for (final playerState in finalLineup) {
-              tacticBoard.removeFieldItems([playerState]);
-              tacticBoard.addItem(playerState);
+              tacticBoard.removeFieldItems(
+                  [playerState]); // Removes by ID if it exists
+              tacticBoard.addItem(
+                  playerState); // Adds the updated player with new offset
             }
 
             zlog(
                 data:
-                    "Away board updated. ${finalLineup.length} players on field.");
+                    "Away board update complete. ${finalLineup.length} players are on the field.");
             // =================================================================== //
-            // END: CORRECTED "PLAYER-FIRST" LINEUP LOGIC (AWAY)                 //
+            // END: NEW "PLAYER-FIRST" LINEUP LOGIC (AWAY)                       //
             // =================================================================== //
           },
           fillColor: ColorManager.blue,

@@ -45,6 +45,112 @@ mixin DrawingInputHandler on TacticBoardGame {
       15.0; // Pixel distance to tap near start vertex to close
   // --- End Polygon Integration ---
 
+  // @override
+  // void onDragStart(DragStartEvent event) {
+  //   if (isAnimating) return;
+  //
+  //   // Use ref directly as mixin is on TacticBoardGame which has RiverpodGameMixin
+  //   final lp = ref.read(lineProvider);
+  //   bool eventHandled = false;
+  //
+  //   // --- Priority 1: Free Draw / Erase / Move --- (Keep Existing Logic)
+  //   // Assumes 'drawingBoard' is accessible from TacticBoardGame
+  //   // if (children.contains(drawingBoard) &&
+  //   //     drawingBoard.containsLocalPoint(event.localPosition)) {
+  //   //   final tool = drawingBoard.currentTool;
+  //   //   final isSelected = drawingBoard.isLineSelected;
+  //   //   if (tool == DrawingTool.draw ||
+  //   //       tool == DrawingTool.erase ||
+  //   //       (tool == null && isSelected)) {
+  //   //     eventHandled = drawingBoard.handleDragStart(event);
+  //   //   }
+  //   // }
+  //
+  //   if (children.contains(drawingBoard) &&
+  //       drawingBoard.containsLocalPoint(event.localPosition)) {
+  //     // If a drag starts inside the drawing board, ALWAYS let it handle the event.
+  //     // The component's internal logic will determine what to do (draw, erase, or move).
+  //     eventHandled = drawingBoard.handleDragStart(event);
+  //   }
+  //
+  //   // --- Priority 2: Straight Line Drawing --- (Keep Existing Logic)
+  //   if (!eventHandled && lp.isLineActiveToAddIntoGameField) {
+  //     FieldItemModel? item = lp.activeForm;
+  //     if (item is LineModelV2) {
+  //       lineStartPoint = event.localPosition;
+  //       LineModelV2 lineModelV2 = item.copyWith(
+  //         start: SizeHelper.getBoardRelativeVector(
+  //           gameScreenSize: gameField.size,
+  //           actualPosition: lineStartPoint!,
+  //         ),
+  //         end: SizeHelper.getBoardRelativeVector(
+  //           gameScreenSize: gameField.size,
+  //           actualPosition: lineStartPoint!,
+  //         ),
+  //         controlPoint1: null,
+  //         controlPoint2: null,
+  //         clearControlPoints: true,
+  //       );
+  //       _currentStraightLine = LineDrawerComponentV2(lineModelV2: lineModelV2);
+  //       add(_currentStraightLine!);
+  //       eventHandled = true;
+  //     }
+  //   }
+  //
+  //   // Circle Integration here
+  //   // --- Priority 3: Circle Shape Drawing ---
+  //   if (!eventHandled && lp.isShapeActiveToAddIntoGameField) {
+  //     FieldItemModel? item = lp.activeForm;
+  //
+  //     if (item is CircleShapeModel) {
+  //       shapeCenterPoint =
+  //           event.localPosition; // Store FIXED actual center point
+  //       CircleShapeModel circleModel = item.copyWith(
+  //         offset: SizeHelper.getBoardRelativeVector(
+  //           // Set relative center (offset)
+  //           gameScreenSize: gameField.size,
+  //           actualPosition: shapeCenterPoint!,
+  //         ),
+  //         radius: 0.1, // Start tiny
+  //       );
+  //       // The CircleShapeDrawerComponent's onLoad will use circleModel.offset
+  //       // to set its initial actual position.
+  //       _currentCircleShape = CircleShapeDrawerComponent(
+  //         circleModel: circleModel,
+  //       );
+  //       add(_currentCircleShape!);
+  //       eventHandled = true;
+  //     }
+  //     // --- Square Integration here ---
+  //     // Check for square moved inside the shape check
+  //     // --- Square Integration here --- (Moved check inside shape block)
+  //     else if (item is SquareShapeModel) {
+  //       // Handle Square Start
+  //       squareCenterPoint = event.localPosition; // Store FIXED actual center
+  //       SquareShapeModel squareModel = item.copyWith(
+  //         offset: SizeHelper.getBoardRelativeVector(
+  //           // Set relative center
+  //           gameScreenSize: gameField.size,
+  //           actualPosition: squareCenterPoint!,
+  //         ),
+  //         side: 0.1, // Start tiny (relative side)
+  //         angle: 0,
+  //       );
+  //       // Component's onLoad will set position based on model's offset
+  //       _currentSquareShape = SquareShapeDrawerComponent(
+  //         squareModel: squareModel,
+  //       );
+  //       add(_currentSquareShape!);
+  //       eventHandled = true;
+  //     }
+  //   }
+  //
+  //   // --- If not handled, call super ---
+  //   if (!eventHandled) {
+  //     super.onDragStart(event);
+  //   }
+  // }
+
   @override
   void onDragStart(DragStartEvent event) {
     if (isAnimating) return;
@@ -53,21 +159,8 @@ mixin DrawingInputHandler on TacticBoardGame {
     final lp = ref.read(lineProvider);
     bool eventHandled = false;
 
-    // --- Priority 1: Free Draw / Erase / Move --- (Keep Existing Logic)
-    // Assumes 'drawingBoard' is accessible from TacticBoardGame
-    if (children.contains(drawingBoard) &&
-        drawingBoard.containsLocalPoint(event.localPosition)) {
-      final tool = drawingBoard.currentTool;
-      final isSelected = drawingBoard.isLineSelected;
-      if (tool == DrawingTool.draw ||
-          tool == DrawingTool.erase ||
-          (tool == null && isSelected)) {
-        eventHandled = drawingBoard.handleDragStart(event);
-      }
-    }
-
-    // --- Priority 2: Straight Line Drawing --- (Keep Existing Logic)
-    if (!eventHandled && lp.isLineActiveToAddIntoGameField) {
+    // --- PRIORITY 1: Straight Line Drawing ---
+    if (lp.isLineActiveToAddIntoGameField) {
       FieldItemModel? item = lp.activeForm;
       if (item is LineModelV2) {
         lineStartPoint = event.localPosition;
@@ -90,55 +183,50 @@ mixin DrawingInputHandler on TacticBoardGame {
       }
     }
 
-    // Circle Integration here
-    // --- Priority 3: Circle Shape Drawing ---
+    // --- PRIORITY 2: Shape Drawing (Circle, Square, etc.) ---
     if (!eventHandled && lp.isShapeActiveToAddIntoGameField) {
       FieldItemModel? item = lp.activeForm;
-
       if (item is CircleShapeModel) {
-        shapeCenterPoint =
-            event.localPosition; // Store FIXED actual center point
+        // Circle logic...
+        shapeCenterPoint = event.localPosition;
         CircleShapeModel circleModel = item.copyWith(
           offset: SizeHelper.getBoardRelativeVector(
-            // Set relative center (offset)
             gameScreenSize: gameField.size,
             actualPosition: shapeCenterPoint!,
           ),
-          radius: 0.1, // Start tiny
+          radius: 0.1,
         );
-        // The CircleShapeDrawerComponent's onLoad will use circleModel.offset
-        // to set its initial actual position.
-        _currentCircleShape = CircleShapeDrawerComponent(
-          circleModel: circleModel,
-        );
+        _currentCircleShape =
+            CircleShapeDrawerComponent(circleModel: circleModel);
         add(_currentCircleShape!);
         eventHandled = true;
-      }
-      // --- Square Integration here ---
-      // Check for square moved inside the shape check
-      // --- Square Integration here --- (Moved check inside shape block)
-      else if (item is SquareShapeModel) {
-        // Handle Square Start
-        squareCenterPoint = event.localPosition; // Store FIXED actual center
+      } else if (item is SquareShapeModel) {
+        // Square logic...
+        squareCenterPoint = event.localPosition;
         SquareShapeModel squareModel = item.copyWith(
           offset: SizeHelper.getBoardRelativeVector(
-            // Set relative center
             gameScreenSize: gameField.size,
             actualPosition: squareCenterPoint!,
           ),
-          side: 0.1, // Start tiny (relative side)
+          side: 0.1,
           angle: 0,
         );
-        // Component's onLoad will set position based on model's offset
-        _currentSquareShape = SquareShapeDrawerComponent(
-          squareModel: squareModel,
-        );
+        _currentSquareShape =
+            SquareShapeDrawerComponent(squareModel: squareModel);
         add(_currentSquareShape!);
         eventHandled = true;
       }
     }
 
-    // --- If not handled, call super ---
+    // --- PRIORITY 3: Free Draw / Erase / Move within DrawingBoardComponent ---
+    // This block only runs if a higher-priority tool was not active.
+    if (!eventHandled &&
+        children.contains(drawingBoard) &&
+        drawingBoard.containsLocalPoint(event.localPosition)) {
+      eventHandled = drawingBoard.handleDragStart(event);
+    }
+
+    // --- If not handled by any of the above, call super ---
     if (!eventHandled) {
       super.onDragStart(event);
     }

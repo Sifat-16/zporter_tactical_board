@@ -4,6 +4,8 @@ import 'package:flame/src/game/notifying_vector2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
@@ -77,6 +79,58 @@ class BoardController extends StateNotifier<BoardState> {
         return e.clone();
       }),
     ];
+  }
+
+  void initializeFromScene(AnimationItemModel? scene) {
+    if (scene == null) {
+      // If the scene is null, clear the board state.
+      state = state.copyWith(
+        players: [],
+        equipments: [],
+        freeDraws: [],
+        lines: [],
+        shapes: [],
+        texts: [],
+        boardColor: ColorManager.grey, // or your default color
+        forceItemModelNull: true,
+      );
+      return;
+    }
+
+    // If a scene is provided, categorize its components and update the state.
+    final List<PlayerModel> players = [];
+    final List<EquipmentModel> equipments = [];
+    final List<FreeDrawModelV2> freeDraws = [];
+    final List<LineModelV2> lines = [];
+    final List<ShapeModel> shapes = [];
+    final List<TextModel> texts = [];
+
+    for (final item in scene.components) {
+      if (item is PlayerModel) {
+        players.add(item);
+      } else if (item is EquipmentModel)
+        equipments.add(item);
+      else if (item is FreeDrawModelV2)
+        freeDraws.add(item);
+      else if (item is LineModelV2)
+        lines.add(item);
+      else if (item is ShapeModel)
+        shapes.add(item);
+      else if (item is TextModel) texts.add(item);
+    }
+
+    // Use copyWith to update the state in a single, immutable operation.
+    state = state.copyWith(
+      players: players,
+      equipments: equipments,
+      freeDraws: freeDraws,
+      lines: lines,
+      shapes: shapes,
+      texts: texts,
+      boardColor: scene.fieldColor,
+      forceItemModelNull: true, // Deselect any previously selected item
+    );
+    zlog(data: "BoardProvider state has been seeded from scene: ${scene.id}");
   }
 
   showAnimationEvent() {

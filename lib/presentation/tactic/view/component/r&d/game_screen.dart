@@ -75,22 +75,50 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
-    createTacticBoardIfNecessary(widget.scene);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
+        createTacticBoardIfNecessary(widget.scene);
+      }
+    });
+
+    // createTacticBoardIfNecessary(widget.scene);
   }
 
   @override
   void didUpdateWidget(covariant GameScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.scene?.id == widget.scene?.id) {
+    // if (oldWidget.scene?.id == widget.scene?.id) {
+    //   WidgetsBinding.instance.addPostFrameCallback((t) {
+    //     if (!mounted) return;
+    //     if (ref.read(animationProvider).isPerformingUndo == true) {
+    //       updateTacticBoardIfNecessary(widget.scene);
+    //       ref.read(animationProvider.notifier).toggleUndo(undo: false);
+    //     }
+    //   });
+    // } else {
+    //   updateTacticBoardIfNecessary(widget.scene);
+    // }
+
+    if (oldWidget.scene?.id != widget.scene?.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
+          updateTacticBoardIfNecessary(widget.scene);
+        }
+      });
+    } else {
+      // Your existing logic for undo/redo
       WidgetsBinding.instance.addPostFrameCallback((t) {
         if (!mounted) return;
         if (ref.read(animationProvider).isPerformingUndo == true) {
+          // For undo, you may also need to re-seed from the new scene
+          ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
           updateTacticBoardIfNecessary(widget.scene);
           ref.read(animationProvider.notifier).toggleUndo(undo: false);
         }
       });
-    } else {
-      updateTacticBoardIfNecessary(widget.scene);
     }
   }
 
@@ -122,8 +150,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           saveToDb: widget.saveToDb,
           onSceneSave: widget.onSceneSave,
         );
-        zlog(data: "Build new tactic board");
-        print("The scene and the screen is updating");
+
         if (mounted) {
           ref.read(boardProvider.notifier).updateBoardBackground(
               selectedScene?.boardBackground ?? BoardBackground.full);
