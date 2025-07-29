@@ -83,17 +83,33 @@ class TacticBoard extends TacticBoardGame
   }
 
   // Methods specific to TacticBoard remain here
+  // _initiateField() {
+  //   gameField = GameField(
+  //     size: Vector2(size.x - 22.5, size.y - 22.5),
+  //     initialColor: scene?.fieldColor,
+  //   );
+  //   WidgetsBinding.instance.addPostFrameCallback((t) {
+  //     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
+  //     add(gameField); // add() is available via FlameGame
+  //     addInitialItems(scene?.components ?? []);
+  //   });
+  //   // initiateFieldColor();
+  // }
+
   _initiateField() {
     gameField = GameField(
       size: Vector2(size.x - 22.5, size.y - 22.5),
-      initialColor: scene?.fieldColor,
+      // Use the provider for the initial color too, for consistency.
+      initialColor: ref.read(boardProvider).boardColor,
     );
     WidgetsBinding.instance.addPostFrameCallback((t) {
       ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
-      add(gameField); // add() is available via FlameGame
-      addInitialItems(scene?.components ?? []);
+      add(gameField);
+
+      // FIX: Get the initial items from the single source of truth: the provider.
+      final currentItems = ref.read(boardProvider.notifier).allFieldItems();
+      addInitialItems(currentItems);
     });
-    // initiateFieldColor();
   }
 
   @override
