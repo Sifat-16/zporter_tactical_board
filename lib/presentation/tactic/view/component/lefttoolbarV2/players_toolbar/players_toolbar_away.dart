@@ -100,7 +100,8 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
           sourcePlayers: sanitizedPlayers, // Use the corrected list
           fieldPlayers: bp.players,
-        )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+        )..sort((a, b) => (a.displayNumber ?? a.jerseyNumber)
+            .compareTo(b.displayNumber ?? b.jerseyNumber));
 
         final String searchTerm = _searchController.text.toLowerCase();
         if (_isSearching && searchTerm.isNotEmpty) {
@@ -127,11 +128,17 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                   PlayerModel player = activeToolbarPlayers[index];
                   return GestureDetector(
                       onDoubleTap: () async {
-                        await PlayerUtilsV2.showEditPlayerDialog(
+                        final result = await PlayerUtilsV2.showEditPlayerDialog(
                           context: context,
                           player: player,
                           showReplace: false,
                         );
+
+                        if (result is PlayerUpdateResult) {
+                          // The dialog returned an updated player, now we save it.
+                          await PlayerUtilsV2.updatePlayerInDb(
+                              result.updatedPlayer);
+                        }
                       },
                       child: PlayerComponentV2(playerModel: player));
                 }),

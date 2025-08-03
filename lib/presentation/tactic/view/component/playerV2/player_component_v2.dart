@@ -154,7 +154,24 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
                 textAlign: TextAlign.center,
               ),
             ),
-          if (widget.playerModel.jerseyNumber > 0 && !isDragging)
+          // if (widget.playerModel.jerseyNumber > 0 && !isDragging)
+          //   Positioned(
+          //     top: -10,
+          //     right: -10,
+          //     child: Container(
+          //       padding:
+          //           const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
+          //       child: Text(
+          //         "${widget.playerModel.jerseyNumber}",
+          //         style: indexTextStyle,
+          //       ),
+          //     ),
+          //   ),
+
+          if ((widget.playerModel.displayNumber ??
+                      widget.playerModel.jerseyNumber) >
+                  0 &&
+              !isDragging)
             Positioned(
               top: -10,
               right: -10,
@@ -162,7 +179,8 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
                 child: Text(
-                  "${widget.playerModel.jerseyNumber}",
+                  // Prioritize displayNumber, fall back to jerseyNumber
+                  "${widget.playerModel.displayNumber ?? widget.playerModel.jerseyNumber}",
                   style: indexTextStyle,
                 ),
               ),
