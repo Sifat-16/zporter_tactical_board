@@ -14,7 +14,7 @@ class ConnectivityService {
 
   // --- Static Variables ---
   static StreamSubscription<List<ConnectivityResult>>?
-  _connectivitySubscription;
+      _connectivitySubscription;
   // Store the previous result to detect changes, initialize assuming offline
   static List<ConnectivityResult> _previousResult = [ConnectivityResult.none];
   // Optional: Reference to logger instance from GetIt
@@ -51,41 +51,87 @@ class ConnectivityService {
   }
 
   /// Processes connectivity status changes and shows appropriate toasts.
+  // static void _updateStatus(
+  //   List<ConnectivityResult> result, {
+  //   bool isInitialCheck = false,
+  // }) {
+  //   // Determine current online/offline status
+  //   bool currentlyOnline = !result.contains(ConnectivityResult.none);
+  //   bool previouslyOnline = !_previousResult.contains(ConnectivityResult.none);
+  //
+  //   // Only show toasts on actual state change
+  //   if (!isInitialCheck && currentlyOnline != previouslyOnline) {
+  //     if (currentlyOnline) {
+  //       zlog(data: "Status Change: Offline -> Online");
+  //       BotToast.showText(
+  //         text: "Network established, back to online mode",
+  //         contentColor: Colors.green.shade700,
+  //         textStyle: const TextStyle(color: Colors.white),
+  //         duration: const Duration(seconds: 3),
+  //         // Other BotToast customization options...
+  //       );
+  //     } else {
+  //       zlog(data: "Status Change: Online -> Offline");
+  //       BotToast.showText(
+  //         text: "Network error, back to offline mode",
+  //         contentColor: Colors.red.shade700,
+  //         textStyle: const TextStyle(color: Colors.white),
+  //         duration: const Duration(seconds: 3),
+  //         // Other BotToast customization options...
+  //       );
+  //     }
+  //   } else if (isInitialCheck) {
+  //     // Log initial status
+  //     if (!currentlyOnline) {
+  //       zlog(data: "Initial Status: Offline");
+  //       // Optional: Show initial offline toast if desired
+  //       // BotToast.showText(text: "App started in offline mode", ...);
+  //     } else {
+  //       zlog(data: "Initial Status: Online");
+  //     }
+  //   }
+  //
+  //   // Update the previous state for the next comparison
+  //   _previousResult = result;
+  // }
+
+  // THE CORRECTED CODE
+
   static void _updateStatus(
     List<ConnectivityResult> result, {
     bool isInitialCheck = false,
   }) {
-    // Determine current online/offline status
     bool currentlyOnline = !result.contains(ConnectivityResult.none);
     bool previouslyOnline = !_previousResult.contains(ConnectivityResult.none);
 
-    // Only show toasts on actual state change
-    if (!isInitialCheck && currentlyOnline != previouslyOnline) {
-      if (currentlyOnline) {
-        zlog(data: "Status Change: Offline -> Online");
-        BotToast.showText(
-          text: "Network established, back to online mode",
-          contentColor: Colors.green.shade700,
-          textStyle: const TextStyle(color: Colors.white),
-          duration: const Duration(seconds: 3),
-          // Other BotToast customization options...
-        );
-      } else {
-        zlog(data: "Status Change: Online -> Offline");
-        BotToast.showText(
-          text: "Network error, back to offline mode",
-          contentColor: Colors.red.shade700,
-          textStyle: const TextStyle(color: Colors.white),
-          duration: const Duration(seconds: 3),
-          // Other BotToast customization options...
-        );
+    // --- THE FIX IS HERE ---
+    // We wrap the UI-displaying code in a post-frame callback.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!isInitialCheck && currentlyOnline != previouslyOnline) {
+        if (currentlyOnline) {
+          zlog(data: "Status Change: Offline -> Online");
+          BotToast.showText(
+            text: "Network established, back to online mode",
+            contentColor: Colors.green.shade700,
+            textStyle: const TextStyle(color: Colors.white),
+            duration: const Duration(seconds: 3),
+          );
+        } else {
+          zlog(data: "Status Change: Online -> Offline");
+          BotToast.showText(
+            text: "Network error, back to offline mode",
+            contentColor: Colors.red.shade700,
+            textStyle: const TextStyle(color: Colors.white),
+            duration: const Duration(seconds: 3),
+          );
+        }
       }
-    } else if (isInitialCheck) {
-      // Log initial status
+    });
+
+    if (isInitialCheck) {
+      // Log initial status without showing a toast
       if (!currentlyOnline) {
         zlog(data: "Initial Status: Offline");
-        // Optional: Show initial offline toast if desired
-        // BotToast.showText(text: "App started in offline mode", ...);
       } else {
         zlog(data: "Initial Status: Online");
       }
