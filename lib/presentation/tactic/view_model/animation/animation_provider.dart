@@ -768,7 +768,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         animationItems: defaultAnimations,
         userId: _getUserId(),
       );
-      _saveDefaultAnimationUseCase.call(defaultAnimationParam);
+      await _saveDefaultAnimationUseCase.call(defaultAnimationParam);
 
       state = state.copyWith(selectedScene: changeModel);
       return changeModel;
