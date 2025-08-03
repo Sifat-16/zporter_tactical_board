@@ -1374,6 +1374,40 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
   }
 
+  // Future<void> deleteCollection(
+  //     {required AnimationCollectionModel collectionToDelete}) async {
+  //   // Prevent deleting the default "Other" collection
+  //   if (collectionToDelete.id ==
+  //       DefaultAnimationConstants.default_animation_collection_id) {
+  //     BotToast.showText(text: "The default collection cannot be deleted.");
+  //     return;
+  //   }
+  //
+  //   showZLoader();
+  //   try {
+  //     await _deleteAnimationCollectionUseCase.call(collectionToDelete.id);
+  //
+  //     // Create a new list without the deleted collection
+  //     final currentCollections = state.animationCollections;
+  //     currentCollections.removeWhere((c) => c.id == collectionToDelete.id);
+  //
+  //     // If the deleted collection was the selected one, select the first available collection
+  //     if (state.selectedAnimationCollectionModel?.id == collectionToDelete.id) {
+  //       selectAnimationCollection(currentCollections.firstOrNull);
+  //     } else {
+  //       // Otherwise, just update the list but keep the current selection
+  //       state = state.copyWith(animationCollections: currentCollections);
+  //     }
+  //   } catch (e) {
+  //     zlog(data: "Failed to delete collection: $e");
+  //     BotToast.showText(text: "Error deleting collection.");
+  //   } finally {
+  //     BotToast.cleanAll();
+  //   }
+  // }
+
+  // AnimationController - The Corrected Method
+
   Future<void> deleteCollection(
       {required AnimationCollectionModel collectionToDelete}) async {
     // Prevent deleting the default "Other" collection
@@ -1385,19 +1419,31 @@ class AnimationController extends StateNotifier<AnimationState> {
 
     showZLoader();
     try {
+      // 1. Perform the deletion operation first.
       await _deleteAnimationCollectionUseCase.call(collectionToDelete.id);
 
-      // Create a new list without the deleted collection
-      final currentCollections = state.animationCollections;
-      currentCollections.removeWhere((c) => c.id == collectionToDelete.id);
+      // 2. Create a NEW list without the deleted item (IMMUTABILITY).
+      final updatedCollections = state.animationCollections
+          .where((c) => c.id != collectionToDelete.id)
+          .toList();
 
-      // If the deleted collection was the selected one, select the first available collection
+      // 3. Determine the new collection to select.
+      AnimationCollectionModel? newSelectedCollection;
       if (state.selectedAnimationCollectionModel?.id == collectionToDelete.id) {
-        selectAnimationCollection(currentCollections.firstOrNull);
+        // If the deleted one was selected, select the first of the remaining, or null.
+        newSelectedCollection = updatedCollections.firstOrNull;
       } else {
-        // Otherwise, just update the list but keep the current selection
-        state = state.copyWith(animationCollections: currentCollections);
+        // Otherwise, keep the current selection.
+        newSelectedCollection = state.selectedAnimationCollectionModel;
       }
+
+      // 4. Update the entire state in one atomic operation.
+      // Call selectAnimationCollection to handle derived state (animations, scenes).
+      selectAnimationCollection(newSelectedCollection);
+
+      // Then, explicitly update the master list of collections as well.
+      // This ensures all parts of the state are consistent.
+      state = state.copyWith(animationCollections: updatedCollections);
     } catch (e) {
       zlog(data: "Failed to delete collection: $e");
       BotToast.showText(text: "Error deleting collection.");

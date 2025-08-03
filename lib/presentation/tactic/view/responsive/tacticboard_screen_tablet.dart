@@ -187,6 +187,12 @@ class _TacticboardScreenTabletState
       );
     }
 
+    if (selectedScene == null) {
+      return Center(
+          child:
+              Text("No scene selected", style: TextStyle(color: Colors.white)));
+    }
+
     Widget screenContent;
 
     if (bp.showFullScreen) {
