@@ -10,10 +10,14 @@ class TacticboardScreen extends ResponsiveScreen {
     super.key,
     required this.userId,
     this.onFullScreenChanged,
+    this.collectionId,
+    this.animationId,
   });
 
   final String userId;
   final ValueChanged<bool>? onFullScreenChanged;
+  final String? collectionId;
+  final String? animationId;
 
   @override
   Widget buildDesktop(BuildContext context) {
@@ -23,7 +27,11 @@ class TacticboardScreen extends ResponsiveScreen {
         WidgetsBinding.instance.addPostFrameCallback((t) {
           onFullScreenChanged?.call(bp.showFullScreen);
         });
-        return TacticboardScreenTablet(userId: userId);
+        return TacticboardScreenTablet(
+          userId: userId,
+          collectionId: collectionId,
+          animationId: animationId,
+        );
       },
     );
   }
@@ -36,7 +44,11 @@ class TacticboardScreen extends ResponsiveScreen {
         WidgetsBinding.instance.addPostFrameCallback((t) {
           onFullScreenChanged?.call(bp.showFullScreen);
         });
-        return TacticboardScreenTablet(userId: userId);
+        return TacticboardScreenTablet(
+          userId: userId,
+          collectionId: collectionId,
+          animationId: animationId,
+        );
       },
     );
   }
@@ -49,7 +61,11 @@ class TacticboardScreen extends ResponsiveScreen {
         WidgetsBinding.instance.addPostFrameCallback((t) {
           onFullScreenChanged?.call(bp.showFullScreen);
         });
-        return TacticboardScreenTablet(userId: userId);
+        return TacticboardScreenTablet(
+          userId: userId,
+          collectionId: collectionId,
+          animationId: animationId,
+        );
       },
     );
   }
@@ -63,6 +79,7 @@ class _TacticboardScreenState extends ResponsiveScreenState<TacticboardScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((t) {
       ref.read(authProvider.notifier).initiateUser(widget.userId);
     });
