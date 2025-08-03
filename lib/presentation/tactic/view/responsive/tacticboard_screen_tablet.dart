@@ -6,6 +6,7 @@ import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/component/zporter_logo_launcher.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
+import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -23,8 +24,15 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 class TacticboardScreenTablet extends ConsumerStatefulWidget {
-  const TacticboardScreenTablet({super.key, required this.userId});
+  const TacticboardScreenTablet({
+    super.key,
+    required this.userId,
+    this.collectionId,
+    this.animationId,
+  });
   final String userId;
+  final String? collectionId;
+  final String? animationId;
 
   @override
   ConsumerState<TacticboardScreenTablet> createState() =>
@@ -95,13 +103,56 @@ class _TacticboardScreenTabletState
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        await ref.read(animationProvider.notifier).getAllCollections();
-        await ref.read(animationProvider.notifier).configureDefaultAnimations();
-      } catch (e, s) {
-        zlog(data: "Error during initial data load or tutorial setup: $e \n$s");
-      }
+      // try {
+      //   await ref.read(animationProvider.notifier).getAllCollections();
+      //   await ref.read(animationProvider.notifier).configureDefaultAnimations();
+      // } catch (e, s) {
+      //   zlog(data: "Error during initial data load or tutorial setup: $e \n$s");
+      // }
+      _initialLoadAndSelect();
     });
+  }
+
+  Future<void> _initialLoadAndSelect() async {
+    try {
+      // 1. Fetch all collections and animations for the user first.
+      await ref.read(animationProvider.notifier).getAllCollections();
+
+      // After fetching, the state is now populated. Get the list of collections.
+      final collections = ref.read(animationProvider).animationCollections;
+
+      // 2. Check if a specific collectionId was passed from the URL.
+      if (widget.collectionId != null && collections.isNotEmpty) {
+        // Find the collection that matches the provided ID.
+        final targetCollection = collections.firstWhere(
+          (c) => c.id == widget.collectionId,
+          orElse: () => collections.first, // Fallback to the first collection
+        );
+
+        AnimationModel? targetAnimation;
+        // 3. If a collection was found, check for a specific animationId.
+        if (widget.animationId != null &&
+            targetCollection.animations.isNotEmpty) {
+          targetAnimation = targetCollection.animations
+              .firstWhereOrNull((a) => a.id == widget.animationId);
+        }
+
+        // 4. Select the found collection and/or animation.
+        // Your existing method already handles selecting both at once.
+        ref.read(animationProvider.notifier).selectAnimationCollection(
+              targetCollection,
+              animationSelect: targetAnimation,
+            );
+        return; // Exit after successful selection.
+      }
+
+      // 5. If no specific IDs were passed or found, run the default startup.
+      await ref.read(animationProvider.notifier).configureDefaultAnimations();
+    } catch (e, s) {
+      zlog(data: "Error during initial load and select: $e \n$s");
+      // Fallback to default animations in case of any error.
+      await ref.read(animationProvider.notifier).configureDefaultAnimations();
+    }
   }
 
   @override
