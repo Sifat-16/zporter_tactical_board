@@ -207,158 +207,6 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         const SizedBox(height: 10),
         CustomButton(
           borderRadius: 3,
-          // onTap: () {
-          //   final TacticBoard? tacticBoard =
-          //       boardState.tacticBoardGame as TacticBoard?;
-          //   final AnimationItemModel? scene = selectedLineUp?.scene;
-          //
-          //   if (scene == null || tacticBoard == null) {
-          //     BotToast.showText(text: "Please select a lineup first.");
-          //     return;
-          //   }
-          //
-          //   // =================================================================== //
-          //   // START: NEW "PLAYER-FIRST" LINEUP LOGIC (AWAY)                     //
-          //   // =================================================================== //
-          //   zlog(
-          //       data:
-          //           "Applying new AWAY formation with a 'Player-First' strategy.");
-          //
-          //   // --- 1. GATHER ACTORS ---
-          //   // The definitive list of AWAY players currently ON THE FIELD.
-          //   final List<PlayerModel> currentPlayersOnField = boardState.players
-          //       .where((p) => p.playerType == PlayerType.AWAY)
-          //       .toList();
-          //
-          //   // The definitive list of AWAY players currently ON THE BENCH.
-          //   final List<PlayerModel> currentPlayersOnBench = benchPlayers;
-          //
-          //   zlog(
-          //       data:
-          //           "Away Field: ${currentPlayersOnField.length}, Bench: ${currentPlayersOnBench.length}");
-          //
-          //   // --- 2. GENERATE MIRRORED AWAY POSITIONS FROM HOME TEMPLATE ---
-          //   // Formation templates are always stored from the Home perspective.
-          //   // We must mirror the positions for the Away team.
-          //   final List<PlayerModel> homeTemplatePositions =
-          //       scene.components.whereType<PlayerModel>().toList();
-          //
-          //   final List<PlayerModel> targetPositions =
-          //       homeTemplatePositions.map((homePlayer) {
-          //     // This is your existing, correct mirroring logic.
-          //     Vector2 mirroredOffset = Vector2(
-          //       1 -
-          //           ((homePlayer.offset?.x ?? 0) -
-          //               (SizeHelper.getBoardRelativeVector(
-          //                     gameScreenSize: tacticBoard.gameField.size,
-          //                     actualPosition: homePlayer.size ?? Vector2.zero(),
-          //                   ).x *
-          //                   1.25 /
-          //                   2)),
-          //       1 -
-          //           ((homePlayer.offset?.y ?? 0) -
-          //               (SizeHelper.getBoardRelativeVector(
-          //                     gameScreenSize: tacticBoard.gameField.size,
-          //                     actualPosition: homePlayer.size ?? Vector2.zero(),
-          //                   ).y /
-          //                   2)),
-          //     );
-          //     // Return a new PlayerModel representing the mirrored position.
-          //     return homePlayer.copyWith(
-          //         offset: mirroredOffset, playerType: PlayerType.AWAY);
-          //   }).toList();
-          //
-          //   zlog(data: "Target Away Positions: ${targetPositions.length}");
-          //
-          //   // This will hold our final calculated lineup.
-          //   final List<PlayerModel> finalLineup = [];
-          //
-          //   // Create mutable lists that we can remove items from as we assign them.
-          //   List<PlayerModel> playersToAssign =
-          //       List.from(currentPlayersOnField);
-          //   List<PlayerModel> unfilledPositions = List.from(targetPositions);
-          //
-          //   // --- 3. PASS 1: ASSIGN FIELD PLAYERS WITH PERFECT ROLE MATCHES ---
-          //   List<PlayerModel> remainingFieldPlayers = [];
-          //   for (final player in playersToAssign) {
-          //     final positionIndex = unfilledPositions
-          //         .indexWhere((pos) => pos.role == player.role);
-          //
-          //     if (positionIndex != -1) {
-          //       final position = unfilledPositions.removeAt(positionIndex);
-          //       finalLineup.add(player.copyWith(offset: position.offset));
-          //     } else {
-          //       remainingFieldPlayers.add(player);
-          //     }
-          //   }
-          //   zlog(
-          //       data:
-          //           "Pass 1 (Away Role Match): Assigned ${finalLineup.length} players. ${remainingFieldPlayers.length} field players remain.");
-          //
-          //   // --- 4. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
-          //   // Ensures the same XI players stay on the field.
-          //   while (remainingFieldPlayers.isNotEmpty &&
-          //       unfilledPositions.isNotEmpty) {
-          //     final player = remainingFieldPlayers.removeAt(0);
-          //     final position = unfilledPositions.removeAt(0);
-          //     finalLineup.add(player.copyWith(offset: position.offset));
-          //   }
-          //   zlog(
-          //       data:
-          //           "Pass 2 (Away Fill Field): Assigned remaining field players. Total on field: ${finalLineup.length}.");
-          //
-          //   // --- 5. PASS 3: HANDLE PLAYER COUNT MISMATCHES ---
-          //   // Case A: New formation needs MORE players.
-          //   if (unfilledPositions.isNotEmpty) {
-          //     zlog(
-          //         data:
-          //             "Away formation requires ${unfilledPositions.length} more players. Filling from bench.");
-          //     List<PlayerModel> benchCandidates =
-          //         List.from(currentPlayersOnBench);
-          //
-          //     while (
-          //         benchCandidates.isNotEmpty && unfilledPositions.isNotEmpty) {
-          //       final player = benchCandidates.removeAt(0);
-          //       final position = unfilledPositions.removeAt(0);
-          //       finalLineup.add(player.copyWith(offset: position.offset));
-          //     }
-          //   }
-          //   // Case B: New formation needs FEWER players is handled implicitly.
-          //
-          //   // --- 6. APPLY THE CHANGES TO THE TACTICAL BOARD (ATOMIC UPDATE) ---
-          //   final Set<String> finalPlayerIds =
-          //       finalLineup.map((p) => p.id).toSet();
-          //
-          //   // Find players to remove: those on the field now but NOT in the final lineup.
-          //   final List<PlayerModel> playersToRemove = currentPlayersOnField
-          //       .where((p) => !finalPlayerIds.contains(p.id))
-          //       .toList();
-          //
-          //   if (playersToRemove.isNotEmpty) {
-          //     tacticBoard.removeFieldItems(playersToRemove);
-          //     zlog(
-          //         data:
-          //             "Benched ${playersToRemove.length} away players: ${playersToRemove.map((p) => p.jerseyNumber).join(', ')}");
-          //   }
-          //
-          //   // Add or Update players in the final lineup.
-          //   for (final playerState in finalLineup) {
-          //     tacticBoard.removeFieldItems(
-          //         [playerState]); // Removes by ID if it exists
-          //     tacticBoard.addItem(
-          //         playerState); // Adds the updated player with new offset
-          //   }
-          //
-          //   zlog(
-          //       data:
-          //           "Away board update complete. ${finalLineup.length} players are on the field.");
-          //   // =================================================================== //
-          //   // END: NEW "PLAYER-FIRST" LINEUP LOGIC (AWAY)                       //
-          //   // =================================================================== //
-          // },
-
-          // The FULL and CORRECTED onTap handler for PlayersToolbarAway
-
           onTap: () {
             final TacticBoard? tacticBoard =
                 boardState.tacticBoardGame as TacticBoard?;
@@ -369,14 +217,20 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
               return;
             }
 
+            // =================================================================== //
+            // START: NEW "PLAYER-FIRST" LINEUP LOGIC (AWAY)                     //
+            // =================================================================== //
             zlog(
                 data:
                     "Applying new AWAY formation with a 'Player-First' strategy.");
 
             // --- 1. GATHER ACTORS ---
+            // The definitive list of AWAY players currently ON THE FIELD.
             final List<PlayerModel> currentPlayersOnField = boardState.players
                 .where((p) => p.playerType == PlayerType.AWAY)
                 .toList();
+
+            // The definitive list of AWAY players currently ON THE BENCH.
             final List<PlayerModel> currentPlayersOnBench = benchPlayers;
 
             zlog(
@@ -384,11 +238,14 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                     "Away Field: ${currentPlayersOnField.length}, Bench: ${currentPlayersOnBench.length}");
 
             // --- 2. GENERATE MIRRORED AWAY POSITIONS FROM HOME TEMPLATE ---
+            // Formation templates are always stored from the Home perspective.
+            // We must mirror the positions for the Away team.
             final List<PlayerModel> homeTemplatePositions =
                 scene.components.whereType<PlayerModel>().toList();
 
             final List<PlayerModel> targetPositions =
                 homeTemplatePositions.map((homePlayer) {
+              // This is your existing, correct mirroring logic.
               Vector2 mirroredOffset = Vector2(
                 1 -
                     ((homePlayer.offset?.x ?? 0) -
@@ -406,22 +263,20 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                             ).y /
                             2)),
               );
+              // Return a new PlayerModel representing the mirrored position.
               return homePlayer.copyWith(
                   offset: mirroredOffset, playerType: PlayerType.AWAY);
             }).toList();
 
             zlog(data: "Target Away Positions: ${targetPositions.length}");
 
+            // This will hold our final calculated lineup.
             final List<PlayerModel> finalLineup = [];
 
+            // Create mutable lists that we can remove items from as we assign them.
             List<PlayerModel> playersToAssign =
                 List.from(currentPlayersOnField);
             List<PlayerModel> unfilledPositions = List.from(targetPositions);
-
-            // --- THE FIX: Sort both lists to ensure a predictable order ---
-            playersToAssign.sort((a, b) => a.role.compareTo(b.role));
-            unfilledPositions.sort((a, b) => a.role.compareTo(b.role));
-            // --- END OF FIX ---
 
             // --- 3. PASS 1: ASSIGN FIELD PLAYERS WITH PERFECT ROLE MATCHES ---
             List<PlayerModel> remainingFieldPlayers = [];
@@ -441,6 +296,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                     "Pass 1 (Away Role Match): Assigned ${finalLineup.length} players. ${remainingFieldPlayers.length} field players remain.");
 
             // --- 4. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
+            // Ensures the same XI players stay on the field.
             while (remainingFieldPlayers.isNotEmpty &&
                 unfilledPositions.isNotEmpty) {
               final player = remainingFieldPlayers.removeAt(0);
@@ -452,6 +308,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                     "Pass 2 (Away Fill Field): Assigned remaining field players. Total on field: ${finalLineup.length}.");
 
             // --- 5. PASS 3: HANDLE PLAYER COUNT MISMATCHES ---
+            // Case A: New formation needs MORE players.
             if (unfilledPositions.isNotEmpty) {
               zlog(
                   data:
@@ -466,11 +323,13 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                 finalLineup.add(player.copyWith(offset: position.offset));
               }
             }
+            // Case B: New formation needs FEWER players is handled implicitly.
 
             // --- 6. APPLY THE CHANGES TO THE TACTICAL BOARD (ATOMIC UPDATE) ---
             final Set<String> finalPlayerIds =
                 finalLineup.map((p) => p.id).toSet();
 
+            // Find players to remove: those on the field now but NOT in the final lineup.
             final List<PlayerModel> playersToRemove = currentPlayersOnField
                 .where((p) => !finalPlayerIds.contains(p.id))
                 .toList();
@@ -482,14 +341,20 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                       "Benched ${playersToRemove.length} away players: ${playersToRemove.map((p) => p.jerseyNumber).join(', ')}");
             }
 
+            // Add or Update players in the final lineup.
             for (final playerState in finalLineup) {
-              tacticBoard.removeFieldItems([playerState]);
-              tacticBoard.addItem(playerState);
+              tacticBoard.removeFieldItems(
+                  [playerState]); // Removes by ID if it exists
+              tacticBoard.addItem(
+                  playerState); // Adds the updated player with new offset
             }
 
             zlog(
                 data:
                     "Away board update complete. ${finalLineup.length} players are on the field.");
+            // =================================================================== //
+            // END: NEW "PLAYER-FIRST" LINEUP LOGIC (AWAY)                       //
+            // =================================================================== //
           },
           fillColor: ColorManager.blue,
           child: Text(
