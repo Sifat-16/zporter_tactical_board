@@ -12,6 +12,7 @@ import 'package:zporter_tactical_board/data/admin/model/default_lineup_model.dar
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/lineup_view_model/lineup_controller.dart';
+import 'package:zporter_tactical_board/presentation/tactic/services/lineup_arrangement_service.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 // --- NOTE: LineupArrangementDialog is no longer imported as it's not used here.
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
@@ -223,101 +224,23 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
               return;
             }
 
-            // =================================================================== //
-            // START: NEW "PLAYER-FIRST" LINEUP LOGIC (HOME)                     //
-            // =================================================================== //
-            zlog(
-                data: "Applying new formation with a 'Player-First' strategy.");
+            // --- 1. GATHER DATA & CREATE INPUT ---
+            final input = LineupArrangementInput(
+              currentPlayersOnField: playersOnField,
+              currentPlayersOnBench: benchPlayers,
+              targetFormationTemplate: scene,
+            );
 
-            // --- 1. GATHER ACTORS ---
-            // The definitive list of players currently ON THE FIELD. THIS IS OUR SOURCE OF TRUTH.
-            final List<PlayerModel> currentPlayersOnField = boardState.players
-                .where((p) => p.playerType == PlayerType.HOME)
-                .toList();
+            // --- 2. CREATE AND CALL THE SERVICE ---
+            final arranger = LineupArrangementService();
+            final result = arranger.arrange(input);
 
-            // The definitive list of players currently ON THE BENCH.
-            final List<PlayerModel> currentPlayersOnBench = benchPlayers;
-
-            // The list of POSITIONS (with roles) required by the new formation.
-            final List<PlayerModel> targetPositions =
-                scene.components.whereType<PlayerModel>().toList();
-
-            zlog(
-                data:
-                    "Field: ${currentPlayersOnField.length}, Bench: ${currentPlayersOnBench.length}, Target: ${targetPositions.length}");
-
-            // This will hold our final calculated lineup.
-            final List<PlayerModel> finalLineup = [];
-
-            // Create mutable lists that we can remove items from as we assign them.
-            List<PlayerModel> playersToAssign =
-                List.from(currentPlayersOnField);
-            List<PlayerModel> unfilledPositions = List.from(targetPositions);
-
-            // --- 2. PASS 1: ASSIGN FIELD PLAYERS WITH PERFECT ROLE MATCHES ---
-            // Prioritize keeping players in their preferred roles.
-            List<PlayerModel> remainingFieldPlayers = [];
-            for (final player in playersToAssign) {
-              final positionIndex = unfilledPositions
-                  .indexWhere((pos) => pos.role == player.role);
-
-              if (positionIndex != -1) {
-                // Found a perfect match. Assign the player to this position.
-                final position = unfilledPositions.removeAt(positionIndex);
-                finalLineup.add(player.copyWith(offset: position.offset));
-              } else {
-                // This player is on the field, but their role doesn't exist in the new formation.
-                // Keep them aside for the next pass.
-                remainingFieldPlayers.add(player);
-              }
-            }
-            zlog(
-                data:
-                    "Pass 1 (Role Match): Assigned ${finalLineup.length} players. ${remainingFieldPlayers.length} field players remain.");
-
-            // --- 3. PASS 2: FILL REMAINING POSITIONS WITH REMAINING FIELD PLAYERS ---
-            // This is the CRITICAL step. It ensures the same XI players stay on the field,
-            // even if they have to play out of their 'natural' position.
-            while (remainingFieldPlayers.isNotEmpty &&
-                unfilledPositions.isNotEmpty) {
-              final player = remainingFieldPlayers.removeAt(0);
-              final position = unfilledPositions.removeAt(0);
-              finalLineup.add(player.copyWith(offset: position.offset));
-            }
-            zlog(
-                data:
-                    "Pass 2 (Fill Field): Assigned remaining field players. Total on field: ${finalLineup.length}.");
-
-            // --- 4. PASS 3: HANDLE PLAYER COUNT MISMATCHES ---
-            // Case A: New formation needs MORE players (e.g., switching from 10 to 11 men).
-            if (unfilledPositions.isNotEmpty) {
-              zlog(
-                  data:
-                      "New formation requires ${unfilledPositions.length} more players. Filling from bench.");
-              List<PlayerModel> benchCandidates =
-                  List.from(currentPlayersOnBench);
-
-              // (Optional but good): Prioritize bench players by role match as well.
-              benchCandidates.sort((a, b) => a.role.compareTo(b.role));
-              unfilledPositions.sort((a, b) => a.role.compareTo(b.role));
-
-              while (
-                  benchCandidates.isNotEmpty && unfilledPositions.isNotEmpty) {
-                final player = benchCandidates.removeAt(0);
-                final position = unfilledPositions.removeAt(0);
-                finalLineup.add(player.copyWith(offset: position.offset));
-              }
-            }
-            // Case B: New formation needs FEWER players. The players left in `remainingFieldPlayers` are implicitly benched.
-            // No extra code is needed for this case. They simply won't be in the `finalLineup`.
-
-            // --- 5. APPLY THE CHANGES TO THE TACTICAL BOARD (ATOMIC UPDATE) ---
-            // This is much safer than clearing the board and re-adding.
+            // --- 3. APPLY THE CLEAN RESULT TO THE BOARD (ATOMIC UPDATE) ---
             final Set<String> finalPlayerIds =
-                finalLineup.map((p) => p.id).toSet();
+                result.finalLineup.map((p) => p.id).toSet();
 
             // Find players to remove: those on the field now but NOT in the final lineup.
-            final List<PlayerModel> playersToRemove = currentPlayersOnField
+            final List<PlayerModel> playersToRemove = playersOnField
                 .where((p) => !finalPlayerIds.contains(p.id))
                 .toList();
 
@@ -329,20 +252,14 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
             }
 
             // Add or Update players in the final lineup.
-            for (final playerState in finalLineup) {
-              // TacticBoard should be smart enough to either move an existing component or add a new one.
-              // A safe implementation is to remove any existing version first, then add the new state.
+            for (final playerState in result.finalLineup) {
               tacticBoard.removeFieldItems([playerState]); // Removes by ID
-              tacticBoard.addItem(
-                  playerState); // Adds the updated player with new offset
+              tacticBoard.addItem(playerState); // Adds the updated player
             }
 
             zlog(
                 data:
-                    "Board update complete. ${finalLineup.length} players are on the field.");
-            // =================================================================== //
-            // END: NEW "PLAYER-FIRST" LINEUP LOGIC (HOME)                       //
-            // =================================================================== //
+                    "Board update complete via LineupArrangementService. ${result.finalLineup.length} players are on the field.");
           },
           fillColor: ColorManager.blue,
           child: Text(
