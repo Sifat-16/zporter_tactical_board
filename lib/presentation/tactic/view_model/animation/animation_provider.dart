@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/animation_copy_dialog.dart';
@@ -896,28 +897,70 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void performUndoOperation() async {
-    AnimationItemModel? selectedScene = state.selectedScene;
+    final AnimationItemModel? currentScene = state.selectedScene;
+    if (currentScene == null) return; // Guard clause
+
+    // --- FIX: Store the ID before any potential nulling ---
+    final String sceneId = currentScene.id;
+
     try {
-      HistoryModel? history = await _getHistoryUseCase.call(selectedScene!.id);
-      zlog(
-        data:
-            "Last animation offsets ${history?.history.map((e) => e.components.map((c) => c.offset))}",
-      );
-      if (history == null) return;
-      List<AnimationItemModel> historyList = history.history;
-      historyList.removeLast();
-      AnimationItemModel? lastAnimation = historyList.lastOrNull;
-      history.history = historyList;
-
-      _saveHistoryUseCase.call(history);
-
       state = state.copyWith(
-        selectedScene: lastAnimation,
-        isPerformingUndo: true,
-      );
-    } catch (e) {}
+          isPerformingUndo: true); // Set undo flag immediately for UI feedback
 
-    zlog(data: "Undo operation called ${selectedScene?.id}");
+      HistoryModel? history = await _getHistoryUseCase.call(sceneId);
+      zlog(
+        data: "History found for undo: ${history?.history.length ?? 0} items.",
+      );
+
+      if (history == null || history.history.isEmpty) {
+        // No history to undo from, just toggle the flag off.
+        toggleUndo(undo: false);
+        return;
+      }
+
+      List<AnimationItemModel> historyList =
+          List.from(history.history); // Make a mutable copy
+
+      // Remove the current state from the history
+      if (historyList.isNotEmpty) {
+        historyList.removeLast();
+      }
+
+      // --- THE FIX ---
+      // Determine the state to revert to. If history is now empty,
+      // create a new blank scene. Otherwise, use the last item in history.
+      AnimationItemModel? sceneToRestore = historyList.lastOrNull;
+
+      if (sceneToRestore == null) {
+        zlog(
+            data:
+                "History is empty. Reverting to a blank scene with ID: $sceneId");
+        // Create a blank slate but preserve the ID, userId, etc.
+        sceneToRestore = AnimationItemModel.createEmptyAnimationItem(
+          id: sceneId, // CRITICAL: Use the original ID to maintain history link
+          userId: _getUserId(),
+          fieldSize: currentScene.fieldSize,
+          boardBackground: currentScene.boardBackground,
+          fieldColor: currentScene.fieldColor,
+        );
+      } else {
+        zlog(data: "Reverting to previous scene state from history.");
+      }
+
+      // Update the history in the database
+      history.history = historyList;
+      await _saveHistoryUseCase.call(history);
+
+      // Update the app's state with the restored scene
+      state = state.copyWith(
+        selectedScene: sceneToRestore,
+        // The isPerformingUndo flag will be set to false by the board watcher
+      );
+    } catch (e) {
+      zlog(level: Level.error, data: "Error during undo operation: $e");
+      // Ensure the undo flag is turned off in case of an error
+      toggleUndo(undo: false);
+    }
   }
 
   void toggleUndo({required bool undo}) {

@@ -24,78 +24,37 @@ class ConnectivityService {
 
   /// Initializes the connectivity listener.
   /// Checks the initial state and subscribes to future changes.
-  static void initialize() {
+  static Future<void> initialize() async {
+    // <-- Make it async and return Future<void>
     // Prevent multiple initializations
     if (_connectivitySubscription != null) {
       zlog(data: "Connectivity listener already initialized.");
       return;
     }
 
-    // --- Check Initial State ---
-    Connectivity().checkConnectivity().then((
-      List<ConnectivityResult> initialResult,
-    ) {
+    // --- FIX: Await the initial state check FIRST ---
+    try {
+      final List<ConnectivityResult> initialResult =
+          await Connectivity().checkConnectivity();
       zlog(data: 'Initial connectivity status: $initialResult');
       _updateStatus(initialResult, isInitialCheck: true);
-    });
+    } catch (e) {
+      zlog(data: 'Error checking initial connectivity: $e');
+      // Default to offline if check fails
+      _updateStatus([ConnectivityResult.none], isInitialCheck: true);
+    }
 
-    // --- Subscribe to Changes ---
+    // --- THEN, subscribe to changes ---
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       List<ConnectivityResult> result,
     ) {
       zlog(data: 'Connectivity changed: $result');
+      // isInitialCheck is correctly false here by default
       _updateStatus(result);
     });
 
     zlog(data: "Connectivity listener initialized.");
   }
-
-  /// Processes connectivity status changes and shows appropriate toasts.
-  // static void _updateStatus(
-  //   List<ConnectivityResult> result, {
-  //   bool isInitialCheck = false,
-  // }) {
-  //   // Determine current online/offline status
-  //   bool currentlyOnline = !result.contains(ConnectivityResult.none);
-  //   bool previouslyOnline = !_previousResult.contains(ConnectivityResult.none);
-  //
-  //   // Only show toasts on actual state change
-  //   if (!isInitialCheck && currentlyOnline != previouslyOnline) {
-  //     if (currentlyOnline) {
-  //       zlog(data: "Status Change: Offline -> Online");
-  //       BotToast.showText(
-  //         text: "Network established, back to online mode",
-  //         contentColor: Colors.green.shade700,
-  //         textStyle: const TextStyle(color: Colors.white),
-  //         duration: const Duration(seconds: 3),
-  //         // Other BotToast customization options...
-  //       );
-  //     } else {
-  //       zlog(data: "Status Change: Online -> Offline");
-  //       BotToast.showText(
-  //         text: "Network error, back to offline mode",
-  //         contentColor: Colors.red.shade700,
-  //         textStyle: const TextStyle(color: Colors.white),
-  //         duration: const Duration(seconds: 3),
-  //         // Other BotToast customization options...
-  //       );
-  //     }
-  //   } else if (isInitialCheck) {
-  //     // Log initial status
-  //     if (!currentlyOnline) {
-  //       zlog(data: "Initial Status: Offline");
-  //       // Optional: Show initial offline toast if desired
-  //       // BotToast.showText(text: "App started in offline mode", ...);
-  //     } else {
-  //       zlog(data: "Initial Status: Online");
-  //     }
-  //   }
-  //
-  //   // Update the previous state for the next comparison
-  //   _previousResult = result;
-  // }
-
-  // THE CORRECTED CODE
 
   static void _updateStatus(
     List<ConnectivityResult> result, {

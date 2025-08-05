@@ -471,14 +471,40 @@ class _FormSpeedDialComponentState
                   ),
                 const SizedBox(width: 15),
                 if (config.showUndoButton && selectedScene != null)
+                  // StreamBuilder(
+                  //   stream: _historyStream.call(selectedScene.id),
+                  //   builder: (context, snapshot) {
+                  //     HistoryModel? history = snapshot.data;
+                  //
+                  //     if (history == null) {
+                  //       return SizedBox.shrink();
+                  //     } else {
+                  //       return GestureDetector(
+                  //         onTap: () {
+                  //           ref
+                  //               .read(animationProvider.notifier)
+                  //               .performUndoOperation();
+                  //         },
+                  //         child: Icon(
+                  //           FontAwesomeIcons.arrowRotateLeft,
+                  //           color: ColorManager.white,
+                  //         ),
+                  //       );
+                  //     }
+                  //   },
+                  // ),
                   StreamBuilder(
                     stream: _historyStream.call(selectedScene.id),
                     builder: (context, snapshot) {
                       HistoryModel? history = snapshot.data;
 
-                      if (history == null) {
-                        return SizedBox.shrink();
-                      } else {
+                      // --- NEW, CORRECTED LOGIC ---
+                      // The button should only be visible if the history object exists
+                      // AND its list of states is NOT empty.
+                      final bool canUndo =
+                          history != null && history.history.isNotEmpty;
+
+                      if (canUndo) {
                         return GestureDetector(
                           onTap: () {
                             ref
@@ -490,6 +516,9 @@ class _FormSpeedDialComponentState
                             color: ColorManager.white,
                           ),
                         );
+                      } else {
+                        // If there's no history or the history is empty, show nothing.
+                        return const SizedBox.shrink();
                       }
                     },
                   ),

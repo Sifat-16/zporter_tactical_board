@@ -63,7 +63,7 @@ Future<void> initializeTacticBoardDependencies() async {
   };
   sl.registerLazySingleton<Logger>(() => Logger());
 
-  ConnectivityService.initialize();
+  await ConnectivityService.initialize();
 
   // sl.registerLazySingletonAsync<MongoDB>(() async {
   //   final mongoDB = MongoDB();
