@@ -1,19 +1,46 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 
 // Adjust these imports to match your project's file structure
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart';
-import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_viewer_screen.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/rich_text_tutorial_viewer_screen.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_state.dart';
+
+// The YoutubeVideoEmbedBuilder for the rich text body remains the same.
+class YoutubeVideoEmbedBuilder extends EmbedBuilder {
+  @override
+  String get key => 'video';
+
+  @override
+  Widget build(
+    BuildContext context,
+    EmbedContext embedContext,
+  ) {
+    final videoUrl = embedContext.node.value.data as String;
+    final videoId = YoutubePlayer.convertUrlToId(videoUrl);
+    if (videoId == null) return const SizedBox.shrink();
+    final controller = YoutubePlayerController(
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(autoPlay: false),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: YoutubePlayer(controller: controller),
+    );
+  }
+}
 
 class TutorialEditorScreen extends ConsumerStatefulWidget {
   final Tutorial tutorial;
@@ -30,10 +57,13 @@ class TutorialEditorScreen extends ConsumerStatefulWidget {
 
 class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
   late final QuillController _quillController;
+  late List<String> _mediaUrls;
 
   @override
   void initState() {
     super.initState();
+    _mediaUrls = List<String>.from(widget.tutorial.mediaUrls ?? []);
+
     Document document;
     try {
       if (widget.tutorial.contentJson.isNotEmpty) {
@@ -57,11 +87,17 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
     super.dispose();
   }
 
-  void _onSave() {
+  Future<void> _onSave() async {
     final contentJson =
         jsonEncode(_quillController.document.toDelta().toJson());
-    final updatedTutorial = widget.tutorial.copyWith(contentJson: contentJson);
+
+    final updatedTutorial = widget.tutorial.copyWith(
+      contentJson: contentJson,
+      mediaUrls: _mediaUrls,
+    );
+
     ref.read(tutorialsProvider.notifier).updateTutorial(updatedTutorial);
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -72,64 +108,155 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
     }
   }
 
-  /// **NEW**: Shows a preview of the current editor content.
-  void _showPreviewDialog() {
-    // Get the current, unsaved content from the editor.
+  void _showPreview() {
     final currentContentJson =
         jsonEncode(_quillController.document.toDelta().toJson());
+    final previewTutorial = widget.tutorial
+        .copyWith(contentJson: currentContentJson, mediaUrls: _mediaUrls);
 
-    // Create a temporary tutorial object for the preview.
-    final previewTutorial =
-        widget.tutorial.copyWith(contentJson: currentContentJson);
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => RichTextTutorialViewerScreen(tutorial: previewTutorial),
+    ));
+  }
 
-    // Show the viewer dialog with the temporary tutorial data.
-    showDialog(
+  Future<void> _onAddMedia() async {
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => TutorialViewerDialog(tutorial: previewTutorial),
+      backgroundColor: ColorManager.dark2,
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading:
+                    const Icon(Icons.photo_library, color: ColorManager.white),
+                title: const Text('Add Image(s)',
+                    style: TextStyle(color: ColorManager.white)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickAndUploadImages();
+                },
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.video_library, color: ColorManager.white),
+                title: const Text('Add Video File',
+                    style: TextStyle(color: ColorManager.white)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickAndUploadVideo();
+                },
+              ),
+              ListTile(
+                leading:
+                    const FaIcon(FontAwesomeIcons.youtube, color: Colors.red),
+                title: const Text('Add YouTube URL',
+                    style: TextStyle(color: ColorManager.white)),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _addYoutubeUrl();
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Future<String?> _onRequestPickVideo(BuildContext context) async {
+  Future<void> _pickAndUploadImages() async {
     final picker = ImagePicker();
+    final List<XFile> pickedFiles =
+        await picker.pickMultiImage(imageQuality: 70);
 
-    final XFile? videoFile =
-        await picker.pickVideo(source: ImageSource.gallery);
-    if (videoFile == null) return null;
-    try {
-      return await ref
+    if (pickedFiles.isNotEmpty && mounted) {
+      final newUrls = await ref
           .read(tutorialsProvider.notifier)
-          .uploadVideoForTutorial(File(videoFile.path), widget.tutorial.id);
-    } catch (e) {
-      zlog(data: "Error while trying to upload $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading video: $e')),
-        );
-      }
-      return null;
+          .uploadMultipleMediaForTutorial(
+            pickedFiles.map((f) => File(f.path)).toList(),
+            widget.tutorial.id,
+          );
+      setState(() {
+        _mediaUrls.addAll(newUrls);
+      });
     }
   }
 
-  Future<String?> _onRequestPickImage(BuildContext context) async {
+  Future<void> _pickAndUploadVideo() async {
     final picker = ImagePicker();
+    final XFile? pickedFile =
+        await picker.pickVideo(source: ImageSource.gallery);
 
-    final XFile? imageFile =
-        await picker.pickImage(source: ImageSource.gallery);
-    if (imageFile == null) return null;
-    try {
-      return await ref
+    if (pickedFile != null && mounted) {
+      final newUrl = await ref
           .read(tutorialsProvider.notifier)
-          .uploadVideoForTutorial(File(imageFile.path), widget.tutorial.id);
-    } catch (e) {
-      zlog(data: "Error while trying to upload $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error uploading video: $e')),
-        );
+          .uploadVideoForTutorial(File(pickedFile.path), widget.tutorial.id);
+      if (newUrl.isNotEmpty) {
+        setState(() {
+          _mediaUrls.add(newUrl);
+        });
       }
-      return null;
     }
+  }
+
+  void _addYoutubeUrl() {
+    final textController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: ColorManager.dark2,
+          title: const Text(
+            'Add YouTube URL',
+            style: TextStyle(color: ColorManager.white),
+          ),
+          content: TextField(
+            controller: textController,
+            autofocus: true,
+            style: const TextStyle(color: ColorManager.white),
+            decoration: const InputDecoration(
+              labelText: 'Paste YouTube URL here',
+              labelStyle: TextStyle(color: ColorManager.grey),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: ColorManager.yellow),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel',
+                  style: TextStyle(color: ColorManager.white)),
+            ),
+            TextButton(
+              onPressed: () {
+                final url = textController.text.trim();
+                if (url.isNotEmpty) {
+                  setState(() {
+                    _mediaUrls.add(url);
+                  });
+                }
+                Navigator.of(context).pop();
+              },
+              child: const Text('Add',
+                  style: TextStyle(color: ColorManager.yellow)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onDeleteMedia(String urlToDelete) {
+    if (!urlToDelete.contains('youtube.com') &&
+        !urlToDelete.contains('youtu.be')) {
+      ref
+          .read(tutorialsProvider.notifier)
+          .deleteMediaFromTutorial(widget.tutorial.id, urlToDelete);
+    }
+    setState(() {
+      _mediaUrls.remove(urlToDelete);
+    });
   }
 
   @override
@@ -142,7 +269,7 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
       child: Scaffold(
         backgroundColor: ColorManager.black,
         appBar: AppBar(
-          title: Text(widget.tutorial.name,
+          title: Text('Edit: ${widget.tutorial.name}',
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(color: ColorManager.white)),
           backgroundColor: ColorManager.transparent,
@@ -152,7 +279,7 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
             IconButton(
               icon: const Icon(Icons.visibility_outlined),
               tooltip: 'Preview Tutorial',
-              onPressed: _showPreviewDialog,
+              onPressed: _showPreview,
             ),
             IconButton(
               icon: const Icon(Icons.save_outlined),
@@ -163,271 +290,49 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
         ),
         body: Stack(
           children: [
-            Column(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                QuillSimpleToolbar(
-                  config: QuillSimpleToolbarConfig(
-                    buttonOptions: QuillSimpleToolbarButtonOptions(
-                      base: QuillToolbarToggleStyleButtonOptions(
-                        iconTheme: QuillIconTheme(
-                            iconButtonSelectedData:
-                                IconButtonData(color: Colors.yellow),
-                            iconButtonUnselectedData:
-                                IconButtonData(color: Colors.white)),
-                      ),
-                      fontSize: QuillToolbarFontSizeButtonOptions(
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      fontFamily: QuillToolbarFontFamilyButtonOptions(
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      bold: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      italic: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      undoHistory: QuillToolbarHistoryButtonOptions(
-                          iconTheme: QuillIconTheme(
-                        iconButtonSelectedData:
-                            IconButtonData(color: Colors.yellow),
-                        iconButtonUnselectedData:
-                            IconButtonData(color: Colors.white),
-                      )),
-                      redoHistory: QuillToolbarHistoryButtonOptions(
-                          iconTheme: QuillIconTheme(
-                        iconButtonSelectedData:
-                            IconButtonData(color: Colors.yellow),
-                        iconButtonUnselectedData:
-                            IconButtonData(color: Colors.white),
-                      )),
-                      underLine: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      strikeThrough: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                        iconButtonSelectedData:
-                            IconButtonData(color: Colors.yellow),
-                        iconButtonUnselectedData:
-                            IconButtonData(color: Colors.white),
-                      )),
-                      inlineCode: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      listBullets: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      listNumbers: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      codeBlock: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      quote: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      direction: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      selectHeaderStyleButtons:
-                          QuillToolbarSelectHeaderStyleButtonsOptions(
-                              iconTheme: QuillIconTheme(
-                        iconButtonSelectedData:
-                            IconButtonData(color: Colors.yellow),
-                        iconButtonUnselectedData:
-                            IconButtonData(color: Colors.white),
-                      )),
-                      selectHeaderStyleDropdownButton:
-                          QuillToolbarSelectHeaderStyleDropdownButtonOptions(
-                              iconTheme: QuillIconTheme(
-                        iconButtonSelectedData:
-                            IconButtonData(color: Colors.yellow),
-                        iconButtonUnselectedData:
-                            IconButtonData(color: Colors.white),
-                      )),
-                      superscript: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                        iconButtonSelectedData:
-                            IconButtonData(color: Colors.yellow),
-                        iconButtonUnselectedData:
-                            IconButtonData(color: Colors.white),
-                      )),
-                      subscript: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      small: QuillToolbarToggleStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      clearFormat: QuillToolbarClearFormatButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      selectLineHeightStyleDropdownButton:
-                          QuillToolbarSelectLineHeightStyleDropdownButtonOptions(
-                              iconTheme: QuillIconTheme(
-                                  iconButtonSelectedData:
-                                      IconButtonData(color: Colors.yellow),
-                                  iconButtonUnselectedData:
-                                      IconButtonData(color: Colors.white))),
-                      color: QuillToolbarColorButtonOptions(
-                          iconTheme: QuillIconTheme(
-                        iconButtonSelectedData:
-                            IconButtonData(color: Colors.yellow),
-                        iconButtonUnselectedData:
-                            IconButtonData(color: Colors.white),
-                      )),
-                      backgroundColor: QuillToolbarColorButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      linkStyle: QuillToolbarLinkStyleButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      linkStyle2: QuillToolbarLinkStyleButton2Options(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      search: QuillToolbarSearchButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      selectAlignmentButtons:
-                          QuillToolbarSelectAlignmentButtonOptions(
-                              iconTheme: QuillIconTheme(
-                                  iconButtonSelectedData:
-                                      IconButtonData(color: Colors.yellow),
-                                  iconButtonUnselectedData:
-                                      IconButtonData(color: Colors.white))),
-                      indentIncrease: QuillToolbarIndentButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      indentDecrease: QuillToolbarIndentButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      customButtons: QuillToolbarCustomButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                      clipboardCut: QuillToolbarClipboardButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white))),
-                    ),
-                    embedButtons: FlutterQuillEmbeds.toolbarButtons(
-                      imageButtonOptions: QuillToolbarImageButtonOptions(
-                          iconTheme: QuillIconTheme(
-                              iconButtonSelectedData:
-                                  IconButtonData(color: Colors.yellow),
-                              iconButtonUnselectedData:
-                                  IconButtonData(color: Colors.white)),
-                          imageButtonConfig: QuillToolbarImageConfig(
-                              onRequestPickImage: _onRequestPickImage)),
-                      videoButtonOptions: QuillToolbarVideoButtonOptions(
-                        iconTheme: QuillIconTheme(
-                            iconButtonSelectedData:
-                                IconButtonData(color: Colors.yellow),
-                            iconButtonUnselectedData:
-                                IconButtonData(color: Colors.white)),
-                        videoConfig: QuillToolbarVideoConfig(
-                          onRequestPickVideo: _onRequestPickVideo,
-                        ),
-                      ),
-                    ),
-                  ),
-                  controller: _quillController,
+                SizedBox(
+                  width: 350,
+                  child: _buildMediaGallery(),
                 ),
-                const Divider(
-                    height: 1, thickness: 1, color: ColorManager.dark2),
+                const VerticalDivider(
+                    width: 1, thickness: 1, color: ColorManager.dark2),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: QuillEditor.basic(
-                      config: QuillEditorConfig(
-                        customStyles: DefaultStyles(
-                          // ** THIS IS THE CORRECTED PART **
-                          // Using VerticalSpacing as required by the constructor.
-                          paragraph: DefaultTextBlockStyle(
-                              const TextStyle(
-                                color: ColorManager.white,
-                                fontSize: 16,
-                                height: 1.5,
+                  child: Column(
+                    children: [
+                      _buildQuillToolbar(),
+                      const Divider(
+                          height: 1, thickness: 1, color: ColorManager.dark2),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: QuillEditor.basic(
+                            controller: _quillController,
+                            config: QuillEditorConfig(
+                              customStyles: DefaultStyles(
+                                paragraph: DefaultTextBlockStyle(
+                                  const TextStyle(
+                                    color: ColorManager.white,
+                                    fontSize: 16,
+                                    height: 1.5,
+                                  ),
+                                  const HorizontalSpacing(0, 0),
+                                  const VerticalSpacing(0, 0),
+                                  const VerticalSpacing(0, 0),
+                                  null,
+                                ),
                               ),
-                              const HorizontalSpacing(16, 0),
-                              const VerticalSpacing(16, 0), // Before the block
-                              const VerticalSpacing(0, 0), // After the block
-                              null),
-                          h1: DefaultTextBlockStyle(
-                              const TextStyle(
-                                  color: ColorManager.white,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold),
-                              const HorizontalSpacing(16, 0),
-                              const VerticalSpacing(16, 0),
-                              const VerticalSpacing(0, 0),
-                              null),
-                          link: const TextStyle(
-                            color: ColorManager.blueAccent,
-                            decoration: TextDecoration.underline,
+                              embedBuilders: [
+                                ...FlutterQuillEmbeds.editorBuilders(),
+                                YoutubeVideoEmbedBuilder(),
+                              ],
+                            ),
                           ),
                         ),
-                        embedBuilders: FlutterQuillEmbeds.editorBuilders(),
                       ),
-                      controller: _quillController,
-                    ),
+                    ],
                   ),
                 ),
               ],
@@ -450,6 +355,222 @@ class _TutorialEditorScreenState extends ConsumerState<TutorialEditorScreen> {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMediaGallery() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      color: ColorManager.dark1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Media Gallery',
+                style: TextStyle(
+                    color: ColorManager.white, fontWeight: FontWeight.bold),
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add_photo_alternate_outlined, size: 16),
+                label: const Text('Add Media'),
+                onPressed: _onAddMedia,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ColorManager.blue,
+                  foregroundColor: ColorManager.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Drag and drop to reorder media.',
+            style: TextStyle(color: ColorManager.grey, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _mediaUrls.isEmpty
+                ? Center(
+                    child: Text('No media added. Click "Add Media" to start.',
+                        style: TextStyle(color: ColorManager.grey)))
+                : ReorderableListView.builder(
+                    itemCount: _mediaUrls.length,
+                    itemBuilder: (context, index) {
+                      final url = _mediaUrls[index];
+                      // ** THIS IS THE NEW, ROBUST THUMBNAIL WIDGET **
+                      return Card(
+                        key: ValueKey(url),
+                        color: ColorManager.dark2,
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(8),
+                          leading: _SmartMediaThumbnail(
+                            url: url,
+                            tutorialThumbnail: widget.tutorial.thumbnailUrl,
+                          ),
+                          title: Text(
+                            _isYoutubeUrl(url)
+                                ? 'YouTube Video'
+                                : 'Media Item ${index + 1}',
+                            style: const TextStyle(
+                                color: ColorManager.white, fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete_outline,
+                                color: ColorManager.red),
+                            onPressed: () => _onDeleteMedia(url),
+                          ),
+                        ),
+                      );
+                    },
+                    onReorder: (oldIndex, newIndex) {
+                      setState(() {
+                        if (newIndex > oldIndex) {
+                          newIndex -= 1;
+                        }
+                        final item = _mediaUrls.removeAt(oldIndex);
+                        _mediaUrls.insert(newIndex, item);
+                      });
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isYoutubeUrl(String url) {
+    final lowercasedUrl = url.toLowerCase();
+    if (lowercasedUrl.contains('youtube.com') ||
+        lowercasedUrl.contains('youtu.be')) return true;
+    return false;
+  }
+
+  Widget _buildQuillToolbar() {
+    final iconTheme = QuillIconTheme(
+      iconButtonSelectedData: IconButtonData(color: Colors.yellow),
+      iconButtonUnselectedData: IconButtonData(color: Colors.white),
+    );
+
+    return QuillSimpleToolbar(
+      controller: _quillController,
+      config: QuillSimpleToolbarConfig(
+        buttonOptions: QuillSimpleToolbarButtonOptions(
+          base: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          bold: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          italic: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          underLine: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          strikeThrough:
+              QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          inlineCode:
+              QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          listBullets:
+              QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          listNumbers:
+              QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          codeBlock: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          quote: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          direction: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          superscript:
+              QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          subscript: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          small: QuillToolbarToggleStyleButtonOptions(iconTheme: iconTheme),
+          fontSize: QuillToolbarFontSizeButtonOptions(
+              style: TextStyle(color: Colors.white)),
+          fontFamily: QuillToolbarFontFamilyButtonOptions(
+              style: TextStyle(color: Colors.white)),
+          undoHistory: QuillToolbarHistoryButtonOptions(iconTheme: iconTheme),
+          redoHistory: QuillToolbarHistoryButtonOptions(iconTheme: iconTheme),
+          clearFormat:
+              QuillToolbarClearFormatButtonOptions(iconTheme: iconTheme),
+          color: QuillToolbarColorButtonOptions(iconTheme: iconTheme),
+          backgroundColor: QuillToolbarColorButtonOptions(iconTheme: iconTheme),
+          linkStyle: QuillToolbarLinkStyleButtonOptions(iconTheme: iconTheme),
+          linkStyle2: QuillToolbarLinkStyleButton2Options(iconTheme: iconTheme),
+          search: QuillToolbarSearchButtonOptions(iconTheme: iconTheme),
+          selectAlignmentButtons:
+              QuillToolbarSelectAlignmentButtonOptions(iconTheme: iconTheme),
+          indentIncrease: QuillToolbarIndentButtonOptions(iconTheme: iconTheme),
+          indentDecrease: QuillToolbarIndentButtonOptions(iconTheme: iconTheme),
+          clipboardCut:
+              QuillToolbarClipboardButtonOptions(iconTheme: iconTheme),
+          selectHeaderStyleButtons:
+              QuillToolbarSelectHeaderStyleButtonsOptions(iconTheme: iconTheme),
+          selectHeaderStyleDropdownButton:
+              QuillToolbarSelectHeaderStyleDropdownButtonOptions(
+                  iconTheme: iconTheme),
+          selectLineHeightStyleDropdownButton:
+              QuillToolbarSelectLineHeightStyleDropdownButtonOptions(
+                  iconTheme: iconTheme),
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// == NEW WIDGET: A "SMART" THUMBNAIL THAT HANDLES IMAGES AND VIDEOS ==
+// =========================================================================
+class _SmartMediaThumbnail extends StatelessWidget {
+  final String url;
+  final String? tutorialThumbnail;
+  const _SmartMediaThumbnail({required this.url, this.tutorialThumbnail});
+
+  bool get isYoutube {
+    final lowercasedUrl = url.toLowerCase();
+    return lowercasedUrl.contains('youtube.com') ||
+        lowercasedUrl.contains('youtu.be');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 50,
+      height: 50,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Stack(
+          alignment: Alignment.center,
+          fit: StackFit.expand,
+          children: [
+            // The main thumbnail image
+            CachedNetworkImage(
+              imageUrl: isYoutube
+                  ? YoutubePlayer.getThumbnail(
+                      videoId: YoutubePlayer.convertUrlToId(url) ?? '')
+                  : url,
+              fit: BoxFit.cover,
+              // THIS IS THE FIX: The errorWidget is our fallback to detect videos
+              errorWidget: (context, url, error) {
+                // If it fails, we assume it's a video file and show a placeholder
+                return Container(
+                  color: ColorManager.black,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (tutorialThumbnail != null)
+                        CachedNetworkImage(
+                            imageUrl: tutorialThumbnail!, fit: BoxFit.cover),
+                      const Icon(Icons.play_circle_fill,
+                          color: Colors.white70, size: 24),
+                    ],
+                  ),
+                );
+              },
+            ),
+            // Overlay an icon if it's a YouTube video
+            if (isYoutube)
+              const Icon(FontAwesomeIcons.youtube, color: Colors.red, size: 24),
           ],
         ),
       ),

@@ -1,13 +1,12 @@
-//
 // import 'package:flutter/material.dart';
 // import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 // import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 // import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 // import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart';
 // import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_viewer_screen.dart';
 // import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
 // import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_state.dart';
-// // --- IMPORT THE NEW VIDEO VIEWER DIALOG ---
 // import 'package:zporter_tactical_board/presentation/admin/view/tutorials/video_viewer_dialog.dart';
 //
 // class TutorialSelectionDialog extends ConsumerStatefulWidget {
@@ -24,6 +23,8 @@
 //   bool _showLeftArrow = false;
 //   bool _showRightArrow = true;
 //
+//   Set<int> selectedIndexes = {};
+//
 //   @override
 //   void initState() {
 //     super.initState();
@@ -38,6 +39,12 @@
 //     _scrollController.removeListener(_updateArrowVisibility);
 //     _scrollController.dispose();
 //     super.dispose();
+//   }
+//
+//   void updateSelectedIndex(int index) {
+//     setState(() {
+//       selectedIndexes.add(index);
+//     });
 //   }
 //
 //   void _updateArrowVisibility() {
@@ -56,9 +63,7 @@
 //     }
 //   }
 //
-//   /// --- THIS METHOD NOW ACTS AS A DISPATCHER ---
 //   void _showTutorial(BuildContext context, Tutorial tutorial) {
-//     // Check the tutorial type and show the appropriate dialog.
 //     if (tutorial.tutorialType == TutorialType.video &&
 //         tutorial.videoUrl != null) {
 //       showDialog(
@@ -66,7 +71,6 @@
 //         builder: (context) => VideoViewerDialog(videoUrl: tutorial.videoUrl!),
 //       );
 //     } else {
-//       // Default to the rich-text viewer
 //       showDialog(
 //         context: context,
 //         barrierDismissible: false,
@@ -130,10 +134,11 @@
 //                         return Container(
 //                           width: itemWidth,
 //                           margin: const EdgeInsets.symmetric(horizontal: 12.0),
-//                           child: _TutorialCard(
+//                           child: TutorialCard(
 //                             tutorial: tutorial,
+//                             isSelected: selectedIndexes.contains(index),
 //                             onTap: () {
-//                               // Navigator.of(context).pop(); // This might not be needed depending on UX
+//                               updateSelectedIndex(index);
 //                               _showTutorial(context, tutorial);
 //                             },
 //                           ),
@@ -186,22 +191,46 @@
 //   }
 // }
 //
-// class _TutorialCard extends StatelessWidget {
+// class TutorialCard extends StatelessWidget {
 //   final Tutorial tutorial;
 //   final VoidCallback onTap;
+//   final bool isSelected;
+//   const TutorialCard(
+//       {required this.tutorial, required this.onTap, required this.isSelected});
 //
-//   const _TutorialCard({required this.tutorial, required this.onTap});
+//   // --- NEW: Helper widget to get the correct play icon ---
+//   Widget _getPlayIcon() {
+//     if (tutorial.tutorialType != TutorialType.video) {
+//       return const SizedBox.shrink(); // Return empty space if not a video
+//     }
+//
+//     bool isYoutube = tutorial.videoUrl?.contains('youtube.com') ?? false;
+//
+//     final icon = isYoutube
+//         ? const FaIcon(FontAwesomeIcons.youtube, color: Colors.white, size: 35)
+//         : const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 50);
+//
+//     return Container(
+//       padding: const EdgeInsets.all(8),
+//       decoration: BoxDecoration(
+//         color: isYoutube ? Colors.red : Colors.black.withOpacity(0.4),
+//         shape: BoxShape.circle,
+//       ),
+//       child: icon,
+//     );
+//   }
 //
 //   @override
 //   Widget build(BuildContext context) {
 //     final hasThumbnail =
 //         tutorial.thumbnailUrl != null && tutorial.thumbnailUrl!.isNotEmpty;
-//     // --- NEW: Check if the tutorial is a video type ---
-//     final isVideo = tutorial.tutorialType == TutorialType.video;
 //
 //     return Container(
 //       decoration: BoxDecoration(
-//           border: Border.all(color: ColorManager.grey.withOpacity(0.5)),
+//           border: Border.all(
+//               color: isSelected
+//                   ? Colors.orange.withValues(alpha: 0.5)
+//                   : ColorManager.grey.withOpacity(0.5)),
 //           borderRadius: BorderRadius.circular(8)),
 //       child: InkWell(
 //         onTap: onTap,
@@ -210,17 +239,19 @@
 //           child: AspectRatio(
 //             aspectRatio: 16 / 9,
 //             child: Stack(
-//               alignment: Alignment.center, // Center the new play icon
+//               alignment: Alignment.center,
 //               children: [
 //                 Positioned.fill(
 //                   child: hasThumbnail
 //                       ? Image.network(
 //                           tutorial.thumbnailUrl!,
+//                           alignment: Alignment.center,
 //                           fit: BoxFit.cover,
 //                           errorBuilder: (_, __, ___) => _buildPlaceholder(),
 //                         )
 //                       : _buildPlaceholder(),
 //                 ),
+//                 // Gradient for text readability
 //                 Align(
 //                   alignment: Alignment.bottomCenter,
 //                   child: Container(
@@ -237,6 +268,7 @@
 //                     ),
 //                   ),
 //                 ),
+//                 // Tutorial Name
 //                 Align(
 //                   alignment: Alignment.bottomLeft,
 //                   child: Padding(
@@ -256,19 +288,8 @@
 //                     ),
 //                   ),
 //                 ),
-//                 // --- NEW: Conditionally show the play icon ---
-//                 if (isVideo)
-//                   Container(
-//                     decoration: BoxDecoration(
-//                       color: Colors.black.withOpacity(0.3),
-//                       shape: BoxShape.circle,
-//                     ),
-//                     child: const Icon(
-//                       Icons.play_arrow_rounded,
-//                       color: Colors.white,
-//                       size: 60,
-//                     ),
-//                   ),
+//                 // --- UPDATED: Use the helper to show the correct icon ---
+//                 _getPlayIcon(),
 //               ],
 //             ),
 //           ),
@@ -291,13 +312,17 @@
 //   }
 // }
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart';
-import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_viewer_screen.dart';
+// ** 1. IMPORT THE NEW SCREEN **
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/rich_text_tutorial_viewer_screen.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_state.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/tutorials/video_viewer_dialog.dart';
@@ -356,21 +381,21 @@ class _TutorialSelectionDialogState
     }
   }
 
+  // ** 2. UPDATE THE NAVIGATION LOGIC **
+  // This function now correctly navigates to the new screen for rich text tutorials.
   void _showTutorial(BuildContext context, Tutorial tutorial) {
     if (tutorial.tutorialType == TutorialType.video &&
         tutorial.videoUrl != null) {
+      // Video tutorials still use the old dialog.
       showDialog(
         context: context,
         builder: (context) => VideoViewerDialog(videoUrl: tutorial.videoUrl!),
       );
-    } else {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return TutorialViewerDialog(tutorial: tutorial);
-        },
-      );
+    } else if (tutorial.tutorialType == TutorialType.richText) {
+      // Rich text tutorials now push a full-screen page.
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => RichTextTutorialViewerScreen(tutorial: tutorial),
+      ));
     }
   }
 
@@ -489,12 +514,14 @@ class TutorialCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool isSelected;
   const TutorialCard(
-      {required this.tutorial, required this.onTap, required this.isSelected});
+      {super.key,
+      required this.tutorial,
+      required this.onTap,
+      required this.isSelected});
 
-  // --- NEW: Helper widget to get the correct play icon ---
   Widget _getPlayIcon() {
     if (tutorial.tutorialType != TutorialType.video) {
-      return const SizedBox.shrink(); // Return empty space if not a video
+      return const SizedBox.shrink();
     }
 
     bool isYoutube = tutorial.videoUrl?.contains('youtube.com') ?? false;
@@ -522,7 +549,7 @@ class TutorialCard extends StatelessWidget {
       decoration: BoxDecoration(
           border: Border.all(
               color: isSelected
-                  ? Colors.orange.withValues(alpha: 0.5)
+                  ? Colors.orange.withOpacity(0.5)
                   : ColorManager.grey.withOpacity(0.5)),
           borderRadius: BorderRadius.circular(8)),
       child: InkWell(
@@ -536,14 +563,14 @@ class TutorialCard extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: hasThumbnail
-                      ? Image.network(
-                          tutorial.thumbnailUrl!,
+                      ? CachedNetworkImage(
+                          imageUrl: tutorial.thumbnailUrl!,
+                          alignment: Alignment.center,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                          errorWidget: (_, __, ___) => _buildPlaceholder(),
                         )
                       : _buildPlaceholder(),
                 ),
-                // Gradient for text readability
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Container(
@@ -560,7 +587,6 @@ class TutorialCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Tutorial Name
                 Align(
                   alignment: Alignment.bottomLeft,
                   child: Padding(
@@ -580,7 +606,6 @@ class TutorialCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // --- UPDATED: Use the helper to show the correct icon ---
                 _getPlayIcon(),
               ],
             ),
