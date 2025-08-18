@@ -606,10 +606,10 @@ class _RichTextTutorialViewerScreenState
                                 const TextStyle(
                                   color: Colors.white70,
                                   fontSize: 16,
-                                  height: 1.5,
+                                  // height: 1.5,
                                 ),
                                 const HorizontalSpacing(0, 0),
-                                const VerticalSpacing(16, 8),
+                                const VerticalSpacing(0, 0),
                                 const VerticalSpacing(0, 0),
                                 null,
                               ),
