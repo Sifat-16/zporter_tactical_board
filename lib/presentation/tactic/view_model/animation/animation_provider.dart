@@ -432,8 +432,7 @@ class AnimationController extends StateNotifier<AnimationState> {
 
         // 2. Create a new collection instance using copyWith, passing in the NEW list.
         animationCollectionModel = animationCollectionModel.copyWith(
-          animations: newAnimationList,
-        );
+            animations: newAnimationList, userId: _getUserId());
 
         // 3. Flip the flag on this new instance. It is now a user copy.
         animationCollectionModel.isTemplate = false;
