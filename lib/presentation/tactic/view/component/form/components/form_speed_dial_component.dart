@@ -348,8 +348,12 @@ class _FormSpeedDialComponentState
                   ),
                 if (config.showFullScreenButton)
                   if (ap.showLoadingOnSave)
-                    CircularProgressIndicator(
-                      color: ColorManager.white,
+                    SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        color: ColorManager.white,
+                      ),
                     )
                   else
                     GestureDetector(
