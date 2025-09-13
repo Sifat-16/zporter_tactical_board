@@ -555,12 +555,16 @@ class _FormSpeedDialComponentState
                 ),
                 const SizedBox(width: 10),
                 if (config.showAddNewSceneButton)
-                  _buildAddNewScene(
-                    selectedCollection: collectionModel,
-                    collectionList: collectionList,
-                    selectedAnimation: animationModel,
-                    selectedScene: selectedScene,
-                  ),
+                  if (ap.showLoadingOnSave)
+                    Icon(CupertinoIcons.add_circled,
+                        color: ColorManager.white.withValues(alpha: 0.6))
+                  else
+                    _buildAddNewScene(
+                      selectedCollection: collectionModel,
+                      collectionList: collectionList,
+                      selectedAnimation: animationModel,
+                      selectedScene: selectedScene,
+                    ),
                 const SizedBox(width: 10),
                 if (config.showTrashButton)
                   GestureDetector(
