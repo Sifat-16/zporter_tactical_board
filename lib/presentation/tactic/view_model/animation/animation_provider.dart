@@ -1675,4 +1675,8 @@ class AnimationController extends StateNotifier<AnimationState> {
       getAllCollections();
     }
   }
+
+  void toggleLoadingSave({required bool showLoading}) {
+    state = state.copyWith(showLoadingOnSave: showLoading);
+  }
 }

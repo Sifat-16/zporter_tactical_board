@@ -347,17 +347,22 @@ class _FormSpeedDialComponentState
                     child: Icon(Icons.arrow_back, color: ColorManager.white),
                   ),
                 if (config.showFullScreenButton)
-                  GestureDetector(
-                    onTap: () {
-                      ref.read(boardProvider.notifier).toggleFullScreen();
-                    },
-                    child: Icon(
-                      bp.showFullScreen == false
-                          ? Icons.fullscreen
-                          : Icons.fullscreen_exit,
+                  if (ap.showLoadingOnSave)
+                    CircularProgressIndicator(
                       color: ColorManager.white,
+                    )
+                  else
+                    GestureDetector(
+                      onTap: () {
+                        ref.read(boardProvider.notifier).toggleFullScreen();
+                      },
+                      child: Icon(
+                        bp.showFullScreen == false
+                            ? Icons.fullscreen
+                            : Icons.fullscreen_exit,
+                        color: ColorManager.white,
+                      ),
                     ),
-                  ),
                 const SizedBox(width: 10),
                 if (config.showShareButton)
                   GestureDetector(

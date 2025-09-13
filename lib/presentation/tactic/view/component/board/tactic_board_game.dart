@@ -227,8 +227,11 @@ class TacticBoard extends TacticBoardGame
 
   updateDatabase() {
     if (!isAnimating) {
-      WidgetsBinding.instance.addPostFrameCallback((t) {
+      WidgetsBinding.instance.addPostFrameCallback((t) async {
         ref
+            .read(animationProvider.notifier)
+            .toggleLoadingSave(showLoading: true);
+        await ref
             .read(animationProvider.notifier)
             .updateDatabaseOnChange(saveToDb: saveToDb)
             .then((a) {
@@ -236,8 +239,14 @@ class TacticBoard extends TacticBoardGame
           ref.read(animationProvider.notifier).saveHistory(scene: a);
           onSceneSave?.call(a);
         });
+        ref
+            .read(animationProvider.notifier)
+            .toggleLoadingSave(showLoading: false);
       });
     } else {
+      ref
+          .read(animationProvider.notifier)
+          .toggleLoadingSave(showLoading: false);
       zlog(data: "Is animating");
     }
   }

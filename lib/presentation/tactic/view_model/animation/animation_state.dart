@@ -23,6 +23,7 @@ class AnimationState {
   List<AnimationItemModel> defaultAnimationItems;
   bool isPerformingUndo;
   List<AnimationCollectionModel> adminTemplatesCache;
+  bool showLoadingOnSave;
 
   // Constructor remains the same, prefer const if possible
   AnimationState(
@@ -39,53 +40,55 @@ class AnimationState {
       this.defaultAnimationItemIndex = 0,
       this.defaultAnimationItems = const [],
       this.isPerformingUndo = false,
+      this.showLoadingOnSave = false,
       this.adminTemplatesCache = const []});
 
-  AnimationState copyWith({
-    // Parameter type changed to Object?, defaults to sentinel
-    Object? selectedAnimationCollectionModel = _sentinel,
-    List<AnimationCollectionModel>? animationCollections,
-    bool? isLoadingAnimationCollections,
-    List<AnimationModel>? animations,
-    Object? selectedAnimationModel = _sentinel,
-    Object? selectedScene = _sentinel,
-    bool? showAnimation,
-    bool? showNewCollectionInput,
-    bool? showNewAnimationInput,
-    bool? showQuickSave,
-    int? defaultAnimationItemIndex,
-    List<AnimationItemModel>? defaultAnimationItems,
-    bool? isPerformingUndo,
-    List<AnimationCollectionModel>? adminTemplatesCache,
-  }) {
+  AnimationState copyWith(
+      {
+      // Parameter type changed to Object?, defaults to sentinel
+      Object? selectedAnimationCollectionModel = _sentinel,
+      List<AnimationCollectionModel>? animationCollections,
+      bool? isLoadingAnimationCollections,
+      List<AnimationModel>? animations,
+      Object? selectedAnimationModel = _sentinel,
+      Object? selectedScene = _sentinel,
+      bool? showAnimation,
+      bool? showNewCollectionInput,
+      bool? showNewAnimationInput,
+      bool? showQuickSave,
+      int? defaultAnimationItemIndex,
+      List<AnimationItemModel>? defaultAnimationItems,
+      bool? isPerformingUndo,
+      List<AnimationCollectionModel>? adminTemplatesCache,
+      bool? showLoadingOnSave}) {
     return AnimationState(
-      selectedAnimationCollectionModel:
-          selectedAnimationCollectionModel == _sentinel
-              ? this.selectedAnimationCollectionModel
-              : selectedAnimationCollectionModel as AnimationCollectionModel?,
-      animationCollections: animationCollections ?? this.animationCollections,
-      isLoadingAnimationCollections:
-          isLoadingAnimationCollections ?? this.isLoadingAnimationCollections,
-      animations: animations ?? this.animations,
-      selectedAnimationModel: selectedAnimationModel == _sentinel
-          ? this.selectedAnimationModel
-          : selectedAnimationModel as AnimationModel?,
-      selectedScene: selectedScene == _sentinel
-          ? this.selectedScene
-          : selectedScene as AnimationItemModel?,
-      showAnimation: showAnimation ?? this.showAnimation,
-      showNewCollectionInput:
-          showNewCollectionInput ?? this.showNewCollectionInput,
-      showNewAnimationInput:
-          showNewAnimationInput ?? this.showNewAnimationInput,
-      showQuickSave: showQuickSave ?? this.showQuickSave,
-      defaultAnimationItemIndex:
-          defaultAnimationItemIndex ?? this.defaultAnimationItemIndex,
-      defaultAnimationItems:
-          defaultAnimationItems ?? this.defaultAnimationItems,
-      isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
-      adminTemplatesCache: adminTemplatesCache ?? this.adminTemplatesCache,
-    );
+        selectedAnimationCollectionModel:
+            selectedAnimationCollectionModel == _sentinel
+                ? this.selectedAnimationCollectionModel
+                : selectedAnimationCollectionModel as AnimationCollectionModel?,
+        animationCollections: animationCollections ?? this.animationCollections,
+        isLoadingAnimationCollections:
+            isLoadingAnimationCollections ?? this.isLoadingAnimationCollections,
+        animations: animations ?? this.animations,
+        selectedAnimationModel: selectedAnimationModel == _sentinel
+            ? this.selectedAnimationModel
+            : selectedAnimationModel as AnimationModel?,
+        selectedScene: selectedScene == _sentinel
+            ? this.selectedScene
+            : selectedScene as AnimationItemModel?,
+        showAnimation: showAnimation ?? this.showAnimation,
+        showNewCollectionInput:
+            showNewCollectionInput ?? this.showNewCollectionInput,
+        showNewAnimationInput:
+            showNewAnimationInput ?? this.showNewAnimationInput,
+        showQuickSave: showQuickSave ?? this.showQuickSave,
+        defaultAnimationItemIndex:
+            defaultAnimationItemIndex ?? this.defaultAnimationItemIndex,
+        defaultAnimationItems:
+            defaultAnimationItems ?? this.defaultAnimationItems,
+        isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
+        adminTemplatesCache: adminTemplatesCache ?? this.adminTemplatesCache,
+        showLoadingOnSave: showLoadingOnSave ?? this.showLoadingOnSave);
   }
 
   // --- CORRECTED Equality and HashCode ---
