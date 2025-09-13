@@ -116,131 +116,195 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   // Future<void> getAllCollections() async {
   //   state = state.copyWith(isLoadingAnimationCollections: true);
-  //   List<AnimationCollectionModel> collections = state.animationCollections;
   //
   //   try {
-  //     collections = await _getAllAnimationCollectionUseCase.call(_getUserId());
+  //     // Step 1: Fetch both user collections and default collections concurrently.
+  //     final results = await Future.wait([
+  //       _getAllAnimationCollectionUseCase
+  //           .call(_getUserId()), // User's personal collections
+  //       _defaultAnimationRepository
+  //           .getAllDefaultAnimationCollections(), // Admin-created collections
+  //       _defaultAnimationRepository
+  //           .getAllDefaultAnimations(), // All individual default animations
+  //     ]);
   //
-  //     try {
-  //       int index = collections.indexWhere(
-  //         (t) =>
-  //             t.id.toLowerCase() ==
-  //             DefaultAnimationConstants.default_animation_collection_id,
-  //       );
+  //     final userCollections = results[0] as List<AnimationCollectionModel>;
+  //     final defaultCollections = results[1] as List<AnimationCollectionModel>;
+  //     final allDefaultAnimations = results[2] as List<AnimationModel>;
   //
-  //       if (index == -1) {
-  //         List<AnimationModel> default_animations =
-  //             await _defaultAnimationRepository.getAllDefaultAnimations();
-  //         AnimationCollectionModel animationCollectionModel =
-  //             AnimationCollectionModel(
-  //           id: DefaultAnimationConstants.default_animation_collection_id,
-  //           name: "Other",
-  //           animations: default_animations,
-  //           userId: ref.read(authProvider).userId ?? "",
-  //           createdAt: DateTime.now(),
-  //           updatedAt: DateTime.now(),
-  //         );
+  //     // Step 2: Populate the default collections with their animations
+  //     for (var collection in defaultCollections) {
+  //       final animationsForThisCollection = allDefaultAnimations
+  //           .where((anim) => anim.collectionId == collection.id)
+  //           .toList();
+  //       animationsForThisCollection
+  //           .sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+  //       collection.animations = animationsForThisCollection;
+  //     }
   //
-  //         collections.add(animationCollectionModel);
-  //       }
-  //     } catch (e) {}
+  //     // Step 3: Merge the two lists
+  //     final combinedCollections = [...userCollections, ...defaultCollections];
   //
-  //     // AnimationCollectionModel? selectedAnimation =
-  //     //     state.selectedAnimationCollectionModel ?? collections.firstOrNull;
-  //     // state = state.copyWith(
-  //     //   animationCollections: collections,
-  //     //   isLoadingAnimationCollections: false,
-  //     // );
-  //     //
-  //     // zlog(data: "All collection ${collections}");
-  //     //
-  //     // selectAnimationCollection(selectedAnimation);
+  //     // Step 4: Sort the final merged list of collections
+  //     combinedCollections.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
   //
-  //     // --- ADDED SORTING FOR COLLECTIONS ---
-  //     // This ensures the collection dropdown is also in order.
-  //     collections.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-  //
+  //     // Step 5: Update the state with the complete list
   //     AnimationCollectionModel? selectedCollection =
   //         state.selectedAnimationCollectionModel;
-  //
-  //     // Ensure the selected collection is still valid
   //     if (selectedCollection != null) {
-  //       if (!collections.any((c) => c.id == selectedCollection!.id)) {
-  //         selectedCollection = collections.firstOrNull;
+  //       if (!combinedCollections.any((c) => c.id == selectedCollection!.id)) {
+  //         selectedCollection = combinedCollections.firstOrNull;
   //       }
   //     } else {
-  //       selectedCollection = collections.firstOrNull;
+  //       selectedCollection = combinedCollections.firstOrNull;
   //     }
   //
   //     state = state.copyWith(
-  //       animationCollections: collections,
+  //       animationCollections: combinedCollections,
   //       isLoadingAnimationCollections: false,
   //     );
   //
-  //     zlog(data: "All collection ${collections}");
-  //
-  //     // This will now correctly sort the animations within the selected collection
+  //     // This will correctly select the first collection and populate its animations
   //     selectAnimationCollection(selectedCollection);
   //   } catch (e) {
-  //     zlog(data: "Animation collection fetching issue ${e}");
+  //     zlog(data: "Animation collection fetching issue: $e");
+  //     state = state.copyWith(isLoadingAnimationCollections: false);
   //   }
   // }
 
   Future<void> getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
 
+    // This list will hold any save operations we need to run in the background.
+    final List<Future<void>> backgroundSaveTasks = [];
+
     try {
-      // Step 1: Fetch both user collections and default collections concurrently.
+      // Step 1: Fetch all data sources
       final results = await Future.wait([
-        _getAllAnimationCollectionUseCase
-            .call(_getUserId()), // User's personal collections
-        _defaultAnimationRepository
-            .getAllDefaultAnimationCollections(), // Admin-created collections
-        _defaultAnimationRepository
-            .getAllDefaultAnimations(), // All individual default animations
+        _getAllAnimationCollectionUseCase.call(_getUserId()),
+        _defaultAnimationRepository.getAllDefaultAnimationCollections(),
+        _defaultAnimationRepository.getAllDefaultAnimations(),
       ]);
 
       final userCollections = results[0] as List<AnimationCollectionModel>;
-      final defaultCollections = results[1] as List<AnimationCollectionModel>;
+      final rawAdminCollections = results[1] as List<AnimationCollectionModel>;
       final allDefaultAnimations = results[2] as List<AnimationModel>;
 
-      // Step 2: Populate the default collections with their animations
-      for (var collection in defaultCollections) {
+      // Step 2: Build the Admin Template Map (for easy lookup)
+      final Map<String, AnimationCollectionModel> adminTemplateMap = {};
+      for (var adminCol in rawAdminCollections) {
         final animationsForThisCollection = allDefaultAnimations
-            .where((anim) => anim.collectionId == collection.id)
+            .where((anim) => anim.collectionId == adminCol.id)
             .toList();
         animationsForThisCollection
             .sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-        collection.animations = animationsForThisCollection;
+
+        adminCol.animations = animationsForThisCollection;
+        adminCol.isTemplate = true;
+        adminTemplateMap[adminCol.id] = adminCol;
       }
 
-      // Step 3: Merge the two lists
-      final combinedCollections = [...userCollections, ...defaultCollections];
+      // --- AUTOMATIC SYNC & MERGE LOGIC ---
 
-      // Step 4: Sort the final merged list of collections
-      combinedCollections.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+      final List<AnimationCollectionModel> finalCombinedList = [];
 
-      // Step 5: Update the state with the complete list
+      // Step 3: Iterate USER collections and auto-sync if needed
+      for (final userCol in userCollections) {
+        userCol.isTemplate = false; // Set flag
+        bool wasUpdated = false; // Flag to track if we need to save
+
+        AnimationCollectionModel finalCollectionToUse = userCol;
+
+        // Check if this user collection shadows an admin one
+        if (adminTemplateMap.containsKey(userCol.id)) {
+          final matchingAdminTemplate = adminTemplateMap[userCol.id]!;
+
+          // SYNC CHECK: If admin template is newer, merge it NOW.
+          if (matchingAdminTemplate.updatedAt.isAfter(userCol.updatedAt)) {
+            // --- This is the sync logic from the old function ---
+            final userAnimationIds =
+                userCol.animations.map((anim) => anim.id).toSet();
+            final List<AnimationModel> animationsToAdd = [];
+
+            for (final adminAnim in matchingAdminTemplate.animations) {
+              if (!userAnimationIds.contains(adminAnim.id)) {
+                animationsToAdd
+                    .add(adminAnim.clone()); // Add missing animations
+              }
+            }
+
+            if (animationsToAdd.isNotEmpty) {
+              final updatedAnimationList = [
+                ...userCol.animations,
+                ...animationsToAdd,
+              ];
+              // Sort to maintain order
+              updatedAnimationList
+                  .sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
+              // Create the new, updated collection instance to use
+              finalCollectionToUse = userCol.copyWith(
+                animations: updatedAnimationList,
+                updatedAt: DateTime.now(), // Update timestamp!
+              );
+              finalCollectionToUse.isTemplate = false;
+
+              wasUpdated = true; // Mark that this collection needs to be saved
+            }
+          }
+
+          // Remove the admin template from the map so it's not added later
+          adminTemplateMap.remove(userCol.id);
+        }
+
+        // Add the collection (either the original or the newly merged one) to our final list
+        finalCombinedList.add(finalCollectionToUse);
+
+        if (wasUpdated) {
+          // If we updated this collection, add its save operation to the background task list
+          backgroundSaveTasks
+              .add(_saveAnimationCollectionUseCase.call(finalCollectionToUse));
+        }
+      }
+
+      // Step 4: Add any remaining (non-copied) admin templates to the list
+      finalCombinedList.addAll(adminTemplateMap.values);
+
+      // Step 5: Sort and update the state ONCE with the final, merged data
+      finalCombinedList.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
       AnimationCollectionModel? selectedCollection =
           state.selectedAnimationCollectionModel;
       if (selectedCollection != null) {
-        if (!combinedCollections.any((c) => c.id == selectedCollection!.id)) {
-          selectedCollection = combinedCollections.firstOrNull;
-        }
-      } else {
-        selectedCollection = combinedCollections.firstOrNull;
+        selectedCollection = finalCombinedList
+            .firstWhereOrNull((c) => c.id == selectedCollection!.id);
       }
+      selectedCollection ??= finalCombinedList.firstOrNull;
 
       state = state.copyWith(
-        animationCollections: combinedCollections,
+        animationCollections: finalCombinedList,
         isLoadingAnimationCollections: false,
+        adminTemplatesCache: [], // We don't need this cache anymore
       );
 
-      // This will correctly select the first collection and populate its animations
+      // Select the collection to update the UI
       selectAnimationCollection(selectedCollection);
     } catch (e) {
-      zlog(data: "Animation collection fetching issue: $e");
+      zlog(data: "Animation collection fetching/syncing issue: $e");
       state = state.copyWith(isLoadingAnimationCollections: false);
+    }
+
+    // STEP 6: Run all pending saves in the background (fire and forget)
+    // This runs AFTER the UI state is updated, so the app feels instant.
+    if (backgroundSaveTasks.isNotEmpty) {
+      zlog(
+          data:
+              "Performing ${backgroundSaveTasks.length} background collection sync saves...");
+      // We don't await this. Let it run in the background.
+      // We add a catchError to log any failures without crashing the app.
+      Future.wait(backgroundSaveTasks).catchError((e) {
+        zlog(data: "Error during background sync save: $e", level: Level.error);
+      });
     }
   }
 
@@ -284,6 +348,64 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
   }
 
+  // void createNewAnimation({required AnimationCreateItem newAnimation}) async {
+  //   showZLoader();
+  //   try {
+  //     AnimationModel animationModel = AnimationModel(
+  //       userId: _getUserId(),
+  //       fieldColor: BoardConstant.field_color,
+  //       id: RandomGenerator.generateId(),
+  //       name: newAnimation.newAnimationName,
+  //       animationScenes: [],
+  //       boardBackground: ref.read(boardProvider).boardBackground,
+  //       createdAt: DateTime.now(),
+  //       updatedAt: DateTime.now(),
+  //     );
+  //
+  //     AnimationCollectionModel animationCollectionModel =
+  //         newAnimation.animationCollectionModel;
+  //
+  //     if (_isDuplicateAnimation(
+  //       animationCollectionModel.animations,
+  //       animationModel,
+  //     )) {
+  //       BotToast.showText(
+  //         text: "Duplicate animation name. Animation name must be unique.",
+  //       );
+  //       return;
+  //     }
+  //
+  //     animationModel.animationScenes.add(
+  //       AnimationItemModel(
+  //         index: 0, // It's the first scene, so index is 0
+  //         fieldColor: BoardConstant.field_color,
+  //         id: RandomGenerator.generateId(),
+  //         userId: _getUserId(),
+  //         fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
+  //             Vector2(0, 0),
+  //         boardBackground: ref.read(boardProvider).boardBackground,
+  //         components: newAnimation.items,
+  //         createdAt: DateTime.now(),
+  //         updatedAt: DateTime.now(),
+  //       ),
+  //     );
+  //
+  //     animationCollectionModel.animations.add(animationModel);
+  //     animationCollectionModel = await _saveAnimationCollectionUseCase.call(
+  //       animationCollectionModel,
+  //     );
+  //
+  //     selectAnimationCollection(
+  //       animationCollectionModel,
+  //       animationSelect: animationModel,
+  //     );
+  //   } catch (e) {
+  //     zlog(data: "Animation creating issue ${e}");
+  //   } finally {
+  //     BotToast.cleanAll();
+  //   }
+  // }
+
   void createNewAnimation({required AnimationCreateItem newAnimation}) async {
     showZLoader();
     try {
@@ -300,6 +422,26 @@ class AnimationController extends StateNotifier<AnimationState> {
 
       AnimationCollectionModel animationCollectionModel =
           newAnimation.animationCollectionModel;
+
+      // --- THIS IS THE NEW "COPY-ON-WRITE" LOGIC ---
+      if (animationCollectionModel.isTemplate == true) {
+        // This is an admin template. We must create a copy before modifying it.
+        // 1. Create a new, separate list of the existing animations.
+        final newAnimationList =
+            List<AnimationModel>.from(animationCollectionModel.animations);
+
+        // 2. Create a new collection instance using copyWith, passing in the NEW list.
+        animationCollectionModel = animationCollectionModel.copyWith(
+          animations: newAnimationList,
+        );
+
+        // 3. Flip the flag on this new instance. It is now a user copy.
+        animationCollectionModel.isTemplate = false;
+      }
+      // --- END OF NEW LOGIC ---
+
+      // The rest of the function now operates on either the original user
+      // collection OR the brand-new shadow copy.
 
       if (_isDuplicateAnimation(
         animationCollectionModel.animations,
@@ -326,7 +468,10 @@ class AnimationController extends StateNotifier<AnimationState> {
         ),
       );
 
+      // This will now add the animation to the NEW list if it was a template
       animationCollectionModel.animations.add(animationModel);
+
+      // This will save the SHADOW COPY (with the same ID) to the user's database
       animationCollectionModel = await _saveAnimationCollectionUseCase.call(
         animationCollectionModel,
       );

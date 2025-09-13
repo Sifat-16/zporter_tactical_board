@@ -22,23 +22,24 @@ class AnimationState {
   int defaultAnimationItemIndex;
   List<AnimationItemModel> defaultAnimationItems;
   bool isPerformingUndo;
+  List<AnimationCollectionModel> adminTemplatesCache;
 
   // Constructor remains the same, prefer const if possible
-  AnimationState({
-    this.selectedAnimationCollectionModel,
-    this.animationCollections = const [],
-    this.isLoadingAnimationCollections = false,
-    this.animations = const [],
-    this.selectedAnimationModel,
-    this.selectedScene,
-    this.showNewCollectionInput = false,
-    this.showAnimation = false,
-    this.showNewAnimationInput = false,
-    this.showQuickSave = false,
-    this.defaultAnimationItemIndex = 0,
-    this.defaultAnimationItems = const [],
-    this.isPerformingUndo = false,
-  });
+  AnimationState(
+      {this.selectedAnimationCollectionModel,
+      this.animationCollections = const [],
+      this.isLoadingAnimationCollections = false,
+      this.animations = const [],
+      this.selectedAnimationModel,
+      this.selectedScene,
+      this.showNewCollectionInput = false,
+      this.showAnimation = false,
+      this.showNewAnimationInput = false,
+      this.showQuickSave = false,
+      this.defaultAnimationItemIndex = 0,
+      this.defaultAnimationItems = const [],
+      this.isPerformingUndo = false,
+      this.adminTemplatesCache = const []});
 
   AnimationState copyWith({
     // Parameter type changed to Object?, defaults to sentinel
@@ -55,6 +56,7 @@ class AnimationState {
     int? defaultAnimationItemIndex,
     List<AnimationItemModel>? defaultAnimationItems,
     bool? isPerformingUndo,
+    List<AnimationCollectionModel>? adminTemplatesCache,
   }) {
     return AnimationState(
       selectedAnimationCollectionModel:
@@ -82,6 +84,7 @@ class AnimationState {
       defaultAnimationItems:
           defaultAnimationItems ?? this.defaultAnimationItems,
       isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
+      adminTemplatesCache: adminTemplatesCache ?? this.adminTemplatesCache,
     );
   }
 

@@ -478,16 +478,41 @@ class _TacticboardScreenTabletState
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           if (animationModel != null)
-            Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: Text(
-                animationModel.name ?? "",
-                style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                    color: ColorManager.white.withValues(alpha: 0.8),
-                    fontSize: 14),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                    flex: 1,
+                    child: Opacity(
+                      opacity: 0,
+                      child: IconButton(
+                          onPressed: () {}, icon: Icon(Icons.cancel_outlined)),
+                    )),
+                Flexible(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Text(
+                      animationModel.name ?? "",
+                      style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                          color: ColorManager.white.withValues(alpha: 0.8),
+                          fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                Flexible(
+                    flex: 1,
+                    child: IconButton(
+                        onPressed: () {
+                          ref.read(animationProvider.notifier).clearAnimation();
+                        },
+                        icon: Icon(
+                          Icons.cancel_outlined,
+                          color: ColorManager.white,
+                        )))
+              ],
             ),
           Expanded(child: GameScreen(scene: selectedScene)),
           if (animationModel == null)
