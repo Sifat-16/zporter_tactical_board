@@ -189,7 +189,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       final rawAdminCollections = results[1] as List<AnimationCollectionModel>;
       final allDefaultAnimations = results[2] as List<AnimationModel>;
 
-      // Step 2: Build the Admin Template Map (for easy lookup)
+      // Step 2: Build the Admin Template Map
       final Map<String, AnimationCollectionModel> adminTemplateMap = {};
       for (var adminCol in rawAdminCollections) {
         final animationsForThisCollection = allDefaultAnimations
@@ -203,11 +203,11 @@ class AnimationController extends StateNotifier<AnimationState> {
         adminTemplateMap[adminCol.id] = adminCol;
       }
 
-      // --- AUTOMATIC SYNC & MERGE LOGIC (USER'S PROPOSAL) ---
+      // --- AUTOMATIC SYNC & MERGE LOGIC (ALWAYS RUNS) ---
 
       final List<AnimationCollectionModel> finalCombinedList = [];
 
-      // Step 3: Iterate USER collections and auto-sync if needed
+      // Step 3: Iterate USER collections and auto-sync
       for (final userCol in userCollections) {
         userCol.isTemplate = false;
         bool wasUpdated = false;
@@ -216,51 +216,44 @@ class AnimationController extends StateNotifier<AnimationState> {
         if (adminTemplateMap.containsKey(userCol.id)) {
           final matchingAdminTemplate = adminTemplateMap[userCol.id]!;
 
-          // SYNC CHECK: If admin template is newer, perform the robust merge.
-          if (matchingAdminTemplate.updatedAt.isAfter(userCol.updatedAt)) {
-            // --- THIS IS YOUR NEW MERGE LOGIC ---
+          // --- NOTE: The TIMESTAMP 'IF' CHECK IS NOW GONE ---
+          // This sync logic will now run EVERY time for every shadow copy.
 
-            // 1. Create a map of all NEWEST admin animations for fast lookup.
-            final Map<String, AnimationModel> adminAnimationMap = {
-              for (var adminAnim in matchingAdminTemplate.animations)
-                adminAnim.id: adminAnim.clone()
-            };
+          // 1. Create a map of all NEWEST admin animations
+          final Map<String, AnimationModel> adminAnimationMap = {
+            for (var adminAnim in matchingAdminTemplate.animations)
+              adminAnim.id: adminAnim.clone()
+          };
 
-            // 2. Create the new list we will build for the user.
-            final List<AnimationModel> newlySyncedList = [];
+          // 2. Create the new list we will build
+          final List<AnimationModel> newlySyncedList = [];
 
-            // 3. Go through the user's CURRENT animations
-            for (final userAnim in userCol.animations) {
-              if (adminAnimationMap.containsKey(userAnim.id)) {
-                // IT'S AN ADMIN ANIMATION. Replace it with the new version.
-                // Add the fresh admin copy from the map.
-                newlySyncedList.add(adminAnimationMap[userAnim.id]!);
-                // Remove it from the map so we know it's been processed.
-                adminAnimationMap.remove(userAnim.id);
-              } else {
-                // IT'S A USER-CREATED ANIMATION. Keep it.
-                newlySyncedList.add(userAnim);
-              }
+          // 3. Go through the user's CURRENT animations
+          for (final userAnim in userCol.animations) {
+            if (adminAnimationMap.containsKey(userAnim.id)) {
+              // IT'S AN ADMIN ANIMATION. Replace it with the new version.
+              newlySyncedList.add(adminAnimationMap[userAnim.id]!);
+              adminAnimationMap.remove(userAnim.id);
+            } else {
+              // IT'S A USER-CREATED ANIMATION. Keep it.
+              newlySyncedList.add(userAnim);
             }
-
-            // 4. Anything left in adminAnimationMap is a BRAND NEW admin animation
-            // that the user never had. Add them all.
-            newlySyncedList.addAll(adminAnimationMap.values);
-
-            // 5. Create the final, updated collection
-            // Sort to maintain the intended order
-            newlySyncedList
-                .sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
-
-            finalCollectionToUse = userCol.copyWith(
-              animations: newlySyncedList,
-              updatedAt: DateTime.now(), // Update timestamp!
-            );
-            finalCollectionToUse.isTemplate = false;
-
-            wasUpdated = true; // Mark that this collection needs to be saved
-            // --- END OF NEW MERGE LOGIC ---
           }
+
+          // 4. Anything left in adminAnimationMap is a NEW admin animation. Add them.
+          newlySyncedList.addAll(adminAnimationMap.values);
+
+          // 5. Create the final, updated collection
+          newlySyncedList.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+
+          finalCollectionToUse = userCol.copyWith(
+            animations: newlySyncedList,
+            updatedAt: DateTime.now(), // Always update timestamp to now
+          );
+          finalCollectionToUse.isTemplate = false;
+
+          wasUpdated = true; // Mark that this collection needs to be saved
+          // --- END OF SYNC LOGIC ---
 
           adminTemplateMap.remove(userCol.id);
         }
@@ -268,6 +261,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         finalCombinedList.add(finalCollectionToUse);
 
         if (wasUpdated) {
+          // Add the save task. This will now happen on every load for every shadow copy.
           backgroundSaveTasks
               .add(_saveAnimationCollectionUseCase.call(finalCollectionToUse));
         }
@@ -302,7 +296,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     if (backgroundSaveTasks.isNotEmpty) {
       zlog(
           data:
-              "Performing ${backgroundSaveTasks.length} background collection sync saves...");
+              "Performing ${backgroundSaveTasks.length} background collection (re-sync) saves...");
       Future.wait(backgroundSaveTasks).catchError((e) {
         zlog(data: "Error during background sync save: $e", level: Level.error);
       });
