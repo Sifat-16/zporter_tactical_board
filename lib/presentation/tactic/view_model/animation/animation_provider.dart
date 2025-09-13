@@ -175,7 +175,6 @@ class AnimationController extends StateNotifier<AnimationState> {
   Future<void> getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
 
-    // This list will hold any save operations we need to run in the background.
     final List<Future<void>> backgroundSaveTasks = [];
 
     try {
@@ -204,73 +203,80 @@ class AnimationController extends StateNotifier<AnimationState> {
         adminTemplateMap[adminCol.id] = adminCol;
       }
 
-      // --- AUTOMATIC SYNC & MERGE LOGIC ---
+      // --- AUTOMATIC SYNC & MERGE LOGIC (USER'S PROPOSAL) ---
 
       final List<AnimationCollectionModel> finalCombinedList = [];
 
       // Step 3: Iterate USER collections and auto-sync if needed
       for (final userCol in userCollections) {
-        userCol.isTemplate = false; // Set flag
-        bool wasUpdated = false; // Flag to track if we need to save
-
+        userCol.isTemplate = false;
+        bool wasUpdated = false;
         AnimationCollectionModel finalCollectionToUse = userCol;
 
-        // Check if this user collection shadows an admin one
         if (adminTemplateMap.containsKey(userCol.id)) {
           final matchingAdminTemplate = adminTemplateMap[userCol.id]!;
 
-          // SYNC CHECK: If admin template is newer, merge it NOW.
+          // SYNC CHECK: If admin template is newer, perform the robust merge.
           if (matchingAdminTemplate.updatedAt.isAfter(userCol.updatedAt)) {
-            // --- This is the sync logic from the old function ---
-            final userAnimationIds =
-                userCol.animations.map((anim) => anim.id).toSet();
-            final List<AnimationModel> animationsToAdd = [];
+            // --- THIS IS YOUR NEW MERGE LOGIC ---
 
-            for (final adminAnim in matchingAdminTemplate.animations) {
-              if (!userAnimationIds.contains(adminAnim.id)) {
-                animationsToAdd
-                    .add(adminAnim.clone()); // Add missing animations
+            // 1. Create a map of all NEWEST admin animations for fast lookup.
+            final Map<String, AnimationModel> adminAnimationMap = {
+              for (var adminAnim in matchingAdminTemplate.animations)
+                adminAnim.id: adminAnim.clone()
+            };
+
+            // 2. Create the new list we will build for the user.
+            final List<AnimationModel> newlySyncedList = [];
+
+            // 3. Go through the user's CURRENT animations
+            for (final userAnim in userCol.animations) {
+              if (adminAnimationMap.containsKey(userAnim.id)) {
+                // IT'S AN ADMIN ANIMATION. Replace it with the new version.
+                // Add the fresh admin copy from the map.
+                newlySyncedList.add(adminAnimationMap[userAnim.id]!);
+                // Remove it from the map so we know it's been processed.
+                adminAnimationMap.remove(userAnim.id);
+              } else {
+                // IT'S A USER-CREATED ANIMATION. Keep it.
+                newlySyncedList.add(userAnim);
               }
             }
 
-            if (animationsToAdd.isNotEmpty) {
-              final updatedAnimationList = [
-                ...userCol.animations,
-                ...animationsToAdd,
-              ];
-              // Sort to maintain order
-              updatedAnimationList
-                  .sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
+            // 4. Anything left in adminAnimationMap is a BRAND NEW admin animation
+            // that the user never had. Add them all.
+            newlySyncedList.addAll(adminAnimationMap.values);
 
-              // Create the new, updated collection instance to use
-              finalCollectionToUse = userCol.copyWith(
-                animations: updatedAnimationList,
-                updatedAt: DateTime.now(), // Update timestamp!
-              );
-              finalCollectionToUse.isTemplate = false;
+            // 5. Create the final, updated collection
+            // Sort to maintain the intended order
+            newlySyncedList
+                .sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
-              wasUpdated = true; // Mark that this collection needs to be saved
-            }
+            finalCollectionToUse = userCol.copyWith(
+              animations: newlySyncedList,
+              updatedAt: DateTime.now(), // Update timestamp!
+            );
+            finalCollectionToUse.isTemplate = false;
+
+            wasUpdated = true; // Mark that this collection needs to be saved
+            // --- END OF NEW MERGE LOGIC ---
           }
 
-          // Remove the admin template from the map so it's not added later
           adminTemplateMap.remove(userCol.id);
         }
 
-        // Add the collection (either the original or the newly merged one) to our final list
         finalCombinedList.add(finalCollectionToUse);
 
         if (wasUpdated) {
-          // If we updated this collection, add its save operation to the background task list
           backgroundSaveTasks
               .add(_saveAnimationCollectionUseCase.call(finalCollectionToUse));
         }
       }
 
-      // Step 4: Add any remaining (non-copied) admin templates to the list
+      // Step 4: Add any remaining (non-copied) admin templates
       finalCombinedList.addAll(adminTemplateMap.values);
 
-      // Step 5: Sort and update the state ONCE with the final, merged data
+      // Step 5: Sort and update the state ONCE
       finalCombinedList.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
 
       AnimationCollectionModel? selectedCollection =
@@ -284,24 +290,19 @@ class AnimationController extends StateNotifier<AnimationState> {
       state = state.copyWith(
         animationCollections: finalCombinedList,
         isLoadingAnimationCollections: false,
-        adminTemplatesCache: [], // We don't need this cache anymore
       );
 
-      // Select the collection to update the UI
       selectAnimationCollection(selectedCollection);
     } catch (e) {
       zlog(data: "Animation collection fetching/syncing issue: $e");
       state = state.copyWith(isLoadingAnimationCollections: false);
     }
 
-    // STEP 6: Run all pending saves in the background (fire and forget)
-    // This runs AFTER the UI state is updated, so the app feels instant.
+    // STEP 6: Run all pending saves in the background
     if (backgroundSaveTasks.isNotEmpty) {
       zlog(
           data:
               "Performing ${backgroundSaveTasks.length} background collection sync saves...");
-      // We don't await this. Let it run in the background.
-      // We add a catchError to log any failures without crashing the app.
       Future.wait(backgroundSaveTasks).catchError((e) {
         zlog(data: "Error during background sync save: $e", level: Level.error);
       });
