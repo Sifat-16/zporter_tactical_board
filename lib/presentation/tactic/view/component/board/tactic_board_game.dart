@@ -262,4 +262,24 @@ class TacticBoard extends TacticBoardGame
       } catch (e) {}
     });
   }
+
+  void forceUpdateComparator() {
+    // This manually runs the change-detection logic and resets the comparator
+    // to the CURRENT state, preventing the auto-save timer from firing redundantly.
+    try {
+      List<FieldItemModel> items =
+          ref.read(boardProvider.notifier).onAnimationSave();
+      String current = items.map((e) => e.toJson()).join(
+            ',',
+          );
+      current =
+          "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
+
+      _boardComparator =
+          current; // Manually set the comparator to the just-saved state.
+      _timerAccumulator = 0.0; // Also reset the timer's clock.
+    } catch (e) {
+      zlog(data: "Error forcing comparator update: $e");
+    }
+  }
 }

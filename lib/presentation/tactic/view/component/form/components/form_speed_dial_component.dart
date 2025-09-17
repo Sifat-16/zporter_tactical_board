@@ -346,8 +346,33 @@ class _FormSpeedDialComponentState
                     },
                     child: Icon(Icons.arrow_back, color: ColorManager.white),
                   ),
+                // if (config.showFullScreenButton)
+                //   if (ap.showLoadingOnSave)
+                //     SizedBox(
+                //       height: 16,
+                //       width: 16,
+                //       child: CircularProgressIndicator(
+                //         color: ColorManager.white,
+                //       ),
+                //     )
+                //   else
+                //     GestureDetector(
+                //       onTap: () {
+                //         ref.read(boardProvider.notifier).toggleFullScreen();
+                //       },
+                //       child: Icon(
+                //         bp.showFullScreen == false
+                //             ? Icons.fullscreen
+                //             : Icons.fullscreen_exit,
+                //         color: ColorManager.white,
+                //       ),
+                //     ),
+
                 if (config.showFullScreenButton)
-                  if (ap.showLoadingOnSave)
+                  // --- THIS IS THE FIX ---
+                  // We check both the general auto-save flag (ap.showLoadingOnSave)
+                  // AND the new toggle-specific flag (bp.isTogglingFullscreen).
+                  if (ap.showLoadingOnSave || bp.isTogglingFullscreen)
                     SizedBox(
                       height: 16,
                       width: 16,
@@ -356,8 +381,10 @@ class _FormSpeedDialComponentState
                       ),
                     )
                   else
+                    // If no saves are happening, show the normal button.
                     GestureDetector(
                       onTap: () {
+                        // This now correctly calls your new ASYNC method in the controller.
                         ref.read(boardProvider.notifier).toggleFullScreen();
                       },
                       child: Icon(

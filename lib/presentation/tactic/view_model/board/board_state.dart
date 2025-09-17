@@ -53,6 +53,8 @@ class BoardState {
   final AnimatingObj? animatingObj;
   final BoardBackground boardBackground;
 
+  final bool isTogglingFullscreen;
+
   const BoardState(
       {this.players = const [],
       this.equipments = const [],
@@ -78,6 +80,7 @@ class BoardState {
       this.showFullScreen = false,
       this.isDraggingElementToBoard = false,
       this.boardBackground = BoardBackground.full,
+      this.isTogglingFullscreen = false,
       this.animatingObj});
 
   BoardState copyWith({
@@ -108,6 +111,7 @@ class BoardState {
     bool? isAnimating,
     Object? animatingObj = _sentinel,
     BoardBackground? boardBackground,
+    bool? isTogglingFullscreen,
   }) {
     return BoardState(
         players: players ?? this.players,
@@ -140,6 +144,7 @@ class BoardState {
             isDraggingElementToBoard ?? this.isDraggingElementToBoard,
         refreshBoard: refreshBoard ?? this.refreshBoard,
         boardBackground: boardBackground ?? this.boardBackground,
+        isTogglingFullscreen: isTogglingFullscreen ?? this.isTogglingFullscreen,
         animatingObj: animatingObj == _sentinel
             ? this.animatingObj
             : animatingObj as AnimatingObj?);

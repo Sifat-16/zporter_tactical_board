@@ -42,6 +42,8 @@ class TacticApp extends StatelessWidget {
           home: Scaffold(
             backgroundColor: ColorManager.black,
             body: TacticPage(userId: "DUMMY_USER_ID"),
+
+            // body: TacticPage(userId: "9d995fa9-9931-4185-b1a5-b35d3d50ff41"),
           ),
           // home: GameScreen(),
         );
@@ -60,7 +62,7 @@ class TacticPage extends StatefulWidget {
 }
 
 class _TacticPageState extends State<TacticPage> {
-  bool isAdmin = true;
+  bool isAdmin = false;
   @override
   Widget build(BuildContext context) {
     return ProviderScope(

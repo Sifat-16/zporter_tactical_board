@@ -195,7 +195,7 @@ mixin ItemManagement on TacticBoardGame {
   void addInitialItems(List<FieldItemModel> initialItems) async {
     zlog(data: "Initial items ${initialItems}");
 
-    ref.read(boardProvider.notifier).clearItems();
+    // ref.read(boardProvider.notifier).clearItems();
     for (var f in initialItems) {
       await addItem(f);
     }

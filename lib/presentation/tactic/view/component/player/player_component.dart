@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -178,6 +179,18 @@ class PlayerComponent extends FieldComponent<PlayerModel>
           data:
               "Swapped player ${result.playerToBench.id} with ${result.playerToBringIn.id}");
     } else if (result is PlayerUpdateResult) {
+      try {
+        // This is the missing step: Save the update to the master Sembast DB
+        await PlayerUtilsV2.updatePlayerInDb(result.updatedPlayer);
+        zlog(
+            data:
+                "Successfully updated master player DB for ${result.updatedPlayer.id}");
+      } catch (e) {
+        zlog(data: "Failed to update master player DB: $e");
+        BotToast.showText(text: "Error saving player update.");
+        // We can still continue to update the local state to keep the UI responsive
+      }
+
       object = result.updatedPlayer;
       await _loadPlayerImage();
       ref

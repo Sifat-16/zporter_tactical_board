@@ -291,8 +291,34 @@ class BoardController extends StateNotifier<BoardState> {
     }
   }
 
-  void toggleFullScreen() {
-    state = state.copyWith(showFullScreen: !state.showFullScreen);
+  // void toggleFullScreen() {
+  //   state = state.copyWith(showFullScreen: !state.showFullScreen);
+  // }
+
+  Future<void> toggleFullScreen() async {
+    // 1. Turn the spinner ON immediately
+    state = state.copyWith(isTogglingFullscreen: true);
+
+    try {
+      // 2. Force the save of any "dirty" data
+      await ref
+          .read(animationProvider.notifier)
+          .updateDatabaseOnChange(saveToDb: true);
+
+      final game = state.tacticBoardGame;
+      if (game is TacticBoard) {
+        // 3. Reset the auto-save timer to prevent a redundant save
+        game.forceUpdateComparator();
+      }
+    } catch (e) {
+      zlog(data: "Failed to force-save state before fullscreen toggle: $e");
+    }
+
+    // 4. NOW toggle the screen and turn the spinner OFF
+    state = state.copyWith(
+      showFullScreen: !state.showFullScreen,
+      isTogglingFullscreen: false,
+    );
   }
 
   void updateFreeDraws({required List<FreeDrawModelV2> lines}) {

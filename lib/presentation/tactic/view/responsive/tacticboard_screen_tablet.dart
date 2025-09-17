@@ -334,7 +334,7 @@ class _TacticboardScreenTabletState
             child: SizedBox(
               height: context.screenHeight * .92,
               width: context.widthPercent(100),
-              child: _buildCentralContent(context, ref, ap, selectedScene),
+              child: _buildCentralContent(context, ref, ap, selectedScene, bp),
             ),
           ),
 
@@ -465,12 +465,8 @@ class _TacticboardScreenTabletState
     );
   }
 
-  Widget _buildCentralContent(
-    BuildContext context,
-    WidgetRef ref,
-    AnimationState asp,
-    AnimationItemModel? selectedScene,
-  ) {
+  Widget _buildCentralContent(BuildContext context, WidgetRef ref,
+      AnimationState asp, AnimationItemModel? selectedScene, BoardState bp) {
     AnimationModel? animationModel = asp.selectedAnimationModel;
     return Padding(
       padding: EdgeInsets.only(top: 50.0, left: 10, right: 10, bottom: 10),
@@ -504,14 +500,18 @@ class _TacticboardScreenTabletState
                 ),
                 Flexible(
                     flex: 1,
-                    child: IconButton(
-                        onPressed: () {
-                          ref.read(animationProvider.notifier).clearAnimation();
-                        },
-                        icon: Icon(
-                          Icons.cancel_outlined,
-                          color: ColorManager.white,
-                        )))
+                    child: (bp.animatingObj?.isAnimating ?? false) == true
+                        ? SizedBox()
+                        : IconButton(
+                            onPressed: () {
+                              ref
+                                  .read(animationProvider.notifier)
+                                  .clearAnimation();
+                            },
+                            icon: Icon(
+                              Icons.cancel_outlined,
+                              color: ColorManager.white,
+                            )))
               ],
             ),
           Expanded(child: GameScreen(scene: selectedScene)),
