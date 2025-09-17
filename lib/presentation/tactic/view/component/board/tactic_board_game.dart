@@ -239,14 +239,19 @@ class TacticBoard extends TacticBoardGame
         ref
             .read(animationProvider.notifier)
             .toggleLoadingSave(showLoading: true);
-        await ref
-            .read(animationProvider.notifier)
-            .updateDatabaseOnChange(saveToDb: saveToDb)
-            .then((a) {
-          zlog(data: "After save coming animation item model ${a?.toJson()}");
-          ref.read(animationProvider.notifier).saveHistory(scene: a);
-          onSceneSave?.call(a);
-        });
+        try {
+          await ref
+              .read(animationProvider.notifier)
+              .updateDatabaseOnChange(saveToDb: saveToDb)
+              .then((a) {
+            zlog(data: "After save coming animation item model ${a?.toJson()}");
+            ref.read(animationProvider.notifier).saveHistory(scene: a);
+            onSceneSave?.call(a);
+          });
+        } catch (e) {
+          zlog(data: "Error updating database: $e");
+        }
+
         ref
             .read(animationProvider.notifier)
             .toggleLoadingSave(showLoading: false);
