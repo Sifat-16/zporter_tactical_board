@@ -143,15 +143,16 @@ class AnimationRemoteDatasourceImpl implements AnimationDatasource {
       final QuerySnapshot<Map<String, dynamic>> snapshot =
           await _defaultAnimationItemRef
               .where('userId', isEqualTo: userId)
-              .orderBy('orderIndex') // ADD THIS LINE
+              .orderBy('index') // ADD THIS LINE
               .get();
 
       List<AnimationItemModel> animationItems = [];
       if (snapshot.docs.isEmpty) {
         zlog(
-          level: Level.debug,
-          data: "Firestore: No default animations found for user: $userId.",
-        );
+            level: Level.debug,
+            data:
+                "Firestore: No default animations found for user: $userId. ${_defaultAnimationItemRef.id}",
+            show: true);
         return animationItems;
       }
       for (final QueryDocumentSnapshot<Map<String, dynamic>> doc

@@ -861,7 +861,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         _getUserId(),
       );
     } catch (e) {
-      zlog(data: "Animation item fetch issue");
+      zlog(data: "Animation item fetch issue", show: true);
     }
     if (animationItems.isEmpty) {
       animationItems.add(
@@ -872,6 +872,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         ),
       );
     }
+    zlog(data: "Default animation items ${animationItems}", show: true);
 
     state = state.copyWith(
       defaultAnimationItems: animationItems,
@@ -908,12 +909,18 @@ class AnimationController extends StateNotifier<AnimationState> {
         animationItems: defaultAnimations,
         userId: _getUserId(),
       );
-      await _saveDefaultAnimationUseCase.call(defaultAnimationParam);
+      List<AnimationItemModel> cst =
+          await _saveDefaultAnimationUseCase.call(defaultAnimationParam);
+
+      zlog(
+          data:
+              "After saved the data the CST came ${cst} - ${defaultAnimationParam}",
+          show: true);
 
       state = state.copyWith(selectedScene: changeModel);
       return changeModel;
     } catch (e) {
-      zlog(data: "Default Auto save failed $e");
+      zlog(data: "Default Auto save failed $e", show: true);
     }
     return null;
   }
@@ -934,6 +941,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
     if (selectedAnimationModel == null) {
       try {
+        zlog(data: "Came on selected animation null", show: true);
         return await _onSaveDefault();
       } catch (e) {
         zlog(data: "Auto save error");
@@ -941,6 +949,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     } else {
       /// working on saved animation
       try {
+        zlog(data: "Came on _onAnimationSave", show: true);
         return await _onAnimationSave(
           selectedCollection: state.selectedAnimationCollectionModel!,
           selectedAnimation: state.selectedAnimationModel!,

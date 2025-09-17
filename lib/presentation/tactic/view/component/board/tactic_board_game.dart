@@ -244,7 +244,9 @@ class TacticBoard extends TacticBoardGame
               .read(animationProvider.notifier)
               .updateDatabaseOnChange(saveToDb: saveToDb)
               .then((a) {
-            zlog(data: "After save coming animation item model ${a?.toJson()}");
+            zlog(
+                data:
+                    "After save coming animation item model ${a?.toJson()} - $saveToDb");
             ref.read(animationProvider.notifier).saveHistory(scene: a);
             onSceneSave?.call(a);
           });
