@@ -196,8 +196,15 @@ mixin ItemManagement on TacticBoardGame {
     zlog(data: "Initial items ${initialItems}");
 
     // ref.read(boardProvider.notifier).clearItems();
-    for (var f in initialItems) {
-      await addItem(f);
+    // for (var f in initialItems) {
+    //   await addItem(f);
+    // }
+
+    final itemsToDraw =
+        initialItems.where((t) => t is! FreeDrawModelV2).toList();
+
+    for (FieldItemModel i in itemsToDraw) {
+      await addItem(i, save: false); // <-- THIS IS THE FIX. Must be save: false
     }
     _addFreeDrawing(
       lines: initialItems

@@ -82,20 +82,27 @@ class TacticBoard extends TacticBoardGame
     context = myContext;
   }
 
-  // Methods specific to TacticBoard remain here
   // _initiateField() {
   //   gameField = GameField(
   //     size: Vector2(size.x - 22.5, size.y - 22.5),
-  //     initialColor: scene?.fieldColor,
+  //     // Use the provider for the initial color too, for consistency.
+  //     initialColor: ref.read(boardProvider).boardColor,
   //   );
   //   WidgetsBinding.instance.addPostFrameCallback((t) {
   //     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
-  //     add(gameField); // add() is available via FlameGame
-  //     addInitialItems(scene?.components ?? []);
+  //     add(gameField);
+  //
+  //     // FIX: Get the initial items from the single source of truth: the provider.
+  //
+  //     final currentItems = ref.read(boardProvider.notifier).allFieldItems();
+  //
+  //     addInitialItems(currentItems);
   //   });
-  //   // initiateFieldColor();
   // }
 
+  // In class TacticBoard (tactic_board_game.dart)
+
+  // DELETE your old _initiateField method AND REPLACE it with this one.
   _initiateField() {
     gameField = GameField(
       size: Vector2(size.x - 22.5, size.y - 22.5),
@@ -103,11 +110,12 @@ class TacticBoard extends TacticBoardGame
       initialColor: ref.read(boardProvider).boardColor,
     );
     WidgetsBinding.instance.addPostFrameCallback((t) {
+      if (!isMounted) return; // Add mounted check
       ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
       add(gameField);
 
-      // FIX: Get the initial items from the single source of truth: the provider.
-
+      // This is the correct logic: Get items from the provider state,
+      // which initializeFromScene already prepared for us.
       final currentItems = ref.read(boardProvider.notifier).allFieldItems();
 
       addInitialItems(currentItems);
