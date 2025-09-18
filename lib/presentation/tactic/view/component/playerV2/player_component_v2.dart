@@ -32,9 +32,36 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
     });
   }
 
-  bool containsPlayerImage(String? imagePath) {
-    if (imagePath == null) return false;
-    return File(imagePath).existsSync();
+  // Replace the old 'containsPlayerImage' method with this new helper function:
+  ImageProvider? _getImageProvider() {
+    final model = widget.playerModel;
+
+    // Priority 1: Check for Base64 (for any old data)
+    if (model.imageBase64 != null && model.imageBase64!.isNotEmpty) {
+      try {
+        return MemoryImage(base64Decode(model.imageBase64!));
+      } catch (e) {
+        zlog(data: "Failed to decode base64 in PlayerComponentV2: $e");
+        // Fall through to check imagePath
+      }
+    }
+
+    // Priority 2: Check imagePath (which can be a Network URL or Local File Path)
+    if (model.imagePath != null && model.imagePath!.isNotEmpty) {
+      // Check if it's a network URL
+      if (model.imagePath!.startsWith('http')) {
+        return NetworkImage(model.imagePath!);
+      }
+      // Check if it's a local file path
+      else {
+        // Note: FileImage will throw an error if the file doesn't exist,
+        // but this is the expected behavior. Our logic *should* be creating valid files.
+        return FileImage(File(model.imagePath!));
+      }
+    }
+
+    // No image source found
+    return null;
   }
 
   @override
@@ -99,9 +126,11 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
 
   Widget _buildPlayerComponent({bool isDragging = false}) {
     final theme = Theme.of(context);
-    // --- MODIFIED: Check imageBase64 instead of file path ---
-    final imageBase64 = widget.playerModel.imageBase64;
-    final hasImage = imageBase64 != null && imageBase64.isNotEmpty;
+
+    // --- THIS IS THE NEW LOGIC ---
+    final ImageProvider? imageProvider = _getImageProvider();
+    final bool hasImage = imageProvider != null;
+    // --- END NEW LOGIC ---
 
     final roleTextStyle = theme.textTheme.labelLarge?.copyWith(
           color: ColorManager.white,
@@ -126,7 +155,7 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
         image: hasImage
             ? DecorationImage(
                 // --- MODIFIED: Use MemoryImage with base64Decode ---
-                image: MemoryImage(base64Decode(imageBase64)),
+                image: imageProvider,
                 fit: BoxFit.cover,
               )
             : null,

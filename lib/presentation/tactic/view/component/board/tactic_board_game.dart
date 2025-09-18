@@ -192,45 +192,67 @@ class TacticBoard extends TacticBoardGame
   }
 
   // --- Updated update method with Timer Logic ---
+  // @override
+  // void update(double dt) {
+  //   // Accumulate the time passed since the last frame
+  //   _timerAccumulator += dt;
+  //
+  //   // Check if the accumulated time has reached or exceeded the interval
+  //   if (_timerAccumulator >= _checkInterval) {
+  //     WidgetsBinding.instance.addPostFrameCallback((t) {
+  //       // --- Your change detection logic goes here ---
+  //
+  //       // Assuming FieldItemModel is the correct type here
+  //       List<FieldItemModel> items =
+  //           ref.read(boardProvider.notifier).onAnimationSave();
+  //
+  //       // Consider if toJson() is expensive; maybe compare models directly if possible
+  //       String current = items.map((e) => e.toJson()).join(
+  //             ',',
+  //           ); // Use join for a more stable string representation if order matters
+  //
+  //       current =
+  //           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
+  //
+  //       if (_boardComparator == null) {
+  //         _boardComparator = current;
+  //       } else {
+  //         if (_boardComparator != current) {
+  //           // --- ACTION: Do something when a change is detected ---
+  //           // e.g., trigger autosave, update external UI, etc.
+  //           _boardComparator = current; // Update comparator to the new state
+  //
+  //           updateDatabase();
+  //         } else {}
+  //       }
+  //       _timerAccumulator -= _checkInterval;
+  //     });
+  //   }
+  //
+  //   // Other update logic can remain here and run every frame if needed
+  //   super.update(dt); // Always call super.update!
+  // }
+
   @override
   void update(double dt) {
-    // Accumulate the time passed since the last frame
     _timerAccumulator += dt;
 
-    // Check if the accumulated time has reached or exceeded the interval
     if (_timerAccumulator >= _checkInterval) {
       WidgetsBinding.instance.addPostFrameCallback((t) {
-        // --- Your change detection logic goes here ---
-
-        // Assuming FieldItemModel is the correct type here
-        List<FieldItemModel> items =
-            ref.read(boardProvider.notifier).onAnimationSave();
-
-        // Consider if toJson() is expensive; maybe compare models directly if possible
-        String current = items.map((e) => e.toJson()).join(
-              ',',
-            ); // Use join for a more stable string representation if order matters
-
-        current =
-            "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
+        String current = _getCurrentBoardStateString(); // <-- USE HELPER
 
         if (_boardComparator == null) {
           _boardComparator = current;
         } else {
           if (_boardComparator != current) {
-            // --- ACTION: Do something when a change is detected ---
-            // e.g., trigger autosave, update external UI, etc.
-            _boardComparator = current; // Update comparator to the new state
-
+            _boardComparator = current;
             updateDatabase();
-          } else {}
+          }
         }
         _timerAccumulator -= _checkInterval;
       });
     }
-
-    // Other update logic can remain here and run every frame if needed
-    super.update(dt); // Always call super.update!
+    super.update(dt);
   }
 
   updateDatabase() {
@@ -279,8 +301,15 @@ class TacticBoard extends TacticBoardGame
   }
 
   void forceUpdateComparator() {
-    // This manually runs the change-detection logic and resets the comparator
-    // to the CURRENT state, preventing the auto-save timer from firing redundantly.
+    try {
+      _boardComparator = _getCurrentBoardStateString(); // <-- USE HELPER
+      _timerAccumulator = 0.0;
+    } catch (e) {
+      zlog(data: "Error forcing comparator update: $e");
+    }
+  }
+
+  String _getCurrentBoardStateString() {
     try {
       List<FieldItemModel> items =
           ref.read(boardProvider.notifier).onAnimationSave();
@@ -289,12 +318,21 @@ class TacticBoard extends TacticBoardGame
           );
       current =
           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
-
-      _boardComparator =
-          current; // Manually set the comparator to the just-saved state.
-      _timerAccumulator = 0.0; // Also reset the timer's clock.
+      return current;
     } catch (e) {
-      zlog(data: "Error forcing comparator update: $e");
+      // This can happen if providers aren't ready. Default to a "clean" state string.
+      zlog(data: "Error getting current board state string: $e");
+      return _boardComparator ??
+          ""; // Return the last known comparator if error
     }
+  }
+
+  bool get isDirty {
+    // If comparator hasn't been set yet, assume it's not dirty.
+    if (_boardComparator == null) {
+      return false;
+    }
+    // Compare the last saved state to the current state.
+    return _boardComparator != _getCurrentBoardStateString();
   }
 }

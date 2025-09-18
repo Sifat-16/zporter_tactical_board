@@ -32,7 +32,7 @@ mixin ItemManagement on TacticBoardGame {
   @override
   addItem(FieldItemModel item, {bool save = true}) async {
     // --- Exact code from original TacticBoard.addItem ---
-    item = item.copyWith();
+    // item = item.copyWith();
     if (item is PlayerModel) {
       add(PlayerComponent(object: item)); // add() is available via FlameGame
     } else if (item is EquipmentModel) {

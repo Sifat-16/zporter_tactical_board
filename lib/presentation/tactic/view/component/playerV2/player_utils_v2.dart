@@ -19,6 +19,7 @@ import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/services/firebase_storage_service.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -605,7 +606,12 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _displayNumberController;
   late String? _selectedRole;
-  String? _currentImageBase64;
+  // String? _currentImageBase64;
+
+  final FirebaseStorageService _storageService = FirebaseStorageService();
+  File? _pendingImageFile; // This will hold the new image the user picked
+  String? _existingImagePath; // This will hold the player's current path/base64
+  String? _existingImageBase64;
 
   bool _isDefaultPlayer = false;
   final ImagePicker _picker = ImagePicker();
@@ -621,7 +627,12 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       _displayNumberController = TextEditingController(
           text: widget.player!.displayNumber?.toString() ?? '');
       _selectedRole = widget.player!.role;
-      _currentImageBase64 = widget.player!.imageBase64;
+      // _currentImageBase64 = widget.player!.imageBase64;
+
+      _existingImageBase64 =
+          widget.player!.imageBase64; // Store existing image data
+      _existingImagePath =
+          widget.player!.imagePath; // Store existing image path
 
       final defaultData =
           PlayerUtilsV2.findDefaultPlayerDataById(widget.player!.id);
@@ -630,7 +641,8 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       _nameController = TextEditingController();
       _displayNumberController = TextEditingController();
       _selectedRole = null;
-      _currentImageBase64 = null;
+      _existingImageBase64 = null; // Store existing image data
+      _existingImagePath = null; // Store existing image path
     }
   }
 
@@ -676,8 +688,14 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       final imageBytes = await croppedFile.readAsBytes();
       final base64String = base64Encode(imageBytes);
 
+      // setState(() {
+      //   _currentImageBase64 = base64String;
+      // });
+
       setState(() {
-        _currentImageBase64 = base64String;
+        _pendingImageFile = File(croppedFile.path);
+        _existingImageBase64 = null; // Clear old images so the new one shows
+        _existingImagePath = null; // Clear old images so the new one shows
       });
     } catch (e) {
       zlog(data: 'Error during image pick/crop process: $e');
@@ -759,6 +777,40 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       }
     }
 
+    String? finalImagePath =
+        _existingImagePath; // Start with the existing image path/URL
+    String? finalBase64 =
+        _existingImageBase64; // Start with existing Base64 (for backwards compatibility)
+
+    // A new file was picked by the user, we MUST upload it.
+    if (_pendingImageFile != null) {
+      try {
+        BotToast.showLoading(); // Show a global loader for the upload
+
+        // Use a unique ID for the file. If creating a new player, generate one.
+        final String playerIdForUpload =
+            widget.player?.id ?? RandomGenerator.generateId();
+
+        // 1. CALL OUR NEW UPLOAD SERVICE
+        final String downloadURL = await _storageService.uploadPlayerImage(
+          imageFile: _pendingImageFile!,
+          playerId: playerIdForUpload,
+        );
+
+        // 2. This network URL is the new path we will save
+        finalImagePath = downloadURL;
+        finalBase64 =
+            null; // Clear any old base64 data, the URL is the new truth
+      } catch (e) {
+        zlog(data: "Failed to upload image to Firebase Storage: $e");
+        BotToast.showText(text: "Error saving image. Please try again.");
+        BotToast.cleanAll(); // Make sure to clean the loader on failure
+        return; // Stop the save
+      } finally {
+        BotToast.cleanAll(); // Clean loader on success
+      }
+    }
+
     PlayerModel resultPlayer;
     if (isEditMode) {
       resultPlayer = widget.player!.copyWith(
@@ -766,8 +818,8 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         role: _selectedRole,
         // --- CHANGE 6: Save the parsed int to displayNumber ---
         displayNumber: jerseyNumberInt,
-        imageBase64: _currentImageBase64,
-        imagePath: '',
+        imageBase64: finalBase64, // Pass the (likely null) Base64
+        imagePath: finalImagePath, // Pass the new PERMANENT path
         updatedAt: DateTime.now(),
       );
     } else {
@@ -780,7 +832,8 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         jerseyNumber: jerseyNumberInt ?? -1,
         displayNumber: jerseyNumberInt,
         name: _nameController.text.trim(),
-        imageBase64: _currentImageBase64,
+        imageBase64: finalBase64,
+        imagePath: finalImagePath, // Save the new permanent path
         color: widget.playerType == PlayerType.HOME
             ? ColorManager.blueAccent
             : ColorManager.red,
@@ -799,15 +852,41 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     }
   }
 
+  // ImageProvider? _getImageProvider() {
+  //   if (_currentImageBase64 != null && _currentImageBase64!.isNotEmpty) {
+  //     try {
+  //       return MemoryImage(base64Decode(_currentImageBase64!));
+  //     } catch (e) {
+  //       zlog(data: "Error decoding Base64 for UI: $e");
+  //       return null;
+  //     }
+  //   }
+  //   return null;
+  // }
+
+  // Replace your _getImageProvider() function
+
   ImageProvider? _getImageProvider() {
-    if (_currentImageBase64 != null && _currentImageBase64!.isNotEmpty) {
+    // 1. Did the user just pick a NEW file? Show that (from the temp path).
+    if (_pendingImageFile != null) {
+      return FileImage(_pendingImageFile!);
+    }
+
+    // 2. Is there an existing Base64 string? (for old data)
+    if (_existingImageBase64 != null && _existingImageBase64!.isNotEmpty) {
       try {
-        return MemoryImage(base64Decode(_currentImageBase64!));
+        return MemoryImage(base64Decode(_existingImageBase64!));
       } catch (e) {
         zlog(data: "Error decoding Base64 for UI: $e");
-        return null;
       }
     }
+
+    // 3. Is there an existing PERMANENT file path? Show that.
+    if (_existingImagePath != null && _existingImagePath!.isNotEmpty) {
+      return FileImage(File(_existingImagePath!));
+    }
+
+    // 4. If nothing else, show null (which shows the "add photo" icon).
     return null;
   }
 

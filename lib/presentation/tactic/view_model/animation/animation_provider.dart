@@ -628,11 +628,11 @@ class AnimationController extends StateNotifier<AnimationState> {
             );
           }
 
-          state = state.copyWith(
-            selectedAnimationCollectionModel: selectedCollection,
-            selectedAnimationModel: selectedAnimation,
-            selectedScene: selectedScene,
-          );
+          // state = state.copyWith(
+          //   selectedAnimationCollectionModel: selectedCollection,
+          //   selectedAnimationModel: selectedAnimation,
+          //   selectedScene: selectedScene,
+          // );
           BotToast.showText(text: "Scene Saved Successfully ${selectedScene}");
           return selectedScene;
         } catch (e) {
@@ -649,13 +649,67 @@ class AnimationController extends StateNotifier<AnimationState> {
     return null;
   }
 
+  // void addNewScene({
+  //   required AnimationCollectionModel selectedCollection,
+  //   required AnimationModel selectedAnimation,
+  //   required AnimationItemModel selectedScene,
+  // }) async {
+  //   selectedCollection = state.selectedAnimationCollectionModel!;
+  //   selectedAnimation = state.selectedAnimationModel!;
+  //   AnimationItemModel newAnimationItemModel = selectedScene.clone(
+  //     addHistory: false,
+  //   );
+  //   newAnimationItemModel.id = RandomGenerator.generateId();
+  //   newAnimationItemModel.index = selectedAnimation.animationScenes.length;
+  //   newAnimationItemModel.createdAt = DateTime.now();
+  //   newAnimationItemModel.updatedAt = DateTime.now();
+  //   selectedAnimation.animationScenes.add(newAnimationItemModel);
+  //
+  //   state = state.copyWith(
+  //     selectedAnimationCollectionModel: selectedCollection,
+  //     selectedAnimationModel: selectedAnimation,
+  //     selectedScene: selectedAnimation.animationScenes.last,
+  //   );
+  //   try {
+  //     _onAnimationSave(
+  //       selectedCollection: state.selectedAnimationCollectionModel!,
+  //       selectedAnimation: state.selectedAnimationModel!,
+  //       selectedScene: state.selectedScene!,
+  //       showLoading: false,
+  //     );
+  //   } catch (e) {}
+  // }
+
   void addNewScene({
     required AnimationCollectionModel selectedCollection,
     required AnimationModel selectedAnimation,
-    required AnimationItemModel selectedScene,
+    required AnimationItemModel
+        selectedScene, // This is the CURRENT scene (Scene A)
   }) async {
-    selectedCollection = state.selectedAnimationCollectionModel!;
-    selectedAnimation = state.selectedAnimationModel!;
+    // 1. Get the LIVE components from the board. This is the "dirty" data you just added.
+    final List<FieldItemModel> currentComponents =
+        ref.read(boardProvider.notifier).onAnimationSave();
+
+    // 2. Find the *current* scene (Scene A) in the animation list AND UPDATE IT with this live data.
+    // This is the "Force Save" step that was missing.
+    final int currentSceneIndex = selectedAnimation.animationScenes.indexWhere(
+      (s) => s.id == selectedScene.id,
+    );
+
+    if (currentSceneIndex != -1) {
+      // Create an updated copy of Scene A
+      selectedScene = selectedScene.copyWith(
+        components: currentComponents,
+        updatedAt: DateTime.now(),
+      );
+      // Replace the old stale scene in the list with the updated one
+      selectedAnimation.animationScenes[currentSceneIndex] = selectedScene;
+    } else {
+      // This shouldn't happen, but as a fallback, just update the local copy
+      selectedScene.components = currentComponents;
+    }
+
+    // 3. NOW that Scene A is fully updated, clone IT to create Scene B.
     AnimationItemModel newAnimationItemModel = selectedScene.clone(
       addHistory: false,
     );
@@ -663,21 +717,32 @@ class AnimationController extends StateNotifier<AnimationState> {
     newAnimationItemModel.index = selectedAnimation.animationScenes.length;
     newAnimationItemModel.createdAt = DateTime.now();
     newAnimationItemModel.updatedAt = DateTime.now();
+
+    // 4. Add the new clone (Scene B) to the animation list
     selectedAnimation.animationScenes.add(newAnimationItemModel);
 
+    // 5. Save the ENTIRE collection (which now has the updated Scene A AND the new Scene B)
+    try {
+      // Show the save spinner that your UI already listens for
+      toggleLoadingSave(showLoading: true);
+      selectedCollection =
+          await _saveAnimationCollectionUseCase.call(selectedCollection);
+    } catch (e) {
+      zlog(data: "Error saving new scene: $e");
+      BotToast.showText(text: "Error saving new scene.");
+    } finally {
+      // Hide the spinner
+      toggleLoadingSave(showLoading: false);
+    }
+
+    // 6. FINALLY, update the state ONCE to select the new, correct scene.
+    // This happens after the save is complete.
     state = state.copyWith(
       selectedAnimationCollectionModel: selectedCollection,
-      selectedAnimationModel: selectedAnimation,
-      selectedScene: selectedAnimation.animationScenes.last,
+      selectedAnimationModel: selectedAnimation
+          .clone(), // Use a clone to force the UI to refresh the list
+      selectedScene: newAnimationItemModel, // Select Scene B
     );
-    try {
-      _onAnimationSave(
-        selectedCollection: state.selectedAnimationCollectionModel!,
-        selectedAnimation: state.selectedAnimationModel!,
-        selectedScene: state.selectedScene!,
-        showLoading: false,
-      );
-    } catch (e) {}
   }
 
   void selectScene({required AnimationItemModel scene}) {

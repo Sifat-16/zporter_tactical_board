@@ -44,11 +44,14 @@ import 'package:zporter_tactical_board/domain/animation/usecase/save_history_use
 import 'package:zporter_tactical_board/firebase_options.dart';
 
 import 'connectivity_service.dart';
+import 'firebase_storage_service.dart';
 
 final sl = GetIt.instance;
 
 Future<void> initializeTacticBoardDependencies() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseStorageService.initializeSecondaryApp(
+      DefaultFirebaseOptions.secondaryProjectOptions);
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED, // Or a specific limit

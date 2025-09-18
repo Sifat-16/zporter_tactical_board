@@ -296,25 +296,33 @@ class BoardController extends StateNotifier<BoardState> {
   // }
 
   Future<void> toggleFullScreen() async {
-    // 1. Turn the spinner ON immediately
+    // 1. Turn the spinner ON immediately.
     state = state.copyWith(isTogglingFullscreen: true);
+    final game = state.tacticBoardGame;
 
     try {
-      // 2. Force the save of any "dirty" data
-      await ref
-          .read(animationProvider.notifier)
-          .updateDatabaseOnChange(saveToDb: true);
+      // --- THIS IS THE OPTIMIZATION ---
+      // Only force a save IF the game instance reports it has unsaved changes.
+      if (game is TacticBoard && game.isDirty) {
+        zlog(data: "Toggle: Data is dirty, forcing save...");
 
-      final game = state.tacticBoardGame;
-      if (game is TacticBoard) {
-        // 3. Reset the auto-save timer to prevent a redundant save
+        // 2. Run our robust save logic
+        await ref
+            .read(animationProvider.notifier)
+            .updateDatabaseOnChange(saveToDb: true);
+
+        // 3. Reset the auto-save timer
         game.forceUpdateComparator();
+      } else {
+        zlog(data: "Toggle: Data is clean, skipping save.");
+        // Data is clean. Do nothing.
       }
+      // --- END OF OPTIMIZATION ---
     } catch (e) {
-      zlog(data: "Failed to force-save state before fullscreen toggle: $e");
+      zlog(data: "Failed during fullscreen toggle save check: $e");
     }
 
-    // 4. NOW toggle the screen and turn the spinner OFF
+    // 4. NOW toggle the screen and turn the spinner OFF.
     state = state.copyWith(
       showFullScreen: !state.showFullScreen,
       isTogglingFullscreen: false,

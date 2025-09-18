@@ -64,8 +64,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '134085653898',
     projectId: 'zporter-board-dev',
     storageBucket: 'zporter-board-dev.firebasestorage.app',
-    androidClientId: '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
-    iosClientId: '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
+    androidClientId:
+        '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
+    iosClientId:
+        '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
     iosBundleId: 'com.example.zporterTacticalBoard',
   );
 
@@ -75,8 +77,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '134085653898',
     projectId: 'zporter-board-dev',
     storageBucket: 'zporter-board-dev.firebasestorage.app',
-    androidClientId: '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
-    iosClientId: '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
+    androidClientId:
+        '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
+    iosClientId:
+        '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
     iosBundleId: 'com.example.zporterTacticalBoard',
   );
 
@@ -90,4 +94,14 @@ class DefaultFirebaseOptions {
     measurementId: 'G-HNYGXNYXDP',
   );
 
+  static const FirebaseOptions secondaryProjectOptions = FirebaseOptions(
+      apiKey: "AIzaSyD7JfGqgH_Y4opp0B7zgXEJe9FFa26phtE",
+      authDomain: "zporter-dev.firebaseapp.com",
+      databaseURL:
+          "https://zporter-dev-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "zporter-dev",
+      storageBucket: "zporter-dev.appspot.com",
+      messagingSenderId: "357104839495",
+      appId: "1:357104839495:web:924336770c1ea9b606fa62",
+      measurementId: "G-D7NS1ZG611");
 }
