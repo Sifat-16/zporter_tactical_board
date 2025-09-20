@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
 const Object _sentinel = Object();
@@ -55,6 +56,12 @@ class BoardState {
 
   final bool isTogglingFullscreen;
 
+  final bool isDraggingItem;
+
+  final List<GuideLine> activeGuides;
+
+  final double gridSize;
+
   const BoardState(
       {this.players = const [],
       this.equipments = const [],
@@ -81,6 +88,9 @@ class BoardState {
       this.isDraggingElementToBoard = false,
       this.boardBackground = BoardBackground.full,
       this.isTogglingFullscreen = false,
+      this.isDraggingItem = false,
+      this.activeGuides = const [],
+      this.gridSize = 50.0,
       this.animatingObj});
 
   BoardState copyWith({
@@ -112,6 +122,9 @@ class BoardState {
     Object? animatingObj = _sentinel,
     BoardBackground? boardBackground,
     bool? isTogglingFullscreen,
+    bool? isDraggingItem,
+    List<GuideLine>? activeGuides,
+    double? gridSize,
   }) {
     return BoardState(
         players: players ?? this.players,
@@ -145,6 +158,9 @@ class BoardState {
         refreshBoard: refreshBoard ?? this.refreshBoard,
         boardBackground: boardBackground ?? this.boardBackground,
         isTogglingFullscreen: isTogglingFullscreen ?? this.isTogglingFullscreen,
+        isDraggingItem: isDraggingItem ?? this.isDraggingItem,
+        activeGuides: activeGuides ?? this.activeGuides,
+        gridSize: gridSize ?? this.gridSize,
         animatingObj: animatingObj == _sentinel
             ? this.animatingObj
             : animatingObj as AnimatingObj?);

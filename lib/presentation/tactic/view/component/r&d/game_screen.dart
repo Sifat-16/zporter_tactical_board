@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flame/components.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart';
@@ -21,8 +22,11 @@ import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/animation_controls_widget.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/form_speed_dial_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
@@ -54,6 +58,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   TacticBoard? tacticBoardGame;
   bool gameInitialized = false;
   int previousAngle = 0;
+
+  final double _snapTolerance = 5.0;
+
+  List<GuideLine> _activeGuides = [];
 
   final WidgetCaptureXPlusController _widgetCaptureXPlusController =
       WidgetCaptureXPlusController(
@@ -385,6 +393,78 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     return DragTarget<FieldItemModel>(
       /* ... (onAcceptWithDetails - Same as before) ... */
+
+      onWillAcceptWithDetails: (data) {
+        // When a player/equipment first enters the board, show the grid.
+        ref.read(boardProvider.notifier).toggleItemDrag(true);
+        return true;
+      },
+      // --- END ADD ---
+
+      // --- ADD THIS ---
+      onLeave: (data) {
+        // When the item is dragged back off the board, hide the grid.
+        ref.read(boardProvider.notifier).toggleItemDrag(false);
+        ref.read(boardProvider.notifier).clearGuides(); // Also clear guides
+      },
+
+      onMove: (details) {
+        // --- THIS IS THE GUIDE-DRAWING LOGIC (NO SNAPPING) ---
+        if (tacticBoardGame == null) return;
+        _activeGuides.clear();
+
+        // 1. Get cursor position
+        final RenderBox gameScreenBox = context.findRenderObject() as RenderBox;
+        final Vector2 gameScreenSize = gameScreenBox.size.toVector2();
+        final double gameScreenWidth = gameScreenSize.x;
+        final Offset globalGameScreenOffset =
+            gameScreenBox.localToGlobal(Offset.zero);
+        final Vector2 screenRelativeOffset =
+            details.offset.toVector2() - globalGameScreenOffset.toVector2();
+        final double dx = screenRelativeOffset.x;
+        final double dy = screenRelativeOffset.y;
+        final Vector2 cursorPosition = (quarterTurns == 1)
+            ? Vector2(dy, gameScreenWidth - dx)
+            : screenRelativeOffset;
+
+        // 2. Get "my" (the dragged item's) alignment points
+        final Vector2 itemSize = details.data.size ?? Vector2(32.0, 32.0);
+        final Vector2 myCenter =
+            cursorPosition + (itemSize / 2) - Vector2(10, 10);
+
+        bool didSmartAlign = false;
+        final fieldSize = tacticBoardGame!.size;
+
+        // 3. Get other items
+        final otherItems = tacticBoardGame!.children
+            .where((c) => (c is PlayerComponent || c is EquipmentComponent));
+
+        for (final item in otherItems) {
+          if (item is! PositionComponent) continue;
+
+          // Get other item's alignment points (Anchor.center)
+          final Vector2 otherCenter = item.position - Vector2(10, 10);
+
+          if ((myCenter.x - otherCenter.x).abs() < _snapTolerance) {
+            _activeGuides.add(GuideLine(
+                start: Vector2(otherCenter.x, 0),
+                end: Vector2(otherCenter.x, fieldSize.y)));
+            didSmartAlign = true;
+          }
+
+          if ((myCenter.y - otherCenter.y).abs() < _snapTolerance) {
+            _activeGuides.add(GuideLine(
+                start: Vector2(0, otherCenter.y),
+                end: Vector2(fieldSize.x, otherCenter.y)));
+            didSmartAlign = true;
+          }
+        }
+
+        // 4. Update the providers
+        ref.read(boardProvider.notifier).updateGuides(_activeGuides);
+        ref.read(boardProvider.notifier).toggleItemDrag(!didSmartAlign);
+      },
+
       onAcceptWithDetails: (details) async {
         if (tacticBoardGame == null) return;
         // if (!gameInitialized ||
@@ -470,6 +550,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
         // 10. Add the fully configured item to the tactic board.
         await tacticBoardGame?.addItem(fieldItemModel);
+
+        ref.read(boardProvider.notifier).toggleItemDrag(false);
+        ref.read(boardProvider.notifier).clearGuides();
       },
       builder: (BuildContext context, List<Object?> candidateData,
           List<dynamic> rejectedData) {

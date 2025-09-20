@@ -14,6 +14,7 @@ import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
@@ -447,5 +448,21 @@ class BoardController extends StateNotifier<BoardState> {
         tacticBoard.addItem(textModel);
       }
     } catch (e) {}
+  }
+
+  void toggleItemDrag(bool isDragging) {
+    state = state.copyWith(isDraggingItem: isDragging);
+  }
+
+  void updateGuides(List<GuideLine> guides) {
+    state = state.copyWith(activeGuides: guides);
+  }
+
+  void clearGuides() {
+    state = state.copyWith(activeGuides: const []);
+  }
+
+  void updateGridSize(double newSize) {
+    state = state.copyWith(gridSize: newSize);
   }
 }

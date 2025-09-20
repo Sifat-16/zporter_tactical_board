@@ -13,6 +13,8 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 // Import game and providers
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 
@@ -33,11 +35,11 @@ class PolygonVertexDotComponent extends CircleComponent
     required double radius,
     required Paint paint,
   }) : super(
-         position: position,
-         radius: radius,
-         paint: paint,
-         anchor: Anchor.center,
-       );
+          position: position,
+          radius: radius,
+          paint: paint,
+          anchor: Anchor.center,
+        );
 
   @override
   Future<void> onLoad() async {
@@ -113,16 +115,15 @@ class PolygonShapeDrawerComponent extends PositionComponent
         TapCallbacks,
         DragCallbacks {
   PolygonShapeModel
-  polygonModel; // This model can be pre-populated with the first vertex
+      polygonModel; // This model can be pre-populated with the first vertex
   late PolygonShapeModel _internalModel;
   List<Vector2> actualVertices = [];
   late Paint _strokePaint;
   late Paint _fillPaint;
   final double _vertexDotRadius = 8.0;
-  final Paint _vertexDotPaint =
-      Paint()
-        ..color = Colors.blueAccent
-        ..style = PaintingStyle.fill;
+  final Paint _vertexDotPaint = Paint()
+    ..color = Colors.blueAccent
+    ..style = PaintingStyle.fill;
   final List<PolygonVertexDotComponent> _vertexDots = [];
 
   bool _isActive = false; // Initialized in onLoad
@@ -184,15 +185,14 @@ class PolygonShapeDrawerComponent extends PositionComponent
       return;
     }
 
-    actualVertices =
-        _internalModel.relativeVertices
-            .map(
-              (relativePos) => SizeHelper.getBoardActualVector(
-                gameScreenSize: game.gameField.size,
-                actualPosition: relativePos,
-              ),
-            )
-            .toList();
+    actualVertices = _internalModel.relativeVertices
+        .map(
+          (relativePos) => SizeHelper.getBoardActualVector(
+            gameScreenSize: game.gameField.size,
+            actualPosition: relativePos,
+          ),
+        )
+        .toList();
 
     _updatePaint();
     _polygonPath.reset();
@@ -216,17 +216,15 @@ class PolygonShapeDrawerComponent extends PositionComponent
     final baseStrokeColor = polygonModel.strokeColor ?? Colors.white;
     final baseStrokeWidth = polygonModel.strokeWidth;
     final baseOpacity = polygonModel.opacity ?? 1.0;
-    _strokePaint =
-        Paint()
-          ..color = baseStrokeColor.withValues(alpha: baseOpacity)
-          ..strokeWidth = baseStrokeWidth
-          ..style = PaintingStyle.stroke;
+    _strokePaint = Paint()
+      ..color = baseStrokeColor.withValues(alpha: baseOpacity)
+      ..strokeWidth = baseStrokeWidth
+      ..style = PaintingStyle.stroke;
 
     final baseFillColor = polygonModel.color ?? ColorManager.white;
-    _fillPaint =
-        Paint()
-          ..color = baseFillColor.withValues(alpha: baseOpacity * 0.1)
-          ..style = PaintingStyle.fill;
+    _fillPaint = Paint()
+      ..color = baseFillColor.withValues(alpha: baseOpacity * 0.1)
+      ..style = PaintingStyle.fill;
   }
 
   /// Adds/Updates vertex dot components ONLY if the polygon is active.
@@ -323,14 +321,44 @@ class PolygonShapeDrawerComponent extends PositionComponent
   }
 
   // --- Drag Handlers for the Polygon itself ---
+  // @override
+  // void onDragStart(DragStartEvent event) {
+  //   super.onDragStart(event);
+  //   if (_isActive &&
+  //       !_isDraggingVertex &&
+  //       containsLocalPoint(event.localPosition)) {
+  //     _isDraggingPolygon = true;
+  //     event.handled = true;
+  //     zlog(data: "Polygon ${polygonModel.id}: Started dragging polygon.");
+  //   }
+  // }
+
   @override
   void onDragStart(DragStartEvent event) {
-    super.onDragStart(event);
-    if (_isActive &&
-        !_isDraggingVertex &&
-        containsLocalPoint(event.localPosition)) {
-      _isDraggingPolygon = true;
+    super.onDragStart(event); // Let children (dots) get the event first
+
+    // Check if drag started on a vertex dot
+    if (_isDraggingVertex) {
+      // The dot's onDragStart already set this to true
       event.handled = true;
+      return;
+    }
+
+    // Check for "drag from inside"
+    if (isActive && containsLocalPoint(event.localPosition)) {
+      // --- NEW LOGIC ---
+      // Check if an item (Player/Equipment) is on top of us
+      if (_isItemOnTop(event.localPosition)) {
+        // An item is on top. Do NOT drag this shape.
+        // Let the event fall through to the item.
+        zlog(data: "Polygon ${polygonModel.id}: Drag ignored, item on top.");
+        return;
+      }
+      // --- END NEW LOGIC ---
+
+      // No item on top, we can drag this shape.
+      _isDraggingPolygon = true;
+      event.handled = true; // Polygon component consumes it
       zlog(data: "Polygon ${polygonModel.id}: Started dragging polygon.");
     }
   }
@@ -504,6 +532,26 @@ class PolygonShapeDrawerComponent extends PositionComponent
     if (isActive != newActiveState) {
       setActive(newActiveState);
     }
+  }
+
+  bool _isItemOnTop(Vector2 tapPosition) {
+    // Find all Player and Equipment components
+    final items = game.children
+        .where((c) => c is PlayerComponent || c is EquipmentComponent);
+
+    // Check if any of them contain the tap point
+    for (final item in items) {
+      if (item is PositionComponent) {
+        // Convert the tap position (from game space) to the item's local space
+        final itemLocalTap = item.toLocal(tapPosition);
+        if (item.containsLocalPoint(itemLocalTap)) {
+          // Found an item on top!
+          return true;
+        }
+      }
+    }
+    // No items found at this spot
+    return false;
   }
 
   // --- END ADDED ---

@@ -39,7 +39,7 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
   T object;
 
   SelectionBorder? selectionBorder;
-  bool _isRotationHandleDragged = false;
+  bool isRotationHandleDragged = false;
   bool _isSelected = false;
 
   FieldComponent({super.priority = 1, required this.object});
@@ -76,7 +76,7 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
-    if (!_isRotationHandleDragged) {
+    if (!isRotationHandleDragged) {
       position += event.canvasDelta;
     }
   }
@@ -149,7 +149,7 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
 
   @override
   void setRotationHandleDragged(bool value) {
-    _isRotationHandleDragged = value;
+    isRotationHandleDragged = value;
   }
 
   @override

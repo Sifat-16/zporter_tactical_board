@@ -41,6 +41,14 @@ mixin BoardRiverpodIntegration on TacticBoardGame {
           ref.read(boardProvider.notifier).moveUpComplete();
         }
       });
+
+      ref.listen<bool>(
+        boardProvider.select((state) => state.isDraggingItem),
+        (previous, isDragging) {
+          // When the flag changes, show/hide the grid
+          (this as TacticBoard).grid.isHidden = !isDragging;
+        },
+      );
     });
   }
 }

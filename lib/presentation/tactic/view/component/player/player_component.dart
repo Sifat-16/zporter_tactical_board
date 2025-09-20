@@ -14,7 +14,9 @@ import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -38,105 +40,10 @@ class PlayerComponent extends FieldComponent<PlayerModel>
   bool _isLoadingImage = false; // Tracks the loading state
   double _loadingArcAngle = 0.0;
 
-  // Future<void> _loadPlayerImage() async {
-  //   _playerImageSprite = null;
-  //   final imageBase64 = object.imageBase64;
-  //
-  //   if (imageBase64 != null && imageBase64.isNotEmpty) {
-  //     try {
-  //       final Uint8List bytes = base64Decode(imageBase64);
-  //       final ui.Image image = await decodeImageFromList(bytes);
-  //       _playerImageSprite = Sprite(image);
-  //       return;
-  //     } catch (e) {
-  //       zlog(data: "Failed to decode player image from Base64. Error: $e");
-  //       _playerImageSprite = null;
-  //     }
-  //   }
-  //
-  //   final imagePath = object.imagePath;
-  //   if (imagePath != null && imagePath.isNotEmpty) {
-  //     try {
-  //       final file = File(imagePath);
-  //       if (await file.exists()) {
-  //         final Uint8List bytes = await file.readAsBytes();
-  //         final ui.Image image = await decodeImageFromList(bytes);
-  //         _playerImageSprite = Sprite(image);
-  //       }
-  //     } catch (e) {
-  //       zlog(data: "Failed to load player image from file path. Error: $e");
-  //       _playerImageSprite = null;
-  //     }
-  //   }
-  // }
-
-  // Future<void> _loadPlayerImage() async {
-  //   _playerImageSprite = null;
-  //   final imageBase64 = object.imageBase64;
-  //   final imagePath = object.imagePath; // This can be a URL OR a local file
-  //
-  //   // Determine the unique key for this image.
-  //   String? imageSourceIdentifier;
-  //   bool isNetworkUrl = false;
-  //
-  //   if (imageBase64 != null && imageBase64.isNotEmpty) {
-  //     imageSourceIdentifier =
-  //         imageBase64; // Use the (long) base64 string as the key
-  //   } else if (imagePath != null &&
-  //       (imagePath.startsWith('http://') || imagePath.startsWith('https://'))) {
-  //     imageSourceIdentifier = imagePath; // Use the URL as the key
-  //     isNetworkUrl = true;
-  //   } else if (imagePath != null && imagePath.isNotEmpty) {
-  //     imageSourceIdentifier = imagePath; // Use the local file path as the key
-  //   }
-  //
-  //   // If there is no image source at all, just exit.
-  //   if (imageSourceIdentifier == null || imageSourceIdentifier.isEmpty) {
-  //     return;
-  //   }
-  //
-  //   // --- CACHE CHECK ---
-  //   // 1. Check if the image is already in our cache.
-  //   if (_playerImageCache.containsKey(imageSourceIdentifier)) {
-  //     _playerImageSprite = Sprite(_playerImageCache[imageSourceIdentifier]!);
-  //     return; // Load from cache, skip all network/decode work
-  //   }
-  //   // --- END CACHE CHECK ---
-  //
-  //   // Image is not in cache. We must load it from its source.
-  //   try {
-  //     Uint8List? imageBytes;
-  //
-  //     if (imageBase64 != null && imageBase64.isNotEmpty) {
-  //       imageBytes = base64Decode(imageBase64);
-  //     } else if (isNetworkUrl) {
-  //       // Fetch the image bytes from the internet
-  //       final ByteData data =
-  //           await NetworkAssetBundle(Uri.parse(imagePath!)).load(imagePath!);
-  //       imageBytes = data.buffer.asUint8List();
-  //     } else if (imagePath != null && imagePath.isNotEmpty) {
-  //       final file = File(imagePath);
-  //       if (await file.exists()) {
-  //         imageBytes = await file.readAsBytes();
-  //       }
-  //     }
-  //
-  //     // If we got bytes from ANY source, decode them.
-  //     if (imageBytes != null) {
-  //       final ui.Image decodedImage = await decodeImageFromList(imageBytes);
-  //
-  //       // --- ADD TO CACHE ---
-  //       // 2. Add the newly decoded image to our cache for next time.
-  //       _playerImageCache[imageSourceIdentifier] = decodedImage;
-  //       // --- END ADD ---
-  //
-  //       _playerImageSprite = Sprite(decodedImage);
-  //     }
-  //   } catch (e) {
-  //     zlog(level: Level.error, data: "Failed to load/cache player image: $e");
-  //     _playerImageSprite = null;
-  //   }
-  // }
+  final double _snapTolerance =
+      5.0; // How close to be before snapping (in pixels)
+  final double _gridSize = 50.0; // Must match the gridSize in GridComponent
+  final List<GuideLine> _activeGuides = [];
 
   Future<void> _loadPlayerImage() async {
     _playerImageSprite = null;
@@ -261,9 +168,120 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     }
   }
 
+  // In class PlayerComponent
+
+  // In class PlayerComponent
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    ref.read(boardProvider.notifier).toggleItemDrag(true); // <-- RESTORE THIS
+    ref.read(boardProvider.notifier).clearGuides(); // <-- Good to add this here
+    event.continuePropagation = false;
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    ref.read(boardProvider.notifier).toggleItemDrag(false); // <-- RESTORE THIS
+    ref.read(boardProvider.notifier).clearGuides();
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    super.onDragCancel(event);
+    ref.read(boardProvider.notifier).toggleItemDrag(false); // <-- RESTORE THIS
+    ref.read(boardProvider.notifier).clearGuides();
+  }
+
   @override
   void onDragUpdate(DragUpdateEvent event) {
-    super.onDragUpdate(event);
+    if (isRotationHandleDragged) {
+      super.onDragUpdate(event); // Let the base class handle rotation
+      return;
+    }
+    _activeGuides.clear(); // Clear old guides from last frame
+
+    // 1. Apply the drag (no snapping)
+    position.add(event.canvasDelta);
+
+    // 2. Get my new alignment points
+    final myCenter = center - Vector2(10, 10);
+    // final myTop = myCenter.y - (size.y / 2);
+    // final myBottom = myCenter.y + (size.y / 2);
+    // final myLeft = myCenter.x - (size.x / 2);
+    // final myRight = myCenter.x + (size.x / 2);
+
+    bool didSmartAlign = false; // Flag to track if we found an alignment
+
+    // 3. Find other items to check against
+    final otherItems = game.children.where(
+        (c) => (c is PlayerComponent || c is EquipmentComponent) && c != this);
+
+    for (final item in otherItems) {
+      if (item is! PositionComponent) continue;
+
+      final otherCenter = item.center - Vector2(10, 10);
+      final otherTop = otherCenter.y - (item.size.y / 2);
+      final otherBottom = otherCenter.y + (item.size.y / 2);
+      final otherLeft = otherCenter.x - (item.size.x / 2);
+      final otherRight = otherCenter.x + (item.size.x / 2);
+
+      // --- Check X-axis Guides ---
+      if ((myCenter.x - otherCenter.x).abs() < _snapTolerance) {
+        _activeGuides.add(GuideLine(
+          start: Vector2(otherCenter.x, myCenter.y),
+          end: Vector2(otherCenter.x, otherCenter.y),
+        ));
+        didSmartAlign = true;
+      }
+      // if ((myLeft - otherLeft).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(otherLeft, myTop),
+      //     end: Vector2(otherLeft, otherTop),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+      // if ((myRight - otherRight).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(otherRight, myTop),
+      //     end: Vector2(otherRight, otherTop),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+
+      // --- Check Y-axis Guides ---
+      if ((myCenter.y - otherCenter.y).abs() < _snapTolerance) {
+        _activeGuides.add(GuideLine(
+          start: Vector2(myCenter.x, otherCenter.y),
+          end: Vector2(otherCenter.x, otherCenter.y),
+        ));
+        didSmartAlign = true;
+      }
+      // if ((myTop - otherTop).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(myLeft, otherTop),
+      //     end: Vector2(otherLeft, otherTop),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+      // if ((myBottom - otherBottom).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(myLeft, otherBottom),
+      //     end: Vector2(otherLeft, otherBottom),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+    }
+
+    // 4. Update the providers
+    ref.read(boardProvider.notifier).updateGuides(_activeGuides);
+
+    // *** THIS IS THE KEY ***
+    // Show the grid ONLY if we are NOT showing smart guides
+    ref.read(boardProvider.notifier).toggleItemDrag(!didSmartAlign);
+
+    // 5. Update the model
     object.offset = SizeHelper.getBoardRelativeVector(
       gameScreenSize: game.gameField.size,
       actualPosition: position,
@@ -374,42 +392,6 @@ class PlayerComponent extends FieldComponent<PlayerModel>
 
     canvas.save();
     canvas.clipRRect(rrect);
-
-    // if (object.showImage && _playerImageSprite != null) {
-    //   _playerImageSprite!.render(
-    //     canvas,
-    //     size: size,
-    //     overridePaint: Paint()..color = Colors.white.withOpacity(baseOpacity),
-    //   );
-    // } else {
-    //   final Color baseColor = object.color ??
-    //       (object.playerType == PlayerType.HOME
-    //           ? ColorManager.blue
-    //           : (object.playerType == PlayerType.AWAY
-    //               ? ColorManager.red
-    //               : ColorManager.grey));
-    //   _backgroundPaint.color = baseColor.withOpacity(baseOpacity);
-    //   _backgroundPaint.style = PaintingStyle.fill;
-    //   canvas.drawRRect(rrect, _backgroundPaint);
-    //
-    //   if (object.showRole) {
-    //     final fontSize = (size.x / 2) * 0.7;
-    //     _textPainter.text = TextSpan(
-    //       text: object.role,
-    //       style: TextStyle(
-    //         color: Colors.white.withOpacity(baseOpacity),
-    //         fontSize: fontSize,
-    //         fontWeight: FontWeight.bold,
-    //       ),
-    //     );
-    //     _textPainter.layout();
-    //     _textPainter.paint(
-    //       canvas,
-    //       (size.toOffset() / 2) -
-    //           Offset(_textPainter.width / 2, _textPainter.height / 2),
-    //     );
-    //   }
-    // }
 
     // --- THIS IS THE CRITICAL LOGIC ---
     if (_isLoadingImage) {

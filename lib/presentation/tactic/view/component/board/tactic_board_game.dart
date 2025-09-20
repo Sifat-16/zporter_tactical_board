@@ -12,6 +12,7 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/smart_guide_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game_animation.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
@@ -28,6 +29,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/
 
 // Assuming GameField is defined in 'game_field.dart' as per your import
 import 'game_field.dart';
+import 'grid_component.dart';
 import 'mixin/board_riverpod_integration.dart';
 import 'mixin/drawing_input_handler.dart';
 import 'mixin/item_management.dart';
@@ -57,6 +59,8 @@ class TacticBoard extends TacticBoardGame
         LayeringManagement, // Provides layering helpers and _moveUp/DownElement
         BoardRiverpodIntegration, // Provides setupBoardListeners
         AnimationPlaybackMixin {
+  late final GridComponent grid;
+  late final SmartGuideComponent smartGuide;
   AnimationItemModel? scene;
   bool saveToDb;
   BuildContext myContext;
@@ -82,6 +86,7 @@ class TacticBoard extends TacticBoardGame
     context = myContext;
   }
 
+  // DELETE your old _initiateField method AND REPLACE it with this one.
   // _initiateField() {
   //   gameField = GameField(
   //     size: Vector2(size.x - 22.5, size.y - 22.5),
@@ -89,26 +94,45 @@ class TacticBoard extends TacticBoardGame
   //     initialColor: ref.read(boardProvider).boardColor,
   //   );
   //   WidgetsBinding.instance.addPostFrameCallback((t) {
+  //     if (!isMounted) return; // Add mounted check
   //     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
   //     add(gameField);
   //
-  //     // FIX: Get the initial items from the single source of truth: the provider.
-  //
+  //     // This is the correct logic: Get items from the provider state,
+  //     // which initializeFromScene already prepared for us.
   //     final currentItems = ref.read(boardProvider.notifier).allFieldItems();
   //
   //     addInitialItems(currentItems);
   //   });
   // }
 
-  // In class TacticBoard (tactic_board_game.dart)
-
-  // DELETE your old _initiateField method AND REPLACE it with this one.
+  // In class TacticBoard
   _initiateField() {
     gameField = GameField(
       size: Vector2(size.x - 22.5, size.y - 22.5),
       // Use the provider for the initial color too, for consistency.
       initialColor: ref.read(boardProvider).boardColor,
     );
+
+    // --- ADD THIS BLOCK ---
+    // 1. Create the grid
+    grid = GridComponent(); // You can adjust 50.0
+    // 2. Set its size to match the field
+    grid.size = gameField.size;
+    // 3. Hide it by default
+    grid.isHidden = true;
+    // 4. Add it AS A CHILD of the gameField
+    gameField.add(grid);
+    // --- END ADD ---
+
+    // --- ADD THIS BLOCK ---
+    // 1. Create the smart guide component
+    smartGuide = SmartGuideComponent();
+    // 2. Set its size to match the field
+    smartGuide.size = gameField.size;
+    // 4. Add it AS A CHILD of the gameField
+    gameField.add(smartGuide);
+
     WidgetsBinding.instance.addPostFrameCallback((t) {
       if (!isMounted) return; // Add mounted check
       ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);

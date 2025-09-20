@@ -12,6 +12,8 @@ import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 // Import game and providers
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 // --- DraggableDot Class (Renamed to CircleRadiusDraggableDot as per user code) ---
@@ -35,11 +37,11 @@ class CircleRadiusDraggableDot extends CircleComponent with DragCallbacks {
     super.radius = 8.0,
     Color color = Colors.blue,
   }) : super(
-         position: initialPosition,
-         anchor: Anchor.center,
-         paint: Paint()..color = color,
-         priority: 2, // Ensure dots render above main component (priority 1)
-       );
+          position: initialPosition,
+          anchor: Anchor.center,
+          paint: Paint()..color = color,
+          priority: 2, // Ensure dots render above main component (priority 1)
+        );
 
   Vector2? _dragStartLocalPosition;
 
@@ -112,7 +114,7 @@ class CircleShapeDrawerComponent extends PositionComponent
   final double _dotOffsetAbove = 10.0; // Pixels above the circle edge
 
   CircleShapeDrawerComponent({required this.circleModel})
-    : super(priority: 1, anchor: Anchor.center);
+      : super(priority: 1, anchor: Anchor.topLeft);
 
   @override
   FutureOr<void> onLoad() {
@@ -205,22 +207,19 @@ class CircleShapeDrawerComponent extends PositionComponent
     final baseStrokeWidth = _internalCircle.strokeWidth;
     final baseOpacity = _internalCircle.opacity ?? 1.0;
 
-    _strokePaint =
-        Paint()
-          ..color = baseStrokeColor.withValues(alpha: baseOpacity)
-          ..strokeWidth = baseStrokeWidth
-          ..style = PaintingStyle.stroke;
+    _strokePaint = Paint()
+      ..color = baseStrokeColor.withValues(alpha: baseOpacity)
+      ..strokeWidth = baseStrokeWidth
+      ..style = PaintingStyle.stroke;
 
-    _activeStrokePaint =
-        Paint()
-          ..color = baseStrokeColor.withValues(alpha: baseOpacity)
-          ..strokeWidth = baseStrokeWidth + 2.0
-          ..style = PaintingStyle.stroke;
+    _activeStrokePaint = Paint()
+      ..color = baseStrokeColor.withValues(alpha: baseOpacity)
+      ..strokeWidth = baseStrokeWidth + 2.0
+      ..style = PaintingStyle.stroke;
 
-    _fillPaint =
-        Paint()
-          ..color = baseStrokeColor.withValues(alpha: 0.1)
-          ..style = PaintingStyle.fill;
+    _fillPaint = Paint()
+      ..color = baseStrokeColor.withValues(alpha: 0.1)
+      ..style = PaintingStyle.fill;
     zlog(data: "Circle ${circleModel.id}: _updatePaints completed...");
   }
 
@@ -230,8 +229,7 @@ class CircleShapeDrawerComponent extends PositionComponent
     // Use the ACTUAL radius stored in _internalCircle for rendering
     _strokePaint.color = circleModel.color ?? ColorManager.black;
     _activeStrokePaint.color = circleModel.color ?? ColorManager.black;
-    _fillPaint?.color =
-        circleModel.color?.withValues(alpha: 0.1) ??
+    _fillPaint?.color = circleModel.color?.withValues(alpha: 0.1) ??
         ColorManager.black.withValues(alpha: 0.1);
 
     final radius = _internalCircle.radius;
@@ -293,6 +291,38 @@ class CircleShapeDrawerComponent extends PositionComponent
   }
 
   // --- Drag Handling ---
+  // @override
+  // void onDragStart(DragStartEvent event) {
+  //   zlog(
+  //     data: "Circle ${circleModel.id}: onDragStart at ${event.localPosition}",
+  //   );
+  //
+  //   // Check if drag started on the resize dot first (only if active)
+  //   if (isActive &&
+  //       _resizeDot != null &&
+  //       _resizeDot!.containsPoint(event.localPosition)) {
+  //     zlog(data: "Circle ${circleModel.id}: Drag started on resize dot.");
+  //     // Let the dot handle the drag via its own callbacks
+  //     event.continuePropagation = true;
+  //     super.onDragStart(event); // Pass event down to children (the dot)
+  //     return; // Prevent component drag start
+  //   }
+  //
+  //   // If not on resize dot, check if drag starts on the circle edge (for moving)
+  //   if (isActive && containsLocalPoint(event.localPosition)) {
+  //     _isDragging = true; // Start component drag
+  //     event.continuePropagation = false; // Consume event for component move
+  //     zlog(
+  //       data:
+  //           "Circle ${circleModel.id}: Component Drag Started (_isDragging = true)",
+  //     );
+  //   } else {
+  //     _isDragging = false;
+  //     super.onDragStart(event); // Allow propagation if miss
+  //     event.continuePropagation = true;
+  //   }
+  // }
+
   @override
   void onDragStart(DragStartEvent event) {
     zlog(
@@ -304,23 +334,35 @@ class CircleShapeDrawerComponent extends PositionComponent
         _resizeDot != null &&
         _resizeDot!.containsPoint(event.localPosition)) {
       zlog(data: "Circle ${circleModel.id}: Drag started on resize dot.");
-      // Let the dot handle the drag via its own callbacks
+      // Let the dot handle the drag
       event.continuePropagation = true;
-      super.onDragStart(event); // Pass event down to children (the dot)
-      return; // Prevent component drag start
+      super.onDragStart(event);
+      return;
     }
 
-    // If not on resize dot, check if drag starts on the circle edge (for moving)
+    // Check for "drag from inside"
     if (isActive && containsLocalPoint(event.localPosition)) {
-      _isDragging = true; // Start component drag
-      event.continuePropagation = false; // Consume event for component move
+      // --- NEW LOGIC ---
+      // Check if an item (Player/Equipment) is on top of us
+      if (_isItemOnTop(event.localPosition)) {
+        // An item is on top. Do NOT drag this shape.
+        // Let the event fall through to the item.
+        zlog(data: "Circle ${circleModel.id}: Drag ignored, item on top.");
+        return;
+      }
+      // --- END NEW LOGIC ---
+
+      // No item on top, we can drag this shape.
+      _isDragging = true;
+      event.continuePropagation = false; // Consume the event
       zlog(
         data:
             "Circle ${circleModel.id}: Component Drag Started (_isDragging = true)",
       );
     } else {
+      // Drag started outside the circle
       _isDragging = false;
-      super.onDragStart(event); // Allow propagation if miss
+      super.onDragStart(event);
       event.continuePropagation = true;
     }
   }
@@ -537,5 +579,25 @@ class CircleShapeDrawerComponent extends PositionComponent
       data: // MODIFIED: Removed key, prepended ID
           "Circle ${circleModel.id}: Notifying provider with radius update: ${updatedModelForProvider.toJson()}",
     );
+  }
+
+  bool _isItemOnTop(Vector2 tapPosition) {
+    // Find all Player and Equipment components
+    final items = game.children
+        .where((c) => c is PlayerComponent || c is EquipmentComponent);
+
+    // Check if any of them contain the tap point
+    for (final item in items) {
+      if (item is PositionComponent) {
+        // Convert the tap position (from game space) to the item's local space
+        final itemLocalTap = item.toLocal(tapPosition);
+        if (item.containsLocalPoint(itemLocalTap)) {
+          // Found an item on top!
+          return true;
+        }
+      }
+    }
+    // No items found at this spot
+    return false;
   }
 }
