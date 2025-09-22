@@ -50,8 +50,35 @@ final sl = GetIt.instance;
 
 Future<void> initializeTacticBoardDependencies() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseStorageService.initializeSecondaryApp(
-      DefaultFirebaseOptions.secondaryProjectOptions);
+  // await FirebaseStorageService.initializeSecondaryApp(
+  //     DefaultFirebaseOptions.secondaryProjectOptions);
+
+  FirebaseOptions secondaryOptions;
+  if (kIsWeb) {
+    secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsWeb;
+  } else {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        secondaryOptions =
+            DefaultFirebaseOptions.secondaryProjectOptionsAndroid;
+        break;
+      case TargetPlatform.iOS:
+        secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsIOS;
+        break;
+      case TargetPlatform.macOS:
+        // macOS can often use the iOS config
+        secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsIOS;
+        break;
+      default:
+        throw UnsupportedError(
+          'Secondary FirebaseOptions are not supported for this platform.',
+        );
+    }
+  }
+
+  // 3. Initialize secondary app (zporter-dev) using your service
+  await FirebaseStorageService.initializeSecondaryApp(secondaryOptions);
+
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED, // Or a specific limit
