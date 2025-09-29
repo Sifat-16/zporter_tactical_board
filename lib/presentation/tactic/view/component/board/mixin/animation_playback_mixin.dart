@@ -1225,6 +1225,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     Function(double progress)? onExportP,
   }) {
     WidgetsBinding.instance.addPostFrameCallback((t) {
+      performStopAnimation(hardReset: true);
       animationModel = am;
       autoPlay = ap;
       isForExportMode = isForE;
