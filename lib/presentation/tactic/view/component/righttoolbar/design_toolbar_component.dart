@@ -47,23 +47,16 @@
 //                 _buildFillColorWidget("Fill Color", boardState: bp),
 //                 SizedBox(height: 20),
 //                 _buildOpacitySliderWidget(boardState: bp),
-//                 // SizedBox(height: 20),
-//                 // _buildSizeSliderWidget(boardState: bp),
-//                 // SizedBox(height: 20),
-//                 // IncrementDecrementNumberField(
-//                 //   label: "Border type",
-//                 //   initialValue: 0,
-//                 //   onChanged: (d) {},
-//                 // ),
-//                 // SizedBox(height: 20),
-//                 // IncrementDecrementNumberField(
-//                 //   label: "Border thickness",
-//                 //   initialValue: 2,
-//                 //   onChanged: (d) {},
-//                 // ),
-//                 // SizedBox(height: 20),
-//                 // _buildFillColorWidget("Border color", boardState: bp),
-//                 // SizedBox(height: 20),
+//                 SizedBox(height: 20),
+//
+//                 // NEW: Conditionally show the Aerial Pass switcher for the ball
+//                 if (bp.selectedItemOnTheBoard is EquipmentModel &&
+//                     (bp.selectedItemOnTheBoard as EquipmentModel).name ==
+//                         "BALL")
+//                   _buildAerialPassSwitcher(
+//                       equipmentModel:
+//                           bp.selectedItemOnTheBoard as EquipmentModel),
+//
 //                 if (bp.selectedItemOnTheBoard is PlayerModel)
 //                   _buildSwitcherWidget(
 //                       playerModel: bp.selectedItemOnTheBoard as PlayerModel),
@@ -72,13 +65,37 @@
 //           );
 //   }
 //
+//   // NEW: Widget to control the isAerialArrival flag on the ball model
+//   Widget _buildAerialPassSwitcher({required EquipmentModel equipmentModel}) {
+//     return Column(
+//       crossAxisAlignment: CrossAxisAlignment.start,
+//       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+//       children: [
+//         SwitcherComponent(
+//           title: "Aerial Pass / Cross",
+//           initialValue: equipmentModel.isAerialArrival,
+//           onChanged: (newValue) {
+//             // Create a copy of the model with the updated flag
+//             final updatedModel =
+//                 equipmentModel.copyWith(isAerialArrival: newValue);
+//
+//             // Call the new method in the provider to update the state
+//             ref
+//                 .read(boardProvider.notifier)
+//                 .updateEquipmentModel(newModel: updatedModel);
+//           },
+//         ),
+//         SizedBox(height: 20), // Add spacing after the switcher
+//       ],
+//     );
+//   }
+//
 //   Widget _buildTopActionWidget({required BoardState boardState}) {
 //     FieldItemModel? selectedItem = boardState.selectedItemOnTheBoard;
 //     return SizedBox(
 //       height: 50,
 //       child: Row(
 //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//         spacing: 25,
 //         children: [
 //           if (selectedItem?.canBeCopied == true)
 //             Expanded(
@@ -136,8 +153,6 @@
 //     FieldItemModel item = boardState.selectedItemOnTheBoard!;
 //     return Column(
 //       crossAxisAlignment: CrossAxisAlignment.start,
-//       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//       spacing: 10,
 //       children: [
 //         Text(
 //           title,
@@ -145,6 +160,7 @@
 //             context,
 //           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
 //         ),
+//         SizedBox(height: 10),
 //         ColorSlider(
 //           initialColor: item.color,
 //           colors: [
@@ -168,8 +184,6 @@
 //     FieldItemModel item = boardState.selectedItemOnTheBoard!;
 //     return Column(
 //       crossAxisAlignment: CrossAxisAlignment.start,
-//       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//       spacing: 10,
 //       children: [
 //         Text(
 //           "Opacity",
@@ -177,6 +191,7 @@
 //             context,
 //           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
 //         ),
+//         SizedBox(height: 10),
 //         OpacitySlider(
 //           initial: item.opacity ?? 1,
 //           onOpacityChanged: (v) {
@@ -191,19 +206,14 @@
 //
 //   Widget _buildSizeSliderWidget({required BoardState boardState}) {
 //     FieldItemModel item = boardState.selectedItemOnTheBoard!;
-//     if (
-//         // item is FormModel && item.formItemModel is LineModel
-//         //     ||
-//         item is LineModelV2 ||
-//             item is FreeDrawModelV2 ||
-//             item is ShapeModel ||
-//             item is EquipmentModel) {
+//     if (item is LineModelV2 ||
+//         item is FreeDrawModelV2 ||
+//         item is ShapeModel ||
+//         item is EquipmentModel) {
 //       return SizedBox.shrink();
 //     }
 //     return Column(
 //       crossAxisAlignment: CrossAxisAlignment.start,
-//       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//       spacing: 10,
 //       children: [
 //         Text(
 //           "Size",
@@ -211,6 +221,7 @@
 //             context,
 //           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
 //         ),
+//         SizedBox(height: 10),
 //         CustomSlider(
 //           min: 16,
 //           max: 100,
@@ -228,8 +239,6 @@
 //   Widget _buildSwitcherWidget({required PlayerModel playerModel}) {
 //     return Column(
 //       crossAxisAlignment: CrossAxisAlignment.start,
-//       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//       spacing: 10,
 //       children: [
 //         SwitcherComponent(
 //           title: "Image",
@@ -241,6 +250,7 @@
 //                 .updatePlayerModel(newModel: playerModel);
 //           },
 //         ),
+//         SizedBox(height: 10),
 //         SwitcherComponent(
 //           title: "Name",
 //           initialValue: playerModel.showName,
@@ -251,6 +261,7 @@
 //                 .updatePlayerModel(newModel: playerModel);
 //           },
 //         ),
+//         SizedBox(height: 10),
 //         SwitcherComponent(
 //           title: "Number",
 //           initialValue: playerModel.showNr,
@@ -261,6 +272,7 @@
 //                 .updatePlayerModel(newModel: playerModel);
 //           },
 //         ),
+//         SizedBox(height: 10),
 //         SwitcherComponent(
 //           title: "Role",
 //           initialValue: playerModel.showRole,
@@ -326,15 +338,7 @@ class _DesignToolbarComponentState
                 SizedBox(height: 20),
                 _buildOpacitySliderWidget(boardState: bp),
                 SizedBox(height: 20),
-
-                // NEW: Conditionally show the Aerial Pass switcher for the ball
-                if (bp.selectedItemOnTheBoard is EquipmentModel &&
-                    (bp.selectedItemOnTheBoard as EquipmentModel).name ==
-                        "BALL")
-                  _buildAerialPassSwitcher(
-                      equipmentModel:
-                          bp.selectedItemOnTheBoard as EquipmentModel),
-
+                // REMOVED: The old aerial pass switcher is now gone from here.
                 if (bp.selectedItemOnTheBoard is PlayerModel)
                   _buildSwitcherWidget(
                       playerModel: bp.selectedItemOnTheBoard as PlayerModel),
@@ -343,30 +347,7 @@ class _DesignToolbarComponentState
           );
   }
 
-  // NEW: Widget to control the isAerialArrival flag on the ball model
-  Widget _buildAerialPassSwitcher({required EquipmentModel equipmentModel}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        SwitcherComponent(
-          title: "Aerial Pass / Cross",
-          initialValue: equipmentModel.isAerialArrival,
-          onChanged: (newValue) {
-            // Create a copy of the model with the updated flag
-            final updatedModel =
-                equipmentModel.copyWith(isAerialArrival: newValue);
-
-            // Call the new method in the provider to update the state
-            ref
-                .read(boardProvider.notifier)
-                .updateEquipmentModel(newModel: updatedModel);
-          },
-        ),
-        SizedBox(height: 20), // Add spacing after the switcher
-      ],
-    );
-  }
+  // REMOVED: The helper method for the old switcher is now gone.
 
   Widget _buildTopActionWidget({required BoardState boardState}) {
     FieldItemModel? selectedItem = boardState.selectedItemOnTheBoard;

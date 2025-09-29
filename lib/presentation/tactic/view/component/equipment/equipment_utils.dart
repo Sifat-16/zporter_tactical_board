@@ -1,9 +1,12 @@
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
+
+import 'ball_animation_settings_dialog.dart';
 
 class EquipmentUtils {
   static final List<EquipmentModel> _equipments = [
@@ -237,5 +240,24 @@ class EquipmentUtils {
               size: e.size ?? Vector2(32, 32)),
         )
         .toList();
+  }
+
+  static Future<EquipmentModel?> showBallAnimationSettingsDialog({
+    required BuildContext context,
+    required EquipmentModel ballModel,
+  }) async {
+    // This will show the dialog and wait for it to be closed.
+    // The dialog will return either the updated EquipmentModel on "Save"
+    // or null on "Cancel".
+    final result = await showDialog<EquipmentModel>(
+      context: context,
+      barrierDismissible: false, // User must tap a button to close
+      builder: (BuildContext dialogContext) {
+        return BallAnimationSettingsDialog(
+          initialBallModel: ballModel,
+        );
+      },
+    );
+    return result;
   }
 }

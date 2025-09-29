@@ -86,26 +86,6 @@ class TacticBoard extends TacticBoardGame
     context = myContext;
   }
 
-  // DELETE your old _initiateField method AND REPLACE it with this one.
-  // _initiateField() {
-  //   gameField = GameField(
-  //     size: Vector2(size.x - 22.5, size.y - 22.5),
-  //     // Use the provider for the initial color too, for consistency.
-  //     initialColor: ref.read(boardProvider).boardColor,
-  //   );
-  //   WidgetsBinding.instance.addPostFrameCallback((t) {
-  //     if (!isMounted) return; // Add mounted check
-  //     ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
-  //     add(gameField);
-  //
-  //     // This is the correct logic: Get items from the provider state,
-  //     // which initializeFromScene already prepared for us.
-  //     final currentItems = ref.read(boardProvider.notifier).allFieldItems();
-  //
-  //     addInitialItems(currentItems);
-  //   });
-  // }
-
   // In class TacticBoard
   _initiateField() {
     gameField = GameField(
@@ -214,48 +194,6 @@ class TacticBoard extends TacticBoardGame
       }
     }
   }
-
-  // --- Updated update method with Timer Logic ---
-  // @override
-  // void update(double dt) {
-  //   // Accumulate the time passed since the last frame
-  //   _timerAccumulator += dt;
-  //
-  //   // Check if the accumulated time has reached or exceeded the interval
-  //   if (_timerAccumulator >= _checkInterval) {
-  //     WidgetsBinding.instance.addPostFrameCallback((t) {
-  //       // --- Your change detection logic goes here ---
-  //
-  //       // Assuming FieldItemModel is the correct type here
-  //       List<FieldItemModel> items =
-  //           ref.read(boardProvider.notifier).onAnimationSave();
-  //
-  //       // Consider if toJson() is expensive; maybe compare models directly if possible
-  //       String current = items.map((e) => e.toJson()).join(
-  //             ',',
-  //           ); // Use join for a more stable string representation if order matters
-  //
-  //       current =
-  //           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
-  //
-  //       if (_boardComparator == null) {
-  //         _boardComparator = current;
-  //       } else {
-  //         if (_boardComparator != current) {
-  //           // --- ACTION: Do something when a change is detected ---
-  //           // e.g., trigger autosave, update external UI, etc.
-  //           _boardComparator = current; // Update comparator to the new state
-  //
-  //           updateDatabase();
-  //         } else {}
-  //       }
-  //       _timerAccumulator -= _checkInterval;
-  //     });
-  //   }
-  //
-  //   // Other update logic can remain here and run every frame if needed
-  //   super.update(dt); // Always call super.update!
-  // }
 
   @override
   void update(double dt) {
