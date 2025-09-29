@@ -1849,9 +1849,9 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
 
       // 2. Automatically reset the animation to the first scene.
       // We only do this for normal playback, not for video exports.
-      // if (!isForExportMode) {
-      //   performHardResetAnimation();
-      // }
+      if (!isForExportMode) {
+        performHardResetAnimation();
+      }
     }
   }
 
