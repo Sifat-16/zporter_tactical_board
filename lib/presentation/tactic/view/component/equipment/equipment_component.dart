@@ -1,31 +1,27 @@
 // import 'dart:ui';
-//
 // import 'package:flame/components.dart';
 // import 'package:flame/events.dart';
 // import 'package:flutter/material.dart';
-// import 'package:zporter_tactical_board/app/helper/logger.dart';
 // import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 // import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 // import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 // import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 // import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_utils.dart';
 // import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 // import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 // import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 //
-// class EquipmentComponent extends FieldComponent<EquipmentModel> {
+// class EquipmentComponent extends FieldComponent<EquipmentModel>
+//     with DoubleTapCallbacks {
 //   EquipmentComponent({required super.object});
 //
 //   final double _snapTolerance = 5.0;
 //   final List<GuideLine> _activeGuides = [];
 //
-//   // NEW: Properties for aerial animation
+//   // Properties for aerial animation (personal shadow is removed)
 //   double altitude = 0.0;
 //   Vector2? visualSize;
-//   SpriteComponent? shadow;
-//   Vector2? _originalShadowSize;
-//   final double maxAltitudeForShadow =
-//       60.0; // Corresponds to ArcingAnimation's arcHeight
 //
 //   @override
 //   Future<void> onLoad() async {
@@ -41,46 +37,44 @@
 //     opacity = object.opacity ?? 1;
 //   }
 //
-//   // NEW: Update method to control the shadow's appearance
-//   @override
-//   void update(double dt) {
-//     super.update(dt);
-//
-//     if (shadow != null) {
-//       // Calculate shadow properties based on altitude
-//       final altitudeProgress =
-//           (altitude / maxAltitudeForShadow).clamp(0.0, 1.0);
-//
-//       // Shadow becomes more transparent and larger as the ball goes higher
-//       shadow!.paint.color =
-//           Colors.black.withOpacity(0.4 * (1 - altitudeProgress * 0.7));
-//       shadow!.size = _originalShadowSize! * (1 + altitudeProgress * 0.5);
-//     }
-//   }
-//
-//   // MODIFIED: The render method now handles altitude and dynamic size
 //   @override
 //   void render(Canvas canvas) {
-//     // Apply general properties from the model
 //     tint(object.color ?? ColorManager.white);
 //     opacity = object.opacity ?? 1;
-//
-//     // Use visualSize from animation if available, otherwise use model size
 //     size = visualSize ?? object.size ?? Vector2(AppSize.s32, AppSize.s32);
 //
-//     // If the ball is in the air, offset its rendering position upwards
-//     if (altitude > 0) {
+//     // This logic correctly handles the altitude for both up and down arcs
+//     if (altitude != 0) {
 //       canvas.save();
-//       canvas.translate(0, -altitude); // Translate canvas upwards
-//       super.render(
-//           canvas); // Render the ball (and its child shadow) in the translated canvas
+//       canvas.translate(0, -altitude);
+//       super.render(canvas);
 //       canvas.restore();
 //     } else {
-//       super.render(canvas); // Render normally on the ground
+//       super.render(canvas);
 //     }
 //   }
 //
-//   // Drag and tap methods remain unchanged
+//   @override
+//   void onDoubleTapDown(DoubleTapDownEvent event) {
+//     super.onDoubleTapDown(event);
+//     if (object.name == "BALL") {
+//       _executeBallEditAction();
+//     }
+//   }
+//
+//   void _executeBallEditAction() async {
+//     if (game.context == null) return;
+//     final result = await EquipmentUtils.showBallAnimationSettingsDialog(
+//       context: game.context,
+//       ballModel: object,
+//     );
+//     if (result != null) {
+//       object = result;
+//       ref.read(boardProvider.notifier).updateEquipmentModel(newModel: result);
+//     }
+//   }
+//
+//   // ... All other methods like onDragUpdate, etc., are unchanged ...
 //   @override
 //   void onDragUpdate(DragUpdateEvent event) {
 //     if (isRotationHandleDragged) {
@@ -89,16 +83,13 @@
 //     }
 //     _activeGuides.clear();
 //     position.add(event.canvasDelta);
-//
 //     final myCenter = center - Vector2(10, 10);
 //     bool didSmartAlign = false;
 //     final otherItems = game.children.where(
 //         (c) => (c is PlayerComponent || c is EquipmentComponent) && c != this);
-//
 //     for (final item in otherItems) {
 //       if (item is! PositionComponent) continue;
 //       final otherCenter = item.center - Vector2(10, 10);
-//
 //       if ((myCenter.x - otherCenter.x).abs() < _snapTolerance) {
 //         _activeGuides.add(GuideLine(
 //           start: Vector2(otherCenter.x, myCenter.y),
@@ -106,7 +97,6 @@
 //         ));
 //         didSmartAlign = true;
 //       }
-//
 //       if ((myCenter.y - otherCenter.y).abs() < _snapTolerance) {
 //         _activeGuides.add(GuideLine(
 //           start: Vector2(myCenter.x, otherCenter.y),
@@ -115,7 +105,6 @@
 //         didSmartAlign = true;
 //       }
 //     }
-//
 //     ref.read(boardProvider.notifier).updateGuides(_activeGuides);
 //     ref.read(boardProvider.notifier).toggleItemDrag(!didSmartAlign);
 //     object.offset = SizeHelper.getBoardRelativeVector(
@@ -197,7 +186,7 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
   final double _snapTolerance = 5.0;
   final List<GuideLine> _activeGuides = [];
 
-  // Properties for aerial animation (personal shadow is removed)
+  // ADDED: These properties hold the temporary visual state for animations.
   double altitude = 0.0;
   Vector2? visualSize;
 
@@ -215,15 +204,18 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
     opacity = object.opacity ?? 1;
   }
 
+  // UPDATED: This render method now uses the altitude and visualSize properties.
   @override
   void render(Canvas canvas) {
     tint(object.color ?? ColorManager.white);
     opacity = object.opacity ?? 1;
+    // Use the temporary visual size if available, otherwise use the model's size.
     size = visualSize ?? object.size ?? Vector2(AppSize.s32, AppSize.s32);
 
-    // This logic correctly handles the altitude for both up and down arcs
+    // This logic correctly handles the altitude for both up and down arcs.
     if (altitude != 0) {
       canvas.save();
+      // Move the canvas up or down to simulate height.
       canvas.translate(0, -altitude);
       super.render(canvas);
       canvas.restore();
@@ -241,9 +233,9 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
   }
 
   void _executeBallEditAction() async {
-    if (game.context == null) return;
+    if (game.buildContext == null) return;
     final result = await EquipmentUtils.showBallAnimationSettingsDialog(
-      context: game.context,
+      context: game.buildContext!,
       ballModel: object,
     );
     if (result != null) {
@@ -252,7 +244,6 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
     }
   }
 
-  // ... All other methods like onDragUpdate, etc., are unchanged ...
   @override
   void onDragUpdate(DragUpdateEvent event) {
     if (isRotationHandleDragged) {
