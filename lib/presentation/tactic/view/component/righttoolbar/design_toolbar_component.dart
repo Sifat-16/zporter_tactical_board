@@ -9,10 +9,7 @@ import 'package:zporter_tactical_board/app/core/component/switcher_component.dar
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
-import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
@@ -50,6 +47,9 @@ class _DesignToolbarComponentState
                 _buildFillColorWidget("Fill Color", boardState: bp),
                 SizedBox(height: 20),
                 _buildOpacitySliderWidget(boardState: bp),
+                SizedBox(height: 20),
+                // NEW: Icon Size Slider
+                _buildSizeSliderWidget(boardState: bp),
                 SizedBox(height: 20),
                 // REMOVED: The old aerial pass switcher is now gone from here.
                 if (bp.selectedItemOnTheBoard is PlayerModel)
@@ -314,17 +314,17 @@ class _DesignToolbarComponentState
 
   Widget _buildSizeSliderWidget({required BoardState boardState}) {
     FieldItemModel item = boardState.selectedItemOnTheBoard!;
-    if (item is LineModelV2 ||
-        item is FreeDrawModelV2 ||
-        item is ShapeModel ||
-        item is EquipmentModel) {
+
+    // Show size slider for Players and Equipment only
+    if (item is! PlayerModel && item is! EquipmentModel) {
       return SizedBox.shrink();
     }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Size",
+          "Icon Size",
           style: Theme.of(
             context,
           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
@@ -335,9 +335,44 @@ class _DesignToolbarComponentState
           max: 100,
           initial: item.size?.x ?? 32,
           onValueChanged: (v) {
-            setState(() {
-              item.size = Vector2(v, v);
-            });
+            // Update the selected item immediately
+            item.size = Vector2(v, v);
+
+            // Update the selected item in the provider to trigger re-render
+            if (item is PlayerModel) {
+              ref
+                  .read(boardProvider.notifier)
+                  .updatePlayerModel(newModel: item);
+            } else if (item is EquipmentModel) {
+              ref
+                  .read(boardProvider.notifier)
+                  .updateEquipmentModel(newModel: item);
+            }
+
+            // Apply to all similar items if toggle is enabled
+            if (boardState.applyDesignToAll) {
+              final similarItems =
+                  ref.read(boardProvider.notifier).getSimilarItems();
+
+              if (item is PlayerModel) {
+                final newSize = Vector2(v, v);
+                final updatedPlayers = similarItems
+                    .cast<PlayerModel>()
+                    .map((p) => p.copyWith(size: newSize))
+                    .toList();
+                ref
+                    .read(boardProvider.notifier)
+                    .updateMultiplePlayers(updatedPlayers: updatedPlayers);
+              } else if (item is EquipmentModel) {
+                final newSize = Vector2(v, v);
+                final updatedEquipments = similarItems
+                    .cast<EquipmentModel>()
+                    .map((e) => e.copyWith(size: newSize))
+                    .toList();
+                ref.read(boardProvider.notifier).updateMultipleEquipments(
+                    updatedEquipments: updatedEquipments);
+              }
+            }
           },
         ),
       ],
