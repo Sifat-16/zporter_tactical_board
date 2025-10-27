@@ -1382,6 +1382,7 @@ import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
+import 'package:zporter_tactical_board/app/helper/trajectory_calculator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -1397,7 +1398,6 @@ import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/game_field.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
@@ -1405,7 +1405,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/f
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class AnimatingObj {
   final bool isAnimating;
@@ -1572,7 +1571,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
         final modelInPrev = itemsInPrevScene[id];
 
         await _addComponentToBoard(
-            modelInCurrent, modelInPrev, intraSceneProgress);
+            modelInCurrent, modelInPrev, intraSceneProgress, currentScene);
       }
 
       List<FreeDrawModelV2> freeLines =
@@ -1591,8 +1590,11 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     }
   }
 
-  Future<void> _addComponentToBoard(FieldItemModel modelInCurrent,
-      FieldItemModel? modelInPrev, double intraSceneProgress) async {
+  Future<void> _addComponentToBoard(
+      FieldItemModel modelInCurrent,
+      FieldItemModel? modelInPrev,
+      double intraSceneProgress,
+      AnimationItemModel currentScene) async {
     final displayModel = modelInCurrent.clone();
     double altitude = 0.0;
     Vector2? visualSize;
@@ -1600,10 +1602,54 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
     if (displayModel.offset != null) {
       final startPos = modelInPrev?.offset ?? modelInCurrent.offset!;
       final endPos = modelInCurrent.offset!;
-      displayModel.offset = Vector2(
-        ui.lerpDouble(startPos.x, endPos.x, intraSceneProgress)!,
-        ui.lerpDouble(startPos.y, endPos.y, intraSceneProgress)!,
-      );
+
+      // Check if this component has a custom trajectory path
+      final hasCustomTrajectory =
+          currentScene.trajectoryData?.hasTrajectory(modelInCurrent.id) ??
+              false;
+
+      if (hasCustomTrajectory) {
+        // Use custom trajectory path for curved movement
+        final trajectory =
+            currentScene.trajectoryData!.getTrajectory(modelInCurrent.id)!;
+
+        // Calculate the curved path using TrajectoryCalculator
+        final pathPoints = TrajectoryCalculator.calculatePath(
+          startPosition: startPos,
+          endPosition: endPos,
+          trajectory: trajectory,
+          frameCount: 100, // Higher frame count for smoother curves
+        );
+
+        // Interpolate position along the curved path
+        if (pathPoints.isNotEmpty) {
+          final segmentIndex =
+              (intraSceneProgress * (pathPoints.length - 1)).floor();
+          final clampedIndex = segmentIndex.clamp(0, pathPoints.length - 2);
+          final segmentProgress =
+              (intraSceneProgress * (pathPoints.length - 1)) - clampedIndex;
+
+          final segmentStart = pathPoints[clampedIndex];
+          final segmentEnd = pathPoints[clampedIndex + 1];
+
+          displayModel.offset = Vector2(
+            ui.lerpDouble(segmentStart.x, segmentEnd.x, segmentProgress)!,
+            ui.lerpDouble(segmentStart.y, segmentEnd.y, segmentProgress)!,
+          );
+        } else {
+          // Fallback to straight line if path calculation fails
+          displayModel.offset = Vector2(
+            ui.lerpDouble(startPos.x, endPos.x, intraSceneProgress)!,
+            ui.lerpDouble(startPos.y, endPos.y, intraSceneProgress)!,
+          );
+        }
+      } else {
+        // Use straight line interpolation (default behavior)
+        displayModel.offset = Vector2(
+          ui.lerpDouble(startPos.x, endPos.x, intraSceneProgress)!,
+          ui.lerpDouble(startPos.y, endPos.y, intraSceneProgress)!,
+        );
+      }
 
       if (displayModel is EquipmentModel && displayModel.isAerialArrival) {
         final distance = startPos.distanceTo(endPos);
@@ -1659,7 +1705,6 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
             break;
 
           case BallSpin.none:
-          default:
             curvedPosition = Vector2.copy(startPos)
               ..lerp(endPos, intraSceneProgress);
             altitude = arcHeight * sin(intraSceneProgress * pi);

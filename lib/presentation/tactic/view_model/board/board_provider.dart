@@ -804,6 +804,12 @@ class BoardController extends StateNotifier<BoardState> {
     zlog(data: "Apply design to all similar items: $value");
   }
 
+  // NEW: Toggle trajectory editing mode
+  void toggleTrajectoryEditing(bool value) {
+    state = state.copyWith(trajectoryEditingEnabled: value);
+    zlog(data: "Trajectory editing enabled: $value");
+  }
+
   // NEW: Get all similar items to the currently selected item
   List<FieldItemModel> getSimilarItems() {
     final selectedItem = state.selectedItemOnTheBoard;

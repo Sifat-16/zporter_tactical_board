@@ -26,6 +26,9 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/f
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/trajectory_editor_manager.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_trajectory_data.dart';
+import 'package:zporter_tactical_board/data/animation/model/trajectory_path_model.dart';
 
 // Assuming GameField is defined in 'game_field.dart' as per your import
 import 'game_field.dart';
@@ -65,6 +68,11 @@ class TacticBoard extends TacticBoardGame
   bool saveToDb;
   BuildContext myContext;
   Function(AnimationItemModel?)? onSceneSave;
+
+  /// Trajectory editor manager for animation path editing (PRO feature)
+  /// Only initialized when editing multi-scene animations
+  TrajectoryEditorManager? trajectoryManager;
+
   TacticBoard(
       {required this.scene,
       this.saveToDb = true,
@@ -308,5 +316,166 @@ class TacticBoard extends TacticBoardGame
     }
     // Compare the last saved state to the current state.
     return _boardComparator != _getCurrentBoardStateString();
+  }
+
+  // ========== Trajectory Editor Management ==========
+
+  /// Initialize trajectory editor for animation path editing
+  /// Call this when entering animation mode with multiple scenes
+  Future<void> initializeTrajectoryEditor() async {
+    try {
+      final animationState = ref.read(animationProvider);
+      final currentScene = animationState.selectedScene;
+      final animationModel = animationState.selectedAnimationModel;
+
+      if (currentScene == null || animationModel == null) return;
+
+      final scenes = animationModel.animationScenes;
+      final currentIndex = scenes.indexWhere((s) => s.id == currentScene.id);
+
+      // Don't initialize if this is the first scene (no previous scene for trajectory)
+      if (currentIndex <= 0) {
+        await cleanupTrajectoryEditor();
+        return;
+      }
+
+      final previousScene = scenes[currentIndex - 1];
+
+      // Remove existing manager if present
+      if (trajectoryManager != null) {
+        world.remove(trajectoryManager!);
+        trajectoryManager = null;
+      }
+
+      // Create new manager
+      trajectoryManager = TrajectoryEditorManager(
+        currentScene: currentScene,
+        previousScene: previousScene,
+        onTrajectoryChanged: _handleTrajectoryChanged,
+        priority: 5,
+      );
+
+      await world.add(trajectoryManager!);
+      zlog(data: "Trajectory editor initialized for scene ${currentScene.id}");
+    } catch (e, s) {
+      zlog(data: "Error initializing trajectory editor: $e\n$s");
+    }
+  }
+
+  /// Handle trajectory changes from the editor
+  void _handleTrajectoryChanged(
+    String componentId,
+    TrajectoryPathModel trajectory,
+  ) {
+    try {
+      print('💾 _handleTrajectoryChanged called');
+      print('   Component ID: $componentId');
+      print('   Control points: ${trajectory.controlPoints.length}');
+
+      final animationState = ref.read(animationProvider);
+      final currentScene = animationState.selectedScene;
+      final animationModel = animationState.selectedAnimationModel;
+
+      if (currentScene == null || animationModel == null) {
+        print('   ❌ Missing scene or animation model');
+        return;
+      }
+
+      print('   Current scene ID: ${currentScene.id}');
+
+      // Get or create trajectory data
+      final trajectoryData =
+          currentScene.trajectoryData ?? AnimationTrajectoryData();
+
+      // Update trajectory for this component
+      trajectoryData.setTrajectory(componentId, trajectory);
+
+      print('   ✅ Trajectory set in data');
+
+      // Update scene with new trajectory data
+      final updatedScene = currentScene.copyWith(
+        trajectoryData: trajectoryData,
+      );
+
+      print('   ✅ Scene copied with new trajectory data');
+
+      // Find the scene index in the animation
+      final sceneIndex = animationModel.animationScenes
+          .indexWhere((s) => s.id == currentScene.id);
+
+      if (sceneIndex != -1) {
+        // Update the scene in the animation model
+        animationModel.animationScenes[sceneIndex] = updatedScene;
+        print('   ✅ Scene updated in animation model at index $sceneIndex');
+      }
+
+      // Update state with the new scene
+      ref.read(animationProvider.notifier).selectScene(scene: updatedScene);
+
+      print('   ✅ Scene selected in provider');
+
+      zlog(
+          data:
+              "Trajectory updated for component $componentId in scene ${currentScene.id}");
+      zlog(data: "  Control points: ${trajectory.controlPoints.length}");
+      zlog(data: "  Enabled: ${trajectory.enabled}");
+      zlog(
+          data:
+              "  Positions: ${trajectory.controlPoints.map((cp) => cp.position).toList()}");
+    } catch (e, s) {
+      print('   ❌ Error: $e');
+      zlog(data: "Error handling trajectory change: $e\n$s");
+    }
+  }
+
+  /// Clean up trajectory editor when exiting animation mode or switching scenes
+  Future<void> cleanupTrajectoryEditor() async {
+    if (trajectoryManager != null) {
+      await trajectoryManager!.hideTrajectory();
+      world.remove(trajectoryManager!);
+      trajectoryManager = null;
+      zlog(data: "Trajectory editor cleaned up");
+    }
+  }
+
+  /// Show trajectory editing UI for a specific component
+  Future<void> showTrajectoryForComponent({
+    required String componentId,
+    required FieldItemModel currentItem,
+  }) async {
+    // Always ensure trajectory manager is initialized with fresh data
+    if (trajectoryManager == null) {
+      await initializeTrajectoryEditor();
+    }
+
+    // If still null after initialization, can't show trajectory
+    if (trajectoryManager == null) {
+      print('⚠️ Cannot show trajectory - manager not initialized');
+      return;
+    }
+
+    await trajectoryManager!.showTrajectoryForComponent(
+      componentId: componentId,
+      currentItem: currentItem,
+    );
+  }
+
+  /// Hide trajectory editing UI
+  Future<void> hideTrajectory() async {
+    await trajectoryManager?.hideTrajectory();
+  }
+
+  /// Check if trajectory editing is currently active
+  bool get isTrajectoryEditingActive =>
+      trajectoryManager?.isEditingTrajectory ?? false;
+
+  /// Get current trajectory for selected component
+  TrajectoryPathModel? get currentTrajectory {
+    if (trajectoryManager == null) return null;
+    final selectedId = trajectoryManager!.selectedComponentId;
+    if (selectedId == null) return null;
+
+    final currentScene = ref.read(animationProvider).selectedScene;
+    return currentScene?.trajectoryData?.getTrajectory(selectedId);
   }
 }

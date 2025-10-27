@@ -12,6 +12,7 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 
 class DesignToolbarComponent extends ConsumerStatefulWidget {
   const DesignToolbarComponent({super.key});
@@ -26,6 +27,20 @@ class _DesignToolbarComponentState
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
+    final animState = ref.watch(animationProvider);
+    final hasAnimation = animState.selectedAnimationModel != null;
+    final hasMultipleScenes =
+        (animState.selectedAnimationModel?.animationScenes.length ?? 0) > 1;
+    final currentSceneIndex = animState.selectedScene != null &&
+            animState.selectedAnimationModel != null
+        ? animState.selectedAnimationModel!.animationScenes
+            .indexWhere((s) => s.id == animState.selectedScene!.id)
+        : -1;
+    final canEditTrajectory =
+        hasAnimation && hasMultipleScenes && currentSceneIndex > 0;
+
+   
+
     return bp.selectedItemOnTheBoard == null
         ? Center(
             child: Text(
@@ -51,10 +66,30 @@ class _DesignToolbarComponentState
                 // NEW: Icon Size Slider
                 _buildSizeSliderWidget(boardState: bp),
                 SizedBox(height: 20),
-                // REMOVED: The old aerial pass switcher is now gone from here.
+                // Player-specific toggles (Image, Name, Number, Role)
                 if (bp.selectedItemOnTheBoard is PlayerModel)
                   _buildSwitcherWidget(
                       playerModel: bp.selectedItemOnTheBoard as PlayerModel),
+                // NEW: Trajectory Editor Toggle (only in animation mode with multiple scenes, not on first scene)
+                // Positioned AFTER all other controls
+                if (canEditTrajectory &&
+                    (bp.selectedItemOnTheBoard is PlayerModel ||
+                        bp.selectedItemOnTheBoard is EquipmentModel))
+                  SizedBox(height: 20),
+                if (canEditTrajectory &&
+                    (bp.selectedItemOnTheBoard is PlayerModel ||
+                        bp.selectedItemOnTheBoard is EquipmentModel))
+                  _buildTrajectoryEditorToggle(boardState: bp),
+                if (canEditTrajectory &&
+                    bp.trajectoryEditingEnabled &&
+                    (bp.selectedItemOnTheBoard is PlayerModel ||
+                        bp.selectedItemOnTheBoard is EquipmentModel))
+                  SizedBox(height: 20),
+                if (canEditTrajectory &&
+                    bp.trajectoryEditingEnabled &&
+                    (bp.selectedItemOnTheBoard is PlayerModel ||
+                        bp.selectedItemOnTheBoard is EquipmentModel))
+                  _buildTrajectoryControls(boardState: bp),
               ],
             ),
           );
@@ -478,6 +513,124 @@ class _DesignToolbarComponentState
                   .read(boardProvider.notifier)
                   .updateMultiplePlayers(updatedPlayers: updatedPlayers);
             }
+          },
+        ),
+      ],
+    );
+  }
+
+  // NEW: Build trajectory editor toggle
+  Widget _buildTrajectoryEditorToggle({required BoardState boardState}) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      decoration: BoxDecoration(
+        color: ColorManager.dark2.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: boardState.trajectoryEditingEnabled
+              ? ColorManager.yellow.withOpacity(0.6)
+              : ColorManager.grey.withOpacity(0.3),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Trajectory Editor",
+                  style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                        color: ColorManager.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Edit curved movement paths",
+                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                        color: ColorManager.grey.withOpacity(0.8),
+                        fontSize: 11,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 12),
+          Switch(
+            value: boardState.trajectoryEditingEnabled,
+            onChanged: (value) {
+              ref.read(boardProvider.notifier).toggleTrajectoryEditing(value);
+            },
+            activeColor: ColorManager.yellow,
+            activeTrackColor: ColorManager.yellow.withOpacity(0.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // NEW: Build trajectory editing controls
+  Widget _buildTrajectoryControls({required BoardState boardState}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Trajectory Controls",
+          style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                color: ColorManager.grey,
+              ),
+        ),
+        SizedBox(height: 10),
+        // Add Point Button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Add control point logic
+            },
+            icon: Icon(Icons.add_circle_outline, size: 18),
+            label: Text("Add Control Point"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ColorManager.dark2.withOpacity(0.7),
+              foregroundColor: ColorManager.white,
+              padding: EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        SizedBox(height: 8),
+        // Remove Point Button
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              // TODO: Remove control point logic
+            },
+            icon: Icon(Icons.remove_circle_outline, size: 18),
+            label: Text("Remove Control Point"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ColorManager.dark2.withOpacity(0.7),
+              foregroundColor: ColorManager.white,
+              padding: EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        SizedBox(height: 15),
+        // Smoothness Slider
+        Text(
+          "Path Smoothness",
+          style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                color: ColorManager.grey,
+              ),
+        ),
+        SizedBox(height: 8),
+        CustomSlider(
+          min: 0,
+          max: 1,
+          initial: 0.5, // TODO: Get from trajectory data
+          onValueChanged: (value) {
+            // TODO: Update trajectory smoothness
           },
         ),
       ],

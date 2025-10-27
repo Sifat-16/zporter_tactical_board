@@ -69,6 +69,9 @@ class BoardState {
   // Toggle to apply design changes to all similar items (same team for players, same type for equipment)
   final bool applyDesignToAll;
 
+  // Toggle to enable trajectory editing mode in animations
+  final bool trajectoryEditingEnabled;
+
   const BoardState(
       {this.players = const [],
       this.equipments = const [],
@@ -101,6 +104,7 @@ class BoardState {
       this.homeTeamBorderColor = Colors.blue,
       this.awayTeamBorderColor = Colors.red,
       this.applyDesignToAll = false,
+      this.trajectoryEditingEnabled = false,
       this.animatingObj});
 
   BoardState copyWith({
@@ -138,6 +142,7 @@ class BoardState {
     Color? homeTeamBorderColor,
     Color? awayTeamBorderColor,
     bool? applyDesignToAll,
+    bool? trajectoryEditingEnabled,
   }) {
     return BoardState(
         players: players ?? this.players,
@@ -177,6 +182,8 @@ class BoardState {
         homeTeamBorderColor: homeTeamBorderColor ?? this.homeTeamBorderColor,
         awayTeamBorderColor: awayTeamBorderColor ?? this.awayTeamBorderColor,
         applyDesignToAll: applyDesignToAll ?? this.applyDesignToAll,
+        trajectoryEditingEnabled:
+            trajectoryEditingEnabled ?? this.trajectoryEditingEnabled,
         animatingObj: animatingObj == _sentinel
             ? this.animatingObj
             : animatingObj as AnimatingObj?);

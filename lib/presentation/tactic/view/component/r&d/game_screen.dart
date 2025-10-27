@@ -22,6 +22,7 @@ import 'package:zporter_tactical_board/data/animation/model/animation_model.dart
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/animation_controls_widget.dart';
+// Removed unused import: trajectory_editing_toolbar.dart
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
@@ -64,6 +65,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   List<GuideLine> _activeGuides = [];
 
+  // Trajectory editing state - REMOVED (now in BoardState)
+  // bool _showTrajectoryToolbar = false;
+  // String? _selectedComponentId;
+
   final WidgetCaptureXPlusController _widgetCaptureXPlusController =
       WidgetCaptureXPlusController(
           outputBaseFileName:
@@ -89,6 +94,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       if (mounted) {
         ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
         createTacticBoardIfNecessary(widget.scene);
+
+        // Initialize trajectory editor if in animation mode
+        _initializeTrajectoryEditorIfNeeded();
       }
     });
 
@@ -142,6 +150,75 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
     _currentExportDialogContext = null;
     super.dispose();
+  }
+
+  // ========== Trajectory Editing Methods ==========
+
+  /// Initialize trajectory editor if in animation mode
+  void _initializeTrajectoryEditorIfNeeded() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      final animationState = ref.read(animationProvider);
+      final animationModel = animationState.selectedAnimationModel;
+
+      // Only initialize if we have an animation with multiple scenes
+      if (animationModel != null && animationModel.animationScenes.length > 1) {
+        await tacticBoardGame?.initializeTrajectoryEditor();
+      }
+    });
+  }
+
+  // ========== Trajectory Editing Methods ==========
+
+  /// Handle component selection - show trajectory toolbar
+  void _onComponentSelected(FieldItemModel component) {
+    final animationState = ref.read(animationProvider);
+    final animationModel = animationState.selectedAnimationModel;
+    final currentScene = animationState.selectedScene;
+
+    debugPrint('🎯 Component selected: ${component.id}');
+    debugPrint('   Animation model: ${animationModel != null ? "✅" : "❌"}');
+    debugPrint('   Current scene: ${currentScene != null ? "✅" : "❌"}');
+
+    // Only show toolbar if:
+    // 1. We have an animation
+    // 2. Animation has multiple scenes
+    // 3. Current scene is not the first scene
+    if (animationModel == null || currentScene == null) {
+      print('   ❌ Missing animation or scene - exiting');
+      return;
+    }
+
+    print('   Scene count: ${animationModel.animationScenes.length}');
+    if (animationModel.animationScenes.length < 2) {
+      print('   ❌ Need at least 2 scenes - exiting');
+      return;
+    }
+
+    final sceneIndex = animationModel.animationScenes
+        .indexWhere((s) => s.id == currentScene.id);
+    print('   Current scene index: $sceneIndex');
+
+    if (sceneIndex <= 0) {
+      print('   ❌ Scene 0 or not found - no previous scene - exiting');
+      return;
+    }
+
+    print('   ✅ Showing trajectory visualization');
+
+    // Show trajectory visualization on canvas
+    print('   📍 Calling showTrajectoryForComponent');
+    tacticBoardGame?.showTrajectoryForComponent(
+      componentId: component.id,
+      currentItem: component,
+    );
+  }
+
+  /// Handle selection cleared - hide trajectory toolbar
+  void _onSelectionCleared() {
+    // Hide trajectory visualization
+    tacticBoardGame?.hideTrajectory();
   }
 
   bool isBoardBusy(BoardState bp) {
@@ -400,6 +477,54 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           zlog(
               data:
                   "AnimatingObj cleared externally, dismissing export dialog with null.");
+        }
+      }
+
+      // ========== TRAJECTORY FIX: Re-show after animation ends ==========
+      // When animation stops (animatingObj goes from non-null to null),
+      // re-show trajectory if we have a selected component and trajectory editing is enabled
+      if (prev?.animatingObj != null &&
+          current.animatingObj == null &&
+          current.selectedItemOnTheBoard != null &&
+          current.trajectoryEditingEnabled) {
+        // Animation just stopped - re-show trajectory for selected component
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _onComponentSelected(current.selectedItemOnTheBoard!);
+          }
+        });
+      }
+
+      // ========== Trajectory Editing: Listen to selection changes ==========
+      if (!mounted) return;
+
+      // Check if selection changed
+      final previousSelection = prev?.selectedItemOnTheBoard;
+      final currentSelection = current.selectedItemOnTheBoard;
+
+      // Check if trajectory editing enabled state changed
+      final prevTrajectoryEnabled = prev?.trajectoryEditingEnabled ?? false;
+      final currentTrajectoryEnabled = current.trajectoryEditingEnabled;
+
+      // Show/hide trajectory based on both selection AND trajectoryEditingEnabled
+      if (currentSelection != null &&
+          currentSelection.id != previousSelection?.id) {
+        // Component selected
+        if (currentTrajectoryEnabled) {
+          _onComponentSelected(currentSelection);
+        } else {
+          _onSelectionCleared(); // Hide trajectory if editing not enabled
+        }
+      } else if (previousSelection != null && currentSelection == null) {
+        // Selection cleared
+        _onSelectionCleared();
+      } else if (currentSelection != null &&
+          prevTrajectoryEnabled != currentTrajectoryEnabled) {
+        // Trajectory editing mode toggled while component selected
+        if (currentTrajectoryEnabled) {
+          _onComponentSelected(currentSelection);
+        } else {
+          _onSelectionCleared();
         }
       }
     });
@@ -898,6 +1023,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                   )),
                         ),
                       ),
+                    // Trajectory editing toolbar removed - now in design toolbar
                     if (bp.animatingObj?.isAnimating == true &&
                         !bp.animatingObj!.isExporting &&
                         _currentExportDialogContext == null)
