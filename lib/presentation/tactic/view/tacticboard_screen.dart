@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/core/component/responsive_screen_component.dart';
+import 'package:zporter_tactical_board/app/services/injection_container.dart';
+import 'package:zporter_tactical_board/app/services/user_preferences_service.dart';
 import 'package:zporter_tactical_board/presentation/auth/view_model/auth_controller.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/responsive/tacticboard_screen_tablet.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -77,10 +79,14 @@ class TacticboardScreen extends ResponsiveScreen {
 class _TacticboardScreenState extends ResponsiveScreenState<TacticboardScreen> {
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((t) {
+      // Set the userId in UserPreferencesService for Firestore sync
+      final prefsService = sl.get<UserPreferencesService>();
+      prefsService.setUserId(widget.userId);
+
+      // Initialize user authentication
       ref.read(authProvider.notifier).initiateUser(widget.userId);
     });
     _loadTacticalBoard();

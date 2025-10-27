@@ -1,14 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 
 /// Service for managing user preferences using SharedPreferences + Firestore
 /// - Local storage (SharedPreferences) for offline/quick access
 /// - Cloud storage (Firestore) for cross-device sync and backup
+/// - Uses userId from parent app for proper user identification
 class UserPreferencesService {
-  static const String _keyDeviceId = 'device_id';
   static const String _keyHomeTeamBorderColor = 'home_team_border_color';
   static const String _keyAwayTeamBorderColor = 'away_team_border_color';
 
@@ -24,28 +23,34 @@ class UserPreferencesService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Get or create a unique device ID for this installation
-  Future<String> _getDeviceId() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? deviceId = prefs.getString(_keyDeviceId);
+  /// The user ID from the parent app (passed via TacticboardScreen)
+  String? _userId;
 
-    if (deviceId == null) {
-      // Generate new device ID
-      deviceId = const Uuid().v4();
-      await prefs.setString(_keyDeviceId, deviceId);
-      zlog(data: 'Generated new device ID: $deviceId');
+  /// Set the user ID from the parent app
+  /// Should be called when user logs in or app initializes
+  void setUserId(String userId) {
+    _userId = userId;
+    zlog(data: 'UserPreferencesService: Set userId to $userId');
+  }
+
+  /// Get the current user ID
+  /// Throws if userId hasn't been set
+  String _getUserId() {
+    if (_userId == null || _userId!.isEmpty) {
+      zlog(data: 'ERROR: userId not set in UserPreferencesService');
+      throw Exception(
+          'UserPreferencesService: userId not set. Call setUserId() first.');
     }
-
-    return deviceId;
+    return _userId!;
   }
 
   /// Get home team border color - tries Firestore first, falls back to local
   Future<Color> getHomeTeamBorderColor() async {
     try {
       // Try to fetch from Firestore first (for cross-device sync)
-      final deviceId = await _getDeviceId();
+      final userId = _getUserId();
       final doc =
-          await _firestore.collection(_firestoreCollection).doc(deviceId).get();
+          await _firestore.collection(_firestoreCollection).doc(userId).get();
 
       if (doc.exists && doc.data()?[_fieldHomeTeamBorderColor] != null) {
         final colorValue = doc.data()![_fieldHomeTeamBorderColor] as int;
@@ -71,9 +76,9 @@ class UserPreferencesService {
   Future<Color> getAwayTeamBorderColor() async {
     try {
       // Try to fetch from Firestore first (for cross-device sync)
-      final deviceId = await _getDeviceId();
+      final userId = _getUserId();
       final doc =
-          await _firestore.collection(_firestoreCollection).doc(deviceId).get();
+          await _firestore.collection(_firestoreCollection).doc(userId).get();
 
       if (doc.exists && doc.data()?[_fieldAwayTeamBorderColor] != null) {
         final colorValue = doc.data()![_fieldAwayTeamBorderColor] as int;
@@ -103,8 +108,8 @@ class UserPreferencesService {
 
     // Save to Firestore (for cloud backup)
     try {
-      final deviceId = await _getDeviceId();
-      await _firestore.collection(_firestoreCollection).doc(deviceId).set({
+      final userId = _getUserId();
+      await _firestore.collection(_firestoreCollection).doc(userId).set({
         _fieldHomeTeamBorderColor: color.value,
         _fieldLastUpdated: FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -123,8 +128,8 @@ class UserPreferencesService {
 
     // Save to Firestore (for cloud backup)
     try {
-      final deviceId = await _getDeviceId();
-      await _firestore.collection(_firestoreCollection).doc(deviceId).set({
+      final userId = _getUserId();
+      await _firestore.collection(_firestoreCollection).doc(userId).set({
         _fieldAwayTeamBorderColor: color.value,
         _fieldLastUpdated: FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -139,7 +144,7 @@ class UserPreferencesService {
   Future<void> syncToFirestore() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final deviceId = await _getDeviceId();
+      final userId = _getUserId();
 
       final homeColor = prefs.getInt(_keyHomeTeamBorderColor);
       final awayColor = prefs.getInt(_keyAwayTeamBorderColor);
@@ -159,7 +164,7 @@ class UserPreferencesService {
         // Only sync if there's actual data
         await _firestore
             .collection(_firestoreCollection)
-            .doc(deviceId)
+            .doc(userId)
             .set(data, SetOptions(merge: true));
         zlog(data: 'Synced preferences to Firestore');
       }
@@ -176,8 +181,8 @@ class UserPreferencesService {
 
     // Also clear from Firestore
     try {
-      final deviceId = await _getDeviceId();
-      await _firestore.collection(_firestoreCollection).doc(deviceId).delete();
+      final userId = _getUserId();
+      await _firestore.collection(_firestoreCollection).doc(userId).delete();
       zlog(data: 'Cleared preferences from local and Firestore');
     } catch (e) {
       zlog(data: 'Error clearing Firestore preferences: $e');
