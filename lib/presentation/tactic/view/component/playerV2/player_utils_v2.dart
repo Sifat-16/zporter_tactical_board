@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -323,9 +324,11 @@ class PlayerUtilsV2 {
       roles.add(playerDataTuple.item1);
     }
     final sortedRoles = roles.toList()..sort();
-    return sortedRoles.isNotEmpty
-        ? sortedRoles
-        : ['GK', 'DEF', 'MID', 'FWD', 'ST'];
+    // Add "-" option at the beginning for neutral/no role display
+    final rolesWithNeutral = ['-', ...sortedRoles];
+    return rolesWithNeutral.isNotEmpty
+        ? rolesWithNeutral
+        : ['-', 'GK', 'DEF', 'MID', 'FWD', 'ST'];
   }
 
   static Future<bool> isJerseyNumberTaken(
@@ -612,6 +615,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   File? _pendingImageFile; // This will hold the new image the user picked
   String? _existingImagePath; // This will hold the player's current path/base64
   String? _existingImageBase64;
+  Color? _selectedBorderColor; // Custom border color
 
   bool _isDefaultPlayer = false;
   final ImagePicker _picker = ImagePicker();
@@ -625,7 +629,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       _nameController = TextEditingController(text: widget.player!.name ?? '');
       // --- CHANGE 2: Initialize controller with the display number ---
       _displayNumberController = TextEditingController(
-          text: widget.player!.displayNumber?.toString() ?? '');
+          text: _isNegativeOrEmpty(widget.player!.displayNumber?.toString()));
       _selectedRole = widget.player!.role;
       // _currentImageBase64 = widget.player!.imageBase64;
 
@@ -633,6 +637,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
           widget.player!.imageBase64; // Store existing image data
       _existingImagePath =
           widget.player!.imagePath; // Store existing image path
+      _selectedBorderColor = widget.player!.borderColor; // Load border color
 
       final defaultData =
           PlayerUtilsV2.findDefaultPlayerDataById(widget.player!.id);
@@ -643,7 +648,18 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       _selectedRole = null;
       _existingImageBase64 = null; // Store existing image data
       _existingImagePath = null; // Store existing image path
+      _selectedBorderColor = null; // No custom border color for new players
     }
+  }
+
+  String _isNegativeOrEmpty(String? value) {
+    if (value == null) return '';
+    if (value.isEmpty) return 'Please enter a number.';
+    final intValue = int.tryParse(value);
+    if (intValue == null || intValue < 0) {
+      return '';
+    }
+    return '';
   }
 
   @override
@@ -655,14 +671,30 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   }
 
   Future<void> _pickImage() async {
+    // Add a small delay to ensure UI is ready
+    await Future.delayed(const Duration(milliseconds: 100));
+
     try {
-      final XFile? pickedFile =
-          await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512, // Limit image size to prevent memory issues
+        maxHeight: 512,
+        imageQuality: 85, // Compress image
+      );
+
+      // Check if still mounted after async operation
+      if (!mounted) return;
       if (pickedFile == null) return;
+
+      // Add small delay before cropping to allow memory cleanup
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
 
       final CroppedFile? croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
         compressQuality: 80,
+        maxWidth: 512, // Limit cropped image size
+        maxHeight: 512,
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Player Icon',
@@ -683,26 +715,153 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         ],
       );
 
+      // Check if widget is still mounted before updating state
+      if (!mounted) return;
       if (croppedFile == null) return;
 
-      final imageBytes = await croppedFile.readAsBytes();
-      final base64String = base64Encode(imageBytes);
-
-      // setState(() {
-      //   _currentImageBase64 = base64String;
-      // });
+      // Verify the file exists and is accessible
+      final file = File(croppedFile.path);
+      if (!await file.exists()) {
+        throw Exception('Cropped file does not exist');
+      }
 
       setState(() {
-        _pendingImageFile = File(croppedFile.path);
+        _pendingImageFile = file;
         _existingImageBase64 = null; // Clear old images so the new one shows
         _existingImagePath = null; // Clear old images so the new one shows
       });
-    } catch (e) {
-      zlog(data: 'Error during image pick/crop process: $e');
+
+      zlog(data: 'Image picked and cropped successfully: ${croppedFile.path}');
+    } on PlatformException catch (e) {
+      zlog(
+          data:
+              'Platform error during image pick/crop: ${e.code} - ${e.message}');
       if (mounted) {
-        BotToast.showText(text: "Error processing image. Please try again.");
+        String errorMessage = "Error accessing gallery.";
+        if (e.code == 'photo_access_denied' ||
+            e.code == 'camera_access_denied') {
+          errorMessage = "Please grant photo library permission in Settings.";
+        }
+        BotToast.showText(
+          text: errorMessage,
+          duration: Duration(seconds: 3),
+        );
+      }
+    } catch (e, stackTrace) {
+      zlog(data: 'Error during image pick/crop process: $e\n$stackTrace');
+      if (mounted) {
+        BotToast.showText(
+          text:
+              "Error processing image. Please try again or choose a smaller image.",
+          duration: Duration(seconds: 3),
+        );
       }
     }
+  }
+
+  /// Gets the default border color based on player type
+  Color _getDefaultBorderColor() {
+    if (widget.player == null) return ColorManager.blue;
+
+    switch (widget.player!.playerType) {
+      case PlayerType.HOME:
+        return ColorManager.blue;
+      case PlayerType.AWAY:
+        return ColorManager.red;
+      case PlayerType.OTHER:
+      case PlayerType.UNKNOWN:
+        return ColorManager.grey;
+    }
+  }
+
+  /// Shows a color picker dialog for border color
+  Future<void> _pickBorderColor() async {
+    final Color? pickedColor = await showDialog<Color>(
+      context: context,
+      builder: (BuildContext context) {
+        Color tempColor = _selectedBorderColor ?? _getDefaultBorderColor();
+
+        return AlertDialog(
+          backgroundColor: ColorManager.dark1,
+          title: Text(
+            'Choose Border Color',
+            style: TextStyle(color: ColorManager.white),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Predefined colors
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildColorOption(ColorManager.blue, 'Blue'),
+                    _buildColorOption(ColorManager.red, 'Red'),
+                    _buildColorOption(ColorManager.green, 'Green'),
+                    _buildColorOption(ColorManager.yellow, 'Yellow'),
+                    _buildColorOption(Colors.orange, 'Orange'),
+                    _buildColorOption(Colors.purple, 'Purple'),
+                    _buildColorOption(Colors.pink, 'Pink'),
+                    _buildColorOption(Colors.cyan, 'Cyan'),
+                    _buildColorOption(ColorManager.white, 'White'),
+                    _buildColorOption(ColorManager.grey, 'Grey'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: ColorManager.grey)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, tempColor),
+              child:
+                  Text('Select', style: TextStyle(color: ColorManager.yellow)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (pickedColor != null) {
+      setState(() {
+        _selectedBorderColor = pickedColor;
+      });
+    }
+  }
+
+  /// Builds a color option widget for the color picker
+  Widget _buildColorOption(Color color, String label) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context, color),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: ColorManager.white.withOpacity(0.3),
+                width: 2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: ColorManager.white,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _onDeleteOrResetPressed() async {
@@ -749,22 +908,35 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       return;
     }
 
-    if (_selectedRole == null) {
+    // Allow "-" as a valid role (neutral/no role)
+    if (_selectedRole == null || _selectedRole!.isEmpty) {
       BotToast.showText(text: "Please select a role.");
       return;
     }
 
-    // --- CHANGE 5: Validate and parse the number from the text controller ---
+    // Parse the number field - allow "-" to mean no number (-1)
     final jerseyNumberText = _displayNumberController.text.trim();
-    final jerseyNumberInt =
-        jerseyNumberText.isEmpty ? null : int.tryParse(jerseyNumberText);
+    int? jerseyNumberInt;
 
-    if (jerseyNumberText.isNotEmpty && jerseyNumberInt == null) {
-      BotToast.showText(text: "Jersey number must be a valid number.");
-      return;
+    if (jerseyNumberText == '-') {
+      // User explicitly wants no number
+      jerseyNumberInt = -1;
+
+    } else if (jerseyNumberText.isEmpty) {
+      // Empty is also acceptable (will use -1)
+      jerseyNumberInt = -1;
+    } else {
+      // Try to parse as a number
+      jerseyNumberInt = int.tryParse(jerseyNumberText);
+      if (jerseyNumberInt == null) {
+        BotToast.showText(
+            text: "Jersey number must be a valid number or '-' for no number.");
+        return;
+      }
     }
 
-    if (jerseyNumberInt != null) {
+    // Only check for duplicates if the number is not -1 (neutral)
+    if (jerseyNumberInt != -1) {
       final String playerIdForCheck =
           isEditMode ? widget.player!.id : RandomGenerator.generateId();
       bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
@@ -816,10 +988,11 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       resultPlayer = widget.player!.copyWith(
         name: _nameController.text.trim(),
         role: _selectedRole,
-        // --- CHANGE 6: Save the parsed int to displayNumber ---
+        // Save the parsed int to displayNumber (can be -1 for no number)
         displayNumber: jerseyNumberInt,
         imageBase64: finalBase64, // Pass the (likely null) Base64
         imagePath: finalImagePath, // Pass the new PERMANENT path
+        borderColor: _selectedBorderColor, // Save custom border color
         updatedAt: DateTime.now(),
       );
     } else {
@@ -829,11 +1002,12 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         id: RandomGenerator.generateId(),
         playerType: widget.playerType,
         role: _selectedRole!,
-        jerseyNumber: jerseyNumberInt ?? -1,
+        jerseyNumber: jerseyNumberInt, // Now always has a value
         displayNumber: jerseyNumberInt,
         name: _nameController.text.trim(),
         imageBase64: finalBase64,
         imagePath: finalImagePath, // Save the new permanent path
+        borderColor: _selectedBorderColor, // Save custom border color
         color: widget.playerType == PlayerType.HOME
             ? ColorManager.blueAccent
             : ColorManager.red,
@@ -881,9 +1055,16 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       }
     }
 
-    // 3. Is there an existing PERMANENT file path? Show that.
+    // 3. Is there an existing PERMANENT path/URL? Show that.
     if (_existingImagePath != null && _existingImagePath!.isNotEmpty) {
-      return FileImage(File(_existingImagePath!));
+      // Check if it's a network URL (starts with http:// or https://)
+      if (_existingImagePath!.startsWith('http://') ||
+          _existingImagePath!.startsWith('https://')) {
+        return NetworkImage(_existingImagePath!);
+      } else {
+        // It's a local file path
+        return FileImage(File(_existingImagePath!));
+      }
     }
 
     // 4. If nothing else, show null (which shows the "add photo" icon).
@@ -956,8 +1137,9 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                             child: TextFormField(
                               // --- MODIFICATION 3: Use the correctly named controller ---
                               controller: _displayNumberController,
+
                               style: TextStyle(color: ColorManager.white),
-                              keyboardType: TextInputType.number,
+                              keyboardType: TextInputType.text,
                               decoration: InputDecoration(
                                 // --- MODIFICATION 4: Update labels for clarity ---
                                 labelText: isEditMode
@@ -965,7 +1147,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                                     : 'Shirt Number',
                                 labelStyle: TextStyle(
                                     color: ColorManager.white.withOpacity(0.7)),
-                                hintText: 'Enter Nr...',
+                                hintText: 'Enter number or "-" for none',
                                 filled: true,
                                 fillColor: ColorManager.dark2,
                                 border: OutlineInputBorder(
@@ -993,10 +1175,10 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                         controller: _nameController,
                         style: TextStyle(color: ColorManager.white),
                         decoration: InputDecoration(
-                          labelText: 'Name',
+                          labelText: 'Name (optional)',
                           labelStyle: TextStyle(
                               color: ColorManager.white.withOpacity(0.7)),
-                          hintText: 'Edit name...',
+                          hintText: 'Leave empty or "-" for no name',
                           hintStyle: TextStyle(
                               color: ColorManager.white.withOpacity(0.5)),
                           filled: true,
@@ -1005,6 +1187,70 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                               borderRadius: BorderRadius.circular(8.0),
                               borderSide: BorderSide.none),
                         ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Border Color Picker
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Player Border Color',
+                                  style: TextStyle(
+                                    color: ColorManager.white.withOpacity(0.7),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _selectedBorderColor == null
+                                      ? 'Using team default'
+                                      : 'Custom color',
+                                  style: TextStyle(
+                                    color: ColorManager.grey.withOpacity(0.6),
+                                    fontSize: 11,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _pickBorderColor(),
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: _selectedBorderColor ??
+                                    _getDefaultBorderColor(),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: ColorManager.white.withOpacity(0.5),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.color_lens_outlined,
+                                color: ColorManager.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (_selectedBorderColor != null)
+                            IconButton(
+                              icon: Icon(Icons.refresh,
+                                  color: ColorManager.white),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedBorderColor = null;
+                                });
+                              },
+                              tooltip: 'Reset to default team color',
+                            ),
+                        ],
                       ),
                     ],
                   ),

@@ -417,6 +417,18 @@ class PlayerComponent extends FieldComponent<PlayerModel>
         size: size,
         overridePaint: Paint()..color = Colors.white.withOpacity(baseOpacity),
       );
+
+      // Draw team border when image is shown
+      canvas.restore(); // Restore from clip to draw border on top
+      canvas.save();
+
+      final Color teamBorderColor = _getTeamBorderColor();
+      final borderPaint = Paint()
+        ..color = teamBorderColor.withOpacity(baseOpacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0; // Border thickness
+
+      canvas.drawRRect(rrect, borderPaint);
     } else {
       // State 3: No image to show OR loading failed. Draw the colored placeholder.
       final Color baseColor = object.color ??
@@ -429,7 +441,8 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       _backgroundPaint.style = PaintingStyle.fill;
       canvas.drawRRect(rrect, _backgroundPaint);
 
-      if (object.showRole) {
+      // Only show role if showRole is true AND role is not "-" (neutral)
+      if (object.showRole && object.role != '-') {
         final fontSize = (size.x / 2) * 0.7;
         _textPainter.text = TextSpan(
           text: object.role,
@@ -476,7 +489,11 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     }
 
     final playerName = object.name;
-    if (object.showName && playerName != null && playerName.isNotEmpty) {
+    // Only show name if showName is true AND name is not empty/null AND name is not "-" (neutral)
+    if (object.showName &&
+        playerName != null &&
+        playerName.isNotEmpty &&
+        playerName != '-') {
       final nameTextStyle = TextStyle(
         color: Colors.white.withOpacity(baseOpacity),
         fontSize: size.x * 0.25,
@@ -521,6 +538,28 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       return imagePath;
     }
     return null;
+  }
+
+  /// Gets the border color for the player based on their team
+  /// Priority: 1) Individual player color, 2) Global team color from settings, 3) Fallback default
+  Color _getTeamBorderColor() {
+    // Priority 1: Check if player has a custom border color set (individual override)
+    if (object.borderColor != null) {
+      return object.borderColor!;
+    }
+
+    // Priority 2: Use global team colors from board settings
+    final boardState = ref.read(boardProvider);
+    switch (object.playerType) {
+      case PlayerType.HOME:
+        return boardState.homeTeamBorderColor; // Use settings color
+      case PlayerType.AWAY:
+        return boardState.awayTeamBorderColor; // Use settings color
+      case PlayerType.OTHER:
+        return ColorManager.grey; // Grey for other players
+      case PlayerType.UNKNOWN:
+        return ColorManager.grey; // Grey for unknown players
+    }
   }
 
   @override

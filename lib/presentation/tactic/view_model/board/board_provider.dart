@@ -474,6 +474,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/services/injection_container.dart';
+import 'package:zporter_tactical_board/app/services/user_preferences_service.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
@@ -494,9 +496,23 @@ final boardProvider = StateNotifierProvider<BoardController, BoardState>(
 );
 
 class BoardController extends StateNotifier<BoardState> {
-  BoardController(this.ref) : super(BoardState());
+  BoardController(this.ref) : super(BoardState()) {
+    _loadTeamColorsFromPreferences();
+  }
 
   Ref ref;
+
+  /// Load team border colors from user preferences on initialization
+  Future<void> _loadTeamColorsFromPreferences() async {
+    final prefsService = sl.get<UserPreferencesService>();
+    final homeColor = await prefsService.getHomeTeamBorderColor();
+    final awayColor = await prefsService.getAwayTeamBorderColor();
+
+    state = state.copyWith(
+      homeTeamBorderColor: homeColor,
+      awayTeamBorderColor: awayColor,
+    );
+  }
 
   addBoardComponent({required FieldItemModel fieldItemModel}) async {
     if (fieldItemModel is PlayerModel) {
@@ -782,6 +798,83 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(refreshBoard: refresh);
   }
 
+  // NEW: Toggle the "Apply to All Similar Items" setting
+  void toggleApplyDesignToAll(bool value) {
+    state = state.copyWith(applyDesignToAll: value);
+    zlog(data: "Apply design to all similar items: $value");
+  }
+
+  // NEW: Get all similar items to the currently selected item
+  List<FieldItemModel> getSimilarItems() {
+    final selectedItem = state.selectedItemOnTheBoard;
+    if (selectedItem == null) return [];
+
+    if (selectedItem is PlayerModel) {
+      // Return all players of the same team
+      return state.players
+          .where((p) =>
+              p.playerType == selectedItem.playerType &&
+              p.id != selectedItem.id)
+          .cast<FieldItemModel>()
+          .toList();
+    } else if (selectedItem is EquipmentModel) {
+      // Return all equipment of the same type (same name)
+      return state.equipments
+          .where((e) => e.name == selectedItem.name && e.id != selectedItem.id)
+          .cast<FieldItemModel>()
+          .toList();
+    }
+
+    return [];
+  }
+
+  // NEW: Update multiple players at once (bulk update)
+  void updateMultiplePlayers({required List<PlayerModel> updatedPlayers}) {
+    if (updatedPlayers.isEmpty) return;
+
+    // Create a map of updated players by ID for efficient lookup
+    final Map<String, PlayerModel> updatedMap = {
+      for (var player in updatedPlayers) player.id: player
+    };
+
+    // Update the players list - create a completely new list to ensure state change detection
+    List<PlayerModel> players = [
+      ...state.players.map((p) {
+        return updatedMap.containsKey(p.id) ? updatedMap[p.id]! : p;
+      })
+    ];
+
+    state = state.copyWith(players: players);
+
+    // Also update in animation provider for each player
+    for (var player in updatedPlayers) {
+      ref.read(animationProvider.notifier).updatePlayerModel(newModel: player);
+    }
+
+    zlog(data: "Updated ${updatedPlayers.length} players in bulk");
+  }
+
+  // NEW: Update multiple equipments at once (bulk update)
+  void updateMultipleEquipments(
+      {required List<EquipmentModel> updatedEquipments}) {
+    if (updatedEquipments.isEmpty) return;
+
+    // Create a map of updated equipment by ID for efficient lookup
+    final Map<String, EquipmentModel> updatedMap = {
+      for (var equipment in updatedEquipments) equipment.id: equipment
+    };
+
+    // Update the equipments list - create a completely new list to ensure state change detection
+    List<EquipmentModel> equipments = [
+      ...state.equipments.map((e) {
+        return updatedMap.containsKey(e.id) ? updatedMap[e.id]! : e;
+      })
+    ];
+
+    state = state.copyWith(equipments: equipments);
+    zlog(data: "Updated ${updatedEquipments.length} equipments in bulk");
+  }
+
   void removeFieldItems(List<FieldItemModel> itemsToRemove) {
     if (itemsToRemove.isEmpty) {
       zlog(
@@ -896,6 +989,20 @@ class BoardController extends StateNotifier<BoardState> {
 
   void updateGridSize(double newSize) {
     state = state.copyWith(gridSize: newSize);
+  }
+
+  // Update global home team border color
+  void updateHomeTeamBorderColor(Color color) {
+    state = state.copyWith(homeTeamBorderColor: color);
+    // Save to user preferences
+    sl.get<UserPreferencesService>().setHomeTeamBorderColor(color);
+  }
+
+  // Update global away team border color
+  void updateAwayTeamBorderColor(Color color) {
+    state = state.copyWith(awayTeamBorderColor: color);
+    // Save to user preferences
+    sl.get<UserPreferencesService>().setAwayTeamBorderColor(color);
   }
 
   // NEW: Method to update an equipment model in the state

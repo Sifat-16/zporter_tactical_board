@@ -24,6 +24,12 @@ class AnimationState {
   bool isPerformingUndo;
   List<AnimationCollectionModel> adminTemplatesCache;
   bool showLoadingOnSave;
+  bool skipHistorySave; // Flag to skip history saving during undo restoration
+  bool?
+      _isRecordingAnimation; // Flag to indicate video recording is in progress
+
+  // Safe getter that always returns a non-null bool
+  bool get isRecordingAnimation => _isRecordingAnimation ?? false;
 
   // Constructor remains the same, prefer const if possible
   AnimationState(
@@ -41,7 +47,10 @@ class AnimationState {
       this.defaultAnimationItems = const [],
       this.isPerformingUndo = false,
       this.showLoadingOnSave = false,
-      this.adminTemplatesCache = const []});
+      this.adminTemplatesCache = const [],
+      this.skipHistorySave = false,
+      bool isRecordingAnimation = false})
+      : _isRecordingAnimation = isRecordingAnimation;
 
   AnimationState copyWith(
       {
@@ -60,7 +69,9 @@ class AnimationState {
       List<AnimationItemModel>? defaultAnimationItems,
       bool? isPerformingUndo,
       List<AnimationCollectionModel>? adminTemplatesCache,
-      bool? showLoadingOnSave}) {
+      bool? showLoadingOnSave,
+      bool? skipHistorySave,
+      bool? isRecordingAnimation}) {
     return AnimationState(
         selectedAnimationCollectionModel:
             selectedAnimationCollectionModel == _sentinel
@@ -88,7 +99,10 @@ class AnimationState {
             defaultAnimationItems ?? this.defaultAnimationItems,
         isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
         adminTemplatesCache: adminTemplatesCache ?? this.adminTemplatesCache,
-        showLoadingOnSave: showLoadingOnSave ?? this.showLoadingOnSave);
+        showLoadingOnSave: showLoadingOnSave ?? this.showLoadingOnSave,
+        skipHistorySave: skipHistorySave ?? this.skipHistorySave,
+        isRecordingAnimation:
+            isRecordingAnimation ?? this._isRecordingAnimation ?? false);
   }
 
   // --- CORRECTED Equality and HashCode ---

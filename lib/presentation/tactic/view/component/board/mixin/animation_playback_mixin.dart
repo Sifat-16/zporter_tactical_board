@@ -1608,7 +1608,65 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
       if (displayModel is EquipmentModel && displayModel.isAerialArrival) {
         final distance = startPos.distanceTo(endPos);
         final arcHeight = (distance * 0.12).clamp(20.0, 120.0);
-        altitude = arcHeight * sin(intraSceneProgress * pi);
+        final spin = displayModel.spin ?? BallSpin.none;
+
+        // Calculate direction and perpendicular for curves
+        final diff = endPos - startPos;
+        final perpendicular = Vector2(-diff.y, diff.x).normalized();
+
+        Vector2 curvedPosition;
+        switch (spin) {
+          case BallSpin.left:
+            // Left curve: ball curves to the left
+            final curveAmount = distance * 0.1;
+            final lateralOffset = curveAmount * sin(intraSceneProgress * pi);
+            curvedPosition = Vector2.copy(startPos)
+              ..lerp(endPos, intraSceneProgress);
+            curvedPosition += perpendicular * lateralOffset;
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            break;
+
+          case BallSpin.right:
+            // Right curve: ball curves to the right
+            final curveAmount = distance * 0.1;
+            final lateralOffset = curveAmount * sin(intraSceneProgress * pi);
+            curvedPosition = Vector2.copy(startPos)
+              ..lerp(endPos, intraSceneProgress);
+            curvedPosition -= perpendicular * lateralOffset;
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            break;
+
+          case BallSpin.knuckleball:
+            // Knuckleball: S-curve using cubic Bezier
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            final curveAmount =
+                distance * 0.3; // Increased to 30% for MORE visible S
+
+            // Control points positioned to create visible S-curve
+            // CP1 at 25% of path, pushed LEFT
+            // CP2 at 75% of path, pushed RIGHT
+            final controlPoint1 =
+                startPos + (diff * 0.25) + (perpendicular * curveAmount);
+            final controlPoint2 =
+                startPos + (diff * 0.75) - (perpendicular * curveAmount);
+
+            final t = intraSceneProgress;
+            final oneMinusT = 1 - t;
+            curvedPosition = (startPos * (oneMinusT * oneMinusT * oneMinusT)) +
+                (controlPoint1 * (3 * (oneMinusT * oneMinusT) * t)) +
+                (controlPoint2 * (3 * oneMinusT * (t * t))) +
+                (endPos * (t * t * t));
+            break;
+
+          case BallSpin.none:
+          default:
+            curvedPosition = Vector2.copy(startPos)
+              ..lerp(endPos, intraSceneProgress);
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            break;
+        }
+
+        displayModel.offset = curvedPosition;
         final arcFactor = sin(intraSceneProgress * pi);
         final baseSize = displayModel.size?.x ?? 32.0;
         visualSize = Vector2.all(baseSize * (1 + (1.3 - 1) * arcFactor));

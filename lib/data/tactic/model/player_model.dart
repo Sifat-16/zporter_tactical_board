@@ -24,6 +24,7 @@ class PlayerModel extends FieldItemModel {
 
   String? imagePath;
   String? imageBase64;
+  Color? borderColor; // Custom border color for team identification
 
   PlayerModel({
     required super.id,
@@ -49,6 +50,7 @@ class PlayerModel extends FieldItemModel {
     this.showRole = true,
     this.imagePath,
     this.imageBase64,
+    this.borderColor,
   });
 
   @override
@@ -67,6 +69,7 @@ class PlayerModel extends FieldItemModel {
       'showImage': showImage,
       'imagePath': imagePath,
       'imageBase64': imageBase64,
+      'borderColor': borderColor?.value,
     };
   }
 
@@ -99,6 +102,8 @@ class PlayerModel extends FieldItemModel {
     final showRole = (json['showRole'] as bool?) ?? true;
     final imagePath = json['imagePath'] as String?;
     final imageBase64 = json['imageBase64'] as String?;
+    final borderColor =
+        json['borderColor'] != null ? Color(json['borderColor'] as int) : null;
 
     // --- CHANGE 4: Update fromJson for new field and data migration ---
     final jerseyNum = json['jerseyNumber'] as int? ?? -1;
@@ -127,6 +132,7 @@ class PlayerModel extends FieldItemModel {
       playerType: playerType,
       imagePath: imagePath,
       imageBase64: imageBase64,
+      borderColor: borderColor,
     );
   }
 
@@ -155,6 +161,7 @@ class PlayerModel extends FieldItemModel {
     bool? showRole,
     Object? imagePath = _sentinel,
     Object? imageBase64 = _sentinel,
+    Object? borderColor = _sentinel,
   }) {
     return PlayerModel(
       id: id ?? this.id,
@@ -181,6 +188,8 @@ class PlayerModel extends FieldItemModel {
       imagePath: imagePath == _sentinel ? this.imagePath : imagePath as String?,
       imageBase64:
           imageBase64 == _sentinel ? this.imageBase64 : imageBase64 as String?,
+      borderColor:
+          borderColor == _sentinel ? this.borderColor : borderColor as Color?,
     );
   }
 

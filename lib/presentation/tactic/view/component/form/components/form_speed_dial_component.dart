@@ -110,6 +110,11 @@ class _FormSpeedDialComponentState
 
   final GetHistoryStreamUseCase _historyStream =
       sl.get<GetHistoryStreamUseCase>(); // Assuming sl is your service locator
+
+  // Add debouncing for undo button
+  DateTime? _lastUndoClickTime;
+  static const Duration _undoDebounceDelay = Duration(milliseconds: 500);
+
   @override
   void initState() {
     super.initState();
@@ -543,6 +548,20 @@ class _FormSpeedDialComponentState
                       if (canUndo) {
                         return GestureDetector(
                           onTap: () {
+                            // Debouncing logic to prevent rapid clicks
+                            final now = DateTime.now();
+                            if (_lastUndoClickTime != null &&
+                                now.difference(_lastUndoClickTime!) <
+                                    _undoDebounceDelay) {
+                              zlog(
+                                data:
+                                    "Undo button clicked too quickly, ignoring.",
+                              );
+                              return;
+                            }
+                            _lastUndoClickTime = now;
+
+                            // Perform the undo operation
                             ref
                                 .read(animationProvider.notifier)
                                 .performUndoOperation();

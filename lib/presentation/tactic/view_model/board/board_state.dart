@@ -62,6 +62,13 @@ class BoardState {
 
   final double gridSize;
 
+  // Global team border colors (default colors for all players)
+  final Color homeTeamBorderColor;
+  final Color awayTeamBorderColor;
+
+  // Toggle to apply design changes to all similar items (same team for players, same type for equipment)
+  final bool applyDesignToAll;
+
   const BoardState(
       {this.players = const [],
       this.equipments = const [],
@@ -91,6 +98,9 @@ class BoardState {
       this.isDraggingItem = false,
       this.activeGuides = const [],
       this.gridSize = 50.0,
+      this.homeTeamBorderColor = Colors.blue,
+      this.awayTeamBorderColor = Colors.red,
+      this.applyDesignToAll = false,
       this.animatingObj});
 
   BoardState copyWith({
@@ -125,6 +135,9 @@ class BoardState {
     bool? isDraggingItem,
     List<GuideLine>? activeGuides,
     double? gridSize,
+    Color? homeTeamBorderColor,
+    Color? awayTeamBorderColor,
+    bool? applyDesignToAll,
   }) {
     return BoardState(
         players: players ?? this.players,
@@ -161,6 +174,9 @@ class BoardState {
         isDraggingItem: isDraggingItem ?? this.isDraggingItem,
         activeGuides: activeGuides ?? this.activeGuides,
         gridSize: gridSize ?? this.gridSize,
+        homeTeamBorderColor: homeTeamBorderColor ?? this.homeTeamBorderColor,
+        awayTeamBorderColor: awayTeamBorderColor ?? this.awayTeamBorderColor,
+        applyDesignToAll: applyDesignToAll ?? this.applyDesignToAll,
         animatingObj: animatingObj == _sentinel
             ? this.animatingObj
             : animatingObj as AnimatingObj?);

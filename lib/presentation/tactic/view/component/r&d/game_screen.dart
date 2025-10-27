@@ -12,6 +12,7 @@ import 'package:widget_capture_x_plus/widget_capture_x_plus_controller.dart';
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/animation_sharer.dart';
+import 'package:zporter_tactical_board/app/helper/device_capability_checker.dart';
 import 'package:zporter_tactical_board/app/helper/file_name_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
@@ -190,10 +191,18 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     try {
       zlog(data: "Starting widget recording for video export.");
+      // CRITICAL FIX: Set recording state BEFORE starting to prevent auto-save interference
+      ref
+          .read(animationProvider.notifier)
+          .setRecordingAnimation(isRecording: true);
       await _widgetCaptureXPlusController.startRecording();
       zlog(data: "Widget recording started.");
     } catch (e, s) {
       zlog(data: "Error starting widget recording: $e\n$s");
+      // Reset recording state on error
+      ref
+          .read(animationProvider.notifier)
+          .setRecordingAnimation(isRecording: false);
       BotToast.showText(
           text: "Failed to start video recording. Please try again.");
       // Ensure state is reset if recording fails to start.
@@ -324,6 +333,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               "Widget recording stopped on cancel. Output: ${cancelledRecOutput?.filePath}, Success: ${cancelledRecOutput?.success}.");
                     } catch (e, s) {
                       zlog(data: "Error stopping recording on cancel: $e\n$s");
+                    } finally {
+                      // CRITICAL FIX: Always reset recording state
+                      ref
+                          .read(animationProvider.notifier)
+                          .setRecordingAnimation(isRecording: false);
                     }
 
                     // Pop with null to signify cancellation to the awaiter of _showVideoExportProgressDialog
@@ -579,6 +593,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                 child: RiverpodAwareGameWidget(
                                     game: tacticBoardGame!,
                                     key: gameWidgetKey)))),
+                    // TEST BUTTON - Remove this after testing
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: FloatingActionButton.small(
+                        backgroundColor: Colors.purple[700],
+                        onPressed: () => _showMockDeviceWarning(context),
+                        child: Icon(Icons.bug_report, color: Colors.white),
+                        tooltip: 'Test Device Warning',
+                      ),
+                    ),
                     if (isBoardBusy(bp) &&
                         bp.animatingObj != null &&
                         ref.read(animationProvider).selectedAnimationModel !=
@@ -627,6 +652,12 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         data:
                                             "Error stopping widget recording (finalization step): $e\n$s",
                                       );
+                                    } finally {
+                                      // CRITICAL FIX: Always reset recording state
+                                      ref
+                                          .read(animationProvider.notifier)
+                                          .setRecordingAnimation(
+                                              isRecording: false);
                                     }
 
                                     if (_currentExportDialogContext != null &&
@@ -684,6 +715,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         } else if (type ==
                                             AnimationShareType.video) {
                                           if (!mounted) return;
+
+                                          // Check device capability before starting video recording
+                                          final deviceInfo =
+                                              await DeviceCapabilityChecker
+                                                  .checkDeviceCapabilities();
+                                          if (!mounted) return;
+
+                                          // Show warning if device has limitations
+                                          final shouldProceed =
+                                              await _showDeviceCapabilityWarning(
+                                                  context, deviceInfo);
+                                          if (!shouldProceed || !mounted) {
+                                            // User cancelled due to device warning
+                                            return;
+                                          }
 
                                           // 1. Set state to exporting
                                           if (mounted) {
@@ -782,6 +828,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         } else if (type ==
                                             AnimationShareType.video) {
                                           if (!mounted) return;
+
+                                          // Check device capability before starting video recording
+                                          final deviceInfo =
+                                              await DeviceCapabilityChecker
+                                                  .checkDeviceCapabilities();
+                                          if (!mounted) return;
+
+                                          // Show warning if device has limitations
+                                          final shouldProceed =
+                                              await _showDeviceCapabilityWarning(
+                                                  context, deviceInfo);
+                                          if (!shouldProceed || !mounted) {
+                                            // User cancelled due to device warning
+                                            return;
+                                          }
 
                                           // 1. Set state to exporting
                                           if (mounted) {
@@ -933,5 +994,286 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     color: ColorManager.grey, fontSize: 14)))))
               ]);
         });
+  }
+
+  /// TEST METHOD - Shows mock device warning dialogs for testing UI
+  /// Remove this method after testing is complete
+  Future<void> _showMockDeviceWarning(BuildContext context) async {
+    // Show a menu to choose which mock scenario to test
+    final scenario = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: Text('Choose Test Scenario'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'low_ram'),
+            child: Text('Low RAM Device (iPad Air 2)'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'old_os'),
+            child: Text('Old OS Device (iOS 11)'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'critical'),
+            child: Text('Critical Device (Low RAM + Old OS)'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'medium'),
+            child: Text('Medium Device (Should not warn)'),
+          ),
+        ],
+      ),
+    );
+
+    if (scenario == null || !mounted) return;
+
+    // Create mock DeviceInfo based on scenario
+    DeviceInfo mockDeviceInfo;
+
+    switch (scenario) {
+      case 'low_ram':
+        mockDeviceInfo = DeviceInfo(
+          capability: DeviceCapability.low,
+          osVersion: 'iOS 14.0',
+          deviceModel: 'iPad Air 2',
+          isLowRAM: true,
+          isOldOS: false,
+          warnings: [
+            'Your device has limited memory (1.5 GB RAM).',
+            'Video recording may cause the app to slow down or crash.',
+          ],
+          recommendations: [
+            'Consider using image export instead for better reliability.',
+            'If proceeding with video, expect longer processing times.',
+          ],
+        );
+        break;
+
+      case 'old_os':
+        mockDeviceInfo = DeviceInfo(
+          capability: DeviceCapability.low,
+          osVersion: 'iOS 11.4',
+          deviceModel: 'iPad (5th generation)',
+          isLowRAM: false,
+          isOldOS: true,
+          warnings: [
+            'Your device is running an older iOS version (iOS 11.4).',
+            'Video recording may not be fully optimized.',
+          ],
+          recommendations: [
+            'Consider updating your device OS for better performance.',
+            'Some features may not work as expected.',
+          ],
+        );
+        break;
+
+      case 'critical':
+        mockDeviceInfo = DeviceInfo(
+          capability: DeviceCapability.low,
+          osVersion: 'iOS 10.3',
+          deviceModel: 'iPad mini 2',
+          isLowRAM: true,
+          isOldOS: true,
+          warnings: [
+            'Your device has very limited resources (1 GB RAM, iOS 10.3).',
+            'Video recording may fail or cause the app to crash.',
+          ],
+          recommendations: [
+            'We strongly recommend using image export instead.',
+            'Video recording is not recommended on this device.',
+          ],
+        );
+        break;
+
+      case 'medium':
+        mockDeviceInfo = DeviceInfo(
+          capability: DeviceCapability.medium,
+          osVersion: 'iOS 13.0',
+          deviceModel: 'iPad (6th generation)',
+          isLowRAM: false,
+          isOldOS: false,
+          warnings: [],
+          recommendations: [],
+        );
+        break;
+
+      default:
+        return;
+    }
+
+    // Show the actual warning dialog
+    final shouldProceed =
+        await _showDeviceCapabilityWarning(context, mockDeviceInfo);
+
+    // Show result
+    if (mounted) {
+      BotToast.showText(
+        text: shouldProceed
+            ? '✅ User chose to proceed anyway'
+            : '❌ User cancelled',
+        duration: Duration(seconds: 2),
+      );
+    }
+  }
+
+  /// Shows a warning dialog about device capabilities for video recording
+  /// Returns true if user wants to proceed despite warnings, false otherwise
+  Future<bool> _showDeviceCapabilityWarning(
+      BuildContext context, DeviceInfo deviceInfo) async {
+    if (!deviceInfo.shouldShowWarning) {
+      // Device is capable, no warning needed
+      return true;
+    }
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        final isCritical = deviceInfo.capability == DeviceCapability.low &&
+            (deviceInfo.isLowRAM || deviceInfo.isOldOS);
+
+        return AlertDialog(
+          backgroundColor: ColorManager.black,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+          title: Row(
+            children: [
+              Icon(
+                isCritical ? Icons.error_outline : Icons.warning_amber_outlined,
+                color: isCritical ? Colors.red[400] : Colors.orange[400],
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Device Performance Warning',
+                  style: TextStyle(
+                    color: ColorManager.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (deviceInfo.warningMessage.isNotEmpty)
+                Text(
+                  deviceInfo.warningMessage,
+                  style: TextStyle(
+                    color: ColorManager.white.withOpacity(0.9),
+                    fontSize: 15,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: ColorManager.grey.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Device Info:',
+                      style: TextStyle(
+                        color: ColorManager.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (deviceInfo.deviceModel.isNotEmpty)
+                      Text(
+                        '• Device: ${deviceInfo.deviceModel}',
+                        style: TextStyle(
+                          color: ColorManager.white.withOpacity(0.8),
+                          fontSize: 13,
+                        ),
+                      ),
+                    if (deviceInfo.osVersion.isNotEmpty)
+                      Text(
+                        '• OS Version: ${deviceInfo.osVersion}',
+                        style: TextStyle(
+                          color: ColorManager.white.withOpacity(0.8),
+                          fontSize: 13,
+                        ),
+                      ),
+                    if (deviceInfo.isLowRAM)
+                      Text(
+                        '• Low Memory Detected',
+                        style: TextStyle(
+                          color: Colors.red[300],
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    if (deviceInfo.isOldOS)
+                      Text(
+                        '• Older OS Version',
+                        style: TextStyle(
+                          color: Colors.orange[300],
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (deviceInfo.recommendationMessage.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  deviceInfo.recommendationMessage,
+                  style: TextStyle(
+                    color: ColorManager.white.withOpacity(0.85),
+                    fontSize: 14,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: ColorManager.grey,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: TextButton.styleFrom(
+                backgroundColor:
+                    isCritical ? Colors.red[700] : Colors.orange[700],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  'Proceed Anyway',
+                  style: TextStyle(
+                    color: ColorManager.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
   }
 }

@@ -45,6 +45,7 @@ import 'package:zporter_tactical_board/firebase_options.dart';
 
 import 'connectivity_service.dart';
 import 'firebase_storage_service.dart';
+import 'user_preferences_service.dart';
 
 final sl = GetIt.instance;
 
@@ -92,6 +93,10 @@ Future<void> initializeTacticBoardDependencies() async {
     return true;
   };
   sl.registerLazySingleton<Logger>(() => Logger());
+
+  // Register UserPreferencesService
+  sl.registerLazySingleton<UserPreferencesService>(
+      () => UserPreferencesService());
 
   await ConnectivityService.initialize();
 

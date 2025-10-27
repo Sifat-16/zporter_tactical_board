@@ -134,7 +134,7 @@ class ManualVelocityAnimation {
 // --- Mixin for Animation Playback Controls ---
 mixin AnimationPlaybackControls on FlameGame {
   void performStartAnimationFromBeginning();
-  Future<void> performResumeAnimation();
+  void performResumeAnimation();
   void performPauseAnimation();
   void performStopAnimation();
   void performSetAnimationPace(double paceFactor);
@@ -143,11 +143,11 @@ mixin AnimationPlaybackControls on FlameGame {
   bool get isAnimationCurrentlyPlaying;
   bool get isAnimationCurrentlyPaused;
 
-  Future<void> playAnimation() async {
+  void playAnimation() {
     // Minimal logging in mixin, more detailed in perform method
     if (isAnimationCurrentlyPlaying && !isAnimationCurrentlyPaused) return;
     if (isAnimationCurrentlyPaused)
-      await performResumeAnimation();
+      performResumeAnimation();
     else
       performStartAnimationFromBeginning();
   }
@@ -156,8 +156,8 @@ mixin AnimationPlaybackControls on FlameGame {
     performPauseAnimation();
   }
 
-  Future<void> resumeAnimation() async {
-    await performResumeAnimation();
+  void resumeAnimation() {
+    performResumeAnimation();
   }
 
   void stopAnimation() {

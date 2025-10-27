@@ -173,7 +173,8 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          if (!hasImage)
+          // Only show role if there's no image AND role is not "-" (neutral)
+          if (!hasImage && widget.playerModel.role != '-')
             Center(
               child: Text(
                 widget.playerModel.role,
@@ -183,20 +184,8 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
                 textAlign: TextAlign.center,
               ),
             ),
-          // if (widget.playerModel.jerseyNumber > 0 && !isDragging)
-          //   Positioned(
-          //     top: -10,
-          //     right: -10,
-          //     child: Container(
-          //       padding:
-          //           const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
-          //       child: Text(
-          //         "${widget.playerModel.jerseyNumber}",
-          //         style: indexTextStyle,
-          //       ),
-          //     ),
-          //   ),
 
+          // Only show number if it's greater than 0 (not -1 for neutral) and not dragging
           if ((widget.playerModel.displayNumber ??
                       widget.playerModel.jerseyNumber) >
                   0 &&
@@ -238,17 +227,11 @@ class _FittedPlayerName extends StatelessWidget {
         .copyWith(color: ColorManager.white);
 
     final playerName = name ?? '';
-    if (playerName.isEmpty) {
+    // Hide name if empty or if it's "-" (neutral)
+    if (playerName.isEmpty || playerName == '-') {
       // Return a small sized box to maintain layout stability.
       return SizedBox(height: style.fontSize);
     }
-
-    // // The complex _getBestFitName function has been removed.
-    // // We now directly format the name for two-line display.
-    // String textToRender = playerName;
-    // if (playerName.contains(' ')) {
-    //   textToRender = playerName.replaceFirst(' ', '\n');
-    // }
 
     // --- START: MODIFIED NAME LOGIC ---
     // Requirement 3: Truncate names to 9 characters.
@@ -269,17 +252,6 @@ class _FittedPlayerName extends StatelessWidget {
     // --- END: MODIFIED NAME LOGIC ---
 
     return SizedBox(
-      // width: maxWidth,
-      // child: Text(
-      //   textToRender,
-      //   textScaler: TextScaler.linear(0.7),
-      //   style: style,
-      //   textAlign: TextAlign.start, // Center align the name block
-      //   overflow: TextOverflow.ellipsis,
-      //   // Allow up to 2 lines for the name
-      //   maxLines: 2,
-      // ),
-
       width: maxWidth * 1.5,
       child: Text(
         textToRender,

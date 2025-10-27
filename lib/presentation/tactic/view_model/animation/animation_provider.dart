@@ -45,6 +45,13 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   Ref ref;
 
+  // Lock to prevent concurrent undo operations
+  bool _isUndoInProgress = false;
+  // Lock to prevent undo during save operations
+  bool _isSaveInProgress = false;
+  // History size limit to prevent memory issues on older devices
+  static const int _maxHistorySize = 30;
+
   final SaveAnimationCollectionUseCase _saveAnimationCollectionUseCase =
       sl.get<SaveAnimationCollectionUseCase>();
   final GetAllAnimationCollectionUseCase _getAllAnimationCollectionUseCase =
@@ -948,9 +955,10 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   void changeDefaultAnimationIndex(int index) {
     zlog(data: 'Default animation index ${index}');
+    final selectedScene = state.defaultAnimationItems[index];
     state = state.copyWith(
       defaultAnimationItemIndex: index,
-      selectedScene: state.defaultAnimationItems[index],
+      selectedScene: selectedScene,
     );
   }
 
@@ -965,6 +973,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           ref.read(boardProvider.notifier).onAnimationSave();
       changeModel.fieldSize =
           ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
+
       defaultAnimations[index] = changeModel;
       zlog(
           data:
@@ -993,40 +1002,59 @@ class AnimationController extends StateNotifier<AnimationState> {
   Future<AnimationItemModel?> updateDatabaseOnChange({
     required bool saveToDb,
   }) async {
-    if (saveToDb == false) {
-      AnimationItemModel? changeModel =
-          state.selectedScene ?? AnimationItemModel.createEmptyAnimationItem();
-      changeModel.components =
-          ref.read(boardProvider.notifier).onAnimationSave();
-      changeModel.fieldSize =
-          ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
-      state = state.copyWith(selectedScene: changeModel);
-      return changeModel;
+    // Set save lock if actually saving to database
+    if (saveToDb) {
+      _isSaveInProgress = true;
     }
-    AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
-    if (selectedAnimationModel == null) {
-      try {
-        zlog(data: "Came on selected animation null", show: true);
-        return await _onSaveDefault();
-      } catch (e) {
-        zlog(data: "Auto save error");
+
+    try {
+      // CRITICAL FIX: Save current state to history BEFORE updating
+      // This ensures we can undo to the current state
+      if (saveToDb && !state.skipHistorySave && state.selectedScene != null) {
+        zlog(data: "Saving current state to history before update...");
+        await _saveToHistory(scene: state.selectedScene!);
       }
-    } else {
-      /// working on saved animation
-      try {
-        zlog(data: "Came on _onAnimationSave", show: true);
-        return await _onAnimationSave(
-          selectedCollection: state.selectedAnimationCollectionModel!,
-          selectedAnimation: state.selectedAnimationModel!,
-          selectedScene: state.selectedScene!,
-          showLoading: false,
-          saveToDb: saveToDb,
-        );
-      } catch (e) {
-        zlog(data: "Auto save error");
+
+      if (saveToDb == false) {
+        AnimationItemModel? changeModel = state.selectedScene ??
+            AnimationItemModel.createEmptyAnimationItem();
+        changeModel.components =
+            ref.read(boardProvider.notifier).onAnimationSave();
+        changeModel.fieldSize =
+            ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
+        state = state.copyWith(selectedScene: changeModel);
+        return changeModel;
+      }
+      AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+      if (selectedAnimationModel == null) {
+        try {
+          zlog(data: "Came on selected animation null", show: true);
+          return await _onSaveDefault();
+        } catch (e) {
+          zlog(data: "Auto save error");
+        }
+      } else {
+        /// working on saved animation
+        try {
+          zlog(data: "Came on _onAnimationSave", show: true);
+          return await _onAnimationSave(
+            selectedCollection: state.selectedAnimationCollectionModel!,
+            selectedAnimation: state.selectedAnimationModel!,
+            selectedScene: state.selectedScene!,
+            showLoading: false,
+            saveToDb: saveToDb,
+          );
+        } catch (e) {
+          zlog(data: "Auto save error");
+        }
+      }
+      return null;
+    } finally {
+      // Always release save lock
+      if (saveToDb) {
+        _isSaveInProgress = false;
       }
     }
-    return null;
   }
 
   void createNewDefaultAnimationItem() {
@@ -1110,15 +1138,40 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void performUndoOperation() async {
+    // Prevent concurrent undo operations
+    if (_isUndoInProgress) {
+      zlog(
+        level: Level.warning,
+        data: "Undo operation already in progress, ignoring duplicate request.",
+      );
+      return;
+    }
+
+    // Prevent undo during active save operations
+    if (_isSaveInProgress) {
+      zlog(
+        level: Level.warning,
+        data: "Save operation in progress, cannot perform undo.",
+      );
+      return;
+    }
+
     final AnimationItemModel? currentScene = state.selectedScene;
     if (currentScene == null) return; // Guard clause
 
     // --- FIX: Store the ID before any potential nulling ---
     final String sceneId = currentScene.id;
 
+    // Set lock and UI flag
+    _isUndoInProgress = true;
+
     try {
+      // Set flags to prevent history save and indicate undo in progress
       state = state.copyWith(
-          isPerformingUndo: true); // Set undo flag immediately for UI feedback
+        isPerformingUndo: true,
+        skipHistorySave:
+            true, // Critical: Don't save to history during undo restoration
+      );
 
       HistoryModel? history = await _getHistoryUseCase.call(sceneId);
       zlog(
@@ -1127,7 +1180,13 @@ class AnimationController extends StateNotifier<AnimationState> {
 
       if (history == null || history.history.isEmpty) {
         // No history to undo from, just toggle the flag off.
+        zlog(
+          level: Level.warning,
+          data: "No history available to undo.",
+        );
         toggleUndo(undo: false);
+        // Reset the skip flag
+        state = state.copyWith(skipHistorySave: false);
         return;
       }
 
@@ -1164,20 +1223,37 @@ class AnimationController extends StateNotifier<AnimationState> {
       history.history = historyList;
       await _saveHistoryUseCase.call(history);
 
+      zlog(
+        data:
+            "History updated successfully. Remaining items: ${historyList.length}",
+      );
+
       // Update the app's state with the restored scene
       state = state.copyWith(
         selectedScene: sceneToRestore,
         // The isPerformingUndo flag will be set to false by the board watcher
+        // Keep skipHistorySave true until the undo is complete
       );
-    } catch (e) {
-      zlog(level: Level.error, data: "Error during undo operation: $e");
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: "Error during undo operation: $e\nStackTrace: $stackTrace",
+      );
       // Ensure the undo flag is turned off in case of an error
       toggleUndo(undo: false);
+      // Reset the skip flag on error
+      state = state.copyWith(skipHistorySave: false);
+    } finally {
+      // Always release the lock
+      _isUndoInProgress = false;
     }
   }
 
   void toggleUndo({required bool undo}) {
-    state = state.copyWith(isPerformingUndo: undo);
+    state = state.copyWith(
+      isPerformingUndo: undo,
+      skipHistorySave: false, // Reset skip flag when toggling undo off
+    );
   }
 
   String _getUserId() {
@@ -1188,11 +1264,37 @@ class AnimationController extends StateNotifier<AnimationState> {
     return userId;
   }
 
-  void _saveToHistory({required AnimationItemModel scene}) async {
-    HistoryModel? historyModel = await _getHistoryUseCase.call(scene.id);
-    historyModel ??= HistoryModel(id: scene.id, history: []);
-    historyModel.history.add(scene);
-    _saveHistoryUseCase.call(historyModel);
+  Future<void> _saveToHistory({required AnimationItemModel scene}) async {
+    try {
+      HistoryModel? historyModel = await _getHistoryUseCase.call(scene.id);
+      historyModel ??= HistoryModel(id: scene.id, history: []);
+
+      // Add the new scene to history
+      historyModel.history.add(scene);
+
+      // Implement history size limit to prevent memory issues on older devices
+      if (historyModel.history.length > _maxHistorySize) {
+        // Remove the oldest items, keeping only the most recent ones
+        historyModel.history = historyModel.history.sublist(
+          historyModel.history.length - _maxHistorySize,
+        );
+        zlog(
+          data:
+              "History size limit reached. Trimmed to ${historyModel.history.length} items.",
+        );
+      }
+
+      await _saveHistoryUseCase.call(historyModel);
+      zlog(
+        data:
+            "History saved successfully for scene: ${scene.id}. Total items: ${historyModel.history.length}",
+      );
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: "Error saving to history: $e\nStackTrace: $stackTrace",
+      );
+    }
   }
 
   void saveHistory({AnimationItemModel? scene}) {
@@ -1515,6 +1617,16 @@ class AnimationController extends StateNotifier<AnimationState> {
     ref.read(boardProvider.notifier).updateBoardBackground(newBackground);
   }
 
+  // Update global home team border color
+  void updateHomeTeamBorderColor(Color color) {
+    ref.read(boardProvider.notifier).updateHomeTeamBorderColor(color);
+  }
+
+  // Update global away team border color
+  void updateAwayTeamBorderColor(Color color) {
+    ref.read(boardProvider.notifier).updateAwayTeamBorderColor(color);
+  }
+
   Future<void> duplicateScene({required String sceneId}) async {
     final selectedAnim = state.selectedAnimationModel;
     if (selectedAnim == null) return;
@@ -1752,5 +1864,15 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   void toggleLoadingSave({required bool showLoading}) {
     state = state.copyWith(showLoadingOnSave: showLoading);
+  }
+
+  void setRecordingAnimation({required bool isRecording}) {
+    zlog(
+      data: "Animation recording state changed: $isRecording",
+    );
+    state = state.copyWith(
+      isRecordingAnimation: isRecording,
+      skipHistorySave: isRecording, // Also skip history during recording
+    );
   }
 }

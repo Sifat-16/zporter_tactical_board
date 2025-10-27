@@ -45,6 +45,8 @@ class _SettingsToolbarComponentState
               children: [
                 _buildFillColorWidget("Field Color", boardState: bp),
                 const SizedBox(height: 20),
+                _buildTeamBorderColorSection(bp),
+                const SizedBox(height: 20),
                 _buildGridSliderWidget(),
                 const SizedBox(height: 20),
                 _buildBackgroundSelector(),
@@ -100,6 +102,99 @@ class _SettingsToolbarComponentState
   }
 
   // --- YOUR ORIGINAL CODE BELOW IS UNCHANGED ---
+
+  Widget _buildTeamBorderColorSection(BoardState boardState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Team Border Colors",
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge!
+              .copyWith(color: ColorManager.grey),
+        ),
+        const SizedBox(height: 10),
+        // Home Team Color
+        Column(
+          children: [
+            Text(
+              "Home Team",
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium!
+                  .copyWith(color: ColorManager.white),
+            ),
+            SizedBox(height: 10),
+            ColorSlider(
+              initialColor: boardState.homeTeamBorderColor,
+              colors: const [
+                Colors.blue,
+                Colors.lightBlue,
+                Colors.cyan,
+                Colors.green,
+                Colors.yellow,
+                Colors.orange,
+                Colors.purple,
+                Colors.pink,
+                Colors.white,
+              ],
+              onColorChanged: (c) {
+                ref.read(boardProvider.notifier).updateHomeTeamBorderColor(c);
+                ref
+                    .read(animationProvider.notifier)
+                    .updateHomeTeamBorderColor(c);
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Away Team Color
+        Column(
+          children: [
+            Text(
+              "Away Team",
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium!
+                  .copyWith(color: ColorManager.white),
+            ),
+
+            SizedBox(height: 10),
+
+            ColorSlider(
+              initialColor: boardState.awayTeamBorderColor,
+              colors: const [
+                Colors.red,
+                Colors.deepOrange,
+                Colors.orange,
+                Colors.yellow,
+                Colors.green,
+                Colors.blue,
+                Colors.purple,
+                Colors.grey,
+                Colors.white,
+              ],
+              onColorChanged: (c) {
+                ref.read(boardProvider.notifier).updateAwayTeamBorderColor(c);
+                ref
+                    .read(animationProvider.notifier)
+                    .updateAwayTeamBorderColor(c);
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Note: Individual player colors will override these defaults",
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                color: ColorManager.grey.withOpacity(0.7),
+                fontStyle: FontStyle.italic,
+              ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildFillColorWidget(String title, {required BoardState boardState}) {
     return Column(

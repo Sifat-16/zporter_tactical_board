@@ -201,6 +201,17 @@ class TacticBoard extends TacticBoardGame
 
     if (_timerAccumulator >= _checkInterval) {
       WidgetsBinding.instance.addPostFrameCallback((t) {
+        // CRITICAL FIX: Skip auto-save during undo/redo operations OR video recording
+        if (ref.read(animationProvider).isPerformingUndo ||
+            ref.read(animationProvider).skipHistorySave ||
+            ref.read(animationProvider).isRecordingAnimation) {
+          zlog(
+              data:
+                  "Skipping auto-save during undo/redo or recording operation");
+          _timerAccumulator -= _checkInterval;
+          return;
+        }
+
         String current = _getCurrentBoardStateString(); // <-- USE HELPER
 
         if (_boardComparator == null) {
@@ -231,7 +242,8 @@ class TacticBoard extends TacticBoardGame
             zlog(
                 data:
                     "After save coming animation item model ${a?.toJson()} - $saveToDb");
-            ref.read(animationProvider.notifier).saveHistory(scene: a);
+            // REMOVED: History is now saved BEFORE the update in updateDatabaseOnChange
+            // This prevents the race condition
             onSceneSave?.call(a);
           });
         } catch (e) {
