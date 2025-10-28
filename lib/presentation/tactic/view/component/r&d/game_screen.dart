@@ -719,16 +719,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                     game: tacticBoardGame!,
                                     key: gameWidgetKey)))),
                     // TEST BUTTON - Remove this after testing
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: FloatingActionButton.small(
-                        backgroundColor: Colors.purple[700],
-                        onPressed: () => _showMockDeviceWarning(context),
-                        child: Icon(Icons.bug_report, color: Colors.white),
-                        tooltip: 'Test Device Warning',
-                      ),
-                    ),
+                    // Positioned(
+                    //   top: 10,
+                    //   right: 10,
+                    //   child: FloatingActionButton.small(
+                    //     backgroundColor: Colors.purple[700],
+                    //     onPressed: () => _showMockDeviceWarning(context),
+                    //     child: Icon(Icons.bug_report, color: Colors.white),
+                    //     tooltip: 'Test Device Warning',
+                    //   ),
+                    // ),
                     if (isBoardBusy(bp) &&
                         bp.animatingObj != null &&
                         ref.read(animationProvider).selectedAnimationModel !=
