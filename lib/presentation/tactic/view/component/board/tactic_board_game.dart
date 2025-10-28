@@ -52,6 +52,9 @@ abstract class TacticBoardGame extends FlameGame
   late DrawingBoardComponent drawingBoard;
   addItem(FieldItemModel item, {bool save = true});
   late BuildContext context;
+
+  /// Trajectory editor manager - must be accessible from abstract class for field components
+  TrajectoryEditorManager? get trajectoryManager;
 }
 
 // ---- The Refactored TacticBoard Class ----
@@ -71,7 +74,10 @@ class TacticBoard extends TacticBoardGame
 
   /// Trajectory editor manager for animation path editing (PRO feature)
   /// Only initialized when editing multi-scene animations
-  TrajectoryEditorManager? trajectoryManager;
+  TrajectoryEditorManager? _trajectoryManager;
+
+  @override
+  TrajectoryEditorManager? get trajectoryManager => _trajectoryManager;
 
   TacticBoard(
       {required this.scene,
@@ -300,6 +306,14 @@ class TacticBoard extends TacticBoardGame
           );
       current =
           "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
+
+      // IMPORTANT: Include trajectory data in the state string for auto-save detection
+      final currentScene = ref.read(animationProvider).selectedScene;
+      if (currentScene?.trajectoryData != null) {
+        final trajectoryJson = currentScene!.trajectoryData!.toJson();
+        current = "$current,trajectory:$trajectoryJson";
+      }
+
       return current;
     } catch (e) {
       // This can happen if providers aren't ready. Default to a "clean" state string.
@@ -342,20 +356,20 @@ class TacticBoard extends TacticBoardGame
       final previousScene = scenes[currentIndex - 1];
 
       // Remove existing manager if present
-      if (trajectoryManager != null) {
-        world.remove(trajectoryManager!);
-        trajectoryManager = null;
+      if (_trajectoryManager != null) {
+        world.remove(_trajectoryManager!);
+        _trajectoryManager = null;
       }
 
       // Create new manager
-      trajectoryManager = TrajectoryEditorManager(
+      _trajectoryManager = TrajectoryEditorManager(
         currentScene: currentScene,
         previousScene: previousScene,
         onTrajectoryChanged: _handleTrajectoryChanged,
         priority: 5,
       );
 
-      await world.add(trajectoryManager!);
+      await world.add(_trajectoryManager!);
       zlog(data: "Trajectory editor initialized for scene ${currentScene.id}");
     } catch (e, s) {
       zlog(data: "Error initializing trajectory editor: $e\n$s");
@@ -414,6 +428,12 @@ class TacticBoard extends TacticBoardGame
 
       print('   ✅ Scene selected in provider');
 
+      // IMPORTANT: Save to database
+      if (onSceneSave != null) {
+        onSceneSave!(updatedScene);
+        print('   💾 Scene saved to database');
+      }
+
       zlog(
           data:
               "Trajectory updated for component $componentId in scene ${currentScene.id}");
@@ -430,10 +450,10 @@ class TacticBoard extends TacticBoardGame
 
   /// Clean up trajectory editor when exiting animation mode or switching scenes
   Future<void> cleanupTrajectoryEditor() async {
-    if (trajectoryManager != null) {
-      await trajectoryManager!.hideTrajectory();
-      world.remove(trajectoryManager!);
-      trajectoryManager = null;
+    if (_trajectoryManager != null) {
+      await _trajectoryManager!.hideTrajectory();
+      world.remove(_trajectoryManager!);
+      _trajectoryManager = null;
       zlog(data: "Trajectory editor cleaned up");
     }
   }
@@ -477,5 +497,20 @@ class TacticBoard extends TacticBoardGame
 
     final currentScene = ref.read(animationProvider).selectedScene;
     return currentScene?.trajectoryData?.getTrajectory(selectedId);
+  }
+
+  /// Add a control point to the current trajectory
+  Future<void> addTrajectoryControlPoint() async {
+    await trajectoryManager?.addControlPoint();
+  }
+
+  /// Remove the last control point from the current trajectory
+  Future<void> removeTrajectoryControlPoint() async {
+    await trajectoryManager?.removeControlPoint();
+  }
+
+  /// Update the smoothness of the current trajectory (0.0 to 1.0)
+  void updateTrajectorySmoothness(double smoothness) {
+    trajectoryManager?.updateSmoothness(smoothness);
   }
 }

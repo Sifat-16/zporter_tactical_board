@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
@@ -38,8 +39,6 @@ class _DesignToolbarComponentState
         : -1;
     final canEditTrajectory =
         hasAnimation && hasMultipleScenes && currentSceneIndex > 0;
-
-   
 
     return bp.selectedItemOnTheBoard == null
         ? Center(
@@ -587,8 +586,12 @@ class _DesignToolbarComponentState
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Add control point logic
+            onPressed: () async {
+              final game =
+                  ref.read(boardProvider).tacticBoardGame as TacticBoard?;
+              if (game != null) {
+                await game.addTrajectoryControlPoint();
+              }
             },
             icon: Icon(Icons.add_circle_outline, size: 18),
             label: Text("Add Control Point"),
@@ -604,8 +607,12 @@ class _DesignToolbarComponentState
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () {
-              // TODO: Remove control point logic
+            onPressed: () async {
+              final game =
+                  ref.read(boardProvider).tacticBoardGame as TacticBoard?;
+              if (game != null) {
+                await game.removeTrajectoryControlPoint();
+              }
             },
             icon: Icon(Icons.remove_circle_outline, size: 18),
             label: Text("Remove Control Point"),
@@ -628,9 +635,16 @@ class _DesignToolbarComponentState
         CustomSlider(
           min: 0,
           max: 1,
-          initial: 0.5, // TODO: Get from trajectory data
+          initial: (ref.read(boardProvider).tacticBoardGame as TacticBoard?)
+                  ?.currentTrajectory
+                  ?.smoothness ??
+              0.5,
           onValueChanged: (value) {
-            // TODO: Update trajectory smoothness
+            final game =
+                ref.read(boardProvider).tacticBoardGame as TacticBoard?;
+            if (game != null) {
+              game.updateTrajectorySmoothness(value);
+            }
           },
         ),
       ],

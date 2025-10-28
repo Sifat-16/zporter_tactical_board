@@ -314,6 +314,13 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
+
+    // Deselect component when drag starts
+    ref.read(boardProvider.notifier).toggleSelectItemEvent(
+          fieldItemModel: null,
+          camefrom: 'EquipmentComponent.onDragStart',
+        );
+
     ref.read(boardProvider.notifier).toggleItemDrag(true);
     ref.read(boardProvider.notifier).clearGuides();
     event.continuePropagation = false;

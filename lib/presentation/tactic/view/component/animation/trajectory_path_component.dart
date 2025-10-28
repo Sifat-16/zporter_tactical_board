@@ -23,8 +23,8 @@ class TrajectoryPathComponent extends Component
   /// Start position of the path
   final Vector2 startPosition;
 
-  /// End position of the path
-  final Vector2 endPosition;
+  /// End position of the path (mutable for real-time updates)
+  Vector2 endPosition;
 
   /// Whether this path is currently selected
   bool isSelected;
@@ -170,10 +170,12 @@ class TrajectoryPathComponent extends Component
       // For now, just note this would require rebuild
     }
     if (newStartPosition != null) {
-      // Update and recalculate
+      // Update start position (not commonly used)
     }
     if (newEndPosition != null) {
-      // Update and recalculate
+      // Update end position (used when component is dragged)
+      endPosition = newEndPosition;
+      print('📐 Updated trajectory endpoint to: $newEndPosition');
     }
     _calculatePath();
   }

@@ -175,6 +175,13 @@ class PlayerComponent extends FieldComponent<PlayerModel>
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
+
+    // Deselect component when drag starts
+    ref.read(boardProvider.notifier).toggleSelectItemEvent(
+          fieldItemModel: null,
+          camefrom: 'PlayerComponent.onDragStart',
+        );
+
     ref.read(boardProvider.notifier).toggleItemDrag(true); // <-- RESTORE THIS
     ref.read(boardProvider.notifier).clearGuides(); // <-- Good to add this here
     event.continuePropagation = false;

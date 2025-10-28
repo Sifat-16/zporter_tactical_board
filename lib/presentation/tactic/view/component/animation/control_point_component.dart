@@ -34,6 +34,11 @@ class ControlPointComponent extends PositionComponent
   /// Whether this control point is being dragged
   bool _isDragging = false;
 
+  /// Track drag distance to differentiate tap from drag
+  double _totalDragDistance = 0.0;
+  static const double _tapThreshold =
+      5.0; // Pixels - if drag less than this, it's a tap
+
   /// Visual properties
   static const double _normalRadius =
       12.0; // Increased from 6.0 for easier dragging
@@ -136,6 +141,12 @@ class ControlPointComponent extends PositionComponent
   Color _getColorForType() {
     final opacity = _isDragging ? 1.0 : (isSelected ? 0.9 : 0.7);
 
+    // If selected, show RED color to indicate selection
+    if (isSelected) {
+      return Colors.red.withOpacity(opacity);
+    }
+
+    // Otherwise, color based on type
     switch (controlPoint.type) {
       case ControlPointType.sharp:
         return Colors.orange.withOpacity(opacity);
@@ -191,12 +202,17 @@ class ControlPointComponent extends PositionComponent
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     _isDragging = true;
-    print('🎯 Drag START on control point ${controlPoint.id}');
+    _totalDragDistance = 0.0;
+
+    print('🎯 DRAG START on control point: ${controlPoint.id}');
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
+
+    // Track drag distance
+    _totalDragDistance += event.canvasDelta.length;
 
     // Update position with drag delta (in screen coordinates)
     position.add(event.canvasDelta);
@@ -230,7 +246,18 @@ class ControlPointComponent extends PositionComponent
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
     _isDragging = false;
-    print('🎯 Drag END on control point ${controlPoint.id}');
+
+    // Check if this was actually a tap (very little movement)
+    if (_totalDragDistance < _tapThreshold) {
+      print(
+          '🔵 Detected TAP (drag distance: $_totalDragDistance < $_tapThreshold)');
+      onTap?.call(controlPoint.id);
+    } else {
+      print(
+          '🎯 Drag END on control point ${controlPoint.id} (distance: $_totalDragDistance)');
+    }
+
+    _totalDragDistance = 0.0;
   }
 
   @override
@@ -245,15 +272,18 @@ class ControlPointComponent extends PositionComponent
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
+    onTap?.call(controlPoint.id);
     // Visual feedback on tap
   }
 
-  @override
-  void onTapUp(TapUpEvent event) {
-    super.onTapUp(event);
-    // Notify parent about tap (cycle control point type)
-    onTap?.call(controlPoint.id);
-  }
+  // @override
+  // void onTapUp(TapUpEvent event) {
+  //   super.onTapUp(event);
+  //   print('🔵 TAP UP on control point: ${controlPoint.id}');
+  //   // Notify parent about tap (cycle control point type)
+  //   onTap?.call(controlPoint.id);
+  //   print('   Tap callback executed');
+  // }
 
   // ========== Public Methods ==========
 

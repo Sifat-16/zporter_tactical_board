@@ -69,7 +69,22 @@ class GhostComponent extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
 
-    // Determine base color based on item type
+    // Equipment components are handled differently - they don't need custom ghost rendering
+    // because they use sprite system which handles opacity automatically
+    if (previousSceneItem is EquipmentModel) {
+      // Just draw dashed border, sprite will be rendered by parent
+      final rect = Rect.fromCenter(
+        center: Offset.zero,
+        width: size.x,
+        height: size.y,
+      );
+      if (showDashedBorder) {
+        _drawDashedCircleBorder(canvas, rect);
+      }
+      return;
+    }
+
+    // FOR PLAYERS: Render as rounded rectangle with role/number
     Color baseColor = ColorManager.grey;
 
     if (previousSceneItem is PlayerModel) {
@@ -78,9 +93,6 @@ class GhostComponent extends PositionComponent
           (player.playerType == PlayerType.HOME
               ? ColorManager.blue
               : ColorManager.red);
-    } else if (previousSceneItem is EquipmentModel) {
-      final equipment = previousSceneItem as EquipmentModel;
-      baseColor = equipment.color ?? ColorManager.yellow;
     }
 
     // Apply ghost opacity
@@ -88,7 +100,7 @@ class GhostComponent extends PositionComponent
     _ghostPaint.color = ghostColor;
     _ghostPaint.style = PaintingStyle.fill;
 
-    // Render as ROUNDED RECTANGLE (same as actual player/equipment components)
+    // Render as ROUNDED RECTANGLE (same as actual player components)
     // Since anchor is Anchor.center, render centered at origin
     final rect = Rect.fromCenter(
       center: Offset.zero,
@@ -171,6 +183,44 @@ class GhostComponent extends PositionComponent
 
     final rrect = RRect.fromRectAndRadius(rect, Radius.circular(cornerRadius));
     final path = Path()..addRRect(rrect);
+
+    final pathMetrics = path.computeMetrics();
+    for (final metric in pathMetrics) {
+      double distance = 0.0;
+      bool draw = true;
+
+      while (distance < metric.length) {
+        final nextDistance = distance + (draw ? dashWidth : dashSpace);
+        if (nextDistance > metric.length) {
+          if (draw) {
+            final extractPath = metric.extractPath(distance, metric.length);
+            canvas.drawPath(extractPath, paint);
+          }
+          break;
+        }
+
+        if (draw) {
+          final extractPath = metric.extractPath(distance, nextDistance);
+          canvas.drawPath(extractPath, paint);
+        }
+
+        distance = nextDistance;
+        draw = !draw;
+      }
+    }
+  }
+
+  /// Draw dashed border around circle (for equipment)
+  void _drawDashedCircleBorder(Canvas canvas, Rect rect) {
+    const dashWidth = 5.0;
+    const dashSpace = 3.0;
+
+    final paint = Paint()
+      ..color = ColorManager.grey.withOpacity(0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    final path = Path()..addOval(rect);
 
     final pathMetrics = path.computeMetrics();
     for (final metric in pathMetrics) {
