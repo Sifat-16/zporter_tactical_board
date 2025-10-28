@@ -88,8 +88,6 @@ class ControlPointComponent extends PositionComponent
         screenPos.y.isNaN ||
         screenPos.x.isInfinite ||
         screenPos.y.isInfinite) {
-      print(
-          '⚠️ Invalid control point position: $screenPos from logical ${controlPoint.position}');
       // Set to field center as fallback
       position = fieldPosition + (fieldSize / 2);
     } else {
@@ -103,9 +101,6 @@ class ControlPointComponent extends PositionComponent
 
     // Center anchor
     anchor = Anchor.topLeft;
-
-    print(
-        '🔵 ControlPoint ${controlPoint.id} loaded at position: $position, visual size: ${size.x}');
   }
 
   @override
@@ -203,8 +198,6 @@ class ControlPointComponent extends PositionComponent
     super.onDragStart(event);
     _isDragging = true;
     _totalDragDistance = 0.0;
-
-    print('🎯 DRAG START on control point: ${controlPoint.id}');
   }
 
   @override
@@ -234,7 +227,6 @@ class ControlPointComponent extends PositionComponent
         logicalPosition.y.isNaN ||
         logicalPosition.x.isInfinite ||
         logicalPosition.y.isInfinite) {
-      print('⚠️ Invalid logical position during drag: $logicalPosition');
       return;
     }
 
@@ -249,12 +241,7 @@ class ControlPointComponent extends PositionComponent
 
     // Check if this was actually a tap (very little movement)
     if (_totalDragDistance < _tapThreshold) {
-      print(
-          '🔵 Detected TAP (drag distance: $_totalDragDistance < $_tapThreshold)');
       onTap?.call(controlPoint.id);
-    } else {
-      print(
-          '🎯 Drag END on control point ${controlPoint.id} (distance: $_totalDragDistance)');
     }
 
     _totalDragDistance = 0.0;
@@ -264,7 +251,6 @@ class ControlPointComponent extends PositionComponent
   void onDragCancel(DragCancelEvent event) {
     super.onDragCancel(event);
     _isDragging = false;
-    print('🎯 Drag CANCEL on control point ${controlPoint.id}');
   }
 
   // ========== Tap Callbacks ==========

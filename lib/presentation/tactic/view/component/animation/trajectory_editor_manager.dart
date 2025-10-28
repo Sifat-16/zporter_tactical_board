@@ -68,11 +68,6 @@ class TrajectoryEditorManager extends Component
     required String componentId,
     required FieldItemModel currentItem,
   }) async {
-    print('🔵 TrajectoryEditorManager.showTrajectoryForComponent called');
-    print('   Component ID: $componentId');
-    print('   Current item offset: ${currentItem.offset}');
-    print('   Previous scene: ${previousScene != null ? "✅" : "❌"}');
-
     // ALWAYS clear existing trajectory UI first, even for the same component
     await hideTrajectory();
 
@@ -80,41 +75,19 @@ class TrajectoryEditorManager extends Component
 
     // Find previous scene position
     if (previousScene == null) {
-      print('   ❌ No previous scene - cannot edit trajectory');
       return;
     }
 
     final previousItem = _findItemInScene(previousScene!, componentId);
-    print('   Previous item found: ${previousItem != null ? "✅" : "❌"}');
 
     if (previousItem == null) {
-      print('   ❌ Component didn\'t exist in previous scene');
-      print('   ℹ️  This means the component was added in the current scene,');
-      print('   ℹ️  so there is no trajectory to edit (no previous position).');
       return;
     }
 
     // Validate positions
     if (previousItem.offset == null || currentItem.offset == null) {
-      print('   ❌ Invalid item offsets');
       return;
     }
-
-    print('   Previous item offset: ${previousItem.offset}');
-
-    // Convert logical coordinates (0-1 range) to screen coordinates (pixels)
-    final fieldSize = game.gameField.size;
-    final previousScreenPos = SizeHelper.getBoardActualVector(
-      gameScreenSize: fieldSize,
-      actualPosition: previousItem.offset ?? Vector2.zero(),
-    );
-    final currentScreenPos = SizeHelper.getBoardActualVector(
-      gameScreenSize: fieldSize,
-      actualPosition: currentItem.offset ?? Vector2.zero(),
-    );
-
-    print('   Previous screen pos: $previousScreenPos');
-    print('   Current screen pos: $currentScreenPos');
 
     // Get or create trajectory data (in logical coordinates)
     final trajectoryData =
@@ -131,11 +104,6 @@ class TrajectoryEditorManager extends Component
               ),
             );
 
-    print('   Trajectory enabled: ${trajectory.enabled}');
-    print('   Trajectory control points: ${trajectory.controlPoints.length}');
-    print('   Start position (logical): ${previousItem.offset}');
-    print('   End position (logical): ${currentItem.offset}');
-
     // Validate control points
     for (var i = 0; i < trajectory.controlPoints.length; i++) {
       final cp = trajectory.controlPoints[i];
@@ -143,8 +111,6 @@ class TrajectoryEditorManager extends Component
           cp.position.y.isNaN ||
           cp.position.x.isInfinite ||
           cp.position.y.isInfinite) {
-        print(
-            '   ⚠️ Invalid control point $i: ${cp.position}, regenerating...');
         trajectory = TrajectoryPathModel(
           id: componentId,
           pathType: PathType.catmullRom,
@@ -158,19 +124,14 @@ class TrajectoryEditorManager extends Component
       }
     }
 
-    print('   Creating ghost component...');
-
     // Create ghost component (pass original item, it will handle conversion)
     _ghostComponent = GhostComponent(
       previousSceneItem: previousItem,
       priority: 100, // HIGH priority to render on top
     );
     await game.add(_ghostComponent!); // Add directly to game, not world
-    print('   ✅ Ghost component added');
-    print('   Ghost final position: ${_ghostComponent!.position}');
 
     // Create path component (pass logical coordinates, it will convert)
-    print('   Creating path component...');
     _pathComponent = TrajectoryPathComponent(
       pathModel: trajectory,
       startPosition: previousItem.offset ?? Vector2.zero(),
@@ -179,15 +140,11 @@ class TrajectoryEditorManager extends Component
       priority: 99, // HIGH priority
     );
     await game.add(_pathComponent!); // Add directly to game, not world
-    print('   ✅ Path component added');
 
     // Create control point components (use logical coordinates)
-    print('   Creating control point components...');
     for (var i = 0; i < trajectory.controlPoints.length; i++) {
       final controlPoint = trajectory.controlPoints[i];
       final isSelected = controlPoint.id == _selectedControlPointId;
-
-      print('     CP $i: ID=${controlPoint.id}, selected=$isSelected');
 
       final cpComponent = ControlPointComponent(
         controlPoint: controlPoint,
@@ -199,11 +156,6 @@ class TrajectoryEditorManager extends Component
       _controlPointComponents.add(cpComponent);
       await game.add(cpComponent); // Add directly to game, not world
     }
-    print('   ✅ All ${_controlPointComponents.length} control points added');
-    if (_selectedControlPointId != null) {
-      print('   🔴 Currently selected control point: $_selectedControlPointId');
-    }
-    print('   ✅ Trajectory visualization complete');
   }
 
   /// Hide all trajectory editing UI
@@ -241,8 +193,6 @@ class TrajectoryEditorManager extends Component
   void updateTrajectoryEndpoint(Vector2 newEndPosition) {
     if (_pathComponent == null || _selectedComponentId == null) return;
 
-    print('🎯 Updating trajectory endpoint to: $newEndPosition');
-
     // Recalculate the path with the new endpoint
     _pathComponent!.updatePath(newEndPosition: newEndPosition);
   }
@@ -251,19 +201,13 @@ class TrajectoryEditorManager extends Component
   void _onControlPointDrag(String controlPointId, Vector2 newPosition) {
     if (_selectedComponentId == null || _pathComponent == null) return;
 
-    print('🎯 Control point dragged: $controlPointId');
-    print('   New logical position: $newPosition');
-
     // Update the control point position in the model
     final trajectory = _pathComponent!.pathModel;
     final cpIndex =
         trajectory.controlPoints.indexWhere((cp) => cp.id == controlPointId);
     if (cpIndex == -1) {
-      print('   ❌ Control point not found');
       return;
     }
-
-    print('   Old position: ${trajectory.controlPoints[cpIndex].position}');
 
     // Update position
     trajectory.controlPoints[cpIndex] = ControlPoint(
@@ -273,18 +217,11 @@ class TrajectoryEditorManager extends Component
       tension: trajectory.controlPoints[cpIndex].tension,
     );
 
-    print('   ✅ Control point updated');
-    print(
-        '   All control points: ${trajectory.controlPoints.map((cp) => cp.position).toList()}');
-
     // Recalculate path
     _pathComponent!.updatePath();
-    print('   ✅ Path recalculated');
 
     // Notify parent
-    print('   📡 Notifying parent about trajectory change...');
     onTrajectoryChanged(_selectedComponentId!, trajectory);
-    print('   ✅ Parent notified');
   }
 
   /// Handle control point tap (cycle through types and mark as selected)
@@ -294,23 +231,16 @@ class TrajectoryEditorManager extends Component
     // Track which control point was selected
     final previousSelection = _selectedControlPointId;
     _selectedControlPointId = controlPointId;
-    print('🔵 Control point tapped: $controlPointId');
-    print('   Previous selection: $previousSelection');
 
     // Update visual selection state for all control points
     for (final cpComponent in _controlPointComponents) {
       final shouldBeSelected = (cpComponent.controlPoint.id == controlPointId);
       cpComponent.setSelected(
           shouldBeSelected); // Use setSelected method to trigger visual update
-      if (shouldBeSelected) {
-        print(
-            '   ✅ Marked control point ${cpComponent.controlPoint.id} as SELECTED (RED)');
-      }
     }
 
     // Only cycle types if clicking the same control point twice
     if (previousSelection == controlPointId) {
-      print('   Same control point clicked twice - cycling type');
       final trajectory = _pathComponent!.pathModel;
       final cpIndex =
           trajectory.controlPoints.indexWhere((cp) => cp.id == controlPointId);
@@ -319,8 +249,6 @@ class TrajectoryEditorManager extends Component
       // Cycle through control point types
       final currentType = trajectory.controlPoints[cpIndex].type;
       final nextType = _getNextControlPointType(currentType);
-
-      print('   Cycling type from $currentType to $nextType');
 
       // Update type
       trajectory.controlPoints[cpIndex] = ControlPoint(
@@ -335,8 +263,6 @@ class TrajectoryEditorManager extends Component
 
       // Notify parent
       onTrajectoryChanged(_selectedComponentId!, trajectory);
-    } else {
-      print('   Different control point clicked - just selecting (RED)');
     }
   }
 
@@ -372,11 +298,6 @@ class TrajectoryEditorManager extends Component
       actualPosition: midPositionScreen,
     );
 
-    print('🔵 Adding control point at midpoint:');
-    print('   Screen position: $midPositionScreen');
-    print('   Logical position: $midPositionLogical');
-    print('   Field size: $fieldSize');
-
     final newControlPoint = ControlPoint(
       id: 'cp_${DateTime.now().millisecondsSinceEpoch}',
       position: midPositionLogical, // Use logical coordinates
@@ -394,8 +315,6 @@ class TrajectoryEditorManager extends Component
     } else {
       updatedControlPoints.add(newControlPoint);
     }
-
-    print('   Total control points: ${updatedControlPoints.length}');
 
     // Create a new trajectory object with updated control points
     final updatedTrajectory = TrajectoryPathModel(
@@ -427,16 +346,7 @@ class TrajectoryEditorManager extends Component
 
     if (trajectory.controlPoints.length <= 2) {
       // Can't remove - need at least 2 points (start and end)
-      print('⚠️ Cannot remove control point: need at least 2 points');
       return;
-    }
-
-    print('🔴 REMOVE CONTROL POINT called');
-    print('   Selected control point ID: $_selectedControlPointId');
-    print('   Current control points (${trajectory.controlPoints.length}):');
-    for (var i = 0; i < trajectory.controlPoints.length; i++) {
-      print(
-          '     $i: ID=${trajectory.controlPoints[i].id}, pos=${trajectory.controlPoints[i].position}');
     }
 
     // Create a new list without the selected control point
@@ -447,32 +357,20 @@ class TrajectoryEditorManager extends Component
           .indexWhere((cp) => cp.id == _selectedControlPointId);
 
       if (cpIndex != -1) {
-        print('   ✅ Found selected control point at index $cpIndex');
-        print(
-            '   🗑️  Removing control point: ${trajectory.controlPoints[cpIndex].id}');
-
         // Create new list WITHOUT the selected control point
         updatedControlPoints =
             List<ControlPoint>.from(trajectory.controlPoints);
         updatedControlPoints.removeAt(cpIndex);
         _selectedControlPointId = null; // Clear selection
       } else {
-        print('   ⚠️ Selected control point not found, removing last one');
         updatedControlPoints =
             List<ControlPoint>.from(trajectory.controlPoints);
         updatedControlPoints.removeLast();
       }
     } else {
       // No selection, remove the last control point
-      print('   ℹ️ No control point selected, removing last one');
       updatedControlPoints = List<ControlPoint>.from(trajectory.controlPoints);
       updatedControlPoints.removeLast();
-    }
-
-    print('   Remaining control points: ${updatedControlPoints.length}');
-    for (var i = 0; i < updatedControlPoints.length; i++) {
-      print(
-          '     $i: ID=${updatedControlPoints[i].id}, pos=${updatedControlPoints[i].position}');
     }
 
     // IMPORTANT: Create a new trajectory object with updated control points

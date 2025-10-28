@@ -58,16 +58,9 @@ class TrajectoryPathComponent extends Component
 
   /// Calculate the path points using the trajectory calculator
   void _calculatePath() {
-    print('📐 TrajectoryPathComponent _calculatePath START');
-    print('   Start position (logical): $startPosition');
-    print('   End position (logical): $endPosition');
-
     // Convert logical coordinates to screen coordinates
     final fieldSize = game.gameField.size;
     final fieldPosition = game.gameField.position;
-
-    print('   Field size: $fieldSize');
-    print('   Field position: $fieldPosition');
 
     final startScreen = SizeHelper.getBoardActualVector(
           gameScreenSize: fieldSize,
@@ -81,9 +74,6 @@ class TrajectoryPathComponent extends Component
         ) +
         fieldPosition; // Add field offset
 
-    print('   Start screen position: $startScreen');
-    print('   End screen position: $endScreen');
-
     // Convert control points to screen coordinates
     final screenControlPoints = pathModel.controlPoints.map((cp) {
       final screenPos = SizeHelper.getBoardActualVector(
@@ -91,8 +81,6 @@ class TrajectoryPathComponent extends Component
             actualPosition: cp.position,
           ) +
           fieldPosition; // Add field offset
-      print(
-          '   Control point ${cp.id}: logical=${cp.position}, screen=$screenPos');
       return ControlPoint(
         id: cp.id,
         position: screenPos,
@@ -116,47 +104,6 @@ class TrajectoryPathComponent extends Component
       trajectory: screenTrajectory,
       frameCount: smoothnessPoints,
     );
-
-    print('   ✅ Path calculated: ${_cachedPathPoints?.length ?? 0} points');
-    if (_cachedPathPoints != null && _cachedPathPoints!.isNotEmpty) {
-      print(
-          '   First point: ${_cachedPathPoints!.first}, Last point: ${_cachedPathPoints!.last}');
-      if (_cachedPathPoints!.length > 2) {
-        print(
-            '   Mid point (25%): ${_cachedPathPoints![(_cachedPathPoints!.length * 0.25).floor()]}');
-        print(
-            '   Mid point (50%): ${_cachedPathPoints![(_cachedPathPoints!.length * 0.5).floor()]}');
-        print(
-            '   Mid point (75%): ${_cachedPathPoints![(_cachedPathPoints!.length * 0.75).floor()]}');
-      }
-
-      // Debug: Print some path points near where control points should be
-      if (screenControlPoints.isNotEmpty) {
-        print('   🔍 Checking if path passes through control points:');
-        for (int i = 0; i < screenControlPoints.length; i++) {
-          final cp = screenControlPoints[i];
-          print('      Control point $i screen position: ${cp.position}');
-
-          // Find closest path point to this control point
-          double minDist = double.infinity;
-          Vector2? closestPoint;
-          int? closestIndex;
-
-          for (int j = 0; j < _cachedPathPoints!.length; j++) {
-            final pathPoint = _cachedPathPoints![j];
-            final dist = (pathPoint - cp.position).length;
-            if (dist < minDist) {
-              minDist = dist;
-              closestPoint = pathPoint;
-              closestIndex = j;
-            }
-          }
-
-          print(
-              '      Closest path point (index $closestIndex): $closestPoint (distance: ${minDist.toStringAsFixed(2)})');
-        }
-      }
-    }
   }
 
   /// Recalculate path when model changes
@@ -175,7 +122,6 @@ class TrajectoryPathComponent extends Component
     if (newEndPosition != null) {
       // Update end position (used when component is dragged)
       endPosition = newEndPosition;
-      print('📐 Updated trajectory endpoint to: $newEndPosition');
     }
     _calculatePath();
   }
