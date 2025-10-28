@@ -382,20 +382,13 @@ class TacticBoard extends TacticBoardGame
     TrajectoryPathModel trajectory,
   ) {
     try {
-      print('💾 _handleTrajectoryChanged called');
-      print('   Component ID: $componentId');
-      print('   Control points: ${trajectory.controlPoints.length}');
-
       final animationState = ref.read(animationProvider);
       final currentScene = animationState.selectedScene;
       final animationModel = animationState.selectedAnimationModel;
 
       if (currentScene == null || animationModel == null) {
-        print('   ❌ Missing scene or animation model');
         return;
       }
-
-      print('   Current scene ID: ${currentScene.id}');
 
       // Get or create trajectory data
       final trajectoryData =
@@ -404,14 +397,10 @@ class TacticBoard extends TacticBoardGame
       // Update trajectory for this component
       trajectoryData.setTrajectory(componentId, trajectory);
 
-      print('   ✅ Trajectory set in data');
-
       // Update scene with new trajectory data
       final updatedScene = currentScene.copyWith(
         trajectoryData: trajectoryData,
       );
-
-      print('   ✅ Scene copied with new trajectory data');
 
       // Find the scene index in the animation
       final sceneIndex = animationModel.animationScenes
@@ -420,18 +409,26 @@ class TacticBoard extends TacticBoardGame
       if (sceneIndex != -1) {
         // Update the scene in the animation model
         animationModel.animationScenes[sceneIndex] = updatedScene;
-        print('   ✅ Scene updated in animation model at index $sceneIndex');
       }
 
       // Update state with the new scene
       ref.read(animationProvider.notifier).selectScene(scene: updatedScene);
 
-      print('   ✅ Scene selected in provider');
+      // CRITICAL: Update the trajectory manager's scene reference
+      // so it has the latest trajectory data for subsequent operations
+      if (_trajectoryManager != null) {
+        final scenes = animationModel.animationScenes;
+        final previousSceneForManager =
+            sceneIndex > 0 ? scenes[sceneIndex - 1] : null;
+        _trajectoryManager!.updateScenes(
+          newCurrentScene: updatedScene,
+          newPreviousScene: previousSceneForManager,
+        );
+      }
 
       // IMPORTANT: Save to database
       if (onSceneSave != null) {
         onSceneSave!(updatedScene);
-        print('   💾 Scene saved to database');
       }
 
       zlog(
@@ -443,7 +440,6 @@ class TacticBoard extends TacticBoardGame
           data:
               "  Positions: ${trajectory.controlPoints.map((cp) => cp.position).toList()}");
     } catch (e, s) {
-      print('   ❌ Error: $e');
       zlog(data: "Error handling trajectory change: $e\n$s");
     }
   }

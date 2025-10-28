@@ -28,10 +28,10 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 class TrajectoryEditorManager extends Component
     with HasGameReference<TacticBoardGame> {
   /// Current animation scene being edited
-  final AnimationItemModel currentScene;
+  AnimationItemModel currentScene;
 
   /// Previous animation scene (for ghost positioning)
-  final AnimationItemModel? previousScene;
+  AnimationItemModel? previousScene;
 
   /// Callback when trajectory data changes
   final Function(String componentId, TrajectoryPathModel trajectory)
@@ -54,6 +54,17 @@ class TrajectoryEditorManager extends Component
     required this.onTrajectoryChanged,
     super.priority = 5,
   });
+
+  /// Update the scene references (call this after scene data is updated)
+  void updateScenes({
+    required AnimationItemModel newCurrentScene,
+    AnimationItemModel? newPreviousScene,
+  }) {
+    currentScene = newCurrentScene;
+    if (newPreviousScene != null) {
+      previousScene = newPreviousScene;
+    }
+  }
 
   @override
   Future<void> onLoad() async {
