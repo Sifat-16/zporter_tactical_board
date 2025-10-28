@@ -440,7 +440,7 @@ mixin DrawingInputHandler on TacticBoardGame {
   }
 
   @override
-  void onTapDown(TapDownInfo event) async {
+  void onTapDown(TapDownEvent event) async {
     if (isAnimating) return;
     final lp = ref.read(lineProvider);
     bool eventHandled = false;

@@ -44,7 +44,7 @@ String? _boardComparator;
 abstract class TacticBoardGame extends FlameGame
     with
         DragCallbacks,
-        TapDetector,
+        TapCallbacks,
         RiverpodGameMixin,
         AnimationPlaybackControls {
   late GameField gameField;
@@ -149,12 +149,12 @@ class TacticBoard extends TacticBoardGame
   bool get debugMode => false; // Unchanged
 
   @override
-  void onTapDown(TapDownInfo info) {
+  void onTapDown(TapDownEvent info) {
     if (isAnimating) return;
     super.onTapDown(info);
-    final tapPosition = info.raw.localPosition; // Position in game coordinates
+    final tapPosition = info.localPosition; // Position in game coordinates
 
-    final components = componentsAtPoint(tapPosition.toVector2());
+    final components = componentsAtPoint(tapPosition);
 
     if (components.isNotEmpty) {
       if (!components.any((t) => t is FieldComponent) &&
