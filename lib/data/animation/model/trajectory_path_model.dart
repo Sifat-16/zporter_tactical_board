@@ -14,6 +14,36 @@ enum PathType {
   bezier,
 }
 
+/// Defines the tactical type/purpose of a trajectory
+enum TrajectoryType {
+  /// Ball passing trajectory
+  passing,
+
+  /// Player dribbling with ball
+  dribbling,
+
+  /// Shooting trajectory
+  shooting,
+
+  /// Player running without ball
+  running,
+
+  /// Defensive movement
+  defending,
+}
+
+/// Defines the visual line style for trajectory rendering
+enum LineStyle {
+  /// Solid continuous line
+  solid,
+
+  /// Dashed line pattern
+  dashed,
+
+  /// Dotted line pattern
+  dotted,
+}
+
 /// Defines the behavior of a control point
 enum ControlPointType {
   /// Sharp corner with hard angle transition
@@ -112,6 +142,12 @@ class TrajectoryPathModel {
   /// Type of path (straight, curved, bezier)
   final PathType pathType;
 
+  /// Tactical type/purpose of this trajectory (passing, dribbling, etc.)
+  final TrajectoryType trajectoryType;
+
+  /// Visual line style (solid, dashed, dotted)
+  final LineStyle lineStyle;
+
   /// List of control points that define the path shape
   /// Empty for straight paths, populated for curved paths
   final List<ControlPoint> controlPoints;
@@ -137,6 +173,8 @@ class TrajectoryPathModel {
   TrajectoryPathModel({
     String? id,
     this.pathType = PathType.straight,
+    this.trajectoryType = TrajectoryType.running,
+    this.lineStyle = LineStyle.solid,
     List<ControlPoint>? controlPoints,
     this.enabled = false,
     Color? pathColor,
@@ -151,6 +189,8 @@ class TrajectoryPathModel {
   TrajectoryPathModel copyWith({
     String? id,
     PathType? pathType,
+    TrajectoryType? trajectoryType,
+    LineStyle? lineStyle,
     List<ControlPoint>? controlPoints,
     bool? enabled,
     Color? pathColor,
@@ -161,6 +201,8 @@ class TrajectoryPathModel {
     return TrajectoryPathModel(
       id: id ?? this.id,
       pathType: pathType ?? this.pathType,
+      trajectoryType: trajectoryType ?? this.trajectoryType,
+      lineStyle: lineStyle ?? this.lineStyle,
       controlPoints:
           controlPoints ?? this.controlPoints.map((cp) => cp.clone()).toList(),
       enabled: enabled ?? this.enabled,
@@ -176,6 +218,8 @@ class TrajectoryPathModel {
     return {
       'id': id,
       'pathType': pathType.name,
+      'trajectoryType': trajectoryType.name,
+      'lineStyle': lineStyle.name,
       'controlPoints': controlPoints.map((cp) => cp.toJson()).toList(),
       'enabled': enabled,
       'pathColor': pathColor.value,
@@ -194,6 +238,14 @@ class TrajectoryPathModel {
       pathType: PathType.values.firstWhere(
         (e) => e.name == json['pathType'],
         orElse: () => PathType.straight,
+      ),
+      trajectoryType: TrajectoryType.values.firstWhere(
+        (e) => e.name == json['trajectoryType'],
+        orElse: () => TrajectoryType.running,
+      ),
+      lineStyle: LineStyle.values.firstWhere(
+        (e) => e.name == json['lineStyle'],
+        orElse: () => LineStyle.solid,
       ),
       controlPoints: controlPointsList
               ?.map((cpJson) =>
@@ -215,6 +267,8 @@ class TrajectoryPathModel {
     return TrajectoryPathModel(
       id: id,
       pathType: pathType,
+      trajectoryType: trajectoryType,
+      lineStyle: lineStyle,
       controlPoints: controlPoints.map((cp) => cp.clone()).toList(),
       enabled: enabled,
       pathColor: pathColor,
@@ -224,9 +278,26 @@ class TrajectoryPathModel {
     );
   }
 
-  /// Check if this is a custom path (not straight)
+  /// Returns true if this trajectory uses a custom path
   bool get isCustomPath => pathType != PathType.straight && enabled;
 
   /// Check if this path has control points
   bool get hasControlPoints => controlPoints.isNotEmpty;
+
+  /// Get speed multiplier based on trajectory type
+  /// Used for animation playback to simulate realistic movement speeds
+  double get speedMultiplier {
+    switch (trajectoryType) {
+      case TrajectoryType.passing:
+        return 2.0; // Fast ball movement
+      case TrajectoryType.shooting:
+        return 2.5; // Very fast shooting
+      case TrajectoryType.dribbling:
+        return 1.2; // Controlled dribbling
+      case TrajectoryType.running:
+        return 1.5; // Sprint speed
+      case TrajectoryType.defending:
+        return 1.0; // Normal defensive pace
+    }
+  }
 }

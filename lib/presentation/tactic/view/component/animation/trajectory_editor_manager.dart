@@ -8,6 +8,7 @@ import 'package:zporter_tactical_board/data/animation/model/trajectory_path_mode
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/control_point_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/ghost_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/trajectory_context_menu.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/trajectory_path_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
@@ -80,7 +81,8 @@ class TrajectoryEditorManager extends Component
     required FieldItemModel currentItem,
   }) async {
     // ALWAYS clear existing trajectory UI first, even for the same component
-    await hideTrajectory();
+    // Force full cleanup when showing new trajectory
+    await hideTrajectory(forceFullCleanup: true);
 
     _selectedComponentId = componentId;
 
@@ -148,6 +150,7 @@ class TrajectoryEditorManager extends Component
       startPosition: previousItem.offset ?? Vector2.zero(),
       endPosition: currentItem.offset ?? Vector2.zero(),
       isSelected: true,
+      onDoubleTap: _onTrajectoryPathDoubleTap,
       priority: 99, // HIGH priority
     );
     await game.add(_pathComponent!); // Add directly to game, not world
@@ -161,7 +164,9 @@ class TrajectoryEditorManager extends Component
         controlPoint: controlPoint,
         onDrag: _onControlPointDrag,
         onTap: _onControlPointTap,
+        onDoubleTap: _onControlPointDoubleTap,
         isSelected: isSelected, // Restore selection
+        sequenceNumber: i + 1, // PHASE 5A: Show sequence (1, 2, 3...)
         priority: 101, // HIGHEST priority
       );
       _controlPointComponents.add(cpComponent);
@@ -170,8 +175,8 @@ class TrajectoryEditorManager extends Component
   }
 
   /// Hide all trajectory editing UI
-  Future<void> hideTrajectory() async {
-    // Remove ghost (check if it has a parent before removing)
+  Future<void> hideTrajectory({bool forceFullCleanup = false}) async {
+    // Always remove ghost (check if it has a parent before removing)
     if (_ghostComponent != null) {
       if (_ghostComponent!.isMounted && _ghostComponent!.parent != null) {
         game.remove(_ghostComponent!);
@@ -179,7 +184,7 @@ class TrajectoryEditorManager extends Component
       _ghostComponent = null;
     }
 
-    // Remove path (check if it has a parent before removing)
+    // Remove path component
     if (_pathComponent != null) {
       if (_pathComponent!.isMounted && _pathComponent!.parent != null) {
         game.remove(_pathComponent!);
@@ -187,7 +192,7 @@ class TrajectoryEditorManager extends Component
       _pathComponent = null;
     }
 
-    // Remove control points (check each one)
+    // Always remove control points (check each one)
     for (final cp in _controlPointComponents) {
       if (cp.isMounted && cp.parent != null) {
         game.remove(cp);
@@ -197,6 +202,12 @@ class TrajectoryEditorManager extends Component
 
     _selectedComponentId = null;
     _selectedControlPointId = null; // Clear control point selection
+  }
+
+  /// Clear all trajectory UI completely
+  /// Use this when switching scenes or exiting animation mode
+  Future<void> clearAllTrajectories() async {
+    await hideTrajectory(forceFullCleanup: true);
   }
 
   /// Update trajectory endpoint when component is dragged
@@ -277,6 +288,242 @@ class TrajectoryEditorManager extends Component
     }
   }
 
+  /// Handle control point double-tap (toggle between smooth and sharp)
+  /// PHASE 5A: Double-tap to quickly toggle sharp corner mode
+  /// Handle control point double-tap (open context menu for control point)
+  /// PHASE 5A: Opens context menu for control point mode customization
+  void _onControlPointDoubleTap(String controlPointId) {
+    if (_selectedComponentId == null || _pathComponent == null) return;
+
+    final trajectory = _pathComponent!.pathModel;
+    final cpIndex =
+        trajectory.controlPoints.indexWhere((cp) => cp.id == controlPointId);
+    if (cpIndex == -1) return;
+
+    final controlPoint = trajectory.controlPoints[cpIndex];
+
+    // Get screen position of the control point
+    final fieldSize = game.gameField.size;
+    final screenPos = SizeHelper.getBoardActualVector(
+      gameScreenSize: fieldSize,
+      actualPosition: controlPoint.position,
+    );
+
+    // Show context menu as an overlay
+    showDialog(
+      context: game.context,
+      barrierColor: Colors.transparent,
+      builder: (context) => TrajectoryContextMenu(
+        position: Offset(screenPos.x, screenPos.y),
+        trajectory: trajectory,
+        openedFromControlPoint: true,
+        selectedControlPointType: controlPoint.type,
+        onTypeChanged: (type) {
+          _updateTrajectoryType(type);
+        },
+        onColorChanged: (color) {
+          _updateTrajectoryColor(color);
+        },
+        onStyleChanged: (style) {
+          _updateTrajectoryStyle(style);
+        },
+        onControlPointModeChanged: (mode) {
+          _updateControlPointMode(controlPointId, mode);
+        },
+        onAddPoint: () {
+          // Not used when opened from control point
+        },
+        onRemovePoint: () {
+          _selectedControlPointId = controlPointId;
+          removeControlPoint();
+        },
+        onDeleteTrajectory: () {
+          _deleteTrajectory();
+        },
+        onClose: () {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  /// Update control point mode (sharp/smooth/symmetric)
+  void _updateControlPointMode(
+      String controlPointId, ControlPointType newType) {
+    if (_selectedComponentId == null || _pathComponent == null) return;
+
+    final trajectory = _pathComponent!.pathModel;
+    final cpIndex =
+        trajectory.controlPoints.indexWhere((cp) => cp.id == controlPointId);
+    if (cpIndex == -1) return;
+
+    // Update type
+    trajectory.controlPoints[cpIndex] = ControlPoint(
+      id: controlPointId,
+      position: trajectory.controlPoints[cpIndex].position,
+      type: newType,
+      tension: trajectory.controlPoints[cpIndex].tension,
+    );
+
+    // Recalculate path with new sharp/smooth mode
+    _pathComponent!.updatePath();
+
+    // Notify parent
+    onTrajectoryChanged(_selectedComponentId!, trajectory);
+  }
+
+  /// Handle trajectory path double-tap (open context menu)
+  /// PHASE 5A: Opens context menu for trajectory customization
+  void _onTrajectoryPathDoubleTap(Vector2 tapPosition) {
+    if (_selectedComponentId == null || _pathComponent == null) return;
+
+    final trajectory = _pathComponent!.pathModel;
+
+    // Show context menu as an overlay
+    showDialog(
+      context: game.context,
+      barrierColor: Colors.transparent,
+      builder: (context) => TrajectoryContextMenu(
+        position: Offset(tapPosition.x, tapPosition.y),
+        trajectory: trajectory,
+        openedFromControlPoint: false,
+        onTypeChanged: (type) {
+          _updateTrajectoryType(type);
+        },
+        onColorChanged: (color) {
+          _updateTrajectoryColor(color);
+        },
+        onStyleChanged: (style) {
+          _updateTrajectoryStyle(style);
+        },
+        onAddPoint: () {
+          addControlPoint(tapPosition: tapPosition);
+        },
+        onRemovePoint: () {
+          // Not used when opened from trajectory path
+        },
+        onDeleteTrajectory: () {
+          _deleteTrajectory();
+        },
+        onClose: () {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
+  /// Update trajectory type
+  void _updateTrajectoryType(TrajectoryType type) {
+    if (_selectedComponentId == null || _pathComponent == null) return;
+
+    final updatedTrajectory = _pathComponent!.pathModel.copyWith(
+      trajectoryType: type,
+    );
+
+    // Update path component by recreating it
+    _recreatePathComponent(updatedTrajectory);
+
+    // Notify parent
+    onTrajectoryChanged(_selectedComponentId!, updatedTrajectory);
+  }
+
+  /// Update trajectory color
+  void _updateTrajectoryColor(Color color) {
+    if (_selectedComponentId == null || _pathComponent == null) return;
+
+    final updatedTrajectory = _pathComponent!.pathModel.copyWith(
+      pathColor: color,
+    );
+
+    // Update path component by recreating it
+    _recreatePathComponent(updatedTrajectory);
+
+    // Notify parent
+    onTrajectoryChanged(_selectedComponentId!, updatedTrajectory);
+  }
+
+  /// Update trajectory line style
+  void _updateTrajectoryStyle(LineStyle style) {
+    if (_selectedComponentId == null || _pathComponent == null) return;
+
+    final updatedTrajectory = _pathComponent!.pathModel.copyWith(
+      lineStyle: style,
+    );
+
+    // Update path component by recreating it
+    _recreatePathComponent(updatedTrajectory);
+
+    // Notify parent
+    onTrajectoryChanged(_selectedComponentId!, updatedTrajectory);
+  }
+
+  /// Update trajectory persistent visibility
+  /// Recreate path component with updated trajectory model
+  Future<void> _recreatePathComponent(
+      TrajectoryPathModel updatedTrajectory) async {
+    if (_pathComponent == null) return;
+
+    // Store existing properties
+    final startPos = _pathComponent!.startPosition;
+    final endPos = _pathComponent!.endPosition;
+
+    // Remove old component
+    game.remove(_pathComponent!);
+
+    // Create new component with updated model
+    _pathComponent = TrajectoryPathComponent(
+      pathModel: updatedTrajectory,
+      startPosition: startPos,
+      endPosition: endPos,
+      isSelected: true,
+      onDoubleTap: _onTrajectoryPathDoubleTap,
+      priority: 99,
+    );
+
+    // Add new component
+    await game.add(_pathComponent!);
+  }
+
+  /// Delete the current trajectory
+  void _deleteTrajectory() {
+    if (_selectedComponentId == null) return;
+
+    // Find previous and current positions to regenerate default control points
+    final previousItem = previousScene != null
+        ? _findItemInScene(previousScene!, _selectedComponentId!)
+        : null;
+    final currentItem = _findItemInScene(currentScene, _selectedComponentId!);
+
+    List<ControlPoint> defaultControlPoints = [];
+
+    // If we have both positions, create 2 default control points
+    if (previousItem?.offset != null && currentItem?.offset != null) {
+      defaultControlPoints = TrajectoryCalculator.generateDefaultControlPoints(
+        start: previousItem!.offset!,
+        end: currentItem!.offset!,
+      );
+    }
+
+    // Create trajectory with default control points (enabled for editing)
+    final resetTrajectory = TrajectoryPathModel(
+      id: _selectedComponentId,
+      enabled: true,
+      pathType: PathType.catmullRom,
+      controlPoints: defaultControlPoints,
+    );
+
+    // Notify parent
+    onTrajectoryChanged(_selectedComponentId!, resetTrajectory);
+
+    // Refresh UI with default control points
+    if (currentItem != null) {
+      showTrajectoryForComponent(
+        componentId: _selectedComponentId!,
+        currentItem: currentItem,
+      );
+    }
+  }
+
   /// Get next control point type in cycle
   ControlPointType _getNextControlPointType(ControlPointType current) {
     switch (current) {
@@ -289,8 +536,9 @@ class TrajectoryEditorManager extends Component
     }
   }
 
-  /// Add a new control point at the midpoint of the path
-  Future<void> addControlPoint() async {
+  /// Add a new control point at the specified tap position
+  /// If no tap position provided, adds at midpoint
+  Future<void> addControlPoint({Vector2? tapPosition}) async {
     if (_selectedComponentId == null || _pathComponent == null) return;
 
     final trajectory = _pathComponent!.pathModel;
@@ -298,15 +546,29 @@ class TrajectoryEditorManager extends Component
 
     if (pathPoints == null || pathPoints.isEmpty) return;
 
-    // Add at midpoint - pathPoints are in screen coordinates (pixels)
-    final midIndex = pathPoints.length ~/ 2;
-    final midPositionScreen = pathPoints[midIndex];
+    // Get ghost and current component positions
+    final ghostPosition = _ghostComponent?.position;
+    final currentItem = _findItemInScene(currentScene, _selectedComponentId!);
+    final currentPosition = currentItem?.offset;
+
+    if (ghostPosition == null || currentPosition == null) return;
+
+    Vector2 newPositionScreen;
+
+    if (tapPosition != null) {
+      // Use the provided tap position (already in screen coordinates)
+      newPositionScreen = tapPosition;
+    } else {
+      // Add at midpoint - pathPoints are in screen coordinates (pixels)
+      final midIndex = pathPoints.length ~/ 2;
+      newPositionScreen = pathPoints[midIndex];
+    }
 
     // Convert screen coordinates to logical coordinates (0.0-1.0)
     final fieldSize = game.gameField.size;
     final midPositionLogical = SizeHelper.getBoardRelativeVector(
       gameScreenSize: fieldSize,
-      actualPosition: midPositionScreen,
+      actualPosition: newPositionScreen,
     );
 
     final newControlPoint = ControlPoint(
@@ -320,11 +582,76 @@ class TrajectoryEditorManager extends Component
     final updatedControlPoints =
         List<ControlPoint>.from(trajectory.controlPoints);
 
-    // Insert at appropriate position (after first control point)
-    if (updatedControlPoints.length > 1) {
-      updatedControlPoints.insert(1, newControlPoint);
-    } else {
+    // Ensure we have at least 2 control points before inserting
+    if (updatedControlPoints.length < 2) {
+      // Not enough control points to determine insertion position
+      // Just add at the end
       updatedControlPoints.add(newControlPoint);
+    } else {
+      // Find the best position to insert the new control point
+      int insertIndex = 1; // Default: insert after first control point
+
+      if (tapPosition != null) {
+        double minDistance = double.infinity;
+
+        // Convert ghost and current positions to screen coordinates for comparison
+        final ghostScreenPos = SizeHelper.getBoardActualVector(
+          gameScreenSize: fieldSize,
+          actualPosition: ghostPosition,
+        );
+        final currentScreenPos = SizeHelper.getBoardActualVector(
+          gameScreenSize: fieldSize,
+          actualPosition: currentPosition,
+        );
+
+        // Check segment from ghost to first control point
+        final firstCPScreenPos = SizeHelper.getBoardActualVector(
+          gameScreenSize: fieldSize,
+          actualPosition: updatedControlPoints[0].position,
+        );
+        double distance =
+            _distanceToSegment(tapPosition, ghostScreenPos, firstCPScreenPos);
+        if (distance < minDistance) {
+          minDistance = distance;
+          insertIndex = 0; // Insert BEFORE first control point
+        }
+
+        // Check each segment between control points
+        for (int i = 0; i < updatedControlPoints.length - 1; i++) {
+          final start = SizeHelper.getBoardActualVector(
+            gameScreenSize: fieldSize,
+            actualPosition: updatedControlPoints[i].position,
+          );
+          final end = SizeHelper.getBoardActualVector(
+            gameScreenSize: fieldSize,
+            actualPosition: updatedControlPoints[i + 1].position,
+          );
+
+          distance = _distanceToSegment(tapPosition, start, end);
+          if (distance < minDistance) {
+            minDistance = distance;
+            insertIndex = i + 1; // Insert after point i
+          }
+        }
+
+        // Check segment from last control point to current component
+        final lastCPScreenPos = SizeHelper.getBoardActualVector(
+          gameScreenSize: fieldSize,
+          actualPosition: updatedControlPoints.last.position,
+        );
+        distance =
+            _distanceToSegment(tapPosition, lastCPScreenPos, currentScreenPos);
+        if (distance < minDistance) {
+          minDistance = distance;
+          insertIndex =
+              updatedControlPoints.length; // Insert AFTER last control point
+        }
+      }
+
+      // Clamp insertIndex to valid range to prevent RangeError
+      insertIndex = insertIndex.clamp(0, updatedControlPoints.length);
+
+      updatedControlPoints.insert(insertIndex, newControlPoint);
     }
 
     // Create a new trajectory object with updated control points
@@ -337,6 +664,8 @@ class TrajectoryEditorManager extends Component
       pathWidth: trajectory.pathWidth,
       showControlPoints: trajectory.showControlPoints,
       smoothness: trajectory.smoothness,
+      trajectoryType: trajectory.trajectoryType,
+      lineStyle: trajectory.lineStyle,
     );
 
     // Notify parent FIRST so the data is saved
@@ -347,6 +676,26 @@ class TrajectoryEditorManager extends Component
       componentId: _selectedComponentId!,
       currentItem: _findItemInScene(currentScene, _selectedComponentId!)!,
     );
+  }
+
+  /// Calculate distance from point to line segment
+  double _distanceToSegment(
+      Vector2 point, Vector2 segmentStart, Vector2 segmentEnd) {
+    final segmentLength = segmentStart.distanceTo(segmentEnd);
+    if (segmentLength == 0) return point.distanceTo(segmentStart);
+
+    final t = ((point.x - segmentStart.x) * (segmentEnd.x - segmentStart.x) +
+            (point.y - segmentStart.y) * (segmentEnd.y - segmentStart.y)) /
+        (segmentLength * segmentLength);
+
+    final clampedT = t.clamp(0.0, 1.0);
+
+    final projection = Vector2(
+      segmentStart.x + clampedT * (segmentEnd.x - segmentStart.x),
+      segmentStart.y + clampedT * (segmentEnd.y - segmentStart.y),
+    );
+
+    return point.distanceTo(projection);
   }
 
   /// Remove the selected control point (or last one if none selected)

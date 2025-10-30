@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/helper/trajectory_calculator.dart';
@@ -15,8 +16,10 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 /// - Color: Customizable (default yellow for selected, gray for others)
 /// - Arrow at the end to indicate direction
 /// - Thicker line when selected (3px vs 2px)
+///
+/// PHASE 5A: Now supports double-tap to open context menu
 class TrajectoryPathComponent extends Component
-    with HasGameReference<TacticBoardGame> {
+    with HasGameReference<TacticBoardGame>, TapCallbacks {
   /// The trajectory path model
   final TrajectoryPathModel pathModel;
 
@@ -31,6 +34,13 @@ class TrajectoryPathComponent extends Component
 
   /// Number of points to generate for smooth curve rendering
   final int smoothnessPoints;
+
+  /// Callback when trajectory path is double-tapped
+  final Function(Vector2 tapPosition)? onDoubleTap;
+
+  /// Double-tap detection
+  DateTime? _lastTapTime;
+  static const Duration _doubleTapWindow = Duration(milliseconds: 300);
 
   /// Paint for the path line
   final Paint _pathPaint = Paint()..style = PaintingStyle.stroke;
@@ -47,6 +57,7 @@ class TrajectoryPathComponent extends Component
     required this.endPosition,
     this.isSelected = false,
     this.smoothnessPoints = 50,
+    this.onDoubleTap,
     super.priority = 1, // Render above ghost but below real components
   });
 
@@ -130,14 +141,14 @@ class TrajectoryPathComponent extends Component
   void render(Canvas canvas) {
     super.render(canvas);
 
-    // Configure paint based on selection state
+    // Configure paint based on selection state and trajectory type
     _pathPaint.color = pathModel.pathColor.withOpacity(isSelected ? 0.9 : 0.6);
     _pathPaint.strokeWidth = isSelected ? 3.0 : pathModel.pathWidth;
 
     _arrowPaint.color = pathModel.pathColor.withOpacity(isSelected ? 0.9 : 0.6);
 
-    // Draw the path
-    _drawDashedPath(canvas);
+    // Draw the path with the appropriate style
+    _drawStyledPath(canvas);
 
     // Draw arrow at the end
     _drawArrowHead(canvas);
@@ -148,12 +159,9 @@ class TrajectoryPathComponent extends Component
     // }
   }
 
-  /// Draw the path as a dashed line
-  void _drawDashedPath(Canvas canvas) {
+  /// Draw the path with appropriate line style (solid, dashed, dotted)
+  void _drawStyledPath(Canvas canvas) {
     if (_cachedPathPoints == null || _cachedPathPoints!.isEmpty) return;
-
-    const dashWidth = 6.0;
-    const dashSpace = 4.0;
 
     // Build the full path
     final path = Path();
@@ -163,14 +171,39 @@ class TrajectoryPathComponent extends Component
       path.lineTo(_cachedPathPoints![i].x, _cachedPathPoints![i].y);
     }
 
-    // Draw as dashed line
+    // Draw based on line style
+    switch (pathModel.lineStyle) {
+      case LineStyle.solid:
+        // Draw solid line
+        canvas.drawPath(path, _pathPaint);
+        break;
+
+      case LineStyle.dashed:
+        // Draw dashed line
+        _drawDashedLine(canvas, path, dashLength: 6.0, gapLength: 4.0);
+        break;
+
+      case LineStyle.dotted:
+        // Draw dotted line
+        _drawDashedLine(canvas, path, dashLength: 2.0, gapLength: 3.0);
+        break;
+    }
+  }
+
+  /// Draw a dashed or dotted line
+  void _drawDashedLine(
+    Canvas canvas,
+    Path path, {
+    required double dashLength,
+    required double gapLength,
+  }) {
     final pathMetrics = path.computeMetrics();
     for (final metric in pathMetrics) {
       double distance = 0.0;
       bool draw = true;
 
       while (distance < metric.length) {
-        final nextDistance = distance + (draw ? dashWidth : dashSpace);
+        final nextDistance = distance + (draw ? dashLength : gapLength);
         if (nextDistance > metric.length) {
           // Draw the remaining segment if we're drawing
           if (draw) {
@@ -289,5 +322,73 @@ class TrajectoryPathComponent extends Component
       _cachedPathPoints!,
       progress,
     );
+  }
+
+  // ========== Tap Detection for Context Menu ==========
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    // Check if tap is near the trajectory path
+    if (_cachedPathPoints == null || _cachedPathPoints!.length < 2) {
+      return false;
+    }
+
+    const double hitThreshold = 20.0; // Pixels - make it easy to tap
+
+    // Check distance from tap point to each segment of the path
+    for (int i = 0; i < _cachedPathPoints!.length - 1; i++) {
+      final p1 = _cachedPathPoints![i];
+      final p2 = _cachedPathPoints![i + 1];
+
+      // Calculate distance from point to line segment
+      final distance = _distanceToLineSegment(point, p1, p2);
+
+      if (distance <= hitThreshold) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Calculate distance from point to line segment
+  double _distanceToLineSegment(
+      Vector2 point, Vector2 lineStart, Vector2 lineEnd) {
+    final lineLength = lineStart.distanceTo(lineEnd);
+
+    if (lineLength == 0) {
+      return point.distanceTo(lineStart);
+    }
+
+    // Project point onto line segment
+    final t = ((point.x - lineStart.x) * (lineEnd.x - lineStart.x) +
+            (point.y - lineStart.y) * (lineEnd.y - lineStart.y)) /
+        (lineLength * lineLength);
+
+    final tClamped = t.clamp(0.0, 1.0);
+
+    // Find nearest point on segment
+    final nearestPoint = Vector2(
+      lineStart.x + tClamped * (lineEnd.x - lineStart.x),
+      lineStart.y + tClamped * (lineEnd.y - lineStart.y),
+    );
+
+    return point.distanceTo(nearestPoint);
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    super.onTapDown(event);
+
+    final now = DateTime.now();
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!) < _doubleTapWindow) {
+      // Double-tap detected - open context menu
+      onDoubleTap?.call(event.localPosition);
+      _lastTapTime = null;
+    } else {
+      // Single tap - just record time
+      _lastTapTime = now;
+    }
   }
 }

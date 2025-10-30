@@ -28,8 +28,14 @@ class ControlPointComponent extends PositionComponent
   /// Callback when control point is tapped (for type cycling)
   final Function(String id)? onTap;
 
+  /// Callback when control point is double-tapped (for mode toggle)
+  final Function(String id)? onDoubleTap;
+
   /// Whether this control point is currently selected
   bool isSelected;
+
+  /// Sequence number to display (1, 2, 3...)
+  final int? sequenceNumber;
 
   /// Whether this control point is being dragged
   bool _isDragging = false;
@@ -38,6 +44,10 @@ class ControlPointComponent extends PositionComponent
   double _totalDragDistance = 0.0;
   static const double _tapThreshold =
       5.0; // Pixels - if drag less than this, it's a tap
+
+  /// Double-tap detection
+  DateTime? _lastTapTime;
+  static const Duration _doubleTapWindow = Duration(milliseconds: 300);
 
   /// Visual properties
   static const double _normalRadius =
@@ -66,7 +76,9 @@ class ControlPointComponent extends PositionComponent
     required this.controlPoint,
     required this.onDrag,
     this.onTap,
+    this.onDoubleTap,
     this.isSelected = false,
+    this.sequenceNumber,
     super.priority = 10, // Render on top of everything
   });
 
@@ -121,8 +133,13 @@ class ControlPointComponent extends PositionComponent
     // Draw border
     canvas.drawCircle(center, radius, _borderPaint);
 
-    // Draw icon based on type
-    _drawTypeIcon(canvas, center, radius * 0.5);
+    // Draw sequence number if provided (PHASE 5A)
+    if (sequenceNumber != null) {
+      _drawSequenceNumber(canvas, center, radius);
+    } else {
+      // Draw icon based on type (only if no sequence number)
+      _drawTypeIcon(canvas, center, radius * 0.5);
+    }
   }
 
   /// Get the current radius based on state
@@ -181,6 +198,31 @@ class ControlPointComponent extends PositionComponent
         canvas.drawPath(path, _iconPaint);
         break;
     }
+  }
+
+  /// Draw sequence number (PHASE 5A: Show movement order)
+  void _drawSequenceNumber(Canvas canvas, Offset center, double radius) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: sequenceNumber.toString(),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: radius * 1.2,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+
+    // Center the text
+    final textOffset = Offset(
+      center.dx - textPainter.width / 2,
+      center.dy - textPainter.height / 2,
+    );
+
+    textPainter.paint(canvas, textOffset);
   }
 
   // ========== Drag Callbacks ==========
@@ -258,8 +300,19 @@ class ControlPointComponent extends PositionComponent
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
-    onTap?.call(controlPoint.id);
-    // Visual feedback on tap
+
+    // Detect double-tap
+    final now = DateTime.now();
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!) < _doubleTapWindow) {
+      // Double-tap detected - toggle mode between smooth and sharp
+      onDoubleTap?.call(controlPoint.id);
+      _lastTapTime = null; // Reset to prevent triple-tap
+    } else {
+      // Single tap - just select
+      onTap?.call(controlPoint.id);
+      _lastTapTime = now;
+    }
   }
 
   // @override

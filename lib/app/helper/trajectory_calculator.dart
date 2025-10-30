@@ -79,6 +79,9 @@ class TrajectoryCalculator {
   ///
   /// Catmull-Rom creates smooth curves that pass through all control points
   /// Perfect for natural-looking movements in sports animations
+  ///
+  /// PHASE 5A: Now supports hybrid paths with sharp corners
+  /// Control points marked as 'sharp' will use linear interpolation
   static List<Vector2> _calculateCatmullRomPath({
     required Vector2 start,
     required Vector2 end,
@@ -104,56 +107,74 @@ class TrajectoryCalculator {
       end,
     ];
 
-    // For Catmull-Rom spline, we need virtual points for the tangent calculation
-    // But the curve will interpolate between the actual key points
-    final allPoints = <Vector2>[];
+    // Build list of control point types (smooth/sharp) for each key point
+    // Start and end are always smooth
+    final pointTypes = <ControlPointType>[
+      ControlPointType.smooth, // start point
+      ...controlPoints.map((cp) => cp.type),
+      ControlPointType.smooth, // end point
+    ];
 
-    // Add virtual start point (for tangent calculation at start)
-    final virtualStart = keyPoints[0] * 2.0 - keyPoints[1];
-    allPoints.add(virtualStart);
-
-    // Add all key points
-    allPoints.addAll(keyPoints);
-
-    // Add virtual end point (for tangent calculation at end)
-    final virtualEnd =
-        keyPoints[keyPoints.length - 1] * 2.0 - keyPoints[keyPoints.length - 2];
-    allPoints.add(virtualEnd);
-
-    // Calculate interpolated points along the curve
-    // The curve goes through keyPoints, using virtual points only for tangent calculation
-    final segmentCount =
-        keyPoints.length - 1; // Number of segments between key points
+    // Calculate interpolated points for each segment
+    final segmentCount = keyPoints.length - 1;
 
     for (int segment = 0; segment < segmentCount; segment++) {
-      // Get 4 points for Catmull-Rom: P0 (before), P1 (start), P2 (end), P3 (after)
-      final p0 = allPoints[segment]; // Virtual or previous key point
-      final p1 = allPoints[segment + 1]; // Segment start (key point)
-      final p2 = allPoints[segment + 2]; // Segment end (key point)
-      final p3 = allPoints[segment + 3]; // Next key point or virtual
+      final p1 = keyPoints[segment]; // Segment start
+      final p2 = keyPoints[segment + 1]; // Segment end
 
-      // Calculate points within this segment
+      // Check if this segment has sharp corners
+      final isP1Sharp = pointTypes[segment] == ControlPointType.sharp;
+      final isP2Sharp = pointTypes[segment + 1] == ControlPointType.sharp;
+
       final pointsPerSegment = frameCount ~/ segmentCount;
 
-      for (int i = 0; i <= pointsPerSegment; i++) {
-        // Skip the last point of each segment (except the final segment) to avoid duplicates
-        if (i == pointsPerSegment && segment < segmentCount - 1) {
-          continue;
+      // If either endpoint is sharp, use linear interpolation for this segment
+      if (isP1Sharp || isP2Sharp) {
+        // SHARP CORNER: Linear interpolation
+        for (int i = 0; i <= pointsPerSegment; i++) {
+          // Skip the last point of each segment (except final) to avoid duplicates
+          if (i == pointsPerSegment && segment < segmentCount - 1) {
+            continue;
+          }
+
+          final t = i / pointsPerSegment;
+          final position = Vector2(
+            p1.x + (p2.x - p1.x) * t,
+            p1.y + (p2.y - p1.y) * t,
+          );
+          path.add(position);
         }
+      } else {
+        // SMOOTH CURVE: Catmull-Rom spline
+        // Get surrounding points for tangent calculation
+        final p0 = segment > 0
+            ? keyPoints[segment - 1]
+            : (keyPoints[0] * 2.0 - keyPoints[1]); // Virtual start
+        final p3 = segment < segmentCount - 1
+            ? keyPoints[segment + 2]
+            : (keyPoints[keyPoints.length - 1] * 2.0 -
+                keyPoints[keyPoints.length - 2]); // Virtual end
 
-        final t = i / pointsPerSegment;
+        for (int i = 0; i <= pointsPerSegment; i++) {
+          // Skip the last point of each segment (except final) to avoid duplicates
+          if (i == pointsPerSegment && segment < segmentCount - 1) {
+            continue;
+          }
 
-        // Catmull-Rom spline: interpolates between P1 and P2
-        final position = _catmullRomInterpolate(
-          p0: p0,
-          p1: p1,
-          p2: p2,
-          p3: p3,
-          t: t,
-          tension: smoothness,
-        );
+          final t = i / pointsPerSegment;
 
-        path.add(position);
+          // Catmull-Rom spline: interpolates between P1 and P2
+          final position = _catmullRomInterpolate(
+            p0: p0,
+            p1: p1,
+            p2: p2,
+            p3: p3,
+            t: t,
+            tension: smoothness,
+          );
+
+          path.add(position);
+        }
       }
     }
 
