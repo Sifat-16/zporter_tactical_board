@@ -5,6 +5,7 @@ import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
@@ -85,12 +86,14 @@ class TacticBoard extends TacticBoardGame
       this.onSceneSave,
       required this.myContext});
 
-  // --- Variables for the 1-second timer ---
+  // --- Variables for auto-save timer (Phase 1 optimization) ---
   double _timerAccumulator = 0.0; // Accumulates delta time
-  final double _checkInterval = 1.0; // Desired interval in seconds
+  final double _checkInterval =
+      FeatureFlags.autoSaveIntervalSeconds; // Phase 1: 30s (was 1s)
 
   // --- Variable to store the previous state for comparison ---
-  // Ensure this is a member variable if used across update calls
+  // Ensures we only save when state actually changes
+  bool _hasUnsavedChanges = false;
 
   @override
   FutureOr<void> onLoad() async {
@@ -219,21 +222,46 @@ class TacticBoard extends TacticBoardGame
         if (ref.read(animationProvider).isPerformingUndo ||
             ref.read(animationProvider).skipHistorySave ||
             ref.read(animationProvider).isRecordingAnimation) {
-          zlog(
-              data:
-                  "Skipping auto-save during undo/redo or recording operation");
+          if (FeatureFlags.enableSaveDebugLogs) {
+            zlog(
+                data:
+                    "Skipping auto-save during undo/redo or recording operation");
+          }
           _timerAccumulator -= _checkInterval;
           return;
         }
 
-        String current = _getCurrentBoardStateString(); // <-- USE HELPER
+        // Phase 1: Skip auto-save during active drag to prevent mid-drag saves
+        if (ref.read(boardProvider).isDraggingItem) {
+          if (FeatureFlags.enableSaveDebugLogs) {
+            zlog(data: "Skipping auto-save during active drag");
+          }
+          _timerAccumulator -= _checkInterval;
+          return;
+        }
+
+        String current = _getCurrentBoardStateString();
 
         if (_boardComparator == null) {
           _boardComparator = current;
+          _hasUnsavedChanges = false;
         } else {
+          // Phase 1: Only save if state actually changed
           if (_boardComparator != current) {
             _boardComparator = current;
-            updateDatabase();
+            _hasUnsavedChanges = true;
+
+            if (FeatureFlags.enableSaveDebugLogs) {
+              zlog(
+                  data:
+                      "Auto-save triggered: State changed (${_checkInterval}s interval)");
+            }
+
+            updateDatabase(isAutoSave: true);
+          } else {
+            if (FeatureFlags.enableSaveDebugLogs && _hasUnsavedChanges) {
+              zlog(data: "Auto-save skipped: No state changes detected");
+            }
           }
         }
         _timerAccumulator -= _checkInterval;
@@ -242,20 +270,56 @@ class TacticBoard extends TacticBoardGame
     super.update(dt);
   }
 
-  updateDatabase() {
+  /// Phase 1: Trigger immediate save for critical user actions
+  /// Call this after drag-end, component add/delete, drawing complete
+  void triggerImmediateSave({String? reason}) {
+    if (!FeatureFlags.enableEventDrivenSave) {
+      return; // Feature disabled
+    }
+
+    if (ref.read(animationProvider).isPerformingUndo ||
+        ref.read(animationProvider).skipHistorySave ||
+        ref.read(animationProvider).isRecordingAnimation) {
+      return; // Skip during special operations
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      String current = _getCurrentBoardStateString();
+
+      if (_boardComparator != current) {
+        _boardComparator = current;
+        _hasUnsavedChanges = false; // Mark as saved
+
+        if (FeatureFlags.enableSaveDebugLogs) {
+          zlog(data: "Event-driven save triggered: ${reason ?? 'User action'}");
+        }
+
+        updateDatabase(isAutoSave: false);
+        _timerAccumulator = 0.0; // Reset timer to avoid duplicate save
+      }
+    });
+  }
+
+  updateDatabase({bool isAutoSave = true}) {
     if (!isAnimating) {
       WidgetsBinding.instance.addPostFrameCallback((t) async {
         ref
             .read(animationProvider.notifier)
             .toggleLoadingSave(showLoading: true);
         try {
+          // Phase 1: Pass isAutoSave flag to skip history on auto-saves
           await ref
               .read(animationProvider.notifier)
-              .updateDatabaseOnChange(saveToDb: saveToDb)
+              .updateDatabaseOnChange(
+                saveToDb: saveToDb,
+                isAutoSave: isAutoSave,
+              )
               .then((a) {
-            zlog(
-                data:
-                    "After save coming animation item model ${a?.toJson()} - $saveToDb");
+            if (FeatureFlags.enableSaveDebugLogs) {
+              zlog(
+                  data:
+                      "Save completed (${isAutoSave ? 'auto' : 'manual'}): ${a?.id} - $saveToDb");
+            }
             // REMOVED: History is now saved BEFORE the update in updateDatabaseOnChange
             // This prevents the race condition
             onSceneSave?.call(a);
@@ -272,7 +336,9 @@ class TacticBoard extends TacticBoardGame
       ref
           .read(animationProvider.notifier)
           .toggleLoadingSave(showLoading: false);
-      zlog(data: "Is animating");
+      if (FeatureFlags.enableSaveDebugLogs) {
+        zlog(data: "Save skipped: Animation playing");
+      }
     }
   }
 

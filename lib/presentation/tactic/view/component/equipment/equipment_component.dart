@@ -174,6 +174,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_utils.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
@@ -331,6 +332,11 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
     super.onDragEnd(event);
     ref.read(boardProvider.notifier).toggleItemDrag(false);
     ref.read(boardProvider.notifier).clearGuides();
+
+    // Phase 1: Trigger immediate save after drag
+    if (game is TacticBoard) {
+      (game as TacticBoard).triggerImmediateSave(reason: 'Equipment drag end');
+    }
   }
 
   @override

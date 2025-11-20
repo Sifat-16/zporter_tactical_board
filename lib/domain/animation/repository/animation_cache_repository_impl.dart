@@ -1,23 +1,37 @@
 import 'package:logger/logger.dart';
 // Your project specific imports
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
+import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart'; // For zlog
 import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
+import 'package:zporter_tactical_board/app/services/sync/models/sync_operation.dart';
+import 'package:zporter_tactical_board/app/services/sync/sync_queue_manager.dart';
+import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
+import 'package:zporter_tactical_board/app/services/storage/image_conversion_service.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/history_model.dart';
 import 'package:zporter_tactical_board/data/animation/repository/animation_repository.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 
 class AnimationCacheRepositoryImpl implements AnimationRepository {
   final AnimationDatasource _localDs;
   final AnimationDatasource _remoteDs;
+  final SyncQueueManager? _syncQueueManager; // Optional, Phase 2 feature
+  final ImageStorageService? _imageStorageService; // Phase 2 Week 2
 
   AnimationCacheRepositoryImpl({
     required AnimationDatasource localDatasource,
     required AnimationDatasource remoteDatasource,
+    SyncQueueManager? syncQueueManager,
+    ImageStorageService? imageStorageService,
   })  : _localDs = localDatasource,
-        _remoteDs = remoteDatasource;
+        _remoteDs = remoteDatasource,
+        _syncQueueManager = syncQueueManager,
+        _imageStorageService = imageStorageService;
 
   // --- READ OPERATIONS ---
   // ... (Keep the previous Read implementations with fallback) ...
@@ -62,7 +76,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
             "[Repo] Returning ${localCollections.length} collections from LOCAL Sembast after sync.",
       );
       return localCollections;
-    } catch (e, stackTrace) {
+    } catch (e) {
       zlog(
         level: Level.warning,
         data:
@@ -149,7 +163,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
             "[Repo] Returning ${localItems.length} default animations from LOCAL Sembast after sync.",
       );
       return localItems;
-    } catch (e, stackTrace) {
+    } catch (e) {
       zlog(
         level: Level.warning,
         data:
@@ -176,6 +190,126 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
     }
   }
 
+  /// Phase 2 Week 2: Migrate images from base64 to Firebase Storage URLs
+  Future<AnimationCollectionModel> _migrateCollectionImages(
+    AnimationCollectionModel collection,
+  ) async {
+    // Check if image optimization is enabled
+    if (!FeatureFlags.enableImageOptimization ||
+        !FeatureFlags.enableAutoImageUpload ||
+        _imageStorageService == null) {
+      return collection;
+    }
+
+    zlog(
+      level: Level.debug,
+      data:
+          '[Repo] Checking collection ${collection.id} for images needing migration...',
+    );
+
+    bool hasChanges = false;
+    final migratedAnimations = <AnimationModel>[];
+
+    // Process each animation in the collection
+    for (final animation in collection.animations) {
+      final migratedScenes = <AnimationItemModel>[];
+      bool animationChanged = false;
+
+      // Process each scene in the animation
+      for (final scene in animation.animationScenes) {
+        final migratedComponents = [...scene.components];
+        bool sceneChanged = false;
+
+        // Process each component in the scene
+        for (int i = 0; i < migratedComponents.length; i++) {
+          final component = migratedComponents[i];
+
+          // Migrate PlayerModel images
+          if (component is PlayerModel && component.needsImageMigration) {
+            try {
+              zlog(
+                level: Level.debug,
+                data: '[Repo] Migrating player image: ${component.id}',
+              );
+
+              final bytes =
+                  ImageConversionService.base64ToBytes(component.imageBase64);
+              if (bytes != null) {
+                final imageUrl = await _imageStorageService.uploadPlayerImage(
+                  userId: collection.userId,
+                  playerId: component.id,
+                  imageData: bytes,
+                );
+
+                migratedComponents[i] = component.copyWith(imageUrl: imageUrl);
+                sceneChanged = true;
+                hasChanges = true;
+
+                zlog(
+                  level: Level.info,
+                  data:
+                      '[Repo] Player image migrated: ${component.id} -> $imageUrl',
+                );
+              }
+            } catch (e) {
+              zlog(
+                level: Level.error,
+                data:
+                    '[Repo] Failed to migrate player image ${component.id}: $e',
+              );
+              // Continue with next component - don't fail entire save
+            }
+          }
+
+          // Migrate EquipmentModel images
+          if (component is EquipmentModel && component.needsImageMigration) {
+            try {
+              zlog(
+                level: Level.debug,
+                data: '[Repo] Migrating equipment image: ${component.id}',
+              );
+
+              // Equipment uses imagePath, not base64, so skip migration
+              // (imagePath is for local assets, not user-uploaded images)
+              // Only migrate if we add support for user-uploaded equipment images
+            } catch (e) {
+              zlog(
+                level: Level.error,
+                data:
+                    '[Repo] Failed to migrate equipment image ${component.id}: $e',
+              );
+            }
+          }
+        }
+
+        if (sceneChanged) {
+          migratedScenes.add(scene.copyWith(components: migratedComponents));
+          animationChanged = true;
+        } else {
+          migratedScenes.add(scene);
+        }
+      }
+
+      if (animationChanged) {
+        migratedAnimations
+            .add(animation.copyWith(animationScenes: migratedScenes));
+      } else {
+        migratedAnimations.add(animation);
+      }
+    }
+
+    if (hasChanges) {
+      zlog(
+        level: Level.info,
+        data:
+            '[Repo] Collection ${collection.id} had images migrated to Firebase Storage',
+      );
+      return collection.copyWith(animations: migratedAnimations);
+    }
+
+    return collection;
+  }
+
   @override
   Future<AnimationCollectionModel> saveAnimationCollection({
     required AnimationCollectionModel animationCollectionModel,
@@ -187,17 +321,20 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
     bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
 
     if (!isOnline) {
-      // --- OFFLINE PATH: Save Local First, Trigger Remote Async ---
+      // --- OFFLINE PATH: Save Local First, Queue for Sync ---
       zlog(
         level: Level.info,
         data:
             "[Repo] Network Offline: Saving Collection ${animationCollectionModel.id} to LOCAL first.",
       );
       try {
+        // Phase 2 Week 2: Migrate images (will be no-op if offline or feature disabled)
+        final migratedCollection =
+            await _migrateCollectionImages(animationCollectionModel);
+
         // 2a. Save Locally First (Await this)
         final savedLocalModel = await _localDs.saveAnimationCollection(
-          animationCollectionModel: animationCollectionModel,
-          // If localDs needs explicit status: .copyWith(syncStatus: 'pending'),
+          animationCollectionModel: migratedCollection,
         );
         zlog(
           level: Level.info,
@@ -205,30 +342,52 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
               "[Repo] Saved collection ${savedLocalModel.id} to LOCAL successfully (Offline).",
         );
 
-        // 2b. Trigger Remote Save Asynchronously (Fire and Forget with Error Logging)
-        zlog(
-          level: Level.debug,
-          data:
-              "[Repo] Triggering background remote save for ${savedLocalModel.id} (queued by Firestore)...",
-        );
-        _remoteDs
-            .saveAnimationCollection(animationCollectionModel: savedLocalModel)
-            .then((_) {
+        // 2b. Choose sync strategy based on feature flags
+        if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
+          // PHASE 2: Use sync queue with retry logic
           zlog(
             level: Level.debug,
             data:
-                "[Repo] Background remote save ACKNOWLEDGED by SDK for ${savedLocalModel.id}.",
+                "[Repo] Phase 2: Enqueuing sync operation for ${savedLocalModel.id}...",
           );
-          // Optional: Update local syncStatus to 'synced' if tracking it
-          // _localDs.updateSyncStatus(savedLocalModel.id, 'synced');
-        }).catchError((e, s) {
+          final syncOperation = SyncOperation(
+            id: RandomGenerator.generateId(),
+            type: SyncOperationType.update,
+            collectionId: savedLocalModel.id,
+            userId: savedLocalModel.userId,
+            priority: SyncPriority.high, // User-initiated action
+            createdAt: DateTime.now(),
+          );
+          await _syncQueueManager.enqueue(syncOperation);
           zlog(
-            level: Level.error,
+            level: Level.info,
             data:
-                "[Repo] Background remote save FAILED for ${savedLocalModel.id}: $e\n$s",
+                "[Repo] Sync operation enqueued for ${savedLocalModel.id}. Will sync when online.",
           );
-          // Data remains locally saved. TODO: Implement retry/manual sync later if needed.
-        });
+        } else {
+          // PHASE 1: Fire and forget (original behavior)
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Phase 1: Triggering background remote save for ${savedLocalModel.id} (fire and forget)...",
+          );
+          _remoteDs
+              .saveAnimationCollection(
+                  animationCollectionModel: savedLocalModel)
+              .then((_) {
+            zlog(
+              level: Level.debug,
+              data:
+                  "[Repo] Background remote save ACKNOWLEDGED by SDK for ${savedLocalModel.id}.",
+            );
+          }).catchError((e, s) {
+            zlog(
+              level: Level.error,
+              data:
+                  "[Repo] Background remote save FAILED for ${savedLocalModel.id}: $e\n$s",
+            );
+          });
+        }
 
         // 2c. Return the Local Result Immediately
         return savedLocalModel;
@@ -251,9 +410,13 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
             "[Repo] Network Online: Saving Collection ${animationCollectionModel.id} to REMOTE first...",
       );
       try {
+        // Phase 2 Week 2: Migrate images before saving to remote
+        final migratedCollection =
+            await _migrateCollectionImages(animationCollectionModel);
+
         // 3a. Save to Remote First (Await this)
         final savedRemoteModel = await _remoteDs.saveAnimationCollection(
-          animationCollectionModel: animationCollectionModel,
+          animationCollectionModel: migratedCollection,
         );
         zlog(
           level: Level.info,
@@ -453,18 +616,60 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
 
   @override
   Future<void> deleteAnimationCollection({required String collectionId}) async {
-    // We check for connectivity because deletion is a critical destructive action.
-    // For a more robust offline-first app, you could mark for deletion locally.
-    // For now, we enforce online deletion.
     bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
 
     if (!isOnline) {
-      zlog(
-        level: Level.warning,
-        data:
-            "[Repo] Network Offline: Cannot perform delete operation for collection $collectionId. Deletion requires an internet connection.",
-      );
-      throw Exception("Cannot delete collection while offline.");
+      // --- OFFLINE PATH: Delete locally and queue for remote deletion ---
+      if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
+        // PHASE 2: Support offline deletion with sync queue
+        zlog(
+          level: Level.info,
+          data:
+              "[Repo] Network Offline (Phase 2): Deleting collection $collectionId from LOCAL and queueing for sync...",
+        );
+        try {
+          // Delete from local storage first
+          await _localDs.deleteAnimationCollection(collectionId: collectionId);
+          zlog(
+            level: Level.info,
+            data:
+                "[Repo] Deleted collection $collectionId from LOCAL successfully.",
+          );
+
+          // Get userId from local collections (need to fetch before it's deleted)
+          // For now, we'll use a placeholder - in production, you'd want to pass userId
+          final syncOperation = SyncOperation(
+            id: RandomGenerator.generateId(),
+            type: SyncOperationType.delete,
+            collectionId: collectionId,
+            userId: '', // TODO: Pass userId from caller or fetch before delete
+            priority: SyncPriority.high,
+            createdAt: DateTime.now(),
+          );
+          await _syncQueueManager.enqueue(syncOperation);
+          zlog(
+            level: Level.info,
+            data:
+                "[Repo] Delete operation enqueued for $collectionId. Will sync when online.",
+          );
+          return;
+        } catch (e, stackTrace) {
+          zlog(
+            level: Level.error,
+            data:
+                "[Repo] OFFLINE DELETE FAILED: Error deleting collection $collectionId: $e\n$stackTrace",
+          );
+          throw Exception("Failed to delete collection while offline: $e");
+        }
+      } else {
+        // PHASE 1: Require online connection for deletion
+        zlog(
+          level: Level.warning,
+          data:
+              "[Repo] Network Offline (Phase 1): Cannot perform delete operation for collection $collectionId. Deletion requires an internet connection.",
+        );
+        throw Exception("Cannot delete collection while offline.");
+      }
     }
 
     // --- ONLINE PATH ---

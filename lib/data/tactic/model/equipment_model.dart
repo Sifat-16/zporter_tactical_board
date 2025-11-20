@@ -129,6 +129,7 @@ enum BallSpin { none, left, right, knuckleball }
 class EquipmentModel extends FieldItemModel {
   String name;
   String? imagePath;
+  String? imageUrl; // Firebase Storage URL (Phase 2 Week 2)
   bool isAerialArrival;
 
   // NEW: Properties for speed and spin
@@ -151,6 +152,7 @@ class EquipmentModel extends FieldItemModel {
     // --- EquipmentModel specific properties ---
     required this.name,
     this.imagePath,
+    this.imageUrl,
     this.isAerialArrival = false,
     // NEW: Add to constructor with default values
     this.passSpeedMultiplier = 1.0,
@@ -163,6 +165,7 @@ class EquipmentModel extends FieldItemModel {
       ...super.toJson(),
       'name': name,
       'imagePath': imagePath,
+      'imageUrl': imageUrl,
       'isAerialArrival': isAerialArrival,
       // NEW: Add new properties to the JSON map for saving
       'passSpeedMultiplier': passSpeedMultiplier,
@@ -187,6 +190,7 @@ class EquipmentModel extends FieldItemModel {
         : double.parse(json['opacity'].toString());
     final name = json['name'] as String? ?? 'Unnamed Equipment';
     final imagePath = json['imagePath'] as String?;
+    final imageUrl = json['imageUrl'] as String?;
     final isAerialArrival = json['isAerialArrival'] as bool? ?? false;
 
     // NEW: Parse the new properties from JSON
@@ -212,6 +216,7 @@ class EquipmentModel extends FieldItemModel {
       opacity: opacity,
       name: name,
       imagePath: imagePath,
+      imageUrl: imageUrl,
       isAerialArrival: isAerialArrival,
       // NEW: Pass the parsed values to the constructor
       passSpeedMultiplier: passSpeedMultiplier,
@@ -235,6 +240,7 @@ class EquipmentModel extends FieldItemModel {
     double? opacity,
     String? name,
     String? imagePath,
+    String? imageUrl,
     bool? isAerialArrival,
     // NEW: Add new properties to copyWith
     double? passSpeedMultiplier,
@@ -254,6 +260,7 @@ class EquipmentModel extends FieldItemModel {
       opacity: opacity ?? this.opacity,
       name: name ?? this.name,
       imagePath: imagePath ?? this.imagePath,
+      imageUrl: imageUrl ?? this.imageUrl,
       isAerialArrival: isAerialArrival ?? this.isAerialArrival,
       // NEW: Handle new properties in copyWith
       passSpeedMultiplier: passSpeedMultiplier ?? this.passSpeedMultiplier,
@@ -263,4 +270,9 @@ class EquipmentModel extends FieldItemModel {
 
   @override
   EquipmentModel clone() => copyWith();
+
+  // Phase 2 Week 2: Image optimization helpers
+  bool get hasImagePath => imagePath != null && imagePath!.isNotEmpty;
+  bool get hasImageUrl => imageUrl != null && imageUrl!.isNotEmpty;
+  bool get needsImageMigration => hasImagePath && !hasImageUrl;
 }

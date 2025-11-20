@@ -43,6 +43,16 @@ import 'package:zporter_tactical_board/domain/animation/usecase/save_default_ani
 import 'package:zporter_tactical_board/domain/animation/usecase/save_history_usecase.dart';
 import 'package:zporter_tactical_board/firebase_options.dart';
 
+// Phase 2: Sync Services
+import 'package:zporter_tactical_board/app/services/network/connectivity_service.dart'
+    as connectivity_service;
+import 'package:zporter_tactical_board/app/services/sync/sync_queue_manager.dart';
+import 'package:zporter_tactical_board/app/services/sync/sync_orchestrator_service.dart';
+
+// Phase 2 Week 2: Image Storage Services
+import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
+import 'package:zporter_tactical_board/app/services/storage/image_cache_manager.dart';
+
 import 'connectivity_service.dart';
 import 'firebase_storage_service.dart';
 import 'user_preferences_service.dart';
@@ -108,7 +118,48 @@ Future<void> initializeTacticBoardDependencies() async {
   //
   // await sl.isReady<MongoDB>();
 
+  // ============================================================
+  // PHASE 2: Sync Services
+  // ============================================================
+
+  // Register ConnectivityService (Phase 2)
+  sl.registerLazySingleton<connectivity_service.ConnectivityService>(
+    () => connectivity_service.ConnectivityService(),
+  );
+
+  // Register SyncQueueManager (Phase 2)
+  sl.registerLazySingleton<SyncQueueManager>(
+    () => SyncQueueManager(
+      localDataSource: AnimationLocalDatasourceImpl(),
+      remoteDataSource: AnimationRemoteDatasourceImpl(),
+    ),
+  );
+
+  // Register SyncOrchestratorService (Phase 2)
+  sl.registerLazySingleton<SyncOrchestratorService>(
+    () => SyncOrchestratorService(
+      queueManager: sl.get<SyncQueueManager>(),
+      connectivityService: sl.get<connectivity_service.ConnectivityService>(),
+    ),
+  );
+
+  // ============================================================
+  // PHASE 2 Week 2: Image Storage Services
+  // ============================================================
+
+  // Register ImageStorageService (Phase 2 Week 2)
+  sl.registerLazySingleton<ImageStorageService>(
+    () => ImageStorageService(),
+  );
+
+  // Register ImageCacheManager (Phase 2 Week 2)
+  sl.registerLazySingleton<ImageCacheManager>(
+    () => ImageCacheManager(),
+  );
+
+  // ============================================================
   // Animation
+  // ============================================================
 
   sl.registerLazySingleton<AnimationDatasource>(
     () => AnimationRemoteDatasourceImpl(),
@@ -129,6 +180,8 @@ Future<void> initializeTacticBoardDependencies() async {
     () => AnimationCacheRepositoryImpl(
       localDatasource: sl.get<AnimationDatasource>(instanceName: "local"),
       remoteDatasource: sl.get<AnimationDatasource>(instanceName: "remote"),
+      syncQueueManager: sl.get<SyncQueueManager>(), // Phase 2
+      imageStorageService: sl.get<ImageStorageService>(), // Phase 2 Week 2
     ),
     instanceName: "local",
   );

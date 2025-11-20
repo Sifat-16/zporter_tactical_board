@@ -1,5 +1,3 @@
-
-
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -18,6 +16,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 // UNCHANGED from your working code
 class DraggableDot extends CircleComponent with DragCallbacks {
   final Function(Vector2) onPositionChanged;
+  final VoidCallback? onDragEndCallback;
   final Vector2 initialPosition;
   final bool canModifyLine;
   final int dotIndex;
@@ -27,6 +26,7 @@ class DraggableDot extends CircleComponent with DragCallbacks {
     required this.onPositionChanged,
     required this.initialPosition,
     required this.dotIndex,
+    this.onDragEndCallback,
     this.canModifyLine = true,
     super.radius = 8.0,
     this.color = Colors.blue,
@@ -57,6 +57,7 @@ class DraggableDot extends CircleComponent with DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     _dragStartLocalPosition = null;
+    onDragEndCallback?.call();
     event.continuePropagation = false;
     super.onDragEnd(event);
   }
@@ -108,7 +109,7 @@ class LineDrawerComponentV2 extends PositionComponent
 
   // UNCHANGED from your working code
   @override
-  FutureOr<void> onLoad() {
+  FutureOr<void> onLoad() async {
     addToGameWidgetBuild(() {
       ref.listen(boardProvider, (previous, current) {
         _updateIsActive(current.selectedItemOnTheBoard);
@@ -130,7 +131,25 @@ class LineDrawerComponentV2 extends PositionComponent
     _initializeControlPoints();
     _createDots();
 
-    return super.onLoad();
+    // After line is fully initialized, update provider and trigger save
+    // This ensures new lines are saved immediately after creation
+    await super.onLoad();
+
+    // Use addPostFrameCallback to ensure everything is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      updateLine(); // Updates the provider state
+
+      // Trigger immediate save for newly created line
+      try {
+        final tacticBoard = game as dynamic;
+        if (tacticBoard.triggerImmediateSave != null) {
+          tacticBoard.triggerImmediateSave(
+              reason: "Line created: ${lineModelV2.id}");
+        }
+      } catch (e) {
+        // Silent fail if method not available
+      }
+    });
   }
 
   // UNCHANGED from your working code
@@ -384,6 +403,7 @@ class LineDrawerComponentV2 extends PositionComponent
             _duplicateLine.start = newPos;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           canModifyLine: true,
           color: Colors.blue),
       DraggableDot(
@@ -394,6 +414,7 @@ class LineDrawerComponentV2 extends PositionComponent
             dots[1].position = _controlPoint1;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           color: Colors.blue,
           radius: circleRadius * .8),
       DraggableDot(
@@ -404,6 +425,7 @@ class LineDrawerComponentV2 extends PositionComponent
             dots[2].position = _controlPoint2;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           color: Colors.blue,
           radius: circleRadius * .8),
       DraggableDot(
@@ -414,6 +436,7 @@ class LineDrawerComponentV2 extends PositionComponent
             _duplicateLine.end = newPos;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           canModifyLine: true,
           color: Colors.blue),
     ];
@@ -465,6 +488,11 @@ class LineDrawerComponentV2 extends PositionComponent
       try {
         if (isMounted && ref.exists(boardProvider)) {
           ref.read(boardProvider.notifier).updateLine(line: lineModelV2);
+          // NOTE: We DON'T trigger save here because updateLine() is called
+          // continuously during dragging. Save is triggered by:
+          // - _onDotDragEnd() when dot drag finishes
+          // - onDragEnd() when line drag finishes
+          // This prevents race conditions and missed saves
         }
       } catch (e) {}
     });
@@ -504,6 +532,16 @@ class LineDrawerComponentV2 extends PositionComponent
   void onDragEnd(DragEndEvent event) {
     if (_isDragging) {
       _isDragging = false;
+      // Trigger immediate save after line drag
+      try {
+        final tacticBoard = game as dynamic;
+        if (tacticBoard.triggerImmediateSave != null) {
+          tacticBoard.triggerImmediateSave(
+              reason: "Line drag end: ${lineModelV2.id}");
+        }
+      } catch (e) {
+        // Fallback if method not available
+      }
       event.continuePropagation = false;
     } else {
       event.continuePropagation = true;
@@ -540,6 +578,19 @@ class LineDrawerComponentV2 extends PositionComponent
     ref
         .read(boardProvider.notifier)
         .toggleSelectItemEvent(fieldItemModel: lineModelV2);
+  }
+
+  void _onDotDragEnd() {
+    // Trigger immediate save after dot drag end
+    try {
+      final tacticBoard = game as dynamic;
+      if (tacticBoard.triggerImmediateSave != null) {
+        tacticBoard.triggerImmediateSave(
+            reason: "Line dot drag end: ${lineModelV2.id}");
+      }
+    } catch (e) {
+      // Fallback if method not available
+    }
   }
 
   void _updateIsActive(FieldItemModel? item) {

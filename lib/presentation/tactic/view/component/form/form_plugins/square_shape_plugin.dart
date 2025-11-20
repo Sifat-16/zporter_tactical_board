@@ -572,6 +572,17 @@ class SquareShapeDrawerComponent
           "Square ${squareModel.id}: Notifying provider (Final Save): ${updatedModel.toJson()}",
     );
     ref.read(boardProvider.notifier).updateShape(shape: updatedModel);
+
+    // Trigger immediate save after square shape update
+    try {
+      final tacticBoard = game as dynamic;
+      if (tacticBoard.triggerImmediateSave != null) {
+        tacticBoard.triggerImmediateSave(
+            reason: "Square shape update: ${squareModel.id}");
+      }
+    } catch (e) {
+      // Fallback if method not available
+    }
     // --- END MODIFICATION ---
   }
 

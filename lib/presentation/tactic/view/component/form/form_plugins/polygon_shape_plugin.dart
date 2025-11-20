@@ -386,6 +386,16 @@ class PolygonShapeDrawerComponent extends PositionComponent
     super.onDragEnd(event);
     if (_isDraggingPolygon) {
       _isDraggingPolygon = false;
+      // Trigger immediate save after polygon drag
+      try {
+        final tacticBoard = game as dynamic;
+        if (tacticBoard.triggerImmediateSave != null) {
+          tacticBoard.triggerImmediateSave(
+              reason: "Polygon drag end: ${polygonModel.id}");
+        }
+      } catch (e) {
+        // Fallback if method not available
+      }
       event.handled = true;
       zlog(data: "Polygon ${polygonModel.id}: Ended dragging polygon.");
     }
@@ -518,6 +528,16 @@ class PolygonShapeDrawerComponent extends PositionComponent
   void _handleVertexDragEnd() {
     if (!isMounted) return;
     _isDraggingVertex = false;
+    // Trigger immediate save after polygon vertex drag
+    try {
+      final tacticBoard = game as dynamic;
+      if (tacticBoard.triggerImmediateSave != null) {
+        tacticBoard.triggerImmediateSave(
+            reason: "Polygon vertex drag end: ${polygonModel.id}");
+      }
+    } catch (e) {
+      // Fallback if method not available
+    }
     zlog(data: "Polygon ${polygonModel.id}: Vertex drag ended.");
   }
 
