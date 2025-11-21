@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:appwrite/appwrite.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -6,6 +7,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:logger/logger.dart';
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/config/database/remote/appwrite_db.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/default_animation_datasource.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/default_lineup_datasource.dart';
@@ -60,48 +62,15 @@ import 'user_preferences_service.dart';
 final sl = GetIt.instance;
 
 Future<void> initializeTacticBoardDependencies() async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // await FirebaseStorageService.initializeSecondaryApp(
-  //     DefaultFirebaseOptions.secondaryProjectOptions);
+  // ============================================================
+  // LOCAL-FIRST APPROACH: Initialize Firebase in background
+  // App starts immediately with local data, Firebase connects when ready
+  // ============================================================
 
-  FirebaseOptions secondaryOptions;
-  if (kIsWeb) {
-    secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsWeb;
-  } else {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        secondaryOptions =
-            DefaultFirebaseOptions.secondaryProjectOptionsAndroid;
-        break;
-      case TargetPlatform.iOS:
-        secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsIOS;
-        break;
-      case TargetPlatform.macOS:
-        // macOS can often use the iOS config
-        secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsIOS;
-        break;
-      default:
-        throw UnsupportedError(
-          'Secondary FirebaseOptions are not supported for this platform.',
-        );
-    }
-  }
+  // Start Firebase initialization in background (non-blocking)
+  _initializeFirebaseInBackground();
 
-  // 3. Initialize secondary app (zporter-dev) using your service
-  await FirebaseStorageService.initializeSecondaryApp(secondaryOptions);
-
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED, // Or a specific limit
-  );
-  FlutterError.onError = (errorDetails) {
-    FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-  };
-  // Pass all uncaught asynchronous errors that aren't handled by the Flutter framework to Crashlytics
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+  // Continue with immediate app initialization
   sl.registerLazySingleton<Logger>(() => Logger());
 
   // Register UserPreferencesService
@@ -301,4 +270,100 @@ Future<void> initializeTacticBoardDependencies() async {
   sl.registerLazySingleton<FileStorageService>(
     () => FileStorageService(FirebaseStorage.instance),
   );
+
+  // ============================================================
+  // PHASE 2: Start Sync Orchestrator
+  // ============================================================
+  // CRITICAL: Start the sync orchestrator to enable automatic background sync
+  // This must happen AFTER all dependencies are registered
+  if (FeatureFlags.enableSyncOrchestrator) {
+    try {
+      final orchestrator = sl.get<SyncOrchestratorService>();
+      orchestrator.start();
+      print('[Init] Sync orchestrator started successfully');
+    } catch (e) {
+      print('[Init] Failed to start sync orchestrator: $e');
+      // Non-critical - app can continue without background sync
+    }
+  }
+}
+
+// ============================================================
+// BACKGROUND FIREBASE INITIALIZATION (LOCAL-FIRST)
+// ============================================================
+
+/// Initialize Firebase in background without blocking app startup.
+/// This is the correct local-first approach:
+/// 1. App starts immediately with local Sembast data
+/// 2. Firebase connects asynchronously when network is available
+/// 3. No timeouts, no delays, no blocking - just start when ready
+void _initializeFirebaseInBackground() {
+  // Fire and forget - let Firebase initialize whenever it can
+  Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
+      .then((_) {
+    print('[Init] Firebase initialized successfully');
+
+    // Configure Firestore after successful initialization
+    _configureFirebaseServices();
+
+    // Initialize secondary Firebase app for image storage
+    _initializeSecondaryFirebaseApp();
+  }).catchError((e) {
+    print('[Init] Firebase initialization failed: $e');
+    print('[Init] App will continue in offline-only mode');
+    // App continues working fine with local Sembast storage
+  });
+}
+
+/// Configure Firestore settings after Firebase is initialized
+void _configureFirebaseServices() {
+  try {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+
+    FlutterError.onError = (errorDetails) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+
+    print('[Init] Firebase services configured');
+  } catch (e) {
+    print('[Init] Firebase services configuration failed: $e');
+  }
+}
+
+/// Initialize secondary Firebase app for image storage (background)
+void _initializeSecondaryFirebaseApp() {
+  FirebaseOptions secondaryOptions;
+
+  if (kIsWeb) {
+    secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsWeb;
+  } else {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        secondaryOptions =
+            DefaultFirebaseOptions.secondaryProjectOptionsAndroid;
+        break;
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        secondaryOptions = DefaultFirebaseOptions.secondaryProjectOptionsIOS;
+        break;
+      default:
+        print('[Init] Secondary Firebase not supported on this platform');
+        return;
+    }
+  }
+
+  FirebaseStorageService.initializeSecondaryApp(secondaryOptions).then((_) {
+    print('[Init] Secondary Firebase app initialized');
+  }).catchError((e) {
+    print('[Init] Secondary Firebase app initialization failed: $e');
+    // Image upload will be disabled, but app works fine otherwise
+  });
 }
