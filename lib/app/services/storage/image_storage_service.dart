@@ -20,12 +20,11 @@ class ImageStorageService {
   }) async {
     try {
       final path = 'users/$userId/players/$playerId.jpg';
-      zlog(
-        level: Level.debug,
-        data: 'Uploading player image to: $path',
-      );
+      print(
+          '[ImageStorage] Uploading player image to: $path (${imageData.length} bytes)');
 
       final ref = _storage.ref().child(path);
+      print('[ImageStorage] Storage reference created: ${ref.fullPath}');
 
       // Upload with metadata
       final metadata = SettableMetadata(
@@ -37,20 +36,18 @@ class ImageStorageService {
         },
       );
 
-      await ref.putData(imageData, metadata);
-      final downloadUrl = await ref.getDownloadURL();
+      print('[ImageStorage] Starting putData...');
+      final uploadTask = await ref.putData(imageData, metadata);
+      print('[ImageStorage] putData completed, state: ${uploadTask.state}');
 
-      zlog(
-        level: Level.info,
-        data: 'Player image uploaded successfully: $downloadUrl',
-      );
+      print('[ImageStorage] Getting download URL...');
+      final downloadUrl = await ref.getDownloadURL();
+      print(
+          '[ImageStorage] ✅ Player image uploaded successfully: $downloadUrl');
 
       return downloadUrl;
     } catch (e, stackTrace) {
-      zlog(
-        level: Level.error,
-        data: 'Error uploading player image: $e\n$stackTrace',
-      );
+      print('[ImageStorage] ❌ Error uploading player image: $e\n$stackTrace');
       throw Exception('Failed to upload player image: $e');
     }
   }
