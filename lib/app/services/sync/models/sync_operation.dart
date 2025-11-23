@@ -184,11 +184,20 @@ class SyncOperation {
   bool get canRetry =>
       retryCount < maxRetries && status == SyncOperationStatus.failed;
 
-  /// Check if operation is ready to retry (based on nextRetryAt)
+  /// Check if operation is ready to process or retry
   bool get isReadyToRetry {
-    if (!canRetry) return false;
-    if (nextRetryAt == null) return true;
-    return DateTime.now().isAfter(nextRetryAt!);
+    // Pending operations are always ready
+    if (status == SyncOperationStatus.pending) return true;
+
+    // Failed operations need to check retry logic
+    if (status == SyncOperationStatus.failed) {
+      if (retryCount >= maxRetries) return false;
+      if (nextRetryAt == null) return true;
+      return DateTime.now().isAfter(nextRetryAt!);
+    }
+
+    // Other statuses (processing, completed, permanentlyFailed) are not ready
+    return false;
   }
 
   /// Calculate next retry time using exponential backoff
