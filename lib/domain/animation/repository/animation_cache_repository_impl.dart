@@ -231,6 +231,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   }
 
   /// Phase 2 Week 2: Migrate images from base64 to Firebase Storage URLs
+  /// OFFLINE-FIRST: Only migrates when online, preserves base64 offline
   Future<AnimationCollectionModel> _migrateCollectionImages(
     AnimationCollectionModel collection,
   ) async {
@@ -241,10 +242,23 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
       return collection;
     }
 
+    // CRITICAL: Check connectivity before attempting upload
+    final isOnline = ConnectivityService.statusNotifier.value.isOnline;
+    if (!isOnline) {
+      zlog(
+        level: Level.info,
+        data:
+            '[Repo] OFFLINE: Skipping image migration for ${collection.id}. Images will be migrated when online.',
+      );
+      // Return original collection with base64 images intact
+      // When sync queue processes this later online, images will be migrated then
+      return collection;
+    }
+
     zlog(
       level: Level.debug,
       data:
-          '[Repo] Checking collection ${collection.id} for images needing migration...',
+          '[Repo] ONLINE: Checking collection ${collection.id} for images needing migration...',
     );
 
     bool hasChanges = false;
@@ -293,11 +307,12 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
               }
             } catch (e) {
               zlog(
-                level: Level.error,
+                level: Level.warning,
                 data:
-                    '[Repo] Failed to migrate player image ${component.id}: $e',
+                    '[Repo] Failed to migrate player image ${component.id}: $e. Keeping base64.',
               );
-              // Continue with next component - don't fail entire save
+              // Keep original component with base64 - don't fail entire save
+              // This handles cases where upload fails due to network issues
             }
           }
 
