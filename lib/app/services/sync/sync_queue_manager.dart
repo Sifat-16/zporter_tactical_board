@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:logger/logger.dart';
 import 'package:sembast/sembast.dart';
 import 'package:zporter_tactical_board/app/config/database/local/semDB.dart';
@@ -401,40 +402,43 @@ class SyncQueueManager {
         final component = migratedComponents[i];
 
         // Migrate PlayerModel images
-        if (component is PlayerModel && component.needsImageMigration) {
-          try {
-            zlog(
-              level: Level.debug,
-              data:
-                  '[SyncQueue] Migrating default animation player image: ${component.id}',
-            );
+        if (component is PlayerModel) {
+          // DEBUG: Log player image state
+          print('[SyncQueue] Default animation player ${component.id}: '
+              'imageBase64=${component.imageBase64?.substring(0, 50) ?? "null"}..., '
+              'imageUrl=${component.imageUrl ?? "null"}, '
+              'imagePath=${component.imagePath ?? "null"}, '
+              'needsMigration=${component.needsImageMigration}');
 
-            final bytes =
-                ImageConversionService.base64ToBytes(component.imageBase64);
-            if (bytes != null) {
-              final imageUrl = await _imageStorageService.uploadPlayerImage(
-                userId: userId,
-                playerId: component.id,
-                imageData: bytes,
-              );
+          if (component.needsImageMigration) {
+            try {
+              print(
+                  '[SyncQueue] Migrating default animation player image: ${component.id}');
 
-              migratedComponents[i] = component.copyWith(imageUrl: imageUrl);
-              animationChanged = true;
-              hasChanges = true;
+              final bytes =
+                  ImageConversionService.base64ToBytes(component.imageBase64);
+              if (bytes != null) {
+                final imageUrl = await _imageStorageService.uploadPlayerImage(
+                  userId: userId,
+                  playerId: component.id,
+                  imageData: bytes,
+                );
 
-              zlog(
-                level: Level.info,
-                data:
-                    '[SyncQueue] \u2705 Default animation player image migrated: ${component.id} \u2192 $imageUrl',
-              );
+                migratedComponents[i] = component.copyWith(imageUrl: imageUrl);
+                animationChanged = true;
+                hasChanges = true;
+
+                print(
+                    '[SyncQueue] ✅ Default animation player image migrated: ${component.id} → $imageUrl (${bytes.length} bytes)');
+              } else {
+                print(
+                    '[SyncQueue] Failed to convert base64 to bytes for player ${component.id}');
+              }
+            } catch (e, stackTrace) {
+              print(
+                  '[SyncQueue] ❌ Failed to migrate default animation player image ${component.id}: $e\n$stackTrace');
+              // Keep original with base64
             }
-          } catch (e, stackTrace) {
-            zlog(
-              level: Level.error,
-              data:
-                  '[SyncQueue] \u274c Failed to migrate default animation player image ${component.id}: $e\n$stackTrace',
-            );
-            // Keep original with base64
           }
         }
       }
@@ -509,41 +513,45 @@ class SyncQueueManager {
           final component = migratedComponents[i];
 
           // Migrate PlayerModel images
-          if (component is PlayerModel && component.needsImageMigration) {
-            try {
-              zlog(
-                level: Level.debug,
-                data:
-                    '[SyncQueue] Migrating player image: ${component.id} (${component.imageBase64?.length ?? 0} bytes base64)',
-              );
+          if (component is PlayerModel) {
+            // DEBUG: Log player image state
+            print('[SyncQueue] Collection player ${component.id}: '
+                'imageBase64=${component.imageBase64?.substring(0, math.min(50, component.imageBase64?.length ?? 0)) ?? "null"}..., '
+                'imageUrl=${component.imageUrl ?? "null"}, '
+                'imagePath=${component.imagePath ?? "null"}, '
+                'needsMigration=${component.needsImageMigration}');
 
-              final bytes =
-                  ImageConversionService.base64ToBytes(component.imageBase64);
-              if (bytes != null) {
-                final imageUrl = await _imageStorageService.uploadPlayerImage(
-                  userId: collection.userId,
-                  playerId: component.id,
-                  imageData: bytes,
-                );
+            if (component.needsImageMigration) {
+              try {
+                print(
+                    '[SyncQueue] Migrating player image: ${component.id} (${component.imageBase64?.length ?? 0} bytes base64)');
 
-                migratedComponents[i] = component.copyWith(imageUrl: imageUrl);
-                sceneChanged = true;
-                hasChanges = true;
+                final bytes =
+                    ImageConversionService.base64ToBytes(component.imageBase64);
+                if (bytes != null) {
+                  final imageUrl = await _imageStorageService.uploadPlayerImage(
+                    userId: collection.userId,
+                    playerId: component.id,
+                    imageData: bytes,
+                  );
 
-                zlog(
-                  level: Level.info,
-                  data:
-                      '[SyncQueue] ✅ Player image migrated: ${component.id} → $imageUrl (${bytes.length} bytes → ${imageUrl.length} bytes, saved ${bytes.length - imageUrl.length} bytes)',
-                );
+                  migratedComponents[i] =
+                      component.copyWith(imageUrl: imageUrl);
+                  sceneChanged = true;
+                  hasChanges = true;
+
+                  print(
+                      '[SyncQueue] ✅ Player image migrated: ${component.id} → $imageUrl (${bytes.length} bytes → ${imageUrl.length} bytes, saved ${bytes.length - imageUrl.length} bytes)');
+                } else {
+                  print(
+                      '[SyncQueue] Failed to convert base64 to bytes for player ${component.id}');
+                }
+              } catch (e, stackTrace) {
+                print(
+                    '[SyncQueue] ❌ Failed to migrate player image ${component.id}: $e\n$stackTrace. Keeping base64 as fallback.');
+                // Keep original component with base64 - don't fail entire sync
+                // This handles cases where upload fails due to network issues
               }
-            } catch (e, stackTrace) {
-              zlog(
-                level: Level.error,
-                data:
-                    '[SyncQueue] ❌ Failed to migrate player image ${component.id}: $e\n$stackTrace. Keeping base64 as fallback.',
-              );
-              // Keep original component with base64 - don't fail entire sync
-              // This handles cases where upload fails due to network issues
             }
           }
 
