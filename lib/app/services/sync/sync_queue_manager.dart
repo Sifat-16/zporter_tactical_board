@@ -270,21 +270,48 @@ class SyncQueueManager {
 
   /// Sync create or update operation
   Future<void> _syncCreateOrUpdate(SyncOperation operation) async {
-    // Get the animation collection from local storage
-    final collections = await _localDataSource.getAllAnimationCollection(
-      userId: operation.userId,
-    );
+    // Check data type from metadata
+    final dataType = operation.metadata?['dataType'] as String? ?? 'collection';
 
-    final collection = collections.firstWhere(
-      (c) => c.id == operation.collectionId,
-      orElse: () =>
-          throw Exception('Collection not found: ${operation.collectionId}'),
-    );
+    print('[SyncQueue] Syncing $dataType: ${operation.collectionId}');
 
-    // Save to remote (Firestore)
-    await _remoteDataSource.saveAnimationCollection(
-      animationCollectionModel: collection,
-    );
+    if (dataType == 'defaultAnimations') {
+      // Handle default animations sync
+      final defaultAnimations = await _localDataSource.getDefaultAnimations(
+        userId: operation.userId,
+      );
+
+      if (defaultAnimations.isEmpty) {
+        print(
+            '[SyncQueue] No default animations found for user ${operation.userId}');
+        return;
+      }
+
+      // Save to remote (Firestore)
+      await _remoteDataSource.saveDefaultAnimations(
+        animationItems: defaultAnimations,
+        userId: operation.userId,
+      );
+      print(
+          '[SyncQueue] Synced ${defaultAnimations.length} default animations');
+    } else {
+      // Handle animation collection sync (original logic)
+      final collections = await _localDataSource.getAllAnimationCollection(
+        userId: operation.userId,
+      );
+
+      final collection = collections.firstWhere(
+        (c) => c.id == operation.collectionId,
+        orElse: () =>
+            throw Exception('Collection not found: ${operation.collectionId}'),
+      );
+
+      // Save to remote (Firestore)
+      await _remoteDataSource.saveAnimationCollection(
+        animationCollectionModel: collection,
+      );
+      print('[SyncQueue] Synced collection ${collection.id}');
+    }
   }
 
   /// Sync delete operation

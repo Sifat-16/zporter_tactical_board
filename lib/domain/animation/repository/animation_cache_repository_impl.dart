@@ -531,32 +531,59 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
               "[Repo] Saved/Synced ${savedLocalItems.length} default items to LOCAL successfully (Offline).",
         );
 
-        // 2b. Trigger Remote Save Asynchronously
-        zlog(
-          level: Level.debug,
-          data:
-              "[Repo] Triggering background remote save/sync for default items (queued by Firestore)...",
-        );
-        _remoteDs
-            .saveDefaultAnimations(
-          animationItems: savedLocalItems,
-          userId: userId,
-        ) // Use locally saved items
-            .then((_) {
+        // 2b. Choose sync strategy based on feature flags
+        if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
+          // PHASE 2: Use sync queue with retry logic
           zlog(
             level: Level.debug,
             data:
-                "[Repo] Background remote save/sync ACKNOWLEDGED by SDK for default items.",
+                "[Repo] Phase 2: Enqueuing sync operation for default animations (user: $userId)...",
           );
-          // Optional: Update sync status for items locally if tracked
-        }).catchError((e, s) {
+          final syncOperation = SyncOperation(
+            id: RandomGenerator.generateId(),
+            type: SyncOperationType.update,
+            collectionId:
+                'default_animations_$userId', // Unique ID for this user's default animations
+            userId: userId,
+            priority: SyncPriority.high, // User-initiated action
+            createdAt: DateTime.now(),
+            metadata: {
+              'dataType': 'defaultAnimations',
+              'itemCount': savedLocalItems.length,
+            },
+          );
+          await _syncQueueManager.enqueue(syncOperation);
           zlog(
-            level: Level.error,
+            level: Level.info,
             data:
-                "[Repo] Background remote save/sync FAILED for default items: $e\n$s",
+                "[Repo] Sync operation enqueued for default animations. Will sync when online.",
           );
-          // TODO: Handle background failure if needed
-        });
+        } else {
+          // PHASE 1: Fire and forget (original behavior)
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Phase 1: Triggering background remote save for default animations (fire and forget)...",
+          );
+          _remoteDs
+              .saveDefaultAnimations(
+            animationItems: savedLocalItems,
+            userId: userId,
+          )
+              .then((_) {
+            zlog(
+              level: Level.debug,
+              data:
+                  "[Repo] Background remote save ACKNOWLEDGED by SDK for default animations.",
+            );
+          }).catchError((e, s) {
+            zlog(
+              level: Level.error,
+              data:
+                  "[Repo] Background remote save FAILED for default animations: $e\n$s",
+            );
+          });
+        }
 
         // 2c. Read back from Local to return consistent state
         final currentLocalItems = await _localDs.getDefaultAnimations(
@@ -762,18 +789,54 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
       try {
         await _localDs.saveAllDefaultAnimations(animations);
         zlog(
-          level: Level.debug,
-          data:
-              "[Repo] Triggering background remote save for all default animations...",
+          level: Level.info,
+          data: "[Repo] Saved all default animations to LOCAL successfully.",
         );
-        // Fire-and-forget the remote save
-        _remoteDs.saveAllDefaultAnimations(animations).catchError((e, s) {
+
+        // Use sync queue if available (need userId from animations)
+        if (FeatureFlags.enableSyncQueue &&
+            _syncQueueManager != null &&
+            animations.isNotEmpty) {
+          final userId =
+              animations.first.userId; // Get userId from first animation
           zlog(
-            level: Level.error,
+            level: Level.debug,
             data:
-                "[Repo] Background remote save FAILED for all default animations: $e\n$s",
+                "[Repo] Phase 2: Enqueuing sync operation for bulk default animations...",
           );
-        });
+          final syncOperation = SyncOperation(
+            id: RandomGenerator.generateId(),
+            type: SyncOperationType.update,
+            collectionId: 'default_animations_$userId',
+            userId: userId,
+            priority: SyncPriority.normal,
+            createdAt: DateTime.now(),
+            metadata: {
+              'dataType': 'defaultAnimations',
+              'itemCount': animations.length,
+            },
+          );
+          await _syncQueueManager.enqueue(syncOperation);
+          zlog(
+            level: Level.info,
+            data:
+                "[Repo] Sync operation enqueued for bulk default animations. Will sync when online.",
+          );
+        } else {
+          // Fire-and-forget fallback
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Triggering background remote save for all default animations...",
+          );
+          _remoteDs.saveAllDefaultAnimations(animations).catchError((e, s) {
+            zlog(
+              level: Level.error,
+              data:
+                  "[Repo] Background remote save FAILED for all default animations: $e\n$s",
+            );
+          });
+        }
       } catch (localError) {
         zlog(
           level: Level.error,
