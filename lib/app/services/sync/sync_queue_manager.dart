@@ -141,6 +141,7 @@ class SyncQueueManager {
   /// Process all pending operations in the queue
   Future<void> processQueue() async {
     if (_isProcessing) {
+      print('[SyncQueue] Already processing, skipping...');
       zlog(
         level: Level.debug,
         data: 'Sync queue already processing, skipping...',
@@ -148,6 +149,7 @@ class SyncQueueManager {
       return;
     }
 
+    print('[SyncQueue] Starting queue processing...');
     _isProcessing = true;
     _currentStatus = _currentStatus.copyWith(isSyncing: true);
     _statusController.add(_currentStatus);
@@ -161,6 +163,7 @@ class SyncQueueManager {
       );
       final snapshots = await _syncQueueStore.find(db, finder: finder);
 
+      print('[SyncQueue] Found ${snapshots.length} operations in queue');
       zlog(
         level: Level.info,
         data: 'Processing sync queue: ${snapshots.length} operations',
@@ -170,16 +173,24 @@ class SyncQueueManager {
         try {
           final operation = SyncOperation.fromJson(snapshot.value);
 
+          print(
+              '[SyncQueue] Operation ${snapshot.key}: status=${operation.status.name}, '
+              'type=${operation.type.name}, ready=${operation.isReadyToRetry}');
+
           // Skip if not ready to process
           if (operation.status == SyncOperationStatus.processing ||
               operation.status == SyncOperationStatus.completed ||
               !operation.isReadyToRetry) {
+            print('[SyncQueue] Skipping operation ${snapshot.key} (not ready)');
             continue;
           }
 
+          print('[SyncQueue] Processing operation ${snapshot.key}...');
           // Process the operation
           await _processOperation(db, snapshot.key, operation);
+          print('[SyncQueue] Operation ${snapshot.key} processed successfully');
         } catch (e, stackTrace) {
+          print('[SyncQueue] ERROR processing operation ${snapshot.key}: $e');
           zlog(
             level: Level.error,
             data:
