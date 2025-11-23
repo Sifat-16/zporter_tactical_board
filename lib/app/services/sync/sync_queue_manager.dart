@@ -299,13 +299,30 @@ class SyncQueueManager {
         return;
       }
 
-      // Save to remote (Firestore)
+      // CRITICAL FIX: Migrate default animation images before uploading
+      // This ensures base64 images convert to Firebase Storage URLs during sync
+      zlog(
+        level: Level.info,
+        data:
+            '[SyncQueue] Migrating default animations images (base64 → Firebase Storage URLs)...',
+      );
+      final migratedAnimations = await _migrateDefaultAnimationImages(
+          defaultAnimations, operation.userId);
+
+      // Save to remote (Firestore) with URLs instead of base64
       await _remoteDataSource.saveDefaultAnimations(
-        animationItems: defaultAnimations,
+        animationItems: migratedAnimations,
         userId: operation.userId,
       );
+
+      // Update local Sembast with migrated URLs to stay in sync
+      await _localDataSource.saveDefaultAnimations(
+        animationItems: migratedAnimations,
+        userId: operation.userId,
+      );
+
       print(
-          '[SyncQueue] Synced ${defaultAnimations.length} default animations');
+          '[SyncQueue] Synced ${migratedAnimations.length} default animations with migrated images');
     } else {
       // Handle animation collection sync (original logic)
       final collections = await _localDataSource.getAllAnimationCollection(
@@ -335,6 +352,109 @@ class SyncQueueManager {
       print(
           '[SyncQueue] Synced collection ${collection.id} with migrated images');
     }
+  }
+
+  /// Migrate default animation images from base64 to Firebase Storage URLs
+  /// This ensures default animations don't upload huge base64 to Firestore
+  Future<List<AnimationItemModel>> _migrateDefaultAnimationImages(
+    List<AnimationItemModel> animations,
+    String userId,
+  ) async {
+    // Check if image optimization is enabled
+    if (!FeatureFlags.enableImageOptimization ||
+        !FeatureFlags.enableAutoImageUpload ||
+        _imageStorageService == null) {
+      zlog(
+        level: Level.debug,
+        data:
+            '[SyncQueue] Image optimization disabled or service unavailable, skipping default animation migration',
+      );
+      return animations;
+    }
+
+    // Check connectivity
+    final isOnline = await ConnectivityService.checkRealtimeConnectivity();
+    if (!isOnline) {
+      zlog(
+        level: Level.warning,
+        data:
+            '[SyncQueue] OFFLINE during sync - skipping default animation migration',
+      );
+      return animations;
+    }
+
+    zlog(
+      level: Level.info,
+      data:
+          '[SyncQueue] Migrating ${animations.length} default animation items...',
+    );
+
+    final migratedAnimations = <AnimationItemModel>[];
+    bool hasChanges = false;
+
+    for (final animation in animations) {
+      final migratedComponents = [...animation.components];
+      bool animationChanged = false;
+
+      // Process each component in the animation
+      for (int i = 0; i < migratedComponents.length; i++) {
+        final component = migratedComponents[i];
+
+        // Migrate PlayerModel images
+        if (component is PlayerModel && component.needsImageMigration) {
+          try {
+            zlog(
+              level: Level.debug,
+              data:
+                  '[SyncQueue] Migrating default animation player image: ${component.id}',
+            );
+
+            final bytes =
+                ImageConversionService.base64ToBytes(component.imageBase64);
+            if (bytes != null) {
+              final imageUrl = await _imageStorageService.uploadPlayerImage(
+                userId: userId,
+                playerId: component.id,
+                imageData: bytes,
+              );
+
+              migratedComponents[i] = component.copyWith(imageUrl: imageUrl);
+              animationChanged = true;
+              hasChanges = true;
+
+              zlog(
+                level: Level.info,
+                data:
+                    '[SyncQueue] \u2705 Default animation player image migrated: ${component.id} \u2192 $imageUrl',
+              );
+            }
+          } catch (e, stackTrace) {
+            zlog(
+              level: Level.error,
+              data:
+                  '[SyncQueue] \u274c Failed to migrate default animation player image ${component.id}: $e\n$stackTrace',
+            );
+            // Keep original with base64
+          }
+        }
+      }
+
+      if (animationChanged) {
+        migratedAnimations
+            .add(animation.copyWith(components: migratedComponents));
+      } else {
+        migratedAnimations.add(animation);
+      }
+    }
+
+    if (hasChanges) {
+      zlog(
+        level: Level.info,
+        data: '[SyncQueue] \u2705 Default animation image migration complete!',
+      );
+    }
+
+    return migratedAnimations;
   }
 
   /// Migrate collection images from base64 to Firebase Storage URLs
