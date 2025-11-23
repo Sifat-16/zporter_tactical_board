@@ -109,11 +109,51 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
     List<AnimationCollectionModel> collections,
   ) async {
     try {
+      // CRITICAL FIX: Check for pending sync operations before overwriting
+      // If sync queue is available, get collections with unsynced changes
+      Set<String> collectionsWithPendingChanges = {};
+
+      if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
+        collectionsWithPendingChanges =
+            await _syncQueueManager.getPendingCollectionIds();
+
+        if (collectionsWithPendingChanges.isNotEmpty) {
+          zlog(
+            level: Level.warning,
+            data:
+                "[Repo] Found ${collectionsWithPendingChanges.length} collections with pending sync. Will NOT overwrite them.",
+          );
+        }
+      }
+
+      // Update only collections that don't have pending changes
+      int skippedCount = 0;
+      int updatedCount = 0;
+
       for (final collection in collections) {
+        // Skip collections with pending sync operations to preserve local changes
+        if (collectionsWithPendingChanges.contains(collection.id)) {
+          skippedCount++;
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Skipping collection ${collection.id} - has pending sync operations",
+          );
+          continue;
+        }
+
+        // Safe to update - no pending changes
         await _localDs.saveAnimationCollection(
           animationCollectionModel: collection,
         );
+        updatedCount++;
       }
+
+      zlog(
+        level: Level.info,
+        data:
+            "[Repo] Cache update complete: $updatedCount updated, $skippedCount skipped (pending sync)",
+      );
     } catch (e) {
       zlog(
         level: Level.error,

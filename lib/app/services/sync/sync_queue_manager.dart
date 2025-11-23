@@ -419,6 +419,64 @@ class SyncQueueManager {
     }
   }
 
+  /// Check if a specific collection has pending sync operations
+  /// Returns true if there are unsynced changes for this collection
+  Future<bool> hasPendingChanges(String collectionId) async {
+    try {
+      final db = await SemDB.database;
+      final finder = Finder(
+        filter: Filter.and([
+          Filter.equals('collectionId', collectionId),
+          Filter.or([
+            Filter.equals('status', SyncOperationStatus.pending.name),
+            Filter.equals('status', SyncOperationStatus.processing.name),
+            Filter.equals('status', SyncOperationStatus.failed.name),
+          ]),
+        ]),
+      );
+      final snapshots = await _syncQueueStore.find(db, finder: finder);
+      return snapshots.isNotEmpty;
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data:
+            'Error checking pending changes for $collectionId: $e\n$stackTrace',
+      );
+      // On error, assume there might be pending changes (safer)
+      return true;
+    }
+  }
+
+  /// Get all collection IDs that have pending sync operations
+  /// Useful for bulk checking to avoid overwriting unsynced data
+  Future<Set<String>> getPendingCollectionIds() async {
+    try {
+      final db = await SemDB.database;
+      final finder = Finder(
+        filter: Filter.or([
+          Filter.equals('status', SyncOperationStatus.pending.name),
+          Filter.equals('status', SyncOperationStatus.processing.name),
+          Filter.equals('status', SyncOperationStatus.failed.name),
+        ]),
+      );
+      final snapshots = await _syncQueueStore.find(db, finder: finder);
+      final collectionIds = <String>{};
+
+      for (final snapshot in snapshots) {
+        final operation = SyncOperation.fromJson(snapshot.value);
+        collectionIds.add(operation.collectionId);
+      }
+
+      return collectionIds;
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: 'Error getting pending collection IDs: $e\n$stackTrace',
+      );
+      return {};
+    }
+  }
+
   /// Dispose resources
   void dispose() {
     _statusController.close();
