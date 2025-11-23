@@ -167,6 +167,37 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   Future<List<AnimationItemModel>> getDefaultAnimations({
     required String userId,
   }) async {
+    // CRITICAL FIX: Check if there are pending sync operations for default animations
+    // If yes, return from LOCAL to avoid overwriting unsynced changes
+    if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
+      final hasPending = await _syncQueueManager
+          .hasPendingChanges('default_animations_$userId');
+      if (hasPending) {
+        zlog(
+          level: Level.warning,
+          data:
+              "[Repo] GET Default Animations: PENDING SYNC detected for user $userId. Returning LOCAL data to preserve unsynced changes.",
+        );
+        try {
+          final localItems =
+              await _localDs.getDefaultAnimations(userId: userId);
+          zlog(
+            level: Level.info,
+            data:
+                "[Repo] Returning ${localItems.length} default animations from LOCAL (has pending sync).",
+          );
+          return localItems;
+        } catch (localError) {
+          zlog(
+            level: Level.error,
+            data:
+                "[Repo] Failed to read local default animations despite pending sync: $localError",
+          );
+          // Continue to try remote as fallback
+        }
+      }
+    }
+
     zlog(
       level: Level.debug,
       data:
