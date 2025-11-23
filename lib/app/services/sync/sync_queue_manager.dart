@@ -2,10 +2,19 @@ import 'dart:async';
 import 'package:logger/logger.dart';
 import 'package:sembast/sembast.dart';
 import 'package:zporter_tactical_board/app/config/database/local/semDB.dart';
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
+import 'package:zporter_tactical_board/app/services/storage/image_conversion_service.dart';
+import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
 import 'package:zporter_tactical_board/app/services/sync/models/sync_operation.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/local/animation_local_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/remote/animation_remote_datasource_impl.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 
 /// Status of the sync queue
 class SyncQueueStatus {
@@ -75,6 +84,7 @@ class SyncQueueManager {
   // Local and remote datasources
   final AnimationLocalDatasourceImpl _localDataSource;
   final AnimationRemoteDatasourceImpl _remoteDataSource;
+  final ImageStorageService? _imageStorageService;
 
   // Status stream controller
   final _statusController = StreamController<SyncQueueStatus>.broadcast();
@@ -91,8 +101,10 @@ class SyncQueueManager {
   SyncQueueManager({
     required AnimationLocalDatasourceImpl localDataSource,
     required AnimationRemoteDatasourceImpl remoteDataSource,
+    ImageStorageService? imageStorageService,
   })  : _localDataSource = localDataSource,
-        _remoteDataSource = remoteDataSource;
+        _remoteDataSource = remoteDataSource,
+        _imageStorageService = imageStorageService;
 
   /// Stream of sync queue status updates
   Stream<SyncQueueStatus> get statusStream => _statusController.stream;
@@ -306,12 +318,152 @@ class SyncQueueManager {
             throw Exception('Collection not found: ${operation.collectionId}'),
       );
 
-      // Save to remote (Firestore)
+      // CRITICAL FIX: Migrate images before uploading to Firestore
+      // This ensures base64 images convert to Firebase Storage URLs during sync
+      final migratedCollection = await _migrateCollectionImages(collection);
+
+      // Save to remote (Firestore) with URLs instead of base64
       await _remoteDataSource.saveAnimationCollection(
-        animationCollectionModel: collection,
+        animationCollectionModel: migratedCollection,
       );
-      print('[SyncQueue] Synced collection ${collection.id}');
+
+      // Update local Sembast with migrated URLs to stay in sync
+      await _localDataSource.saveAnimationCollection(
+        animationCollectionModel: migratedCollection,
+      );
+
+      print(
+          '[SyncQueue] Synced collection ${collection.id} with migrated images');
     }
+  }
+
+  /// Migrate collection images from base64 to Firebase Storage URLs
+  /// This is the CRITICAL FIX that ensures images upload during sync
+  Future<AnimationCollectionModel> _migrateCollectionImages(
+    AnimationCollectionModel collection,
+  ) async {
+    // Check if image optimization is enabled
+    if (!FeatureFlags.enableImageOptimization ||
+        !FeatureFlags.enableAutoImageUpload ||
+        _imageStorageService == null) {
+      zlog(
+        level: Level.debug,
+        data:
+            '[SyncQueue] Image optimization disabled or service unavailable, skipping migration for ${collection.id}',
+      );
+      return collection;
+    }
+
+    // Check connectivity - sync queue should only process when online
+    final isOnline = await ConnectivityService.checkRealtimeConnectivity();
+    if (!isOnline) {
+      zlog(
+        level: Level.warning,
+        data:
+            '[SyncQueue] OFFLINE during sync - this should not happen! Skipping image migration for ${collection.id}',
+      );
+      return collection;
+    }
+
+    zlog(
+      level: Level.info,
+      data:
+          '[SyncQueue] Migrating images for collection ${collection.id} (base64 → Firebase Storage URLs)...',
+    );
+
+    bool hasChanges = false;
+    final migratedAnimations = <AnimationModel>[];
+
+    // Process each animation in the collection
+    for (final animation in collection.animations) {
+      final migratedScenes = <AnimationItemModel>[];
+      bool animationChanged = false;
+
+      // Process each scene in the animation
+      for (final scene in animation.animationScenes) {
+        final migratedComponents = [...scene.components];
+        bool sceneChanged = false;
+
+        // Process each component in the scene
+        for (int i = 0; i < migratedComponents.length; i++) {
+          final component = migratedComponents[i];
+
+          // Migrate PlayerModel images
+          if (component is PlayerModel && component.needsImageMigration) {
+            try {
+              zlog(
+                level: Level.debug,
+                data:
+                    '[SyncQueue] Migrating player image: ${component.id} (${component.imageBase64?.length ?? 0} bytes base64)',
+              );
+
+              final bytes =
+                  ImageConversionService.base64ToBytes(component.imageBase64);
+              if (bytes != null) {
+                final imageUrl = await _imageStorageService.uploadPlayerImage(
+                  userId: collection.userId,
+                  playerId: component.id,
+                  imageData: bytes,
+                );
+
+                migratedComponents[i] = component.copyWith(imageUrl: imageUrl);
+                sceneChanged = true;
+                hasChanges = true;
+
+                zlog(
+                  level: Level.info,
+                  data:
+                      '[SyncQueue] ✅ Player image migrated: ${component.id} → $imageUrl (${bytes.length} bytes → ${imageUrl.length} bytes, saved ${bytes.length - imageUrl.length} bytes)',
+                );
+              }
+            } catch (e, stackTrace) {
+              zlog(
+                level: Level.error,
+                data:
+                    '[SyncQueue] ❌ Failed to migrate player image ${component.id}: $e\n$stackTrace. Keeping base64 as fallback.',
+              );
+              // Keep original component with base64 - don't fail entire sync
+              // This handles cases where upload fails due to network issues
+            }
+          }
+
+          // Migrate EquipmentModel images (if needed in future)
+          if (component is EquipmentModel && component.needsImageMigration) {
+            // Equipment currently uses local asset paths, not user-uploaded images
+            // Skip migration for now unless we add support for user-uploaded equipment images
+          }
+        }
+
+        if (sceneChanged) {
+          migratedScenes.add(scene.copyWith(components: migratedComponents));
+          animationChanged = true;
+        } else {
+          migratedScenes.add(scene);
+        }
+      }
+
+      if (animationChanged) {
+        migratedAnimations
+            .add(animation.copyWith(animationScenes: migratedScenes));
+      } else {
+        migratedAnimations.add(animation);
+      }
+    }
+
+    if (hasChanges) {
+      zlog(
+        level: Level.info,
+        data:
+            '[SyncQueue] ✅ Collection ${collection.id} image migration complete! Uploading URLs to Firestore instead of base64.',
+      );
+      return collection.copyWith(animations: migratedAnimations);
+    }
+
+    zlog(
+      level: Level.debug,
+      data: '[SyncQueue] No images needed migration in ${collection.id}',
+    );
+    return collection;
   }
 
   /// Sync delete operation

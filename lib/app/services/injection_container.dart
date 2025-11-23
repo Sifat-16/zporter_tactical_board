@@ -101,6 +101,9 @@ Future<void> initializeTacticBoardDependencies() async {
     () => SyncQueueManager(
       localDataSource: AnimationLocalDatasourceImpl(),
       remoteDataSource: AnimationRemoteDatasourceImpl(),
+      imageStorageService: FeatureFlags.enableImageOptimization
+          ? ImageStorageService()
+          : null, // Only inject if image optimization is enabled
     ),
   );
 
