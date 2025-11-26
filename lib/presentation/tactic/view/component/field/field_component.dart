@@ -39,7 +39,7 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
   T object;
 
   SelectionBorder? selectionBorder;
-  bool _isRotationHandleDragged = false;
+  bool isRotationHandleDragged = false;
   bool _isSelected = false;
 
   FieldComponent({super.priority = 1, required this.object});
@@ -76,9 +76,37 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
-    if (!_isRotationHandleDragged) {
+    if (!isRotationHandleDragged) {
       position += event.canvasDelta;
+
+      // Update trajectory endpoint in real-time if trajectory editing is active
+      _updateTrajectoryEndpoint();
     }
+  }
+
+  /// Update trajectory endpoint when component position changes
+  void _updateTrajectoryEndpoint() {
+    final trajectoryMgr = game.trajectoryManager;
+    if (trajectoryMgr == null) return;
+
+    // Convert screen position to logical position
+    final fieldSize = game.gameField.size;
+    final fieldPosition = game.gameField.position;
+
+    // Get component center in screen coordinates
+    final componentCenter = center - Vector2(10, 10);
+
+    // Remove field offset
+    final relativeToField = componentCenter - fieldPosition;
+
+    // Convert to logical coordinates
+    final logicalPosition = Vector2(
+      relativeToField.x / fieldSize.x,
+      relativeToField.y / fieldSize.y,
+    );
+
+    // Update the trajectory endpoint
+    trajectoryMgr.updateTrajectoryEndpoint(logicalPosition);
   }
 
   @override
@@ -149,7 +177,7 @@ abstract class FieldComponent<T extends FieldItemModel> extends SpriteComponent
 
   @override
   void setRotationHandleDragged(bool value) {
-    _isRotationHandleDragged = value;
+    isRotationHandleDragged = value;
   }
 
   @override

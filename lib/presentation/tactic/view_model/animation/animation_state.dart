@@ -22,67 +22,87 @@ class AnimationState {
   int defaultAnimationItemIndex;
   List<AnimationItemModel> defaultAnimationItems;
   bool isPerformingUndo;
+  List<AnimationCollectionModel> adminTemplatesCache;
+  bool showLoadingOnSave;
+  bool skipHistorySave; // Flag to skip history saving during undo restoration
+  bool?
+      _isRecordingAnimation; // Flag to indicate video recording is in progress
+
+  // Safe getter that always returns a non-null bool
+  bool get isRecordingAnimation => _isRecordingAnimation ?? false;
 
   // Constructor remains the same, prefer const if possible
-  AnimationState({
-    this.selectedAnimationCollectionModel,
-    this.animationCollections = const [],
-    this.isLoadingAnimationCollections = false,
-    this.animations = const [],
-    this.selectedAnimationModel,
-    this.selectedScene,
-    this.showNewCollectionInput = false,
-    this.showAnimation = false,
-    this.showNewAnimationInput = false,
-    this.showQuickSave = false,
-    this.defaultAnimationItemIndex = 0,
-    this.defaultAnimationItems = const [],
-    this.isPerformingUndo = false,
-  });
+  AnimationState(
+      {this.selectedAnimationCollectionModel,
+      this.animationCollections = const [],
+      this.isLoadingAnimationCollections = false,
+      this.animations = const [],
+      this.selectedAnimationModel,
+      this.selectedScene,
+      this.showNewCollectionInput = false,
+      this.showAnimation = false,
+      this.showNewAnimationInput = false,
+      this.showQuickSave = false,
+      this.defaultAnimationItemIndex = 0,
+      this.defaultAnimationItems = const [],
+      this.isPerformingUndo = false,
+      this.showLoadingOnSave = false,
+      this.adminTemplatesCache = const [],
+      this.skipHistorySave = false,
+      bool isRecordingAnimation = false})
+      : _isRecordingAnimation = isRecordingAnimation;
 
-  AnimationState copyWith({
-    // Parameter type changed to Object?, defaults to sentinel
-    Object? selectedAnimationCollectionModel = _sentinel,
-    List<AnimationCollectionModel>? animationCollections,
-    bool? isLoadingAnimationCollections,
-    List<AnimationModel>? animations,
-    Object? selectedAnimationModel = _sentinel,
-    Object? selectedScene = _sentinel,
-    bool? showAnimation,
-    bool? showNewCollectionInput,
-    bool? showNewAnimationInput,
-    bool? showQuickSave,
-    int? defaultAnimationItemIndex,
-    List<AnimationItemModel>? defaultAnimationItems,
-    bool? isPerformingUndo,
-  }) {
+  AnimationState copyWith(
+      {
+      // Parameter type changed to Object?, defaults to sentinel
+      Object? selectedAnimationCollectionModel = _sentinel,
+      List<AnimationCollectionModel>? animationCollections,
+      bool? isLoadingAnimationCollections,
+      List<AnimationModel>? animations,
+      Object? selectedAnimationModel = _sentinel,
+      Object? selectedScene = _sentinel,
+      bool? showAnimation,
+      bool? showNewCollectionInput,
+      bool? showNewAnimationInput,
+      bool? showQuickSave,
+      int? defaultAnimationItemIndex,
+      List<AnimationItemModel>? defaultAnimationItems,
+      bool? isPerformingUndo,
+      List<AnimationCollectionModel>? adminTemplatesCache,
+      bool? showLoadingOnSave,
+      bool? skipHistorySave,
+      bool? isRecordingAnimation}) {
     return AnimationState(
-      selectedAnimationCollectionModel:
-          selectedAnimationCollectionModel == _sentinel
-              ? this.selectedAnimationCollectionModel
-              : selectedAnimationCollectionModel as AnimationCollectionModel?,
-      animationCollections: animationCollections ?? this.animationCollections,
-      isLoadingAnimationCollections:
-          isLoadingAnimationCollections ?? this.isLoadingAnimationCollections,
-      animations: animations ?? this.animations,
-      selectedAnimationModel: selectedAnimationModel == _sentinel
-          ? this.selectedAnimationModel
-          : selectedAnimationModel as AnimationModel?,
-      selectedScene: selectedScene == _sentinel
-          ? this.selectedScene
-          : selectedScene as AnimationItemModel?,
-      showAnimation: showAnimation ?? this.showAnimation,
-      showNewCollectionInput:
-          showNewCollectionInput ?? this.showNewCollectionInput,
-      showNewAnimationInput:
-          showNewAnimationInput ?? this.showNewAnimationInput,
-      showQuickSave: showQuickSave ?? this.showQuickSave,
-      defaultAnimationItemIndex:
-          defaultAnimationItemIndex ?? this.defaultAnimationItemIndex,
-      defaultAnimationItems:
-          defaultAnimationItems ?? this.defaultAnimationItems,
-      isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
-    );
+        selectedAnimationCollectionModel:
+            selectedAnimationCollectionModel == _sentinel
+                ? this.selectedAnimationCollectionModel
+                : selectedAnimationCollectionModel as AnimationCollectionModel?,
+        animationCollections: animationCollections ?? this.animationCollections,
+        isLoadingAnimationCollections:
+            isLoadingAnimationCollections ?? this.isLoadingAnimationCollections,
+        animations: animations ?? this.animations,
+        selectedAnimationModel: selectedAnimationModel == _sentinel
+            ? this.selectedAnimationModel
+            : selectedAnimationModel as AnimationModel?,
+        selectedScene: selectedScene == _sentinel
+            ? this.selectedScene
+            : selectedScene as AnimationItemModel?,
+        showAnimation: showAnimation ?? this.showAnimation,
+        showNewCollectionInput:
+            showNewCollectionInput ?? this.showNewCollectionInput,
+        showNewAnimationInput:
+            showNewAnimationInput ?? this.showNewAnimationInput,
+        showQuickSave: showQuickSave ?? this.showQuickSave,
+        defaultAnimationItemIndex:
+            defaultAnimationItemIndex ?? this.defaultAnimationItemIndex,
+        defaultAnimationItems:
+            defaultAnimationItems ?? this.defaultAnimationItems,
+        isPerformingUndo: isPerformingUndo ?? this.isPerformingUndo,
+        adminTemplatesCache: adminTemplatesCache ?? this.adminTemplatesCache,
+        showLoadingOnSave: showLoadingOnSave ?? this.showLoadingOnSave,
+        skipHistorySave: skipHistorySave ?? this.skipHistorySave,
+        isRecordingAnimation:
+            isRecordingAnimation ?? this._isRecordingAnimation ?? false);
   }
 
   // --- CORRECTED Equality and HashCode ---

@@ -32,7 +32,7 @@ mixin ItemManagement on TacticBoardGame {
   @override
   addItem(FieldItemModel item, {bool save = true}) async {
     // --- Exact code from original TacticBoard.addItem ---
-    item = item.copyWith();
+    // item = item.copyWith();
     if (item is PlayerModel) {
       add(PlayerComponent(object: item)); // add() is available via FlameGame
     } else if (item is EquipmentModel) {
@@ -54,6 +54,12 @@ mixin ItemManagement on TacticBoardGame {
     // }
     if (save) {
       ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
+
+      // Phase 1: Trigger immediate save after adding component
+      if (this is TacticBoard) {
+        (this as TacticBoard).triggerImmediateSave(
+            reason: 'Component added: ${item.runtimeType}');
+      }
     }
     // --- End of exact code ---
   }
@@ -140,6 +146,12 @@ mixin ItemManagement on TacticBoardGame {
     if (component != null) {
       remove(component); // remove() is available via FlameGame
       ref.read(boardProvider.notifier).removeElementComplete();
+
+      // Phase 1: Trigger immediate save after removing component
+      if (this is TacticBoard) {
+        (this as TacticBoard).triggerImmediateSave(
+            reason: 'Component removed: ${itemToDelete?.runtimeType}');
+      }
     }
     // --- End of exact code ---
   }
@@ -195,9 +207,16 @@ mixin ItemManagement on TacticBoardGame {
   void addInitialItems(List<FieldItemModel> initialItems) async {
     zlog(data: "Initial items ${initialItems}");
 
-    ref.read(boardProvider.notifier).clearItems();
-    for (var f in initialItems) {
-      await addItem(f);
+    // ref.read(boardProvider.notifier).clearItems();
+    // for (var f in initialItems) {
+    //   await addItem(f);
+    // }
+
+    final itemsToDraw =
+        initialItems.where((t) => t is! FreeDrawModelV2).toList();
+
+    for (FieldItemModel i in itemsToDraw) {
+      await addItem(i, save: false); // <-- THIS IS THE FIX. Must be save: false
     }
     _addFreeDrawing(
       lines: initialItems

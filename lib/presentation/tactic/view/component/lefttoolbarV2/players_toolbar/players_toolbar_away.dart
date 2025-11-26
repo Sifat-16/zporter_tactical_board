@@ -13,6 +13,7 @@ import 'package:zporter_tactical_board/data/admin/model/default_lineup_model.dar
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/lineup_view_model/lineup_controller.dart';
+import 'package:zporter_tactical_board/presentation/tactic/services/lineup_arrangement_service.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 // --- NOTE: LineupArrangementDialog is no longer imported as it's not used here.
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
@@ -100,7 +101,8 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
           sourcePlayers: sanitizedPlayers, // Use the corrected list
           fieldPlayers: bp.players,
-        )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+        )..sort((a, b) => (a.displayNumber ?? a.jerseyNumber)
+            .compareTo(b.displayNumber ?? b.jerseyNumber));
 
         final String searchTerm = _searchController.text.toLowerCase();
         if (_isSearching && searchTerm.isNotEmpty) {
@@ -127,11 +129,17 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                   PlayerModel player = activeToolbarPlayers[index];
                   return GestureDetector(
                       onDoubleTap: () async {
-                        await PlayerUtilsV2.showEditPlayerDialog(
+                        final result = await PlayerUtilsV2.showEditPlayerDialog(
                           context: context,
                           player: player,
                           showReplace: false,
                         );
+
+                        if (result is PlayerUpdateResult) {
+                          // The dialog returned an updated player, now we save it.
+                          await PlayerUtilsV2.updatePlayerInDb(
+                              result.updatedPlayer);
+                        }
                       },
                       child: PlayerComponentV2(playerModel: player));
                 }),
@@ -201,20 +209,22 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
         CustomButton(
           borderRadius: 3,
           onTap: () {
-            // --- START: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
-            TacticBoard? tacticBoard =
+            final TacticBoard? tacticBoard =
                 boardState.tacticBoardGame as TacticBoard?;
-            AnimationItemModel? scene = selectedLineUp?.scene;
+            final AnimationItemModel? scene = selectedLineUp?.scene;
 
             if (scene == null || tacticBoard == null) {
               BotToast.showText(text: "Please select a lineup first.");
               return;
             }
 
-            final List<PlayerModel> homeTemplatePlayers =
+            // --- EXTRA STEP FOR AWAY TEAM: MIRROR THE TEMPLATE ---
+            final List<PlayerModel> homeTemplatePositions =
                 scene.components.whereType<PlayerModel>().toList();
-            List<PlayerModel> targetAwayPositions = [];
-            for (final homePlayer in homeTemplatePlayers) {
+
+            final List<PlayerModel> mirroredPositions =
+                homeTemplatePositions.map((homePlayer) {
+              // Your existing, correct mirroring logic.
               Vector2 mirroredOffset = Vector2(
                 1 -
                     ((homePlayer.offset?.x ?? 0) -
@@ -232,85 +242,40 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
                             ).y /
                             2)),
               );
-              targetAwayPositions.add(
-                homePlayer.copyWith(
-                  offset: mirroredOffset,
-                  playerType: PlayerType.AWAY,
-                ),
-              );
-            }
+              return homePlayer.copyWith(offset: mirroredOffset);
+            }).toList();
 
-            playersOnField
-                .sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-            final List<PlayerModel> sortedBench = List.from(benchPlayers)
-              ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+            final mirroredScene = scene.copyWith(components: mirroredPositions);
 
-            final Map<String, PlayerModel> uniquePlayers = {};
-            for (var p in playersOnField) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            for (var p in sortedBench) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            final List<PlayerModel> availablePlayers =
-                uniquePlayers.values.toList();
+            // --- 1. GATHER DATA & CREATE INPUT (using the mirrored scene) ---
+            final input = LineupArrangementInput(
+              currentPlayersOnField: playersOnField,
+              currentPlayersOnBench: benchPlayers,
+              targetFormationTemplate:
+                  mirroredScene, // Use the mirrored version
+            );
 
-            final List<PlayerModel> finalLineup = [];
-            final Set<String> assignedPlayerIds = {};
+            // --- 2. CREATE AND CALL THE SERVICE ---
+            final arranger = LineupArrangementService();
+            final result = arranger.arrange(input);
 
-            for (final targetPos in targetAwayPositions) {
-              final roleMatchIndex = availablePlayers.indexWhere((p) =>
-                  !assignedPlayerIds.contains(p.id) &&
-                  p.role == targetPos.role);
+            // --- 3. APPLY THE CLEAN RESULT TO THE BOARD (identical to Home team) ---
+            final Set<String> finalPlayerIds =
+                result.finalLineup.map((p) => p.id).toSet();
 
-              if (roleMatchIndex != -1) {
-                final playerToAssign = availablePlayers[roleMatchIndex];
-                finalLineup
-                    .add(playerToAssign.copyWith(offset: targetPos.offset));
-                assignedPlayerIds.add(playerToAssign.id);
-              }
-            }
-
-            final unassignedPositions = targetAwayPositions
-                .where((tp) => !finalLineup.any((p) => p.offset == tp.offset))
-                .toList();
-
-            final remainingPlayers = availablePlayers
-                .where((p) => !assignedPlayerIds.contains(p.id))
-                .toList();
-
-            for (int i = 0; i < unassignedPositions.length; i++) {
-              if (i < remainingPlayers.length) {
-                final playerToAssign = remainingPlayers[i];
-                finalLineup.add(playerToAssign.copyWith(
-                    offset: unassignedPositions[i].offset));
-                assignedPlayerIds.add(playerToAssign.id);
-              }
-            }
-
-            final Set<String> originalPlayerIdsOnField =
-                playersOnField.map((p) => p.id).toSet();
-            final Set<String> finalPlayerIdsInLineup =
-                finalLineup.map((p) => p.id).toSet();
-
-            final Set<String> idsToRemove =
-                originalPlayerIdsOnField.difference(finalPlayerIdsInLineup);
             final List<PlayerModel> playersToRemove = playersOnField
-                .where((p) => idsToRemove.contains(p.id))
+                .where((p) => !finalPlayerIds.contains(p.id))
                 .toList();
 
             if (playersToRemove.isNotEmpty) {
               tacticBoard.removeFieldItems(playersToRemove);
             }
 
-            for (final newPlayerState in finalLineup) {
-              tacticBoard.removeFieldItems([newPlayerState]);
-              tacticBoard.addItem(newPlayerState);
+            for (final playerState in result.finalLineup) {
+              tacticBoard.removeFieldItems([playerState]);
+              tacticBoard.addItem(playerState);
             }
-            zlog(
-                data:
-                    "Applied ${finalLineup.length} away players to the field.");
-            // --- END: DIRECT-APPLICATION LOGIC FOR AWAY TEAM ---
+            zlog(data: "AWAY board update complete via Service.");
           },
           fillColor: ColorManager.blue,
           child: Text(

@@ -1,10 +1,1388 @@
-import 'dart:async' as a;
+// import 'dart:async' as a;
+// import 'dart:math';
+// import 'package:flame/components.dart';
+// import 'package:flutter/material.dart';
+// import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
+// import 'package:zporter_tactical_board/app/helper/logger.dart';
+// import 'package:zporter_tactical_board/app/helper/size_helper.dart';
+// import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+// import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+// import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/board/game_field.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/ball_trail_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+//
+// class AnimatingObj {
+//   final bool isAnimating;
+//   final bool isExporting;
+//   AnimatingObj({required this.isAnimating, required this.isExporting});
+//   factory AnimatingObj.animate() {
+//     return AnimatingObj(isAnimating: true, isExporting: false);
+//   }
+//   factory AnimatingObj.export() {
+//     return AnimatingObj(isAnimating: false, isExporting: true);
+//   }
+// }
+//
+// abstract class ComponentAnimation {
+//   final PositionComponent component;
+//   final FieldItemModel itemModel;
+//   bool get isMoving;
+//   ComponentAnimation({required this.component, required this.itemModel});
+//   bool update(double dt);
+//   void stop();
+//   void pause();
+//   void resume();
+// }
+//
+// // PASTE THIS NEW CLASS IN ITS PLACE
+// // In your file with AnimationPlaybackMixin...
+//
+// class ArcingAnimation extends ComponentAnimation {
+//   final Vector2 startPosition;
+//   final Vector2 targetPosition;
+//   final double duration;
+//   double _elapsedTime = 0;
+//   bool _isPaused = false;
+//   late final double arcHeight;
+//   final double sizeMultiplier;
+//   final Vector2 originalSize;
+//   static const double AIR_ROTATION_SPEED_RADS_PER_SEC = 0.5;
+//   final BallSpin spin;
+//   final TacticBoardGame game;
+//   BallTrailComponent? _trailComponent;
+//
+//   // ADDED: Timer for spawning segments, now controlled here.
+//   late final Timer _spawnTimer;
+//   static const double spawnInterval = 0.02;
+//
+//   @override
+//   bool get isMoving => _elapsedTime < duration && !_isPaused;
+//
+//   ArcingAnimation({
+//     required super.component,
+//     required super.itemModel,
+//     required this.targetPosition,
+//     required this.duration,
+//     required this.game,
+//     this.sizeMultiplier = 1.3,
+//   })  : startPosition = component.position.clone(),
+//         originalSize = component.size.clone(),
+//         spin = (itemModel as EquipmentModel).spin ?? BallSpin.none {
+//     final distance = startPosition.distanceTo(targetPosition);
+//     arcHeight = (distance * 0.12).clamp(20.0, 120.0);
+//
+//     // ADDED: Initialize the trail and the timer here.
+//     if (component is EquipmentComponent) {
+//       _trailComponent =
+//           BallTrailComponent(ball: component as EquipmentComponent);
+//       game.add(_trailComponent!);
+//
+//       // The timer calls the trail's public spawnSegment method.
+//       _spawnTimer = Timer(
+//         spawnInterval,
+//         onTick: () => _trailComponent?.spawnSegment(),
+//         repeat: true,
+//       );
+//     }
+//   }
+//
+//   @override
+//   bool update(double dt) {
+//     if (_isPaused || duration <= 0) return false;
+//     _elapsedTime += dt;
+//     double progress = (_elapsedTime / duration).clamp(0.0, 1.0);
+//
+//     // [ ... The existing logic for calculating groundPosition and currentAltitude ... ]
+//     // This part is unchanged.
+//     Vector2 groundPosition;
+//     double currentAltitude;
+//     switch (spin) {
+//       case BallSpin.left:
+//         groundPosition = startPosition.clone()..lerp(targetPosition, progress);
+//         currentAltitude = arcHeight * sin(progress * pi);
+//         break;
+//       case BallSpin.right:
+//         groundPosition = startPosition.clone()..lerp(targetPosition, progress);
+//         currentAltitude = -arcHeight * sin(progress * pi);
+//         break;
+//       // case BallSpin.knuckleball:
+//       //   currentAltitude = arcHeight * sin(progress * pi);
+//       //   final linearPosition = startPosition.clone()
+//       //     ..lerp(targetPosition, progress);
+//       //   final diff = targetPosition - startPosition;
+//       //   final perpendicular = Vector2(diff.y, -diff.x).normalized();
+//       //   final wobble = sin(progress * pi * 3) * (originalSize.x * 0.5);
+//       //   groundPosition = linearPosition + (perpendicular * wobble);
+//       //   break;
+//
+//       case BallSpin.knuckleball:
+//         // Altitude still follows a standard upward arc
+//         currentAltitude = arcHeight * sin(progress * pi);
+//
+//         // NEW: Use a cubic Bezier S-curve for a smoother, more deliberate wave
+//         final diff = targetPosition - startPosition;
+//         final perpendicular = Vector2(diff.y, -diff.x).normalized();
+//         // This controls how wide the "S" curve is
+//         final curveAmount = diff.length * 0.15;
+//
+//         // Define two control points to create the "S" shape
+//         final controlPoint1 =
+//             startPosition + (diff * 0.5) + (perpendicular * curveAmount);
+//         final controlPoint2 =
+//             startPosition + (diff * 0.5) - (perpendicular * curveAmount);
+//
+//         // Cubic Bezier curve formula
+//         final t = progress;
+//         final oneMinusT = 1 - t;
+//         groundPosition = (startPosition * (oneMinusT * oneMinusT * oneMinusT)) +
+//             (controlPoint1 * (3 * (oneMinusT * oneMinusT) * t)) +
+//             (controlPoint2 * (3 * oneMinusT * (t * t))) +
+//             (targetPosition * (t * t * t));
+//         break;
+//       case BallSpin.none:
+//       default:
+//         groundPosition = startPosition.clone()..lerp(targetPosition, progress);
+//         currentAltitude = arcHeight * sin(progress * pi);
+//         break;
+//     }
+//
+//     // === CRITICAL CHANGE LOCATION ===
+//     // First, update the ball's position.
+//     component.position = groundPosition;
+//     double arcFactor = sin(progress * pi);
+//     double currentSize =
+//         originalSize.x * (1 + (sizeMultiplier - 1) * arcFactor);
+//
+//     if (component is EquipmentComponent) {
+//       (component as EquipmentComponent).altitude = currentAltitude;
+//       (component as EquipmentComponent).visualSize = Vector2.all(currentSize);
+//     }
+//
+//     component.angle += AIR_ROTATION_SPEED_RADS_PER_SEC * dt;
+//
+//     // Second, AFTER the ball has moved, update the timer to spawn a segment.
+//     _spawnTimer.update(dt);
+//     // === END OF CRITICAL CHANGE ===
+//
+//     if (_elapsedTime >= duration) {
+//       stop();
+//       return true;
+//     }
+//     return false;
+//   }
+//
+//   // The rest of the ArcingAnimation class (stop, pause, resume) remains the same.
+//   @override
+//   void stop() {
+//     _trailComponent?.removeFromParent();
+//     _trailComponent = null;
+//     _elapsedTime = duration;
+//     component.position.setFrom(targetPosition);
+//     if (component is EquipmentComponent) {
+//       (component as EquipmentComponent).altitude = 0;
+//       (component as EquipmentComponent).visualSize = originalSize;
+//     }
+//   }
+//
+//   @override
+//   void pause() => _isPaused = true;
+//   @override
+//   void resume() => _isPaused = false;
+// }
+//
+// class ManualVelocityAnimation extends ComponentAnimation {
+//   static const double arrivalThresholdSquared = 1.0;
+//   Vector2 _targetPosition;
+//   double _speedMagnitude;
+//   Vector2 _velocity;
+//   bool _isPaused = false;
+//   ManualVelocityAnimation(
+//       {required super.component,
+//       required super.itemModel,
+//       required Vector2 initialTargetPositionGameCoords,
+//       required double speedMagnitude})
+//       : _targetPosition = initialTargetPositionGameCoords,
+//         _speedMagnitude = speedMagnitude,
+//         _velocity = Vector2.zero() {
+//     _recalculateVelocity();
+//   }
+//   @override
+//   bool get isMoving => _velocity.length2 > 0 && !_isPaused;
+//   void _recalculateVelocity() {
+//     final direction = (_targetPosition - component.position);
+//     if (direction.length2 > arrivalThresholdSquared) {
+//       _velocity = direction.normalized() * _speedMagnitude;
+//     } else {
+//       _velocity = Vector2.zero();
+//     }
+//   }
+//
+//   @override
+//   bool update(double dt) {
+//     if (!isMoving) return true;
+//     final displacement = _velocity * dt;
+//     if ((_targetPosition - component.position).length2 < displacement.length2) {
+//       component.position.setFrom(_targetPosition);
+//       _velocity = Vector2.zero();
+//       return true;
+//     } else {
+//       component.position += displacement;
+//     }
+//     return false;
+//   }
+//
+//   void moveTo(Vector2 newTargetPosition) {
+//     _targetPosition = newTargetPosition;
+//     _recalculateVelocity();
+//   }
+//
+//   void updateSpeedMagnitude(double newSpeed) {
+//     _speedMagnitude = newSpeed;
+//     _recalculateVelocity();
+//   }
+//
+//   @override
+//   void stop() {
+//     _velocity = Vector2.zero();
+//     component.position.setFrom(_targetPosition);
+//   }
+//
+//   @override
+//   void pause() => _isPaused = true;
+//   @override
+//   void resume() => _isPaused = false;
+// }
+//
+// mixin AnimationPlaybackMixin on TacticBoardGame {
+//   late TacticBoard _tacticBoard;
+//   static const double VERY_LARGE_DT_THRESHOLD = 0.1;
+//   static const double REASONABLE_TIME_STEP_AFTER_FREEZE = 1.0 / 30.0;
+//   static const double BASE_BALL_ROTATION_SPEED_RADS_PER_SEC = 2 * 3.14159;
+//   late AnimationModel animationModel;
+//   late bool autoPlay;
+//   late bool isForExportMode;
+//   late Function(double progress)? onExportProgressUpdate;
+//   List<FieldItemModel> _components = [];
+//   bool _isAnimationPlaying = false;
+//
+//   // These are the only two needed, with the correct definitions.
+//   @override
+//   bool get isAnimationCurrentlyPlaying => _isAnimationPlaying;
+//   bool _isAnimationPaused = false;
+//   @override
+//   bool get isAnimationCurrentlyPaused => _isAnimationPaused;
+//
+//   double _scenePaceFactor = 1.0;
+//   int _currentSceneIndex = 0;
+//   bool _wasHardResetRecently = false;
+//   a.Timer? _sceneProgressionTimer;
+//   Duration _baseSceneDelay = const Duration(milliseconds: 500);
+//   final List<ComponentAnimation> _activeAnimations = [];
+//   Set<String> _activeMovingItemIdsInCurrentScene = {};
+//   bool _currentSceneDelayTimerActive = false;
+//
+//   void startAnimation({
+//     required AnimationModel am,
+//     bool ap = false,
+//     bool isForE = false,
+//     Function(double progress)? onExportP,
+//   }) {
+//     WidgetsBinding.instance.addPostFrameCallback((t) {
+//       performStopAnimation(hardReset: true);
+//       animationModel = am;
+//       autoPlay = ap;
+//       isForExportMode = isForE;
+//       onExportProgressUpdate = onExportP;
+//       if (isForExportMode) {
+//         _scenePaceFactor = 2.0;
+//       }
+//       _tacticBoard = (this as TacticBoard);
+//       _tacticBoard.isAnimating = false;
+//       _tacticBoard.removeAll(children.whereType<FieldComponent>());
+//       if (animationModel.animationScenes.isEmpty) {
+//         _isAnimationPlaying = false;
+//         return;
+//       }
+//       if (autoPlay) {
+//         _setupInitialSceneStatically();
+//         performStartAnimationFromBeginning();
+//       } else {
+//         _setupInitialSceneStatically();
+//         _isAnimationPlaying = false;
+//         _isAnimationPaused = false;
+//         _currentSceneIndex = 0;
+//         _wasHardResetRecently = false;
+//       }
+//     });
+//   }
+//
+//   @override
+//   void update(double dt) {
+//     double effectiveDt = dt;
+//     if (dt > VERY_LARGE_DT_THRESHOLD) {
+//       effectiveDt = REASONABLE_TIME_STEP_AFTER_FREEZE;
+//     }
+//     if (effectiveDt <= 0) {
+//       effectiveDt = 1.0 / 60.0;
+//     }
+//     super.update(effectiveDt);
+//     if (_isAnimationPlaying && !_isAnimationPaused && !this.paused) {
+//       bool anAnimationCompletedThisFrame = false;
+//       for (int i = _activeAnimations.length - 1; i >= 0; i--) {
+//         final anim = _activeAnimations[i];
+//         if (anim.component is EquipmentComponent) {
+//           final equipmentComponent = anim.component as EquipmentComponent;
+//           final equipmentModel = equipmentComponent.object;
+//           if (equipmentModel.name == "BALL" &&
+//               anim.isMoving &&
+//               !equipmentModel.isAerialArrival) {
+//             double rotationThisFrame = BASE_BALL_ROTATION_SPEED_RADS_PER_SEC *
+//                 effectiveDt *
+//                 _scenePaceFactor;
+//             equipmentComponent.angle -= rotationThisFrame;
+//           }
+//         }
+//         if (anim.update(effectiveDt)) {
+//           _activeMovingItemIdsInCurrentScene.remove(anim.itemModel.id);
+//           _activeAnimations.removeAt(i);
+//           anAnimationCompletedThisFrame = true;
+//         }
+//       }
+//       if (anAnimationCompletedThisFrame ||
+//           (_activeAnimations.isEmpty &&
+//               _activeMovingItemIdsInCurrentScene.isEmpty)) {
+//         _checkSceneCompletionAndProceed();
+//       }
+//     }
+//   }
+//
+//   double get currentScenePaceFactor => _scenePaceFactor;
+//
+//   @override
+//   void performStartAnimationFromBeginning() {
+//     if (_wasHardResetRecently) {
+//       _wasHardResetRecently = false;
+//     }
+//     if (paused) resumeEngine();
+//     _isAnimationPlaying = true;
+//     _isAnimationPaused = false;
+//     _currentSceneIndex = 0;
+//     _clearAllAnimations();
+//     _activeMovingItemIdsInCurrentScene.clear();
+//     _currentSceneDelayTimerActive = false;
+//     _sceneProgressionTimer?.cancel();
+//     _proceedToNextScene();
+//   }
+//
+//   @override
+//   Future<void> performResumeAnimation() async {
+//     if (!_isAnimationPlaying || !_isAnimationPaused) return;
+//     _isAnimationPaused = false;
+//     if (isMounted && this.paused) {
+//       this.resumeEngine();
+//       await Future.delayed(Duration.zero);
+//     }
+//     for (final anim in _activeAnimations) anim.resume();
+//     _checkSceneCompletionAndProceed();
+//   }
+//
+//   @override
+//   void performPauseAnimation() {
+//     if (!_isAnimationPlaying || !_isAnimationPaused) {
+//       if (_isAnimationPlaying &&
+//           _isAnimationPaused &&
+//           isMounted &&
+//           !this.paused) this.pauseEngine();
+//       _isAnimationPaused = true;
+//       _sceneProgressionTimer?.cancel();
+//       _currentSceneDelayTimerActive = false;
+//       return;
+//     }
+//     _isAnimationPaused = true;
+//     _sceneProgressionTimer?.cancel();
+//     _currentSceneDelayTimerActive = false;
+//     for (final anim in _activeAnimations) anim.pause();
+//     if (isMounted && !paused) pauseEngine();
+//   }
+//
+//   @override
+//   void performStopAnimation({bool hardReset = false}) {
+//     if (paused) resumeEngine();
+//     _isAnimationPlaying = false;
+//     _isAnimationPaused = false;
+//     _sceneProgressionTimer?.cancel();
+//     _currentSceneDelayTimerActive = false;
+//     _clearAllAnimations();
+//     _activeMovingItemIdsInCurrentScene.clear();
+//     _currentSceneIndex = 0;
+//     _scenePaceFactor = 1;
+//     if (hardReset) {
+//     } else {
+//       WidgetsBinding.instance.addPostFrameCallback((t) {
+//         _tacticBoard.removeAll(children.whereType<FieldComponent>());
+//         ref.read(boardProvider.notifier).toggleAnimating(animatingObj: null);
+//         _tacticBoard.addInitialItems(_tacticBoard.scene?.components ?? []);
+//         _tacticBoard.isAnimating = false;
+//       });
+//     }
+//   }
+//
+//   @override
+//   void performSetAnimationPace(double newPaceFactor) {
+//     if (newPaceFactor <= 0.0) return;
+//     final oldPaceFactor = _scenePaceFactor;
+//     _scenePaceFactor = newPaceFactor;
+//     if (oldPaceFactor > 0 &&
+//         oldPaceFactor != newPaceFactor &&
+//         _isAnimationPlaying &&
+//         !_isAnimationPaused) {
+//       double paceScaleFactor = newPaceFactor / oldPaceFactor;
+//       for (final anim in _activeAnimations) {
+//         if (anim is ManualVelocityAnimation) {
+//           double newIndividualSpeed = anim._speedMagnitude * paceScaleFactor;
+//           anim.updateSpeedMagnitude(newIndividualSpeed);
+//         }
+//       }
+//     }
+//   }
+//
+//   @override
+//   void performHardResetAnimation() {
+//     performStopAnimation(hardReset: true);
+//     final List<Component> componentsToRemove = children
+//         .where(
+//           (child) =>
+//               child is PlayerComponent ||
+//               child is EquipmentComponent ||
+//               child is LineDrawerComponentV2 ||
+//               child is SquareShapeDrawerComponent ||
+//               child is CircleShapeDrawerComponent ||
+//               child is PolygonShapeDrawerComponent ||
+//               child is TextFieldComponent,
+//         )
+//         .toList();
+//     if (componentsToRemove.isNotEmpty) removeAll(componentsToRemove);
+//     _components.clear();
+//     if (isLoaded && children.contains(drawingBoard)) {
+//       drawingBoard.loadLines([], suppressNotification: true);
+//     }
+//     _wasHardResetRecently = true;
+//     _isAnimationPlaying = false;
+//     _isAnimationPaused = false;
+//     _setupInitialSceneStatically();
+//   }
+//
+//   @override
+//   Color backgroundColor() {
+//     return (ColorManager.white).withAlpha(128);
+//   }
+//
+//   addItemForAnimation(FieldItemModel item, {bool save = true}) async {
+//     if (item is PlayerModel) {
+//       add(PlayerComponent(object: item));
+//     } else if (item is EquipmentModel) {
+//       add(EquipmentComponent(object: item));
+//     } else if (item is LineModelV2) {
+//       await add(LineDrawerComponentV2(lineModelV2: item));
+//     } else if (item is CircleShapeModel) {
+//       await add(CircleShapeDrawerComponent(circleModel: item));
+//     } else if (item is SquareShapeModel) {
+//       await add(SquareShapeDrawerComponent(squareModel: item));
+//     } else if (item is PolygonShapeModel) {
+//       await add(PolygonShapeDrawerComponent(polygonModel: item));
+//     } else if (item is TextModel) {
+//       await add(TextFieldComponent(object: item));
+//     }
+//   }
+//
+//   void _clearAllAnimations() {
+//     for (var anim in _activeAnimations) anim.stop();
+//     _activeAnimations.clear();
+//   }
+//
+//   Component? _findComponentByModelId(String modelId) {
+//     return children.firstWhereOrNull((c) {
+//       if (c is PlayerComponent) return c.object.id == modelId;
+//       if (c is EquipmentComponent) return c.object.id == modelId;
+//       if (c is LineDrawerComponentV2) return c.lineModelV2.id == modelId;
+//       if (c is SquareShapeDrawerComponent) return c.squareModel.id == modelId;
+//       if (c is CircleShapeDrawerComponent) return c.circleModel.id == modelId;
+//       if (c is PolygonShapeDrawerComponent) return c.polygonModel.id == modelId;
+//       if (c is TextFieldComponent) return c.object.id == modelId;
+//       return false;
+//     });
+//   }
+//
+//   void _startOrUpdateComponentAnimation({
+//     required PositionComponent component,
+//     required FieldItemModel itemModel,
+//     required Vector2 targetPositionInGameCoords,
+//     required double duration,
+//   }) {
+//     var existingAnim = _activeAnimations.firstWhereOrNull(
+//       (a) => a.component == component,
+//     );
+//     bool alreadyAtTarget =
+//         (component.position - targetPositionInGameCoords).length2 <
+//             ManualVelocityAnimation.arrivalThresholdSquared;
+//     if (alreadyAtTarget) {
+//       component.position.setFrom(targetPositionInGameCoords);
+//       if (existingAnim != null) {
+//         existingAnim.stop();
+//         _activeAnimations.remove(existingAnim);
+//       }
+//       _activeMovingItemIdsInCurrentScene.remove(itemModel.id);
+//       return;
+//     }
+//     if (itemModel is EquipmentModel &&
+//         itemModel.name == "BALL" &&
+//         itemModel.isAerialArrival) {
+//       if (existingAnim != null) {
+//         _activeAnimations.remove(existingAnim);
+//       }
+//       final arcingAnim = ArcingAnimation(
+//         component: component,
+//         itemModel: itemModel,
+//         targetPosition: targetPositionInGameCoords,
+//         duration: duration,
+//         game: this,
+//       );
+//       _activeAnimations.add(arcingAnim);
+//       if (arcingAnim.isMoving) {
+//         _activeMovingItemIdsInCurrentScene.add(itemModel.id);
+//       }
+//     } else {
+//       double distance =
+//           (targetPositionInGameCoords - component.position).length;
+//       double requiredSpeed =
+//           (distance > 0.01 && duration > 0) ? (distance / duration) : 0;
+//       if (requiredSpeed < 0.01 && !alreadyAtTarget) {
+//         component.position.setFrom(targetPositionInGameCoords);
+//         if (existingAnim != null) {
+//           existingAnim.stop();
+//           _activeAnimations.remove(existingAnim);
+//         }
+//         _activeMovingItemIdsInCurrentScene.remove(itemModel.id);
+//         return;
+//       }
+//       if (existingAnim is ManualVelocityAnimation) {
+//         existingAnim.updateSpeedMagnitude(requiredSpeed);
+//         existingAnim.moveTo(targetPositionInGameCoords);
+//       } else {
+//         if (existingAnim != null) _activeAnimations.remove(existingAnim);
+//         existingAnim = ManualVelocityAnimation(
+//           component: component,
+//           itemModel: itemModel,
+//           initialTargetPositionGameCoords: targetPositionInGameCoords,
+//           speedMagnitude: requiredSpeed,
+//         );
+//         _activeAnimations.add(existingAnim);
+//       }
+//       if (existingAnim.isMoving) {
+//         _activeMovingItemIdsInCurrentScene.add(itemModel.id);
+//       } else {
+//         _activeMovingItemIdsInCurrentScene.remove(itemModel.id);
+//       }
+//     }
+//   }
+//
+//   Future<void> _setupInitialSceneStatically() async {
+//     if (animationModel.animationScenes.isEmpty) return;
+//     _currentSceneIndex = 0;
+//     AnimationItemModel firstScene = animationModel.animationScenes[0];
+//     _activeMovingItemIdsInCurrentScene.clear();
+//     _currentSceneDelayTimerActive = false;
+//     _sceneProgressionTimer?.cancel();
+//     _clearAllAnimations();
+//     final List<Component> componentsToRemove = children
+//         .where(
+//           (child) => !(child is GameField || child is DrawingBoardComponent),
+//         )
+//         .toList();
+//     if (componentsToRemove.isNotEmpty) removeAll(componentsToRemove);
+//     _components.clear();
+//     List<FreeDrawModelV2> freeLines =
+//         firstScene.components.whereType<FreeDrawModelV2>().toList();
+//     List<FreeDrawModelV2> processedFreeLines = freeLines.map((e) {
+//       var cloned = e.clone();
+//       cloned.points = cloned.points
+//           .map(
+//             (p) => SizeHelper.getBoardActualVector(
+//               gameScreenSize: _tacticBoard.gameField.size,
+//               actualPosition: p,
+//             ),
+//           )
+//           .toList();
+//       return cloned;
+//     }).toList();
+//     drawingBoard.loadLines(processedFreeLines, suppressNotification: true);
+//     List<Future<void>> addItemFutures = [];
+//     for (var itemModel in firstScene.components) {
+//       if (itemModel is FreeDrawModelV2) continue;
+//       addItemFutures.add(
+//         addItemForAnimation(itemModel).then((_) async {
+//           await Future.delayed(Duration.zero);
+//           Component? comp = _findComponentByModelId(itemModel.id);
+//           if (comp is PositionComponent && itemModel.offset != null) {
+//             comp.position = SizeHelper.getBoardActualVector(
+//               gameScreenSize: _tacticBoard.gameField.size,
+//               actualPosition: itemModel.offset!,
+//             );
+//           }
+//         }),
+//       );
+//     }
+//     await Future.wait(addItemFutures);
+//     await Future.delayed(Duration.zero);
+//   }
+//
+//   Future<void> _processScene(AnimationItemModel animationItem) async {
+//     if (_wasHardResetRecently || (this.paused && _isAnimationPaused)) return;
+//     if (!_isAnimationPlaying || _isAnimationPaused) return;
+//     List<FieldItemModel> itemsDefinedInCurrentScene = animationItem.components;
+//     Set<String> idsInCurrentScene =
+//         itemsDefinedInCurrentScene.map((e) => e.id).toSet();
+//     _activeMovingItemIdsInCurrentScene.clear();
+//     _currentSceneDelayTimerActive = false;
+//     _sceneProgressionTimer?.cancel();
+//     List<Component> flameComponentsToRemove = [];
+//     for (var component in List.from(children)) {
+//       if (component is GameField || component is DrawingBoardComponent)
+//         continue;
+//       String? componentModelId = _getComponentModelId(component);
+//       if (componentModelId != null &&
+//           !idsInCurrentScene.contains(componentModelId)) {
+//         flameComponentsToRemove.add(component);
+//       }
+//     }
+//     if (flameComponentsToRemove.isNotEmpty) {
+//       for (var compToRemove in flameComponentsToRemove) {
+//         _activeAnimations.removeWhere(
+//           (anim) => anim.component == compToRemove,
+//         );
+//         String? idToRemove = _getComponentModelId(compToRemove);
+//         if (idToRemove != null)
+//           _components.removeWhere((m) => m.id == idToRemove);
+//         remove(compToRemove);
+//       }
+//       await Future.delayed(Duration.zero);
+//     }
+//     List<FreeDrawModelV2> freeLinesInCurrentScene =
+//         itemsDefinedInCurrentScene.whereType<FreeDrawModelV2>().toList();
+//     List<FreeDrawModelV2> processedFreeLines = freeLinesInCurrentScene.map((e) {
+//       var cloned = e.clone();
+//       cloned.points = cloned.points
+//           .map(
+//             (p) => SizeHelper.getBoardActualVector(
+//               gameScreenSize: _tacticBoard.gameField.size,
+//               actualPosition: p,
+//             ),
+//           )
+//           .toList();
+//       return cloned;
+//     }).toList();
+//     drawingBoard.loadLines(processedFreeLines, suppressNotification: true);
+//     List<Future<void>> addItemFutures = [];
+//     List<Map<String, dynamic>> componentsToAnimateDetails = [];
+//     for (var itemModel in itemsDefinedInCurrentScene) {
+//       if (itemModel is FreeDrawModelV2) continue;
+//       if (!_isAnimationPlaying) break;
+//       Component? existingComponent = _findComponentByModelId(itemModel.id);
+//       if (existingComponent == null) {
+//         addItemFutures.add(
+//           addItemForAnimation(itemModel).then((_) async {
+//             await Future.delayed(Duration.zero);
+//             Component? newComp = _findComponentByModelId(itemModel.id);
+//             if (newComp is PositionComponent) {
+//               Vector2 initialPos = itemModel.offset != null
+//                   ? SizeHelper.getBoardActualVector(
+//                       gameScreenSize: _tacticBoard.gameField.size,
+//                       actualPosition: itemModel.offset!,
+//                     )
+//                   : newComp.position;
+//               newComp.position = initialPos;
+//               if ((newComp is PlayerComponent ||
+//                       newComp is EquipmentComponent) &&
+//                   itemModel.offset != null) {
+//                 componentsToAnimateDetails.add({
+//                   'component': newComp,
+//                   'itemModel': itemModel,
+//                   'targetModelOffset': itemModel.offset!,
+//                 });
+//               }
+//             }
+//           }),
+//         );
+//       } else {
+//         if (existingComponent is PositionComponent) {
+//           bool isPlayerOrEquipment = existingComponent is PlayerComponent ||
+//               existingComponent is EquipmentComponent;
+//           if (isPlayerOrEquipment && existingComponent is FieldComponent) {
+//             (existingComponent).object = itemModel;
+//             if (itemModel.offset != null) {
+//               Vector2 targetPos = SizeHelper.getBoardActualVector(
+//                 gameScreenSize: _tacticBoard.gameField.size,
+//                 actualPosition: itemModel.offset!,
+//               );
+//               if ((existingComponent.position - targetPos).length2 >
+//                   ManualVelocityAnimation.arrivalThresholdSquared) {
+//                 componentsToAnimateDetails.add({
+//                   'component': existingComponent,
+//                   'itemModel': itemModel,
+//                   'targetModelOffset': itemModel.offset!,
+//                 });
+//               } else {
+//                 existingComponent.position.setFrom(targetPos);
+//                 _activeAnimations.removeWhere(
+//                   (anim) => anim.component == existingComponent,
+//                 );
+//               }
+//             } else {
+//               _activeAnimations.removeWhere(
+//                 (anim) => anim.component == existingComponent,
+//               );
+//             }
+//           } else {
+//             FieldItemModel? currentComponentModelInComponent =
+//                 _getModelFromComponent(existingComponent);
+//             if (currentComponentModelInComponent != null &&
+//                 itemModel == currentComponentModelInComponent) {
+//               if (itemModel.offset != null) {
+//                 existingComponent.position = SizeHelper.getBoardActualVector(
+//                   gameScreenSize: _tacticBoard.gameField.size,
+//                   actualPosition: itemModel.offset!,
+//                 );
+//               }
+//             } else {
+//               _activeAnimations.removeWhere(
+//                 (anim) => anim.component == existingComponent,
+//               );
+//               addItemFutures.add(() async {
+//                 if (existingComponent.isMounted) remove(existingComponent);
+//                 await Future.delayed(Duration.zero);
+//                 await addItemForAnimation(itemModel);
+//                 Component? newShapeComp = _findComponentByModelId(itemModel.id);
+//                 if (newShapeComp is PositionComponent &&
+//                     itemModel.offset != null) {
+//                   newShapeComp.position = SizeHelper.getBoardActualVector(
+//                     gameScreenSize: _tacticBoard.gameField.size,
+//                     actualPosition: itemModel.offset!,
+//                   );
+//                 }
+//               }());
+//             }
+//           }
+//         }
+//       }
+//     }
+//     await Future.wait(addItemFutures);
+//     await Future.delayed(Duration.zero);
+//     if (itemsDefinedInCurrentScene.isNotEmpty &&
+//         componentsToAnimateDetails.isNotEmpty) {
+//       double currentSceneConfiguredDurationSeconds =
+//           animationItem.sceneDuration.inMilliseconds / 1000.0;
+//       double actualSceneMovementDurationSeconds =
+//           currentSceneConfiguredDurationSeconds / _scenePaceFactor;
+//       if (actualSceneMovementDurationSeconds <= 0.01)
+//         actualSceneMovementDurationSeconds = 0.01;
+//       for (var detail in componentsToAnimateDetails) {
+//         PositionComponent component = detail['component'];
+//         FieldItemModel itemModel = detail['itemModel'];
+//         Vector2 targetModelOffset = detail['targetModelOffset'];
+//         Vector2 targetPositionGameCoords = SizeHelper.getBoardActualVector(
+//           gameScreenSize: _tacticBoard.gameField.size,
+//           actualPosition: targetModelOffset,
+//         );
+//         double finalDuration = actualSceneMovementDurationSeconds;
+//         if (itemModel is EquipmentModel && itemModel.name == "BALL") {
+//           final speedMultiplier = itemModel.passSpeedMultiplier ?? 1.0;
+//           if (speedMultiplier > 0) {
+//             finalDuration =
+//                 actualSceneMovementDurationSeconds / speedMultiplier;
+//           }
+//         }
+//         _startOrUpdateComponentAnimation(
+//           component: component,
+//           itemModel: itemModel,
+//           targetPositionInGameCoords: targetPositionGameCoords,
+//           duration: finalDuration,
+//         );
+//       }
+//     }
+//     _checkSceneCompletionAndProceed();
+//   }
+//
+//   String? _getComponentModelId(Component component) {
+//     if (component is PlayerComponent) return component.object.id;
+//     if (component is EquipmentComponent) return component.object.id;
+//     if (component is LineDrawerComponentV2) return component.lineModelV2.id;
+//     if (component is SquareShapeDrawerComponent)
+//       return component.squareModel.id;
+//     if (component is CircleShapeDrawerComponent)
+//       return component.circleModel.id;
+//     if (component is PolygonShapeDrawerComponent)
+//       return component.polygonModel.id;
+//     if (component is TextFieldComponent) return component.object.id;
+//     return null;
+//   }
+//
+//   FieldItemModel? _getModelFromComponent(Component component) {
+//     if (component is PlayerComponent) return component.object;
+//     if (component is EquipmentComponent) return component.object;
+//     if (component is LineDrawerComponentV2) return component.lineModelV2;
+//     if (component is SquareShapeDrawerComponent) return component.squareModel;
+//     if (component is CircleShapeDrawerComponent) return component.circleModel;
+//     if (component is PolygonShapeDrawerComponent) return component.polygonModel;
+//     if (component is TextFieldComponent) return component.object;
+//     return null;
+//   }
+//
+//   void _checkSceneCompletionAndProceed() {
+//     if (_wasHardResetRecently ||
+//         !_isAnimationPlaying ||
+//         _isAnimationPaused ||
+//         _currentSceneDelayTimerActive) return;
+//     if (_activeMovingItemIdsInCurrentScene.isEmpty) {
+//       if (isForExportMode && animationModel.animationScenes.isNotEmpty) {
+//         int completedSceneCount = _currentSceneIndex;
+//         double progress = completedSceneCount /
+//             animationModel.animationScenes.length.toDouble();
+//         onExportProgressUpdate?.call(progress.clamp(0.0, 1.0));
+//       }
+//       _currentSceneDelayTimerActive = true;
+//       final int delayMilliseconds = (_baseSceneDelay.inMilliseconds);
+//       if (delayMilliseconds <= 0) {
+//         _currentSceneDelayTimerActive = false;
+//         Future.delayed(Duration.zero, () {
+//           if (_isAnimationPlaying &&
+//               !_isAnimationPaused &&
+//               !_wasHardResetRecently) _proceedToNextScene();
+//         });
+//         return;
+//       }
+//       _sceneProgressionTimer = a.Timer(
+//         Duration(milliseconds: delayMilliseconds),
+//         () {
+//           _currentSceneDelayTimerActive = false;
+//           if (_isAnimationPlaying &&
+//               !_isAnimationPaused &&
+//               !_wasHardResetRecently) _proceedToNextScene();
+//         },
+//       );
+//     }
+//   }
+//
+//   void _proceedToNextScene() {
+//     if (_wasHardResetRecently) {
+//       _isAnimationPlaying = false;
+//       _isAnimationPaused = false;
+//       return;
+//     }
+//     _sceneProgressionTimer?.cancel();
+//     _currentSceneDelayTimerActive = false;
+//     if (_isAnimationPaused || !_isAnimationPlaying) return;
+//     if (isMounted && paused) resumeEngine();
+//     if (_currentSceneIndex < animationModel.animationScenes.length) {
+//       final AnimationItemModel sceneToProcess =
+//           animationModel.animationScenes[_currentSceneIndex];
+//       _currentSceneIndex++;
+//       if (isForExportMode && animationModel.animationScenes.isNotEmpty) {
+//         double progress = (_currentSceneIndex - 1) /
+//             animationModel.animationScenes.length.toDouble();
+//         if (_currentSceneIndex == 1 &&
+//             _activeMovingItemIdsInCurrentScene.isEmpty &&
+//             !_currentSceneDelayTimerActive) {
+//           progress = 0.05;
+//         }
+//         onExportProgressUpdate?.call(progress.clamp(0.0, 1.0));
+//       }
+//       _processScene(sceneToProcess);
+//     }
+//     // else {
+//     //   _isAnimationPlaying = false;
+//     //   if (isForExportMode) {
+//     //     onExportProgressUpdate?.call(1.0);
+//     //   }
+//     // }
+//     else {
+//       // Animation sequence has finished.
+//       _isAnimationPlaying = false;
+//
+//       // 1. ALWAYS notify the UI widget that the animation is complete.
+//       onExportProgressUpdate?.call(1.0);
+//
+//       // 2. Automatically reset the animation to the first scene.
+//       // We only do this for normal playback, not for video exports.
+//       if (!isForExportMode) {
+//         performHardResetAnimation();
+//       }
+//     }
+//   }
+//
+//   void setInterSceneDelayDuration(Duration newDelay) {
+//     _baseSceneDelay = newDelay;
+//   }
+// }
 
+/// 2nd working
+
+// import 'dart:async' as a;
+// import 'dart:math';
+// import 'dart:ui' as ui;
+// import 'package:flame/components.dart';
+// import 'package:flutter/material.dart';
+// import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
+// import 'package:zporter_tactical_board/app/helper/logger.dart';
+// import 'package:zporter_tactical_board/app/helper/size_helper.dart';
+// import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+// import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
+// import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/line_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+// import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/board/game_field.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
+// import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+//
+// class AnimatingObj {
+//   final bool isAnimating;
+//   final bool isExporting;
+//   AnimatingObj({required this.isAnimating, required this.isExporting});
+//   factory AnimatingObj.animate() {
+//     return AnimatingObj(isAnimating: true, isExporting: false);
+//   }
+//   factory AnimatingObj.export() {
+//     return AnimatingObj(isAnimating: false, isExporting: true);
+//   }
+// }
+//
+// enum PlaybackState {
+//   stopped,
+//   playing,
+//   paused,
+//   scrubbing,
+// }
+//
+// mixin AnimationPlaybackMixin on TacticBoardGame {
+//   bool _isRendering = false;
+//   late TacticBoard _tacticBoard;
+//   AnimationModel? animationModel;
+//   late bool isForExportMode;
+//   late Function(double progress)? onExportProgressUpdate;
+//
+//   PlaybackState _playbackState = PlaybackState.stopped;
+//   double _scenePaceFactor = 1.0;
+//   Duration _currentTotalElapsedTime = Duration.zero;
+//
+//   @override
+//   bool get isAnimationCurrentlyPlaying =>
+//       _playbackState == PlaybackState.playing;
+//   @override
+//   bool get isAnimationCurrentlyPaused =>
+//       _playbackState == PlaybackState.paused ||
+//       _playbackState == PlaybackState.scrubbing;
+//
+//   void startAnimation({
+//     required AnimationModel am,
+//     bool ap = false,
+//     bool isForE = false,
+//     Function(double progress)? onExportP,
+//   }) {
+//     WidgetsBinding.instance.addPostFrameCallback((t) {
+//       animationModel = am;
+//       isForExportMode = isForE;
+//       onExportProgressUpdate = onExportP;
+//       _tacticBoard = (this as TacticBoard);
+//       _playbackState = PlaybackState.stopped;
+//       _currentTotalElapsedTime = Duration.zero;
+//
+//       _renderStateForTime(Duration.zero);
+//
+//       if (isForExportMode) {
+//         performStartAnimationFromBeginning();
+//       }
+//     });
+//   }
+//
+//   @override
+//   void update(double dt) {
+//     if (_isRendering) return;
+//     super.update(dt);
+//
+//     if (_playbackState == PlaybackState.playing) {
+//       final timeStep =
+//           Duration(microseconds: (dt * 1000000 * _scenePaceFactor).round());
+//       _currentTotalElapsedTime += timeStep;
+//
+//       final totalDuration = _totalAnimationDuration;
+//       if (_currentTotalElapsedTime >= totalDuration) {
+//         _currentTotalElapsedTime = totalDuration;
+//         _playbackState = PlaybackState.stopped;
+//         onExportProgressUpdate?.call(1.0);
+//       }
+//       _renderStateForTime(_currentTotalElapsedTime);
+//     }
+//   }
+//
+//   Duration get _totalAnimationDuration {
+//     if (!isLoaded ||
+//         animationModel == null ||
+//         animationModel!.animationScenes.isEmpty) {
+//       return Duration.zero;
+//     }
+//     return animationModel!.animationScenes.fold(
+//       Duration.zero,
+//       (previousValue, scene) => previousValue + scene.sceneDuration,
+//     );
+//   }
+//
+//   double get currentAnimationProgress {
+//     if (!isLoaded) return 0.0;
+//     final totalMs = _totalAnimationDuration.inMilliseconds;
+//     if (totalMs == 0) return 0.0;
+//     final currentMs = _currentTotalElapsedTime.inMilliseconds;
+//     return (currentMs / totalMs).clamp(0.0, 1.0);
+//   }
+//
+//   // Future<void> _renderStateForTime(Duration targetTime) async {
+//   //   if (!isLoaded ||
+//   //       animationModel == null ||
+//   //       animationModel!.animationScenes.isEmpty) return;
+//   //
+//   //   final totalDuration = _totalAnimationDuration;
+//   //   if (targetTime > totalDuration) targetTime = totalDuration;
+//   //
+//   //   Duration cumulativeTime = Duration.zero;
+//   //   int sceneIndex = -1;
+//   //   for (int i = 0; i < animationModel!.animationScenes.length; i++) {
+//   //     final scene = animationModel!.animationScenes[i];
+//   //     if (targetTime <= cumulativeTime + scene.sceneDuration ||
+//   //         i == animationModel!.animationScenes.length - 1) {
+//   //       sceneIndex = i;
+//   //       break;
+//   //     }
+//   //     cumulativeTime += scene.sceneDuration;
+//   //   }
+//   //   if (sceneIndex == -1) return;
+//   //
+//   //   final currentScene = animationModel!.animationScenes[sceneIndex];
+//   //   final prevScene =
+//   //       sceneIndex > 0 ? animationModel!.animationScenes[sceneIndex - 1] : null;
+//   //
+//   //   removeAll(children
+//   //       .whereType<PositionComponent>()
+//   //       .where((c) => c is! GameField && c is! DrawingBoardComponent));
+//   //
+//   //   final timeIntoScene = targetTime - cumulativeTime;
+//   //   double intraSceneProgress = 0.0;
+//   //   if (currentScene.sceneDuration.inMilliseconds > 0) {
+//   //     intraSceneProgress = (timeIntoScene.inMilliseconds /
+//   //             currentScene.sceneDuration.inMilliseconds)
+//   //         .clamp(0.0, 1.0);
+//   //   }
+//   //
+//   //   final itemsInCurrentScene = {
+//   //     for (var item in currentScene.components) item.id: item
+//   //   };
+//   //   final itemsInPrevScene = {
+//   //     if (prevScene != null)
+//   //       for (var item in prevScene.components) item.id: item
+//   //   };
+//   //   final allVisibleIds = itemsInCurrentScene.keys.toSet();
+//   //
+//   //   for (final id in allVisibleIds) {
+//   //     final modelInCurrent = itemsInCurrentScene[id]!;
+//   //     final modelInPrev = itemsInPrevScene[id];
+//   //
+//   //     final displayModel = modelInCurrent.clone();
+//   //
+//   //     double altitude = 0.0;
+//   //     Vector2? visualSize;
+//   //
+//   //     if (displayModel.offset != null) {
+//   //       final startPos = modelInPrev?.offset ?? modelInCurrent.offset!;
+//   //       final endPos = modelInCurrent.offset!;
+//   //       displayModel.offset = Vector2(
+//   //         ui.lerpDouble(startPos.x, endPos.x, intraSceneProgress)!,
+//   //         ui.lerpDouble(startPos.y, endPos.y, intraSceneProgress)!,
+//   //       );
+//   //
+//   //       if (displayModel is EquipmentModel && displayModel.isAerialArrival) {
+//   //         final distance = startPos.distanceTo(endPos);
+//   //         final arcHeight = (distance * 0.12).clamp(20.0, 120.0);
+//   //         altitude = arcHeight * sin(intraSceneProgress * pi);
+//   //         final arcFactor = sin(intraSceneProgress * pi);
+//   //         final baseSize = displayModel.size?.x ?? 32.0;
+//   //         final currentSizeValue = baseSize * (1 + (1.3 - 1) * arcFactor);
+//   //         visualSize = Vector2.all(currentSizeValue);
+//   //       }
+//   //     }
+//   //
+//   //     // THIS IS THE FIX: We create the component and then set its properties.
+//   //     await _addComponentToBoard(
+//   //       item: displayModel,
+//   //       altitude: altitude,
+//   //       visualSize: visualSize,
+//   //     );
+//   //   }
+//   //
+//   //   List<FreeDrawModelV2> freeLines =
+//   //       currentScene.components.whereType<FreeDrawModelV2>().toList();
+//   //   List<FreeDrawModelV2> processedFreeLines = freeLines.map((e) {
+//   //     var cloned = e.clone();
+//   //     cloned.points = cloned.points
+//   //         .map((p) => SizeHelper.getBoardActualVector(
+//   //             gameScreenSize: _tacticBoard.gameField.size, actualPosition: p))
+//   //         .toList();
+//   //     return cloned;
+//   //   }).toList();
+//   //   drawingBoard.loadLines(processedFreeLines, suppressNotification: true);
+//   // }
+//
+//   Future<void> _renderStateForTime(Duration targetTime) async {
+//     if (!isLoaded ||
+//         animationModel == null ||
+//         animationModel!.animationScenes.isEmpty ||
+//         _isRendering) return;
+//
+//     try {
+//       _isRendering = true; // --- LOCK a a a
+//
+//       final totalDuration = _totalAnimationDuration;
+//       if (targetTime > totalDuration) targetTime = totalDuration;
+//
+//       Duration cumulativeTime = Duration.zero;
+//       int sceneIndex = -1;
+//       for (int i = 0; i < animationModel!.animationScenes.length; i++) {
+//         final scene = animationModel!.animationScenes[i];
+//         if (targetTime <= cumulativeTime + scene.sceneDuration ||
+//             i == animationModel!.animationScenes.length - 1) {
+//           sceneIndex = i;
+//           break;
+//         }
+//         cumulativeTime += scene.sceneDuration;
+//       }
+//       if (sceneIndex == -1) return;
+//
+//       final currentScene = animationModel!.animationScenes[sceneIndex];
+//       final prevScene = sceneIndex > 0
+//           ? animationModel!.animationScenes[sceneIndex - 1]
+//           : null;
+//
+//       removeAll(children
+//           .whereType<PositionComponent>()
+//           .where((c) => c is! GameField && c is! DrawingBoardComponent));
+//
+//       final timeIntoScene = targetTime - cumulativeTime;
+//       double intraSceneProgress = 0.0;
+//       if (currentScene.sceneDuration.inMilliseconds > 0) {
+//         intraSceneProgress = (timeIntoScene.inMilliseconds /
+//                 currentScene.sceneDuration.inMilliseconds)
+//             .clamp(0.0, 1.0);
+//       }
+//
+//       final itemsInCurrentScene = {
+//         for (var item in currentScene.components) item.id: item
+//       };
+//       final itemsInPrevScene = {
+//         if (prevScene != null)
+//           for (var item in prevScene.components) item.id: item
+//       };
+//       final allVisibleIds = itemsInCurrentScene.keys.toSet();
+//
+//       for (final id in allVisibleIds) {
+//         final modelInCurrent = itemsInCurrentScene[id]!;
+//         final modelInPrev = itemsInPrevScene[id];
+//
+//         final displayModel = modelInCurrent.clone();
+//
+//         double altitude = 0.0;
+//         Vector2? visualSize;
+//
+//         if (displayModel.offset != null) {
+//           final startPos = modelInPrev?.offset ?? modelInCurrent.offset!;
+//           final endPos = modelInCurrent.offset!;
+//           displayModel.offset = Vector2(
+//             ui.lerpDouble(startPos.x, endPos.x, intraSceneProgress)!,
+//             ui.lerpDouble(startPos.y, endPos.y, intraSceneProgress)!,
+//           );
+//
+//           if (displayModel is EquipmentModel && displayModel.isAerialArrival) {
+//             final distance = startPos.distanceTo(endPos);
+//             final arcHeight = (distance * 0.12).clamp(20.0, 120.0);
+//             altitude = arcHeight * sin(intraSceneProgress * pi);
+//             final arcFactor = sin(intraSceneProgress * pi);
+//             final baseSize = displayModel.size?.x ?? 32.0;
+//             final currentSizeValue = baseSize * (1 + (1.3 - 1) * arcFactor);
+//             visualSize = Vector2.all(currentSizeValue);
+//           }
+//         }
+//
+//         await _addComponentToBoard(
+//           item: displayModel,
+//           altitude: altitude,
+//           visualSize: visualSize,
+//         );
+//       }
+//
+//       List<FreeDrawModelV2> freeLines =
+//           currentScene.components.whereType<FreeDrawModelV2>().toList();
+//       List<FreeDrawModelV2> processedFreeLines = freeLines.map((e) {
+//         var cloned = e.clone();
+//         cloned.points = cloned.points
+//             .map((p) => SizeHelper.getBoardActualVector(
+//                 gameScreenSize: _tacticBoard.gameField.size, actualPosition: p))
+//             .toList();
+//         return cloned;
+//       }).toList();
+//       drawingBoard.loadLines(processedFreeLines, suppressNotification: true);
+//     } finally {
+//       _isRendering = false; // --- UNLOCK ---
+//     }
+//   }
+//
+//   // New helper method to create and configure components
+//   Future<void> _addComponentToBoard({
+//     required FieldItemModel item,
+//     double altitude = 0.0,
+//     Vector2? visualSize,
+//   }) async {
+//     Component? component;
+//     if (item is PlayerModel) {
+//       component = PlayerComponent(object: item);
+//     } else if (item is EquipmentModel) {
+//       // Create the component and set its visual state properties
+//       final equipmentComponent = EquipmentComponent(object: item);
+//       equipmentComponent.altitude = altitude;
+//       equipmentComponent.visualSize = visualSize;
+//       component = equipmentComponent;
+//     } else if (item is LineModelV2) {
+//       component = LineDrawerComponentV2(lineModelV2: item);
+//     } else if (item is CircleShapeModel) {
+//       component = CircleShapeDrawerComponent(circleModel: item);
+//     } else if (item is SquareShapeModel) {
+//       component = SquareShapeDrawerComponent(squareModel: item);
+//     } else if (item is PolygonShapeModel) {
+//       component = PolygonShapeDrawerComponent(polygonModel: item);
+//     } else if (item is TextModel) {
+//       component = TextFieldComponent(object: item);
+//     }
+//
+//     if (component != null) {
+//       await add(component);
+//     }
+//   }
+//
+//   @override
+//   void performStartAnimationFromBeginning() {
+//     if (paused) resumeEngine();
+//     _currentTotalElapsedTime = Duration.zero;
+//     _playbackState = PlaybackState.playing;
+//   }
+//
+//   @override
+//   Future<void> performResumeAnimation() async {
+//     if (_playbackState != PlaybackState.paused) return;
+//     if (paused) resumeEngine();
+//     if (_currentTotalElapsedTime >= _totalAnimationDuration) {
+//       performStartAnimationFromBeginning();
+//     } else {
+//       _playbackState = PlaybackState.playing;
+//     }
+//   }
+//
+//   @override
+//   void performPauseAnimation() {
+//     if (_playbackState != PlaybackState.playing) return;
+//     _playbackState = PlaybackState.paused;
+//   }
+//
+//   @override
+//   void performHardResetAnimation() {
+//     _playbackState = PlaybackState.stopped;
+//     _currentTotalElapsedTime = Duration.zero;
+//     _renderStateForTime(Duration.zero);
+//   }
+//
+//   void beginScrubbing() {
+//     _playbackState = PlaybackState.scrubbing;
+//   }
+//
+//   void seekToProgress(double progress) {
+//     if (!isLoaded) return;
+//     final targetTime = _totalAnimationDuration * progress;
+//     _currentTotalElapsedTime = targetTime;
+//     _renderStateForTime(targetTime);
+//   }
+//
+//   void endScrubbing() {
+//     _playbackState = PlaybackState.paused;
+//   }
+//
+//   @override
+//   void performSetAnimationPace(double newPaceFactor) {
+//     if (newPaceFactor > 0) {
+//       _scenePaceFactor = newPaceFactor;
+//     }
+//   }
+//
+//   @override
+//   void performStopAnimation({bool hardReset = false}) {
+//     if (isMounted) {
+//       _playbackState = PlaybackState.stopped;
+//       _currentTotalElapsedTime = Duration.zero;
+//     }
+//   }
+// }
+
+/// 2nd working end
+
+/// 3rd working code
+
+import 'dart:async' as a;
+import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
+import 'package:zporter_tactical_board/app/helper/trajectory_calculator.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -19,9 +1397,7 @@ import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/game_field.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game_animation.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/components/text/text_field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/drawing_board_component.dart';
@@ -29,13 +1405,11 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/f
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 class AnimatingObj {
   final bool isAnimating;
   final bool isExporting;
   AnimatingObj({required this.isAnimating, required this.isExporting});
-
   factory AnimatingObj.animate() {
     return AnimatingObj(isAnimating: true, isExporting: false);
   }
@@ -44,712 +1418,404 @@ class AnimatingObj {
   }
 }
 
+enum PlaybackState {
+  stopped,
+  preparing,
+  playing,
+  paused,
+  scrubbing,
+}
+
 mixin AnimationPlaybackMixin on TacticBoardGame {
+  bool _isRendering = false;
   late TacticBoard _tacticBoard;
-  // MODIFIED: update method with new dt capping
-  static const double VERY_LARGE_DT_THRESHOLD =
-      0.1; // 100ms (10 FPS equivalent)
-  static const double REASONABLE_TIME_STEP_AFTER_FREEZE =
-      1.0 / 30.0; // Cap to process at ~30FPS after a long freeze
-
-  static const double BASE_BALL_ROTATION_SPEED_RADS_PER_SEC = 2 * 3.14159;
-
-  late AnimationModel animationModel;
-  late bool autoPlay;
-
+  AnimationModel? animationModel;
   late bool isForExportMode;
   late Function(double progress)? onExportProgressUpdate;
 
-  List<FieldItemModel> _components = [];
-
-  bool _isAnimationPlaying = false;
-  @override
-  bool get isAnimationCurrentlyPlaying => _isAnimationPlaying;
-  bool _isAnimationPaused = false;
-  @override
-  bool get isAnimationCurrentlyPaused => _isAnimationPaused;
-
+  PlaybackState _playbackState = PlaybackState.stopped;
   double _scenePaceFactor = 1.0;
-  int _currentSceneIndex = 0;
-  bool _wasHardResetRecently = false;
-  a.Timer? _sceneProgressionTimer;
-  Duration _baseSceneDelay = const Duration(milliseconds: 500); // User's value
-  Duration _baseMovementDuration = const Duration(
-    seconds: 1,
-  ); // This is now per-scene via AnimationItemModel
-  final List<ManualVelocityAnimation> _activeManualAnimations = [];
-  Set<String> _activeMovingItemIdsInCurrentScene = {};
-  bool _currentSceneDelayTimerActive = false;
+  Duration _currentTotalElapsedTime = Duration.zero;
+
+  @override
+  bool get isAnimationCurrentlyPlaying =>
+      _playbackState == PlaybackState.playing;
+  @override
+  bool get isAnimationCurrentlyPaused =>
+      _playbackState == PlaybackState.paused ||
+      _playbackState == PlaybackState.scrubbing;
+
+  PlaybackState get currentPlaybackState => _playbackState;
+
   void startAnimation({
     required AnimationModel am,
     bool ap = false,
-    bool isForE = false, // Default to not being in export mode
+    bool isForE = false,
     Function(double progress)? onExportP,
   }) {
     WidgetsBinding.instance.addPostFrameCallback((t) {
       animationModel = am;
-      autoPlay = ap;
       isForExportMode = isForE;
       onExportProgressUpdate = onExportP;
-      if (isForExportMode) {
-        _scenePaceFactor = 2.0; // Run faster for export (adjust as needed)
-        zlog(
-          data:
-              "TacticBoardGameAnimation: INSTANTIATED IN EXPORT MODE. Pace: $_scenePaceFactor, Scene Delay: ${_baseSceneDelay.inMilliseconds}ms",
-        );
-      }
-
-      /// before start animating, we have to erase all components from the board, and then
       _tacticBoard = (this as TacticBoard);
-      _tacticBoard.isAnimating = false;
-      _tacticBoard.removeAll(children.whereType<FieldComponent>());
-      zlog(data: "TacticBoardGameAnimation: Field initiated.");
-      if (animationModel.animationScenes.isEmpty) {
-        _isAnimationPlaying = false;
-        return;
-      }
-      if (autoPlay) {
-        zlog(data: "Autoplaye is true now performing animation from start");
-        _setupInitialSceneStatically();
+      _playbackState = PlaybackState.stopped;
+      _currentTotalElapsedTime = Duration.zero;
+      _renderStateForTime(Duration.zero);
+      if (isForExportMode || ap) {
         performStartAnimationFromBeginning();
-      } else {
-        _setupInitialSceneStatically();
-        _isAnimationPlaying = false;
-        _isAnimationPaused = false;
-        _currentSceneIndex = 0;
-        _wasHardResetRecently = false;
       }
-
-      zlog(
-        data:
-            "TacticBoardGameAnimation: onLoad finished. Animation playing: $_isAnimationPlaying",
-      );
     });
   }
 
   @override
   void update(double dt) {
-    double effectiveDt = dt;
-    if (dt > VERY_LARGE_DT_THRESHOLD) {
-      // zlog(
-      //   data:
-      //       "TacticBoardGameAnimation: Very large dt detected: $dt. Capping to $REASONABLE_TIME_STEP_AFTER_FREEZE for this frame.",
-      // );
-      effectiveDt = REASONABLE_TIME_STEP_AFTER_FREEZE;
-    }
-    // Ensure effectiveDt is positive for safety in calculations, though Flame usually provides positive dt
-    if (effectiveDt <= 0) {
-      effectiveDt = 1.0 /
-          60.0; // Fallback to a small positive value if dt is zero/negative
-    }
+    if (_isRendering) return;
+    super.update(dt);
 
-    super.update(effectiveDt);
+    if (_playbackState == PlaybackState.playing) {
+      final timeStep =
+          Duration(microseconds: (dt * 1000000 * _scenePaceFactor).round());
+      _currentTotalElapsedTime += timeStep;
 
-    if (_isAnimationPlaying && !_isAnimationPaused && !this.paused) {
-      bool anAnimationCompletedThisFrame = false;
-      for (int i = _activeManualAnimations.length - 1; i >= 0; i--) {
-        final anim = _activeManualAnimations[i];
-
-        if (anim.component is EquipmentComponent) {
-          final equipmentComponent = anim.component as EquipmentComponent;
-          // Assuming your ManualVelocityAnimation instance (`anim`) has an `isMoving` getter.
-          // Your code in `_startOrUpdateManualAnimation` already uses `existingAnim.isMoving`,
-          // so this property should be available.
-          if (equipmentComponent.object.name == "BALL" && anim.isMoving) {
-            // Calculate rotation for this frame.
-            // The rotation speed is determined by the base rotation speed,
-            // the time delta (effectiveDt), and the current scene's pace factor.
-            double rotationThisFrame = BASE_BALL_ROTATION_SPEED_RADS_PER_SEC *
-                effectiveDt *
-                _scenePaceFactor;
-
-            equipmentComponent.angle -= rotationThisFrame;
-
-            // Optional: Keep the angle within 0 to 2*PI range if desired,
-            // though Flame typically handles larger angle values correctly.
-            // equipmentComponent.angle %= (2 * 3.14159);
-          }
-        }
-
-        if (anim.update(effectiveDt)) {
-          // Pass the same effectiveDt here
-          _activeMovingItemIdsInCurrentScene.remove(anim.itemModel.id);
-          _activeManualAnimations.removeAt(i);
-          anAnimationCompletedThisFrame = true;
-        }
+      final totalDuration = _totalAnimationDuration;
+      if (_currentTotalElapsedTime >= totalDuration) {
+        _currentTotalElapsedTime = totalDuration;
+        _playbackState = PlaybackState.stopped;
+        onExportProgressUpdate?.call(1.0);
       }
-      if (anAnimationCompletedThisFrame ||
-          (_activeManualAnimations.isEmpty &&
-              _activeMovingItemIdsInCurrentScene.isEmpty)) {
-        _checkSceneCompletionAndProceed();
+      if (isForExportMode) {
+        onExportProgressUpdate?.call(currentAnimationProgress);
       }
+      _renderStateForTime(_currentTotalElapsedTime);
     }
   }
 
-  double get currentScenePaceFactor => _scenePaceFactor;
+  Duration get _totalAnimationDuration {
+    if (!isLoaded ||
+        animationModel == null ||
+        animationModel!.animationScenes.isEmpty) {
+      return Duration.zero;
+    }
+    return animationModel!.animationScenes.fold(
+      Duration.zero,
+      (previousValue, scene) => previousValue + scene.sceneDuration,
+    );
+  }
+
+  double get currentAnimationProgress {
+    if (!isLoaded) return 0.0;
+    final totalMs = _totalAnimationDuration.inMilliseconds;
+    if (totalMs == 0) return 0.0;
+    final currentMs = _currentTotalElapsedTime.inMilliseconds;
+    return (currentMs / totalMs).clamp(0.0, 1.0);
+  }
+
+  Future<void> _renderStateForTime(Duration targetTime) async {
+    if (!isLoaded ||
+        animationModel == null ||
+        animationModel!.animationScenes.isEmpty ||
+        _isRendering) return;
+
+    try {
+      _isRendering = true;
+
+      final totalDuration = _totalAnimationDuration;
+      if (targetTime > totalDuration) targetTime = totalDuration;
+
+      Duration cumulativeTime = Duration.zero;
+      int sceneIndex = -1;
+      for (int i = 0; i < animationModel!.animationScenes.length; i++) {
+        final scene = animationModel!.animationScenes[i];
+        if (targetTime <= cumulativeTime + scene.sceneDuration ||
+            i == animationModel!.animationScenes.length - 1) {
+          sceneIndex = i;
+          break;
+        }
+        cumulativeTime += scene.sceneDuration;
+      }
+      if (sceneIndex == -1) return;
+
+      final currentScene = animationModel!.animationScenes[sceneIndex];
+      final prevScene = sceneIndex > 0
+          ? animationModel!.animationScenes[sceneIndex - 1]
+          : null;
+
+      // --- THE DEFINITIVE FIX FOR DUPLICATES ---
+      // 1. Schedule all components for removal.
+      removeAll(children
+          .where((c) => c is! GameField && c is! DrawingBoardComponent));
+
+      // 2. Wait for the next frame/game tick to pass.
+      // This gives the engine time to process the removals before we add anything new.
+      await Future.delayed(Duration.zero);
+      // --- END OF FIX ---
+
+      final timeIntoScene = targetTime - cumulativeTime;
+      double intraSceneProgress = 0.0;
+      if (currentScene.sceneDuration.inMilliseconds > 0) {
+        intraSceneProgress = (timeIntoScene.inMilliseconds /
+                currentScene.sceneDuration.inMilliseconds)
+            .clamp(0.0, 1.0);
+      }
+
+      final itemsInCurrentScene = {
+        for (var item in currentScene.components) item.id: item
+      };
+      final itemsInPrevScene = {
+        if (prevScene != null)
+          for (var item in prevScene.components) item.id: item
+      };
+
+      for (final id in itemsInCurrentScene.keys) {
+        final modelInCurrent = itemsInCurrentScene[id]!;
+        final modelInPrev = itemsInPrevScene[id];
+
+        await _addComponentToBoard(
+            modelInCurrent, modelInPrev, intraSceneProgress, currentScene);
+      }
+
+      List<FreeDrawModelV2> freeLines =
+          currentScene.components.whereType<FreeDrawModelV2>().toList();
+      List<FreeDrawModelV2> processedFreeLines = freeLines.map((e) {
+        var cloned = e.clone();
+        cloned.points = cloned.points
+            .map((p) => SizeHelper.getBoardActualVector(
+                gameScreenSize: _tacticBoard.gameField.size, actualPosition: p))
+            .toList();
+        return cloned;
+      }).toList();
+      drawingBoard.loadLines(processedFreeLines, suppressNotification: true);
+    } finally {
+      _isRendering = false;
+    }
+  }
+
+  Future<void> _addComponentToBoard(
+      FieldItemModel modelInCurrent,
+      FieldItemModel? modelInPrev,
+      double intraSceneProgress,
+      AnimationItemModel currentScene) async {
+    final displayModel = modelInCurrent.clone();
+    double altitude = 0.0;
+    Vector2? visualSize;
+
+    if (displayModel.offset != null) {
+      final startPos = modelInPrev?.offset ?? modelInCurrent.offset!;
+      final endPos = modelInCurrent.offset!;
+
+      // Check if this component has a custom trajectory path
+      final hasCustomTrajectory =
+          currentScene.trajectoryData?.hasTrajectory(modelInCurrent.id) ??
+              false;
+
+      if (hasCustomTrajectory) {
+        // Use custom trajectory path for curved movement
+        final trajectory =
+            currentScene.trajectoryData!.getTrajectory(modelInCurrent.id)!;
+
+        // Calculate the curved path using TrajectoryCalculator
+        final pathPoints = TrajectoryCalculator.calculatePath(
+          startPosition: startPos,
+          endPosition: endPos,
+          trajectory: trajectory,
+          frameCount: 100, // Higher frame count for smoother curves
+        );
+
+        // Interpolate position along the curved path
+        if (pathPoints.isNotEmpty) {
+          final segmentIndex =
+              (intraSceneProgress * (pathPoints.length - 1)).floor();
+          final clampedIndex = segmentIndex.clamp(0, pathPoints.length - 2);
+          final segmentProgress =
+              (intraSceneProgress * (pathPoints.length - 1)) - clampedIndex;
+
+          final segmentStart = pathPoints[clampedIndex];
+          final segmentEnd = pathPoints[clampedIndex + 1];
+
+          displayModel.offset = Vector2(
+            ui.lerpDouble(segmentStart.x, segmentEnd.x, segmentProgress)!,
+            ui.lerpDouble(segmentStart.y, segmentEnd.y, segmentProgress)!,
+          );
+        } else {
+          // Fallback to straight line if path calculation fails
+          displayModel.offset = Vector2(
+            ui.lerpDouble(startPos.x, endPos.x, intraSceneProgress)!,
+            ui.lerpDouble(startPos.y, endPos.y, intraSceneProgress)!,
+          );
+        }
+      } else {
+        // Use straight line interpolation (default behavior)
+        displayModel.offset = Vector2(
+          ui.lerpDouble(startPos.x, endPos.x, intraSceneProgress)!,
+          ui.lerpDouble(startPos.y, endPos.y, intraSceneProgress)!,
+        );
+      }
+
+      if (displayModel is EquipmentModel && displayModel.isAerialArrival) {
+        final distance = startPos.distanceTo(endPos);
+        final arcHeight = (distance * 0.12).clamp(20.0, 120.0);
+        final spin = displayModel.spin ?? BallSpin.none;
+
+        // Calculate direction and perpendicular for curves
+        final diff = endPos - startPos;
+        final perpendicular = Vector2(-diff.y, diff.x).normalized();
+
+        Vector2 curvedPosition;
+        switch (spin) {
+          case BallSpin.left:
+            // Left curve: ball curves to the left
+            final curveAmount = distance * 0.1;
+            final lateralOffset = curveAmount * sin(intraSceneProgress * pi);
+            curvedPosition = Vector2.copy(startPos)
+              ..lerp(endPos, intraSceneProgress);
+            curvedPosition += perpendicular * lateralOffset;
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            break;
+
+          case BallSpin.right:
+            // Right curve: ball curves to the right
+            final curveAmount = distance * 0.1;
+            final lateralOffset = curveAmount * sin(intraSceneProgress * pi);
+            curvedPosition = Vector2.copy(startPos)
+              ..lerp(endPos, intraSceneProgress);
+            curvedPosition -= perpendicular * lateralOffset;
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            break;
+
+          case BallSpin.knuckleball:
+            // Knuckleball: S-curve using cubic Bezier
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            final curveAmount =
+                distance * 0.3; // Increased to 30% for MORE visible S
+
+            // Control points positioned to create visible S-curve
+            // CP1 at 25% of path, pushed LEFT
+            // CP2 at 75% of path, pushed RIGHT
+            final controlPoint1 =
+                startPos + (diff * 0.25) + (perpendicular * curveAmount);
+            final controlPoint2 =
+                startPos + (diff * 0.75) - (perpendicular * curveAmount);
+
+            final t = intraSceneProgress;
+            final oneMinusT = 1 - t;
+            curvedPosition = (startPos * (oneMinusT * oneMinusT * oneMinusT)) +
+                (controlPoint1 * (3 * (oneMinusT * oneMinusT) * t)) +
+                (controlPoint2 * (3 * oneMinusT * (t * t))) +
+                (endPos * (t * t * t));
+            break;
+
+          case BallSpin.none:
+            curvedPosition = Vector2.copy(startPos)
+              ..lerp(endPos, intraSceneProgress);
+            altitude = arcHeight * sin(intraSceneProgress * pi);
+            break;
+        }
+
+        displayModel.offset = curvedPosition;
+        final arcFactor = sin(intraSceneProgress * pi);
+        final baseSize = displayModel.size?.x ?? 32.0;
+        visualSize = Vector2.all(baseSize * (1 + (1.3 - 1) * arcFactor));
+      }
+    }
+
+    Component? component;
+    if (displayModel is PlayerModel) {
+      component = PlayerComponent(object: displayModel);
+    } else if (displayModel is EquipmentModel) {
+      final equipmentComponent = EquipmentComponent(object: displayModel);
+      equipmentComponent.altitude = altitude;
+      equipmentComponent.visualSize = visualSize;
+      component = equipmentComponent;
+    } else if (displayModel is LineModelV2) {
+      component = LineDrawerComponentV2(lineModelV2: displayModel);
+    } else if (displayModel is CircleShapeModel) {
+      component = CircleShapeDrawerComponent(circleModel: displayModel);
+    } else if (displayModel is SquareShapeModel) {
+      component = SquareShapeDrawerComponent(squareModel: displayModel);
+    } else if (displayModel is PolygonShapeModel) {
+      component = PolygonShapeDrawerComponent(polygonModel: displayModel);
+    } else if (displayModel is TextModel) {
+      component = TextFieldComponent(object: displayModel);
+    }
+
+    if (component != null) {
+      await add(component);
+    }
+  }
 
   @override
-  void performStartAnimationFromBeginning() {
-    zlog(data: "TacticBoardGameAnimation: performStartAnimationFromBeginning.");
-    if (_wasHardResetRecently) {
-      _wasHardResetRecently = false;
-    }
+  Future<void> performStartAnimationFromBeginning() async {
+    if (_playbackState == PlaybackState.preparing) return;
     if (paused) resumeEngine();
-    _isAnimationPlaying = true;
-    _isAnimationPaused = false;
-    _currentSceneIndex = 0;
-    _clearAllManualAnimations();
-    _activeMovingItemIdsInCurrentScene.clear();
-    _currentSceneDelayTimerActive = false;
-    _sceneProgressionTimer?.cancel();
-
-    _proceedToNextScene();
+    _playbackState = PlaybackState.preparing;
+    _currentTotalElapsedTime = Duration.zero;
+    await _renderStateForTime(Duration.zero);
+    _playbackState = PlaybackState.playing;
   }
 
   @override
   Future<void> performResumeAnimation() async {
-    if (!_isAnimationPlaying || !_isAnimationPaused) return;
-    _isAnimationPaused = false;
-    if (isMounted && this.paused) {
-      this.resumeEngine();
-      await Future.delayed(Duration.zero);
+    if (_playbackState != PlaybackState.paused) return;
+    if (paused) resumeEngine();
+
+    if (_currentTotalElapsedTime >= _totalAnimationDuration) {
+      await performStartAnimationFromBeginning();
+    } else {
+      _playbackState = PlaybackState.playing;
     }
-    for (final anim in _activeManualAnimations) anim.resume();
-    _checkSceneCompletionAndProceed();
   }
 
   @override
   void performPauseAnimation() {
-    if (!_isAnimationPlaying || _isAnimationPaused) {
-      if (_isAnimationPlaying &&
-          _isAnimationPaused &&
-          isMounted &&
-          !this.paused) this.pauseEngine();
-      _isAnimationPaused = true;
-      _sceneProgressionTimer?.cancel();
-      _currentSceneDelayTimerActive = false;
-      return;
-    }
-    _isAnimationPaused = true;
-    _sceneProgressionTimer?.cancel();
-    _currentSceneDelayTimerActive = false;
-    for (final anim in _activeManualAnimations) anim.pause();
-    if (isMounted && !paused) pauseEngine();
-  }
-
-  @override
-  void performStopAnimation({bool hardReset = false}) {
-    if (paused) resumeEngine();
-    _isAnimationPlaying = false;
-    _isAnimationPaused = false;
-    _sceneProgressionTimer?.cancel();
-    _currentSceneDelayTimerActive = false;
-    _clearAllManualAnimations();
-    _activeMovingItemIdsInCurrentScene.clear();
-    _currentSceneIndex = 0;
-    _scenePaceFactor = 1;
-    if (hardReset) {
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback((t) {
-        _tacticBoard.removeAll(children.whereType<FieldComponent>());
-        ref.read(boardProvider.notifier).toggleAnimating(animatingObj: null);
-        _tacticBoard.addInitialItems(_tacticBoard.scene?.components ?? []);
-        _tacticBoard.isAnimating = false;
-      });
-      zlog(data: "TacticBoardGameAnimation: Animation System Stopped.");
-    }
-  }
-
-  @override
-  void performSetAnimationPace(double newPaceFactor) {
-    if (newPaceFactor <= 0.0) return;
-    final oldPaceFactor = _scenePaceFactor;
-    _scenePaceFactor = newPaceFactor;
-    zlog(
-      data:
-          "TacticBoardGameAnimation: Global pace factor changed from $oldPaceFactor to $newPaceFactor.",
-    );
-    if (oldPaceFactor > 0 &&
-        oldPaceFactor != newPaceFactor &&
-        _isAnimationPlaying &&
-        !_isAnimationPaused) {
-      double paceScaleFactor = newPaceFactor / oldPaceFactor;
-      for (final anim in _activeManualAnimations) {
-        double newIndividualSpeed =
-            anim.currentSpeedMagnitude * paceScaleFactor;
-        anim.updateSpeedMagnitude(newIndividualSpeed);
-      }
-    }
+    if (_playbackState != PlaybackState.playing) return;
+    _playbackState = PlaybackState.paused;
   }
 
   @override
   void performHardResetAnimation() {
-    performStopAnimation(hardReset: true);
-    final List<Component> componentsToRemove = children
-        .where(
-          (child) =>
-              child is PlayerComponent ||
-              child is EquipmentComponent ||
-              child is LineDrawerComponentV2 ||
-              child is SquareShapeDrawerComponent ||
-              child is CircleShapeDrawerComponent ||
-              child is PolygonShapeDrawerComponent ||
-              child is TextFieldComponent,
-        )
-        .toList();
-    if (componentsToRemove.isNotEmpty) removeAll(componentsToRemove);
-    _components.clear();
-    if (isLoaded && children.contains(drawingBoard)) {
-      drawingBoard.loadLines([], suppressNotification: true);
+    _playbackState = PlaybackState.stopped;
+    _currentTotalElapsedTime = Duration.zero;
+    _renderStateForTime(Duration.zero);
+  }
+
+  void beginScrubbing() {
+    // This method's ONLY job is to set the state.
+    // The decision to pause is now handled by the UI widget.
+    _playbackState = PlaybackState.scrubbing;
+  }
+
+  void seekToProgress(double progress) {
+    // THIS IS THE FIX: Only allow seeking if the state is 'scrubbing'.
+    // This prevents the seek from happening on the initial tap when the state is 'playing' or 'paused'.
+    if (_playbackState != PlaybackState.scrubbing ||
+        !isLoaded ||
+        _isRendering) {
+      return;
     }
-    _wasHardResetRecently = true;
-    _isAnimationPlaying = false;
-    _isAnimationPaused = false;
-    _setupInitialSceneStatically();
+
+    final targetTime = _totalAnimationDuration * progress;
+    _currentTotalElapsedTime = targetTime;
+    _renderStateForTime(targetTime);
+  }
+
+  void endScrubbing() {
+    _playbackState = PlaybackState.paused;
   }
 
   @override
-  Color backgroundColor() {
-    return (ColorManager.white).withAlpha(128);
-  }
-
-  addItemForAnimation(FieldItemModel item, {bool save = true}) async {
-    if (item is PlayerModel) {
-      add(PlayerComponent(object: item)); // add() is available via FlameGame
-    } else if (item is EquipmentModel) {
-      add(EquipmentComponent(object: item)); // add() is available via FlameGame
-    } else if (item is LineModelV2) {
-      await add(LineDrawerComponentV2(lineModelV2: item));
-    } else if (item is CircleShapeModel) {
-      await add(CircleShapeDrawerComponent(circleModel: item));
-    } else if (item is SquareShapeModel) {
-      await add(SquareShapeDrawerComponent(squareModel: item));
-    } else if (item is PolygonShapeModel) {
-      await add(PolygonShapeDrawerComponent(polygonModel: item));
-    } else if (item is TextModel) {
-      await add(TextFieldComponent(object: item));
+  void performSetAnimationPace(double newPaceFactor) {
+    if (newPaceFactor > 0) {
+      _scenePaceFactor = newPaceFactor;
     }
   }
 
-  void _clearAllManualAnimations() {
-    for (var anim in _activeManualAnimations) anim.stop();
-    _activeManualAnimations.clear();
-  }
-
-  Component? _findComponentByModelId(String modelId) {
-    return children.firstWhereOrNull((c) {
-      if (c is PlayerComponent) return c.object.id == modelId;
-      if (c is EquipmentComponent) return c.object.id == modelId;
-      if (c is LineDrawerComponentV2) return c.lineModelV2.id == modelId;
-      if (c is SquareShapeDrawerComponent) return c.squareModel.id == modelId;
-      if (c is CircleShapeDrawerComponent) return c.circleModel.id == modelId;
-      if (c is PolygonShapeDrawerComponent) return c.polygonModel.id == modelId;
-      if (c is TextFieldComponent) return c.object.id == modelId;
-      return false;
-    });
-  }
-
-  void _startOrUpdateManualAnimation(
-    PositionComponent component,
-    FieldItemModel itemModel,
-    Vector2 targetPositionInGameCoords,
-    double calculatedSpeedMagnitude,
-  ) {
-    var existingAnim = _activeManualAnimations.firstWhereOrNull(
-      (a) => a.component == component,
-    );
-    bool alreadyAtTarget =
-        (component.position - targetPositionInGameCoords).length2 <
-            ManualVelocityAnimation.arrivalThresholdSquared;
-    if (alreadyAtTarget ||
-        (calculatedSpeedMagnitude < 0.01 && !alreadyAtTarget)) {
-      component.position.setFrom(targetPositionInGameCoords);
-      if (existingAnim != null) {
-        existingAnim.stop();
-        _activeManualAnimations.remove(existingAnim);
-      }
-      _activeMovingItemIdsInCurrentScene.remove(itemModel.id);
-      return;
+  @override
+  void performStopAnimation({bool hardReset = false}) {
+    if (isMounted) {
+      _playbackState = PlaybackState.stopped;
+      _currentTotalElapsedTime = Duration.zero;
     }
-    if (existingAnim != null) {
-      existingAnim.updateSpeedMagnitude(calculatedSpeedMagnitude);
-      existingAnim.moveTo(targetPositionInGameCoords);
-    } else {
-      existingAnim = ManualVelocityAnimation(
-        component: component,
-        itemModel: itemModel,
-        initialTargetPositionGameCoords: targetPositionInGameCoords,
-        speedMagnitude: calculatedSpeedMagnitude,
-      );
-      _activeManualAnimations.add(existingAnim);
-      existingAnim.moveTo(targetPositionInGameCoords);
-    }
-    if (existingAnim.isMoving)
-      _activeMovingItemIdsInCurrentScene.add(itemModel.id);
-    else
-      _activeMovingItemIdsInCurrentScene.remove(itemModel.id);
-  }
-
-  Future<void> _setupInitialSceneStatically() async {
-    if (animationModel.animationScenes.isEmpty) return;
-    _currentSceneIndex = 0;
-    AnimationItemModel firstScene = animationModel.animationScenes[0];
-    _activeMovingItemIdsInCurrentScene.clear();
-    _currentSceneDelayTimerActive = false;
-    _sceneProgressionTimer?.cancel();
-    _clearAllManualAnimations();
-    final List<Component> componentsToRemove = children
-        .where(
-          (child) => !(child is GameField || child is DrawingBoardComponent),
-        )
-        .toList();
-    if (componentsToRemove.isNotEmpty) removeAll(componentsToRemove);
-    _components.clear();
-    List<FreeDrawModelV2> freeLines =
-        firstScene.components.whereType<FreeDrawModelV2>().toList();
-    List<FreeDrawModelV2> processedFreeLines = freeLines.map((e) {
-      var cloned = e.clone();
-      cloned.points = cloned.points
-          .map(
-            (p) => SizeHelper.getBoardActualVector(
-              gameScreenSize: _tacticBoard.gameField.size,
-              actualPosition: p,
-            ),
-          )
-          .toList();
-      return cloned;
-    }).toList();
-    drawingBoard.loadLines(processedFreeLines, suppressNotification: true);
-    List<Future<void>> addItemFutures = [];
-    for (var itemModel in firstScene.components) {
-      if (itemModel is FreeDrawModelV2) continue;
-      addItemFutures.add(
-        addItemForAnimation(itemModel).then((_) async {
-          // Using your game's addItem override
-          await Future.delayed(Duration.zero);
-          Component? comp = _findComponentByModelId(itemModel.id);
-          if (comp is PositionComponent && itemModel.offset != null) {
-            comp.position = SizeHelper.getBoardActualVector(
-              gameScreenSize: _tacticBoard.gameField.size,
-              actualPosition: itemModel.offset!,
-            );
-          }
-        }),
-      );
-    }
-    await Future.wait(addItemFutures);
-    await Future.delayed(Duration.zero);
-    zlog(
-      data: "TacticBoardGameAnimation: Initial scene 0 static setup complete.",
-    );
-  }
-
-  Future<void> _processScene(AnimationItemModel animationItem) async {
-    if (_wasHardResetRecently || (this.paused && _isAnimationPaused)) return;
-    if (!_isAnimationPlaying || _isAnimationPaused) return;
-
-    zlog(
-      data:
-          "TacticBoardGameAnimation: _processScene START for scene index: ${_currentSceneIndex - 1}. Pace: $_scenePaceFactor",
-    );
-
-    List<FieldItemModel> itemsDefinedInCurrentScene = animationItem.components;
-    Set<String> idsInCurrentScene =
-        itemsDefinedInCurrentScene.map((e) => e.id).toSet();
-
-    _activeMovingItemIdsInCurrentScene.clear();
-    _currentSceneDelayTimerActive = false;
-    _sceneProgressionTimer?.cancel();
-
-    // --- 1. Remove Stale Components ---
-    List<Component> flameComponentsToRemove = [];
-    for (var component in List.from(children)) {
-      if (component is GameField || component is DrawingBoardComponent)
-        continue;
-      String? componentModelId = _getComponentModelId(component);
-      if (componentModelId != null &&
-          !idsInCurrentScene.contains(componentModelId)) {
-        flameComponentsToRemove.add(component);
-      }
-    }
-    if (flameComponentsToRemove.isNotEmpty) {
-      for (var compToRemove in flameComponentsToRemove) {
-        _activeManualAnimations.removeWhere(
-          (anim) => anim.component == compToRemove,
-        );
-        String? idToRemove = _getComponentModelId(compToRemove);
-        if (idToRemove != null)
-          _components.removeWhere((m) => m.id == idToRemove);
-        remove(compToRemove);
-      }
-      await Future.delayed(Duration.zero);
-    }
-
-    // --- 2. Process FreeDraw lines for the current scene ---
-    List<FreeDrawModelV2> freeLinesInCurrentScene =
-        itemsDefinedInCurrentScene.whereType<FreeDrawModelV2>().toList();
-    List<FreeDrawModelV2> processedFreeLines = freeLinesInCurrentScene.map((e) {
-      var cloned = e.clone();
-      cloned.points = cloned.points
-          .map(
-            (p) => SizeHelper.getBoardActualVector(
-              gameScreenSize: _tacticBoard.gameField.size,
-              actualPosition: p,
-            ),
-          )
-          .toList();
-      return cloned;
-    }).toList();
-    drawingBoard.loadLines(processedFreeLines, suppressNotification: true);
-
-    // --- 3. Add or Update other components ---
-    List<Future<void>> addItemFutures = [];
-    List<Map<String, dynamic>> componentsToAnimateDetails = [];
-
-    for (var itemModel in itemsDefinedInCurrentScene) {
-      if (itemModel is FreeDrawModelV2) continue;
-      if (!_isAnimationPlaying) break;
-      Component? existingComponent = _findComponentByModelId(itemModel.id);
-
-      if (existingComponent == null) {
-        addItemFutures.add(
-          addItemForAnimation(itemModel).then((_) async {
-            // Using your game's addItem override
-            await Future.delayed(Duration.zero);
-            Component? newComp = _findComponentByModelId(itemModel.id);
-            if (newComp is PositionComponent) {
-              Vector2 initialPos = itemModel.offset != null
-                  ? SizeHelper.getBoardActualVector(
-                      gameScreenSize: _tacticBoard.gameField.size,
-                      actualPosition: itemModel.offset!,
-                    )
-                  : newComp.position;
-              newComp.position = initialPos;
-              if ((newComp is PlayerComponent ||
-                      newComp is EquipmentComponent) &&
-                  itemModel.offset != null) {
-                componentsToAnimateDetails.add({
-                  'component': newComp,
-                  'itemModel': itemModel,
-                  'targetModelOffset': itemModel.offset!,
-                });
-              }
-            }
-          }),
-        );
-      } else {
-        if (existingComponent is PositionComponent) {
-          bool isPlayerOrEquipment = existingComponent is PlayerComponent ||
-              existingComponent is EquipmentComponent;
-          if (isPlayerOrEquipment && existingComponent is FieldComponent) {
-            (existingComponent).object = itemModel;
-            if (itemModel.offset != null) {
-              Vector2 targetPos = SizeHelper.getBoardActualVector(
-                gameScreenSize: _tacticBoard.gameField.size,
-                actualPosition: itemModel.offset!,
-              );
-              if ((existingComponent.position - targetPos).length2 >
-                  ManualVelocityAnimation.arrivalThresholdSquared) {
-                componentsToAnimateDetails.add({
-                  'component': existingComponent,
-                  'itemModel': itemModel,
-                  'targetModelOffset': itemModel.offset!,
-                });
-              } else {
-                existingComponent.position.setFrom(targetPos);
-                _activeManualAnimations.removeWhere(
-                  (anim) => anim.component == existingComponent,
-                );
-              }
-            } else {
-              _activeManualAnimations.removeWhere(
-                (anim) => anim.component == existingComponent,
-              );
-            }
-          } else {
-            FieldItemModel? currentComponentModelInComponent =
-                _getModelFromComponent(existingComponent);
-            // IMPORTANT: Ensure your FieldItemModel subclasses (LineModelV2, SquareShapeModel, etc.)
-            // correctly override operator == and hashCode for this comparison to work as intended.
-            if (currentComponentModelInComponent != null &&
-                itemModel == currentComponentModelInComponent) {
-              zlog(
-                data:
-                    "TacticBoardGameAnimation: Shape/Line ${itemModel.id} is UNCHANGED, leaving as is.",
-              );
-              if (itemModel.offset != null) {
-                // Ensure static position is up-to-date
-                existingComponent.position = SizeHelper.getBoardActualVector(
-                  gameScreenSize: _tacticBoard.gameField.size,
-                  actualPosition: itemModel.offset!,
-                );
-              }
-            } else {
-              zlog(
-                data:
-                    "TacticBoardGameAnimation: Shape/Line ${itemModel.id} HAS CHANGED or cannot compare. Re-adding.",
-              );
-              _activeManualAnimations.removeWhere(
-                (anim) => anim.component == existingComponent,
-              );
-              addItemFutures.add(() async {
-                if (existingComponent.isMounted) remove(existingComponent);
-                await Future.delayed(Duration.zero);
-                await addItemForAnimation(
-                    itemModel); // Using your game's addItem override
-                Component? newShapeComp = _findComponentByModelId(itemModel.id);
-                if (newShapeComp is PositionComponent &&
-                    itemModel.offset != null) {
-                  newShapeComp.position = SizeHelper.getBoardActualVector(
-                    gameScreenSize: _tacticBoard.gameField.size,
-                    actualPosition: itemModel.offset!,
-                  );
-                }
-              }());
-            }
-          }
-        }
-      }
-    }
-
-    await Future.wait(addItemFutures);
-    await Future.delayed(Duration.zero);
-
-    if (itemsDefinedInCurrentScene.isNotEmpty &&
-        componentsToAnimateDetails.isNotEmpty) {
-      // Use current scene's configured duration, adjusted by pace factor
-      double currentSceneConfiguredDurationSeconds =
-          animationItem.sceneDuration.inMilliseconds / 1000.0;
-      double actualSceneMovementDurationSeconds =
-          currentSceneConfiguredDurationSeconds / _scenePaceFactor;
-
-      if (actualSceneMovementDurationSeconds <= 0.01)
-        actualSceneMovementDurationSeconds = 0.01;
-
-      for (var detail in componentsToAnimateDetails) {
-        PositionComponent component = detail['component'];
-        FieldItemModel itemModel = detail['itemModel'];
-        Vector2 targetModelOffset = detail['targetModelOffset'];
-        Vector2 currentActualPos = component.position.clone();
-        Vector2 targetPositionGameCoords = SizeHelper.getBoardActualVector(
-          gameScreenSize: _tacticBoard.gameField.size,
-          actualPosition: targetModelOffset,
-        );
-        double distance = (targetPositionGameCoords - currentActualPos).length;
-        double requiredSpeedForComponent =
-            (distance > 0.01 && actualSceneMovementDurationSeconds > 0)
-                ? (distance / actualSceneMovementDurationSeconds)
-                : 0;
-        _startOrUpdateManualAnimation(
-          component,
-          itemModel,
-          targetPositionGameCoords,
-          requiredSpeedForComponent,
-        );
-      }
-    }
-    _checkSceneCompletionAndProceed();
-  }
-
-  String? _getComponentModelId(Component component) {
-    if (component is PlayerComponent) return component.object.id;
-    if (component is EquipmentComponent) return component.object.id;
-    if (component is LineDrawerComponentV2) return component.lineModelV2.id;
-    if (component is SquareShapeDrawerComponent)
-      return component.squareModel.id;
-    if (component is CircleShapeDrawerComponent)
-      return component.circleModel.id;
-    if (component is PolygonShapeDrawerComponent)
-      return component.polygonModel.id;
-    if (component is TextFieldComponent) return component.object.id;
-    return null;
-  }
-
-  FieldItemModel? _getModelFromComponent(Component component) {
-    if (component is PlayerComponent) return component.object;
-    if (component is EquipmentComponent) return component.object;
-    if (component is LineDrawerComponentV2) return component.lineModelV2;
-    if (component is SquareShapeDrawerComponent) return component.squareModel;
-    if (component is CircleShapeDrawerComponent) return component.circleModel;
-    if (component is PolygonShapeDrawerComponent) return component.polygonModel;
-    if (component is TextFieldComponent) return component.object;
-    return null;
-  }
-
-  void _checkSceneCompletionAndProceed() {
-    if (_wasHardResetRecently ||
-        !_isAnimationPlaying ||
-        _isAnimationPaused ||
-        _currentSceneDelayTimerActive) return;
-    if (_activeMovingItemIdsInCurrentScene.isEmpty) {
-      if (isForExportMode && animationModel.animationScenes.isNotEmpty) {
-        int completedSceneCount = _currentSceneIndex;
-        double progress = completedSceneCount /
-            animationModel.animationScenes.length.toDouble();
-        onExportProgressUpdate?.call(progress.clamp(0.0, 1.0));
-      }
-      _currentSceneDelayTimerActive = true;
-      final int delayMilliseconds = (_baseSceneDelay.inMilliseconds);
-      if (delayMilliseconds <= 0) {
-        _currentSceneDelayTimerActive = false;
-        Future.delayed(Duration.zero, () {
-          if (_isAnimationPlaying &&
-              !_isAnimationPaused &&
-              !_wasHardResetRecently) _proceedToNextScene();
-        });
-        return;
-      }
-      _sceneProgressionTimer = a.Timer(
-        Duration(milliseconds: delayMilliseconds),
-        () {
-          _currentSceneDelayTimerActive = false;
-          if (_isAnimationPlaying &&
-              !_isAnimationPaused &&
-              !_wasHardResetRecently) _proceedToNextScene();
-        },
-      );
-    }
-  }
-
-  void _proceedToNextScene() {
-    if (_wasHardResetRecently) {
-      _isAnimationPlaying = false;
-      _isAnimationPaused = false;
-      return;
-    }
-    _sceneProgressionTimer?.cancel();
-    _currentSceneDelayTimerActive = false;
-    if (_isAnimationPaused || !_isAnimationPlaying) return;
-    if (isMounted && paused) resumeEngine();
-
-    if (_currentSceneIndex < animationModel.animationScenes.length) {
-      final AnimationItemModel sceneToProcess =
-          animationModel.animationScenes[_currentSceneIndex];
-      _currentSceneIndex++;
-      // Report progress as we are about to process the new currentSceneIndex (which is now 1-based for display)
-      if (isForExportMode && animationModel.animationScenes.isNotEmpty) {
-        // Progress based on which scene *number* we are starting
-        double progress = (_currentSceneIndex - 1) /
-            animationModel.animationScenes.length.toDouble();
-        if (_currentSceneIndex == 1 &&
-            _activeMovingItemIdsInCurrentScene.isEmpty &&
-            !_currentSceneDelayTimerActive) {
-          // Special case for the very start of the first scene processing
-          progress = 0.05; // Small initial progress
-        }
-        onExportProgressUpdate?.call(progress.clamp(0.0, 1.0));
-      }
-      _processScene(sceneToProcess);
-    } else {
-      _isAnimationPlaying = false;
-      if (isForExportMode) {
-        // Animation sequence finished
-        onExportProgressUpdate?.call(1.0);
-      }
-    }
-  }
-
-  void setInterSceneDelayDuration(Duration newDelay) {
-    _baseSceneDelay = newDelay;
   }
 }
+
+/// 3rd end

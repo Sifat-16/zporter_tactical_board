@@ -12,6 +12,7 @@ import 'package:zporter_tactical_board/data/admin/model/default_lineup_model.dar
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/lineup_view_model/lineup_controller.dart';
+import 'package:zporter_tactical_board/presentation/tactic/services/lineup_arrangement_service.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 // --- NOTE: LineupArrangementDialog is no longer imported as it's not used here.
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_component_v2.dart';
@@ -106,7 +107,8 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
         List<PlayerModel> activeToolbarPlayers = generateActivePlayers(
           sourcePlayers: sanitizedPlayers, // Use the corrected list
           fieldPlayers: bp.players,
-        )..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+        )..sort((a, b) => (a.displayNumber ?? a.jerseyNumber)
+            .compareTo(b.displayNumber ?? b.jerseyNumber));
 
         final String searchTerm = _searchController.text.toLowerCase();
         if (_isSearching && searchTerm.isNotEmpty) {
@@ -133,11 +135,17 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
                   PlayerModel player = activeToolbarPlayers[index];
                   return GestureDetector(
                       onDoubleTap: () async {
-                        await PlayerUtilsV2.showEditPlayerDialog(
+                        final result = await PlayerUtilsV2.showEditPlayerDialog(
                           context: context,
                           player: player,
                           showReplace: false,
                         );
+
+                        if (result is PlayerUpdateResult) {
+                          // The dialog returned an updated player, now we save it.
+                          await PlayerUtilsV2.updatePlayerInDb(
+                              result.updatedPlayer);
+                        }
                       },
                       child: PlayerComponentV2(playerModel: player));
                 }),
@@ -207,105 +215,51 @@ class _PlayersToolbarHomeState extends ConsumerState<PlayersToolbarHome> {
         CustomButton(
           borderRadius: 3,
           onTap: () {
-            // --- START: DIRECT-APPLICATION LOGIC ---
-            TacticBoard? tacticBoard =
+            final TacticBoard? tacticBoard =
                 boardState.tacticBoardGame as TacticBoard?;
-            AnimationItemModel? scene = selectedLineUp?.scene;
+            final AnimationItemModel? scene = selectedLineUp?.scene;
 
             if (scene == null || tacticBoard == null) {
               BotToast.showText(text: "Please select a lineup first.");
               return;
             }
 
-            final List<PlayerModel> targetPositions =
-                scene.components.whereType<PlayerModel>().toList();
+            // --- 1. GATHER DATA & CREATE INPUT ---
+            final input = LineupArrangementInput(
+              currentPlayersOnField: playersOnField,
+              currentPlayersOnBench: benchPlayers,
+              targetFormationTemplate: scene,
+            );
 
-            // 1. PREPARE PLAYER POOLS
-            playersOnField
-                .sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
-            final List<PlayerModel> sortedBench = List.from(benchPlayers)
-              ..sort((a, b) => a.jerseyNumber.compareTo(b.jerseyNumber));
+            // --- 2. CREATE AND CALL THE SERVICE ---
+            final arranger = LineupArrangementService();
+            final result = arranger.arrange(input);
 
-            final Map<String, PlayerModel> uniquePlayers = {};
-            for (var p in playersOnField) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            for (var p in sortedBench) {
-              uniquePlayers.putIfAbsent(p.id, () => p);
-            }
-            final List<PlayerModel> availablePlayers =
-                uniquePlayers.values.toList();
+            // --- 3. APPLY THE CLEAN RESULT TO THE BOARD (ATOMIC UPDATE) ---
+            final Set<String> finalPlayerIds =
+                result.finalLineup.map((p) => p.id).toSet();
 
-            zlog(
-                data:
-                    "Applying new formation with ${targetPositions.length} positions. Available players: ${availablePlayers.length}.");
-
-            // 2. PERFORM AUTOMATIC ASSIGNMENT
-            final List<PlayerModel> finalLineup = [];
-            final Set<String> assignedPlayerIds = {};
-
-            // PASS 1: Assign players by matching role.
-            for (final targetPos in targetPositions) {
-              final roleMatchIndex = availablePlayers.indexWhere((p) =>
-                  !assignedPlayerIds.contains(p.id) &&
-                  p.role == targetPos.role);
-
-              if (roleMatchIndex != -1) {
-                final playerToAssign = availablePlayers[roleMatchIndex];
-                finalLineup
-                    .add(playerToAssign.copyWith(offset: targetPos.offset));
-                assignedPlayerIds.add(playerToAssign.id);
-              }
-            }
-
-            // PASS 2: Fill remaining spots with leftover players.
-            final unassignedPositions = targetPositions
-                .where((tp) => !finalLineup.any((p) => p.offset == tp.offset))
-                .toList();
-
-            final remainingPlayers = availablePlayers
-                .where((p) => !assignedPlayerIds.contains(p.id))
-                .toList();
-
-            for (int i = 0; i < unassignedPositions.length; i++) {
-              if (i < remainingPlayers.length) {
-                final playerToAssign = remainingPlayers[i];
-                finalLineup.add(playerToAssign.copyWith(
-                    offset: unassignedPositions[i].offset));
-                assignedPlayerIds.add(playerToAssign.id);
-              }
-            }
-
-            zlog(
-                data:
-                    "New lineup calculated. Total players: ${finalLineup.length}.");
-
-            // 3. APPLY CHANGES DIRECTLY TO THE TACTICAL BOARD
-            final Set<String> originalPlayerIdsOnField =
-                playersOnField.map((p) => p.id).toSet();
-            final Set<String> finalPlayerIdsInLineup =
-                finalLineup.map((p) => p.id).toSet();
-
-            final Set<String> idsToRemove =
-                originalPlayerIdsOnField.difference(finalPlayerIdsInLineup);
+            // Find players to remove: those on the field now but NOT in the final lineup.
             final List<PlayerModel> playersToRemove = playersOnField
-                .where((p) => idsToRemove.contains(p.id))
+                .where((p) => !finalPlayerIds.contains(p.id))
                 .toList();
 
             if (playersToRemove.isNotEmpty) {
               tacticBoard.removeFieldItems(playersToRemove);
               zlog(
                   data:
-                      "Removed ${playersToRemove.length} players from the field.");
+                      "Benched ${playersToRemove.length} players: ${playersToRemove.map((p) => p.jerseyNumber).join(', ')}");
             }
 
-            for (final newPlayerState in finalLineup) {
-              zlog(data: "Player size getting ${newPlayerState.size}");
-              tacticBoard.removeFieldItems([newPlayerState]);
-              tacticBoard.addItem(newPlayerState);
+            // Add or Update players in the final lineup.
+            for (final playerState in result.finalLineup) {
+              tacticBoard.removeFieldItems([playerState]); // Removes by ID
+              tacticBoard.addItem(playerState); // Adds the updated player
             }
-            zlog(data: "Applied ${finalLineup.length} players to the field.");
-            // --- END: DIRECT-APPLICATION LOGIC ---
+
+            zlog(
+                data:
+                    "Board update complete via LineupArrangementService. ${result.finalLineup.length} players are on the field.");
           },
           fillColor: ColorManager.blue,
           child: Text(

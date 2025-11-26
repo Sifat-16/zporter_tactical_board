@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -19,6 +20,8 @@ import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
+import 'package:zporter_tactical_board/app/services/firebase_storage_service.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -26,18 +29,13 @@ import 'package:zporter_tactical_board/domain/admin/lineup/default_lineup_reposi
 
 abstract class PlayerDialogResult {}
 
-/// Represents the action of updating the current player's details.
 class PlayerUpdateResult extends PlayerDialogResult {
   final PlayerModel updatedPlayer;
   PlayerUpdateResult(this.updatedPlayer);
 }
 
-/// Represents the action of swapping the current player with another from the roster.
 class PlayerSwapResult extends PlayerDialogResult {
-  /// The player currently being edited, who will be moved to the bench.
   final PlayerModel playerToBench;
-
-  /// The player from the bench who will be moved to the field.
   final PlayerModel playerToBringIn;
 
   PlayerSwapResult(
@@ -46,44 +44,34 @@ class PlayerSwapResult extends PlayerDialogResult {
 
 class PlayerUtilsV2 {
   static DefaultLineupRepository _repository = sl.get();
-  // --- Sembast Store Definitions ---
   static const String _homePlayersStoreName = 'home_players_store';
   static const String _awayPlayersStoreName = 'away_players_store';
 
-  // We use stringMapStoreFactory for storing maps with string keys (player.id)
   static final _homePlayersStore =
       stringMapStoreFactory.store(_homePlayersStoreName);
   static final _awayPlayersStore =
       stringMapStoreFactory.store(_awayPlayersStoreName);
+
   static List<Tuple3<String, String, int>> homePlayers = [
     Tuple3("GK", "663b8a00a1b2c3d4e5f6a001", 1), // GK Goal Keeper
     Tuple3("RB", "663b8a00a1b2c3d4e5f6a002", 2), // RB Right Back
     Tuple3("LB", "663b8a00a1b2c3d4e5f6a003", 3), // LB Left Back
     Tuple3("CB", "663b8a00a1b2c3d4e5f6a004", 4), // CB Center Back
     Tuple3("CB", "663b8a00a1b2c3d4e5f6a005", 5), // CB Center Back
-    Tuple3(
-      "CDM",
-      "663b8a00a1b2c3d4e5f6a006",
-      6,
-    ), // CDM Central Defending Midfielder
+    Tuple3("CDM", "663b8a00a1b2c3d4e5f6a006",
+        6), // CDM Central Defending Midfielder
     Tuple3("RW", "663b8a00a1b2c3d4e5f6a007", 7), // RW Right Wing
     Tuple3("CM", "663b8a00a1b2c3d4e5f6a008", 8), // CM Central Midfield
     Tuple3("ST", "663b8a00a1b2c3d4e5f6a009", 9), // ST Striker
-    Tuple3(
-      "CAM",
-      "663b8a00a1b2c3d4e5f6a010",
-      10,
-    ), // CAM Central Attacking Midfield
+    Tuple3("CAM", "663b8a00a1b2c3d4e5f6a010",
+        10), // CAM Central Attacking Midfield
     Tuple3("LW", "663b8a00a1b2c3d4e5f6a011", 11), // LW Left Wing
     Tuple3("WB", "663b8a00a1b2c3d4e5f6a012", 12), // WB Wing Back (Right?)
     Tuple3("WB", "663b8a00a1b2c3d4e5f6a013", 13), // WB Wing Back (Left?)
     Tuple3("CB", "663b8a00a1b2c3d4e5f6a014", 14), // CB Center Back
     Tuple3("CB", "663b8a00a1b2c3d4e5f6a015", 15), // CB Center Back
-    Tuple3(
-      "CDM",
-      "663b8a00a1b2c3d4e5f6a016",
-      16,
-    ), // CDM Central Defending Midfielder
+    Tuple3("CDM", "663b8a00a1b2c3d4e5f6a016",
+        16), // CDM Central Defending Midfielder
     Tuple3("RM", "663b8a00a1b2c3d4e5f6a017", 17), // RM Right Midfield
     Tuple3("LM", "663b8a00a1b2c3d4e5f6a018", 18), // LM Left Midfield
     Tuple3("CF", "663b8a00a1b2c3d4e5f6a019", 19), // CF Center Forward
@@ -99,29 +87,20 @@ class PlayerUtilsV2 {
     Tuple3("LB", "663b8a99a1b2c3d4e5f6b003", 3), // LB Left Back
     Tuple3("CB", "663b8a99a1b2c3d4e5f6b004", 4), // CB Center Back
     Tuple3("CB", "663b8a99a1b2c3d4e5f6b005", 5), // CB Center Back
-    Tuple3(
-      "CDM",
-      "663b8a99a1b2c3d4e5f6b006",
-      6,
-    ), // CDM Central Defending Midfielder
+    Tuple3("CDM", "663b8a99a1b2c3d4e5f6b006",
+        6), // CDM Central Defending Midfielder
     Tuple3("RW", "663b8a99a1b2c3d4e5f6b007", 7), // RW Right Wing
     Tuple3("CM", "663b8a99a1b2c3d4e5f6b008", 8), // CM Central Midfield
     Tuple3("ST", "663b8a99a1b2c3d4e5f6b009", 9), // ST Striker
-    Tuple3(
-      "CAM",
-      "663b8a99a1b2c3d4e5f6b010",
-      10,
-    ), // CAM Central Attacking Midfield
+    Tuple3("CAM", "663b8a99a1b2c3d4e5f6b010",
+        10), // CAM Central Attacking Midfield
     Tuple3("LW", "663b8a99a1b2c3d4e5f6b011", 11), // LW Left Wing
     Tuple3("WB", "663b8a99a1b2c3d4e5f6b012", 12), // WB Wing Back (Right?)
     Tuple3("WB", "663b8a99a1b2c3d4e5f6b013", 13), // WB Wing Back (Left?)
     Tuple3("CB", "663b8a99a1b2c3d4e5f6b014", 14), // CB Center Back
     Tuple3("CB", "663b8a99a1b2c3d4e5f6b015", 15), // CB Center Back
-    Tuple3(
-      "CDM",
-      "663b8a99a1b2c3d4e5f6b016",
-      16,
-    ), // CDM Central Defending Midfielder
+    Tuple3("CDM", "663b8a99a1b2c3d4e5f6b016",
+        16), // CDM Central Defending Midfielder
     Tuple3("RM", "663b8a99a1b2c3d4e5f6b017", 17), // RM Right Midfield
     Tuple3("LM", "663b8a99a1b2c3d4e5f6b018", 18), // LM Left Midfield
     Tuple3("CF", "663b8a99a1b2c3d4e5f6b019", 19), // CF Center Forward
@@ -132,26 +111,21 @@ class PlayerUtilsV2 {
   ];
 
   static List<Tuple3<String, String, int>> otherPlayers = [
-    // Fixed, unique 24-character hex strings
-    Tuple3("REF", "F1XED0THERPLAYERID00001", 1), // Referee 1
-    Tuple3("REF", "F1XED0THERPLAYERID00002", 2), // Referee 2 (AR1)
-    Tuple3("REF", "F1XED0THERPLAYERID00003", 3), // Referee 3 (AR2)
-    Tuple3("REF", "F1XED0THERPLAYERID00004", 4), // Referee 4 (Fourth Official)
-    Tuple3("REF", "F1XED0THERPLAYERID00005", 5), // Referee 5 (VAR)
-    Tuple3("REF", "F1XED0THERPLAYERID00006", 6), // Referee 6 (AVAR)
-    Tuple3("HC", "F1XED0THERPLAYERID00007", -1), // Head Coach
-    Tuple3("AC", "F1XED0THERPLAYERID00008", -1), // Assistant Coach
-    Tuple3("GKC", "F1XED0THERPLAYERID00009", -1), // Goalkeeper Coach
-    Tuple3(
-      "SPC",
-      "F1XED0THERPLAYERID00010",
-      -1,
-    ), // Set Piece Coach / Specialist
-    Tuple3("ANA", "F1XED0THERPLAYERID00011", -1), // Analyst
-    Tuple3("TM", "F1XED0THERPLAYERID00012", -1), // Team Manager
-    Tuple3("PHY", "F1XED0THERPLAYERID00013", -1), // Physio / Medical Staff
-    Tuple3("DR", "F1XED0THERPLAYERID00014", -1), // Doctor
-    Tuple3("SD", "F1XED0THERPLAYERID00015", -1), // Sporting Director / Other
+    Tuple3("REF", "F1XED0THERPLAYERID00001", 1),
+    Tuple3("REF", "F1XED0THERPLAYERID00002", 2),
+    Tuple3("REF", "F1XED0THERPLAYERID00003", 3),
+    Tuple3("REF", "F1XED0THERPLAYERID00004", 4),
+    Tuple3("REF", "F1XED0THERPLAYERID00005", 5),
+    Tuple3("REF", "F1XED0THERPLAYERID00006", 6),
+    Tuple3("HC", "F1XED0THERPLAYERID00007", -1),
+    Tuple3("AC", "F1XED0THERPLAYERID00008", -1),
+    Tuple3("GKC", "F1XED0THERPLAYERID00009", -1),
+    Tuple3("SPC", "F1XED0THERPLAYERID00010", -1),
+    Tuple3("ANA", "F1XED0THERPLAYERID00011", -1),
+    Tuple3("TM", "F1XED0THERPLAYERID00012", -1),
+    Tuple3("PHY", "F1XED0THERPLAYERID00013", -1),
+    Tuple3("DR", "F1XED0THERPLAYERID00014", -1),
+    Tuple3("SD", "F1XED0THERPLAYERID00015", -1),
   ];
 
   static Tuple3<String, String, int>? findDefaultPlayerDataById(
@@ -160,10 +134,8 @@ class PlayerUtilsV2 {
     return allDefaultPlayers.firstWhereOrNull((p) => p.item2 == playerId);
   }
 
-  /// Fetches home players from DB, or generates from static data and saves if DB is empty.
   static Future<List<PlayerModel>> getOrInitializeHomePlayers() async {
     final db = await SemDB.database;
-    // Check if store has any records. Using count() is efficient for this.
     final recordCount = await _homePlayersStore.count(db);
 
     if (recordCount == 0) {
@@ -183,27 +155,18 @@ class PlayerUtilsV2 {
     }
   }
 
-  // ... inside PlayerUtilsV2
-
   static Stream<List<PlayerModel>> watchHomePlayers() async* {
     final db = await SemDB.database;
-
-    // CORRECTED: First, create a query from the store.
     final query = _homePlayersStore.query();
-
-    // Then, call onSnapshots on the query object.
     final stream = query.onSnapshots(db);
 
-    // The rest of the stream transformation logic is correct and remains the same.
     yield* stream.map((snapshots) {
-      // For each list of snapshots, map it to a list of PlayerModel objects.
       return snapshots
           .map((snapshot) => PlayerModel.fromJson(snapshot.value))
           .toList();
     });
   }
 
-  /// Fetches away players from DB, or generates from static data and saves if DB is empty.
   static Future<List<PlayerModel>> getOrInitializeAwayPlayers() async {
     final db = await SemDB.database;
     final recordCount = await _awayPlayersStore.count(db);
@@ -227,14 +190,8 @@ class PlayerUtilsV2 {
 
   static Stream<List<PlayerModel>> watchAwayPlayers() async* {
     final db = await SemDB.database;
-
-    // Create a query for the away players store
     final query = _awayPlayersStore.query();
-
-    // Get the stream of snapshots from the query
     final stream = query.onSnapshots(db);
-
-    // Transform the stream of database data into a stream of PlayerModel lists
     yield* stream.map((snapshots) {
       return snapshots
           .map((snapshot) => PlayerModel.fromJson(snapshot.value))
@@ -242,12 +199,10 @@ class PlayerUtilsV2 {
     });
   }
 
-  /// Saves a list of players to the specified Sembast store.
   static Future<void> _savePlayersToDb(Database db, List<PlayerModel> players,
       StoreRef<String, Map<String, dynamic>> store) async {
     await db.transaction((txn) async {
       for (var player in players) {
-        // Using player.id as the key. This will overwrite if a player with the same ID exists.
         await store.record(player.id).put(txn, player.toJson());
       }
     });
@@ -266,15 +221,12 @@ class PlayerUtilsV2 {
 
     for (Tuple3 p in players) {
       String id = p.item2;
-
       Color color;
       switch (playerType) {
         case PlayerType.HOME:
           color = ColorManager.blueAccent;
           break;
-
         case PlayerType.OTHER:
-          // TODO: Handle this case.
           if (p.item3 == -1) {
             color = ColorManager.blue;
           } else {
@@ -285,15 +237,17 @@ class PlayerUtilsV2 {
           color = ColorManager.red;
           break;
         case PlayerType.UNKNOWN:
-          // TODO: Handle this case.
           color = ColorManager.black;
           break;
       }
 
+      // --- CHANGE 1: UPDATE PlayerModel constructor to initialize both numbers ---
       PlayerModel playerModelV2 = PlayerModel(
         id: id,
         role: p.item1,
-        jerseyNumber: p.item3,
+        jerseyNumber: p.item3, // This is the permanent "role" number
+        displayNumber:
+            p.item3 > 0 ? p.item3 : null, // The display number starts the same
         color: color,
         playerType: playerType,
         offset: Vector2(0, 0),
@@ -308,14 +262,13 @@ class PlayerUtilsV2 {
       {required AnimationItemModel scene,
       required List<PlayerModel> availablePlayers}) {
     List<PlayerModel> scenePlayers =
-        scene.components.whereType<PlayerModel>().toList() ?? [];
+        scene.components.whereType<PlayerModel>().toList();
 
     List<PlayerModel> playersToAdd = scenePlayers.map((p) {
-          return availablePlayers
-              .firstWhere((player) => player.id == p.id)
-              .copyWith(offset: p.offset);
-        }).toList() ??
-        [];
+      return availablePlayers
+          .firstWhere((player) => player.id == p.id)
+          .copyWith(offset: p.offset);
+    }).toList();
     return playersToAdd;
   }
 
@@ -327,13 +280,13 @@ class PlayerUtilsV2 {
     zlog(data: "Generating away players for lineup");
     List<PlayerModel> scenePlayers = scene.components
         .whereType<PlayerModel>()
-        .toList()
         .where((p) => p.playerType == PlayerType.HOME)
         .toList();
 
     List<PlayerModel> playersToAdd = [];
 
     for (PlayerModel p in scenePlayers) {
+      // --- NO CHANGE: Lineup logic correctly uses the permanent 'jerseyNumber' ---
       PlayerModel? playerModel = availablePlayers.firstWhereOrNull(
         (player) =>
             (player.role == p.role) && (player.jerseyNumber == p.jerseyNumber),
@@ -349,7 +302,6 @@ class PlayerUtilsV2 {
                       ).x *
                       1.25 /
                       2)),
-
           1 -
               ((p.offset?.y ?? 0) -
                   (SizeHelper.getBoardRelativeVector(
@@ -357,11 +309,8 @@ class PlayerUtilsV2 {
                         actualPosition: p.size ?? Vector2.zero(),
                       ).y /
                       2)),
-          // p.offset?.y ?? 0,
         );
-        zlog(data: "Check the components ${offset} - ${fieldSize} ${p.size}");
         playerModel = playerModel.copyWith(offset: offset);
-
         playersToAdd.add(playerModel);
       }
     }
@@ -371,29 +320,21 @@ class PlayerUtilsV2 {
 
   static List<String> getUniqueRoles() {
     final Set<String> roles = {};
-    // Combine roles from all player lists
     final allPlayersData = [...homePlayers, ...awayPlayers];
     for (var playerDataTuple in allPlayersData) {
       roles.add(playerDataTuple.item1);
     }
     final sortedRoles = roles.toList()..sort();
-    // Provide a fallback if no roles are found in static data
-    return sortedRoles.isNotEmpty
-        ? sortedRoles
-        : ['GK', 'DEF', 'MID', 'FWD', 'ST'];
-  }
-
-  /// Generates a list of default jersey numbers (1-99).
-  static List<int> getDefaultJerseyNumbers() {
-    return List.generate(99, (index) => index + 1);
+    // Add "-" option at the beginning for neutral/no role display
+    final rolesWithNeutral = ['-', ...sortedRoles];
+    return rolesWithNeutral.isNotEmpty
+        ? rolesWithNeutral
+        : ['-', 'GK', 'DEF', 'MID', 'FWD', 'ST'];
   }
 
   static Future<bool> isJerseyNumberTaken(
       int jerseyNumber, PlayerType playerType, String currentPlayerId) async {
     List<PlayerModel> teamPlayers;
-
-    // Fetch the relevant team's players
-    // These methods should ideally fetch the latest from DB or an up-to-date cache
     switch (playerType) {
       case PlayerType.HOME:
         teamPlayers = await getOrInitializeHomePlayers();
@@ -402,28 +343,23 @@ class PlayerUtilsV2 {
         teamPlayers = await getOrInitializeAwayPlayers();
         break;
       default:
-        // For other player types, jersey number uniqueness might not apply or needs different logic.
-        // If it can apply to PlayerType.OTHER and they have jersey numbers, extend this.
-        zlog(
-            data:
-                "Jersey number check not applicable for PlayerType: $playerType");
-        return false; // Not considered taken for non-Home/Away types by default
+        return false;
     }
 
-    // Check if any *other* player on the team has this jersey number
+    // --- CHANGE 2: Check against the DISPLAY number now ---
     for (var player in teamPlayers) {
-      if (player.id != currentPlayerId && player.jerseyNumber == jerseyNumber) {
-        return true; // Number is taken by another player
+      if (player.id != currentPlayerId &&
+          player.displayNumber == jerseyNumber) {
+        return true;
       }
     }
-    return false; // Number is not taken
+    return false;
   }
 
   static Future<void> updatePlayerInDb(PlayerModel player) async {
     final db = await SemDB.database;
     StoreRef<String, Map<String, dynamic>> store;
 
-    // Determine the correct store based on playerType
     switch (player.playerType) {
       case PlayerType.HOME:
         store = _homePlayersStore;
@@ -431,14 +367,11 @@ class PlayerUtilsV2 {
       case PlayerType.AWAY:
         store = _awayPlayersStore;
         break;
-      case PlayerType.OTHER:
-      case PlayerType.UNKNOWN:
+      default:
         zlog(
             data:
-                'Player type ${player.playerType} not typically stored individually for editing in this context. Update logic might need specific handling if required.');
-        // If you need to store/update OTHER players, define a store for them.
-        // For now, we'll skip updating for OTHER/UNKNOWN or throw an error.
-        return; // Or throw Exception('Cannot update player of type ${player.playerType}');
+                'Player type ${player.playerType} not supported for individual updates.');
+        return;
     }
 
     try {
@@ -448,7 +381,7 @@ class PlayerUtilsV2 {
               'Player ${player.id} (${player.name}) updated in store: ${store.name} - ${player.toJson()}');
     } catch (e) {
       zlog(data: 'Error updating player ${player.id} in DB: $e');
-      rethrow; // Rethrow to allow caller to handle
+      rethrow;
     }
   }
 
@@ -456,7 +389,6 @@ class PlayerUtilsV2 {
     final db = await SemDB.database;
     StoreRef<String, Map<String, dynamic>> store;
 
-    // Determine the correct store based on playerType
     switch (player.playerType) {
       case PlayerType.HOME:
         store = _homePlayersStore;
@@ -464,49 +396,43 @@ class PlayerUtilsV2 {
       case PlayerType.AWAY:
         store = _awayPlayersStore;
         break;
-      case PlayerType.OTHER:
-      case PlayerType.UNKNOWN:
+      default:
         zlog(
             data:
-                'Player type ${player.playerType} not typically stored individually for editing in this context. Update logic might need specific handling if required.');
-        // If you need to store/update OTHER players, define a store for them.
-        // For now, we'll skip updating for OTHER/UNKNOWN or throw an error.
-        return; // Or throw Exception('Cannot update player of type ${player.playerType}');
+                'Player type ${player.playerType} not supported for deletion.');
+        return;
     }
 
     try {
       await store.record(player.id).delete(db);
       zlog(
           data:
-              'Player ${player.id} (${player.name}) updated in store: ${store.name} - ${player.toJson()}');
+              'Player ${player.id} (${player.name}) deleted from store: ${store.name}');
     } catch (e) {
-      zlog(data: 'Error updating player ${player.id} in DB: $e');
-      rethrow; // Rethrow to allow caller to handle
+      zlog(data: 'Error deleting player ${player.id} from DB: $e');
+      rethrow;
     }
   }
 
   static Future<PlayerModel?> showCreatePlayerDialog({
     required BuildContext context,
-    required PlayerType playerType, // Specify HOME or AWAY
+    required PlayerType playerType,
   }) async {
     final PlayerModel? newPlayer = await showDialog<PlayerModel?>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         return PlayerEditorDialog(
-          player: null, // Passing null triggers "Create Mode"
+          player: null,
           playerType: playerType,
           showReplace: false,
           onDelete: (p) async {},
           availableRoles: getUniqueRoles(),
-          availableJerseyNumbers: getDefaultJerseyNumbers(),
         );
       },
     );
 
     if (newPlayer != null) {
-      // If dialog returned a new player, save it to the database.
-      // We can reuse updatePlayerInDb as it handles both inserts and updates.
       try {
         await updatePlayerInDb(newPlayer);
         zlog(data: 'New player ${newPlayer.id} successfully saved to DB.');
@@ -519,58 +445,43 @@ class PlayerUtilsV2 {
         return null;
       }
     }
-
-    // User cancelled the dialog
     return null;
   }
-
-  /// Shows the dialog to edit player details.
-  /// Returns the updated PlayerModel if saved, otherwise null.
-  // static Future<PlayerModel?> showEditPlayerDialog({
-  //   required BuildContext context,
-  //   required PlayerModel player,
-  // }) async {
-  //   final PlayerModel? resultPlayer = await showDialog<PlayerModel?>(
-  //     context: context,
-  //     barrierDismissible: false,
-  //     builder: (BuildContext dialogContext) {
-  //       return PlayerEditorDialog(
-  //         player: player, // Pass the player to trigger "Edit Mode"
-  //         playerType: player.playerType,
-  //         onDelete: (p) async {
-  //           await deletePlayerInDb(p);
-  //         },
-  //         availableRoles: getUniqueRoles(),
-  //         availableJerseyNumbers: getDefaultJerseyNumbers(),
-  //       );
-  //     },
-  //   );
-  //
-  //   // The existing save/update logic below this call remains the same and works perfectly.
-  //   if (resultPlayer != null) {
-  //     if (resultPlayer != player) {
-  //       zlog(data: 'Player model changed. Saving to database...');
-  //       try {
-  //         await updatePlayerInDb(resultPlayer);
-  //         return resultPlayer;
-  //       } catch (e) {
-  //         // ... error handling
-  //         return null;
-  //       }
-  //     } else {
-  //       return resultPlayer;
-  //     }
-  //   }
-  //   return null;
-  // }
 
   static Future<PlayerDialogResult?> showEditPlayerDialog(
       {required BuildContext context,
       required PlayerModel player,
-      // --- NEW: Pass in the list of available players on the bench ---
       List<PlayerModel> rosterPlayers = const [],
       required bool showReplace}) async {
-    // --- MODIFIED: The dialog now returns our custom result type ---
+    // final PlayerDialogResult? result = await showDialog<PlayerDialogResult?>(
+    //   context: context,
+    //   barrierDismissible: false,
+    //   builder: (BuildContext dialogContext) {
+    //     return PlayerEditorDialog(
+    //       player: player,
+    //       showReplace: showReplace,
+    //       playerType: player.playerType,
+    //       onDelete: (p) async {
+    //         await deletePlayerInDb(p);
+    //       },
+    //       availableRoles: getUniqueRoles(),
+    //       availableReplacements: rosterPlayers,
+    //     );
+    //   },
+    // );
+    //
+    // if (result is PlayerUpdateResult) {
+    //   if (result.updatedPlayer != player) {
+    //     zlog(data: 'Player model changed. Saving to database...');
+    //     try {
+    //       await updatePlayerInDb(result.updatedPlayer);
+    //     } catch (e) {
+    //       zlog(data: 'Failed to update player: $e');
+    //     }
+    //   }
+    // }
+    // return result;
+
     final PlayerDialogResult? result = await showDialog<PlayerDialogResult?>(
       context: context,
       barrierDismissible: false,
@@ -583,85 +494,37 @@ class PlayerUtilsV2 {
             await deletePlayerInDb(p);
           },
           availableRoles: getUniqueRoles(),
-          availableJerseyNumbers: getDefaultJerseyNumbers(),
-          // --- NEW: Pass the roster players to the dialog ---
           availableReplacements: rosterPlayers,
         );
       },
     );
 
-    // --- MODIFIED: Handle the different result types ---
-    if (result is PlayerUpdateResult) {
-      // The user edited the player's details. Save them.
-      if (result.updatedPlayer != player) {
-        zlog(data: 'Player model changed. Saving to database...');
-        try {
-          await updatePlayerInDb(result.updatedPlayer);
-        } catch (e) {
-          zlog(data: 'Failed to update player: $e');
-        }
-      }
-    }
-    // Return the result (update, swap, or null) to the caller to handle board actions.
+    // The save logic has been removed from here and moved to the toolbar.
     return result;
   }
 
   static Future<PlayerModel?> getPlayerFromDbById(String playerId) async {
     if (playerId.isEmpty) {
-      zlog(data: 'Player ID is empty, cannot fetch player.');
       return null;
     }
 
     final db = await SemDB.database;
     Map<String, dynamic>? playerData;
-    PlayerType foundPlayerType =
-        PlayerType.UNKNOWN; // To know where it was found
 
     try {
-      // 1. Try to find in the home players store
       var snapshot = await _homePlayersStore.record(playerId).getSnapshot(db);
       if (snapshot != null) {
         playerData = snapshot.value;
-        // Assuming PlayerModel.fromJson can derive/handle playerType correctly
-        // or the playerType is part of the stored JSON.
-        // If not, we infer it here for logging or other logic if needed.
-        foundPlayerType = PlayerType.HOME;
-        zlog(data: 'Player $playerId found in home players store.');
       } else {
-        // 2. If not found in home, try away players store
         snapshot = await _awayPlayersStore.record(playerId).getSnapshot(db);
         if (snapshot != null) {
           playerData = snapshot.value;
-          foundPlayerType = PlayerType.AWAY;
-          zlog(data: 'Player $playerId found in away players store.');
         }
       }
 
-      // 3. Optionally, search in other stores if you have them (e.g., _otherPlayersStore)
-      // if (playerData == null && _otherPlayersStore != null) { // Hypothetical _otherPlayersStore
-      //   snapshot = await _otherPlayersStore.record(playerId).getSnapshot(db);
-      //   if (snapshot != null) {
-      //     playerData = snapshot.value;
-      //     foundPlayerType = PlayerType.OTHER; // Or derived from data
-      //     zlog(data: 'Player $playerId found in other players store.');
-      //   }
-      // }
-
       if (playerData != null) {
-        // Ensure the PlayerModel.fromJson correctly reconstructs the playerType
-        // or that it's inherently part of the JSON.
-        // If your PlayerModel.fromJson doesn't set playerType based on JSON,
-        // and you need it on the returned model, you might need to pass `foundPlayerType`
-        // or ensure `playerType` is in `playerData`.
-        PlayerModel player = PlayerModel.fromJson(playerData);
-
-        // If playerType isn't reliably in JSON, you might need a check or manual setting:
-        // if (player.playerType == PlayerType.UNKNOWN && foundPlayerType != PlayerType.UNKNOWN) {
-        //   player = player.copyWith(playerType: foundPlayerType); // Assuming copyWith supports this
-        // }
-        return player;
+        return PlayerModel.fromJson(playerData);
       } else {
-        zlog(data: 'Player with ID $playerId not found in any checked stores.');
         return null;
       }
     } catch (e) {
@@ -684,69 +547,49 @@ class PlayerUtilsV2 {
         teamPlayers = await getOrInitializeAwayPlayers();
         break;
       default:
-        // For other types, this logic might not apply. Return preferred number as-is.
         return preferredNumber;
     }
 
-    // Create a set of all jersey numbers currently used by *other* players
+    // --- CHANGE 3: Check against the DISPLAY number now ---
     final Set<int> takenNumbers = teamPlayers
-        .where((p) => p.id != currentPlayerId && p.jerseyNumber > 0)
-        .map((p) => p.jerseyNumber)
+        .where((p) => p.id != currentPlayerId && p.displayNumber != null)
+        .map((p) => p.displayNumber!)
         .toSet();
 
-    // The preferred number is ideal if it's valid and not taken.
     if (preferredNumber >= 1 &&
         preferredNumber <= 99 &&
         !takenNumbers.contains(preferredNumber)) {
       return preferredNumber;
     }
 
-    // Search outwards from the preferred number for the closest available spot
     for (int offset = 1; offset < 99; offset++) {
-      // Check higher number
       int higher = preferredNumber + offset;
       if (higher <= 99 && !takenNumbers.contains(higher)) {
         return higher;
       }
-      // Check lower number
       int lower = preferredNumber - offset;
       if (lower >= 1 && !takenNumbers.contains(lower)) {
         return lower;
       }
     }
 
-    // As a last resort (if all numbers 1-99 are somehow taken), find the first possible number.
-    // This is highly unlikely in a standard team context.
     for (int i = 1; i <= 99; i++) {
       if (!takenNumbers.contains(i)) {
         return i;
       }
     }
 
-    // Ultimate fallback if every single number is taken, should never be reached.
-    // Throws an exception as this indicates a full roster, an unrecoverable state for this function.
     throw Exception(
         'All jersey numbers from 1 to 99 are taken for team $playerType.');
   }
 }
 
 class PlayerEditorDialog extends StatefulWidget {
-  /// The player to edit. If null, the dialog is in "Create" mode.
   final PlayerModel? player;
-
-  /// The team type (Home/Away) the player belongs to. Required in both modes.
   final PlayerType playerType;
-
-  /// A list of all available roles for the dropdown.
   final List<String> availableRoles;
-
   final Function(PlayerModel) onDelete;
-
-  /// A list of all available jersey numbers for the dropdown.
-  final List<int> availableJerseyNumbers;
-
   final List<PlayerModel> availableReplacements;
-
   final bool showReplace;
 
   const PlayerEditorDialog({
@@ -755,7 +598,6 @@ class PlayerEditorDialog extends StatefulWidget {
     required this.onDelete,
     required this.playerType,
     required this.availableRoles,
-    required this.availableJerseyNumbers,
     this.availableReplacements = const [],
     required this.showReplace,
   });
@@ -765,15 +607,18 @@ class PlayerEditorDialog extends StatefulWidget {
 }
 
 class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
-  // State variables for form fields
   late final TextEditingController _nameController;
-  late int? _selectedJerseyNumber;
+  late final TextEditingController _displayNumberController;
   late String? _selectedRole;
-  String? _currentImageBase64;
+  // String? _currentImageBase64;
 
-  // --- State variable to track if the player is a default one ---
+  final FirebaseStorageService _storageService = FirebaseStorageService();
+  File? _pendingImageFile; // This will hold the new image the user picked
+  String? _existingImagePath; // This will hold the player's current path/base64
+  String? _existingImageBase64;
+  Color? _selectedBorderColor; // Custom border color
+
   bool _isDefaultPlayer = false;
-
   final ImagePicker _picker = ImagePicker();
   PlayerModel? _selectedReplacementPlayer;
   bool get isEditMode => widget.player != null;
@@ -782,42 +627,75 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   void initState() {
     super.initState();
     if (isEditMode) {
-      // Standard initialization from the player model
       _nameController = TextEditingController(text: widget.player!.name ?? '');
-      _selectedJerseyNumber =
-          widget.player!.jerseyNumber > 0 ? widget.player!.jerseyNumber : null;
+      // --- CHANGE 2: Initialize controller with the display number ---
+      _displayNumberController = TextEditingController(
+          text: _isNegativeOrEmpty(widget.player!.displayNumber?.toString()));
       _selectedRole = widget.player!.role;
-      _currentImageBase64 = widget.player!.imageBase64;
+      // _currentImageBase64 = widget.player!.imageBase64;
 
-      // --- Check the player's status when the dialog opens ---
+      _existingImageBase64 =
+          widget.player!.imageBase64; // Store existing image data
+      _existingImagePath =
+          widget.player!.imagePath; // Store existing image path
+      _selectedBorderColor = widget.player!.borderColor; // Load border color
+
       final defaultData =
           PlayerUtilsV2.findDefaultPlayerDataById(widget.player!.id);
       _isDefaultPlayer = defaultData != null;
     } else {
-      // Create Mode: Initialize fields as empty
       _nameController = TextEditingController();
-      _selectedJerseyNumber = null;
+      _displayNumberController = TextEditingController();
       _selectedRole = null;
-      _currentImageBase64 = null;
+      _existingImageBase64 = null; // Store existing image data
+      _existingImagePath = null; // Store existing image path
+      _selectedBorderColor = null; // No custom border color for new players
     }
+  }
+
+  String _isNegativeOrEmpty(String? value) {
+    if (value == null) return '';
+    if (value.isEmpty) return 'Please enter a number.';
+    final intValue = int.tryParse(value);
+    if (intValue == null || intValue < 0) {
+      return '';
+    }
+    return '';
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    // --- CHANGE 3: Dispose the new controller ---
+    _displayNumberController.dispose();
     super.dispose();
   }
 
-  /// Handles picking an image from gallery, cropping it, and converting to Base64.
   Future<void> _pickImage() async {
+    // Add a small delay to ensure UI is ready
+    await Future.delayed(const Duration(milliseconds: 100));
+
     try {
-      final XFile? pickedFile =
-          await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile == null) return; // User cancelled
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512, // Limit image size to prevent memory issues
+        maxHeight: 512,
+        imageQuality: 85, // Compress image
+      );
+
+      // Check if still mounted after async operation
+      if (!mounted) return;
+      if (pickedFile == null) return;
+
+      // Add small delay before cropping to allow memory cleanup
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) return;
 
       final CroppedFile? croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
         compressQuality: 80,
+        maxWidth: 512, // Limit cropped image size
+        maxHeight: 512,
         uiSettings: [
           AndroidUiSettings(
             toolbarTitle: 'Crop Player Icon',
@@ -838,50 +716,179 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         ],
       );
 
-      if (croppedFile == null) return; // User cancelled cropping
+      // Check if widget is still mounted before updating state
+      if (!mounted) return;
+      if (croppedFile == null) return;
 
-      final imageBytes = await croppedFile.readAsBytes();
-      final base64String = base64Encode(imageBytes);
+      // Verify the file exists and is accessible
+      final file = File(croppedFile.path);
+      if (!await file.exists()) {
+        throw Exception('Cropped file does not exist');
+      }
 
       setState(() {
-        _currentImageBase64 = base64String;
+        _pendingImageFile = file;
+        _existingImageBase64 = null; // Clear old images so the new one shows
+        _existingImagePath = null; // Clear old images so the new one shows
       });
-    } catch (e) {
-      zlog(data: 'Error during image pick/crop process: $e');
+
+      zlog(data: 'Image picked and cropped successfully: ${croppedFile.path}');
+    } on PlatformException catch (e) {
+      zlog(
+          data:
+              'Platform error during image pick/crop: ${e.code} - ${e.message}');
       if (mounted) {
-        BotToast.showText(text: "Error processing image. Please try again.");
+        String errorMessage = "Error accessing gallery.";
+        if (e.code == 'photo_access_denied' ||
+            e.code == 'camera_access_denied') {
+          errorMessage = "Please grant photo library permission in Settings.";
+        }
+        BotToast.showText(
+          text: errorMessage,
+          duration: Duration(seconds: 3),
+        );
+      }
+    } catch (e, stackTrace) {
+      zlog(data: 'Error during image pick/crop process: $e\n$stackTrace');
+      if (mounted) {
+        BotToast.showText(
+          text:
+              "Error processing image. Please try again or choose a smaller image.",
+          duration: Duration(seconds: 3),
+        );
       }
     }
   }
 
-  /// Handles the "Delete" button press. Decides whether to reset or permanently delete.
+  /// Gets the default border color based on player type
+  Color _getDefaultBorderColor() {
+    if (widget.player == null) return ColorManager.blue;
+
+    switch (widget.player!.playerType) {
+      case PlayerType.HOME:
+        return ColorManager.blue;
+      case PlayerType.AWAY:
+        return ColorManager.red;
+      case PlayerType.OTHER:
+      case PlayerType.UNKNOWN:
+        return ColorManager.grey;
+    }
+  }
+
+  /// Shows a color picker dialog for border color
+  Future<void> _pickBorderColor() async {
+    final Color? pickedColor = await showDialog<Color>(
+      context: context,
+      builder: (BuildContext context) {
+        Color tempColor = _selectedBorderColor ?? _getDefaultBorderColor();
+
+        return AlertDialog(
+          backgroundColor: ColorManager.dark1,
+          title: Text(
+            'Choose Border Color',
+            style: TextStyle(color: ColorManager.white),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Predefined colors
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildColorOption(ColorManager.blue, 'Blue'),
+                    _buildColorOption(ColorManager.red, 'Red'),
+                    _buildColorOption(ColorManager.green, 'Green'),
+                    _buildColorOption(ColorManager.yellow, 'Yellow'),
+                    _buildColorOption(Colors.orange, 'Orange'),
+                    _buildColorOption(Colors.purple, 'Purple'),
+                    _buildColorOption(Colors.pink, 'Pink'),
+                    _buildColorOption(Colors.cyan, 'Cyan'),
+                    _buildColorOption(ColorManager.white, 'White'),
+                    _buildColorOption(ColorManager.grey, 'Grey'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: ColorManager.grey)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, tempColor),
+              child:
+                  Text('Select', style: TextStyle(color: ColorManager.yellow)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (pickedColor != null) {
+      setState(() {
+        _selectedBorderColor = pickedColor;
+      });
+    }
+  }
+
+  /// Builds a color option widget for the color picker
+  Widget _buildColorOption(Color color, String label) {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context, color),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: ColorManager.white.withOpacity(0.3),
+                width: 2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: ColorManager.white,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onDeleteOrResetPressed() async {
     final playerToEdit = widget.player!;
-
     final staticData = PlayerUtilsV2.findDefaultPlayerDataById(playerToEdit.id);
 
     if (staticData != null) {
-      // --- It is a default player -> RESET IT ---
+      // --- RESETTING a default player ---
       final String originalRole = staticData.item1;
       final int originalNumber = staticData.item3;
 
-      int finalNumber = await PlayerUtilsV2.findClosestUntakenNumber(
-          originalNumber, widget.playerType, playerToEdit.id);
-
+      // --- CHANGE 4: Resetting now means setting the display number back to the permanent number ---
       final PlayerModel resetPlayerModel = playerToEdit.copyWith(
         role: originalRole,
-        jerseyNumber: finalNumber,
+        displayNumber: originalNumber,
         name: '',
         imageBase64: '',
         imagePath: '',
       );
 
       if (mounted) {
-        Navigator.of(context).pop(resetPlayerModel);
+        Navigator.of(context).pop(PlayerUpdateResult(resetPlayerModel));
       }
       BotToast.showText(text: "Player has been reset to default.");
     } else {
-      // --- It is a user-created player -> DELETE IT ---
+      // --- Deleting a user-created player ---
       widget.onDelete.call(playerToEdit);
       if (mounted) {
         Navigator.of(context).pop(null);
@@ -890,59 +897,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     }
   }
 
-  // /// Handles the "Save" button press for both Create and Edit modes.
-  // Future<void> _onSavePressed() async {
-  //   if (_selectedJerseyNumber == null || _selectedRole == null) {
-  //     BotToast.showText(text: "Please select a role and jersey number.");
-  //     return;
-  //   }
-  //
-  //   final String playerIdForCheck =
-  //       isEditMode ? widget.player!.id : RandomGenerator.generateId();
-  //   bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-  //       _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
-  //
-  //   if (isTaken) {
-  //     BotToast.showText(
-  //         text: 'Jersey number $_selectedJerseyNumber is already taken!');
-  //     return;
-  //   }
-  //
-  //   PlayerModel resultPlayer;
-  //   if (isEditMode) {
-  //     resultPlayer = widget.player!.copyWith(
-  //       name: _nameController.text.trim(),
-  //       role: _selectedRole,
-  //       jerseyNumber: _selectedJerseyNumber,
-  //       imageBase64: _currentImageBase64,
-  //       imagePath: '',
-  //       updatedAt: DateTime.now(),
-  //     );
-  //   } else {
-  //     final now = DateTime.now();
-  //     resultPlayer = PlayerModel(
-  //       id: playerIdForCheck,
-  //       playerType: widget.playerType,
-  //       role: _selectedRole!,
-  //       jerseyNumber: _selectedJerseyNumber!,
-  //       name: _nameController.text.trim(),
-  //       imageBase64: _currentImageBase64,
-  //       color: widget.playerType == PlayerType.HOME
-  //           ? ColorManager.blueAccent
-  //           : ColorManager.red,
-  //       offset: Vector2.zero(),
-  //       size: Vector2(32, 32),
-  //       createdAt: now,
-  //       updatedAt: now,
-  //     );
-  //   }
-  //   if (mounted) {
-  //     Navigator.of(context).pop(resultPlayer);
-  //   }
-  // }
-
   Future<void> _onSavePressed() async {
-    // --- NEW: If a replacement is selected, perform the swap action ---
     if (_selectedReplacementPlayer != null) {
       final result = PlayerSwapResult(
         playerToBench: widget.player!,
@@ -954,21 +909,101 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       return;
     }
 
-    // --- EXISTING LOGIC: If no replacement, perform an update ---
-    if (_selectedJerseyNumber == null || _selectedRole == null) {
-      BotToast.showText(text: "Please select a role and jersey number.");
+    // Allow "-" as a valid role (neutral/no role)
+    if (_selectedRole == null || _selectedRole!.isEmpty) {
+      BotToast.showText(text: "Please select a role.");
       return;
     }
 
-    final String playerIdForCheck =
-        isEditMode ? widget.player!.id : RandomGenerator.generateId();
-    bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-        _selectedJerseyNumber!, widget.playerType, playerIdForCheck);
+    // Parse the number field - allow "-" to mean no number (-1)
+    final jerseyNumberText = _displayNumberController.text.trim();
+    int? jerseyNumberInt;
 
-    if (isTaken) {
-      BotToast.showText(
-          text: 'Jersey number $_selectedJerseyNumber is already taken!');
-      return;
+    if (jerseyNumberText == '-') {
+      // User explicitly wants no number
+      jerseyNumberInt = -1;
+    } else if (jerseyNumberText.isEmpty) {
+      // Empty is also acceptable (will use -1)
+      jerseyNumberInt = -1;
+    } else {
+      // Try to parse as a number
+      jerseyNumberInt = int.tryParse(jerseyNumberText);
+      if (jerseyNumberInt == null) {
+        BotToast.showText(
+            text: "Jersey number must be a valid number or '-' for no number.");
+        return;
+      }
+    }
+
+    // Only check for duplicates if the number is not -1 (neutral)
+    if (jerseyNumberInt != -1) {
+      final String playerIdForCheck =
+          isEditMode ? widget.player!.id : RandomGenerator.generateId();
+      bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
+          jerseyNumberInt, widget.playerType, playerIdForCheck);
+
+      if (isTaken) {
+        BotToast.showText(
+            text: 'Jersey number $jerseyNumberInt is already taken!');
+        return;
+      }
+    }
+
+    String? finalImagePath =
+        _existingImagePath; // Start with the existing image path/URL
+    String? finalBase64 =
+        _existingImageBase64; // Start with existing Base64 (for backwards compatibility)
+
+    // A new file was picked by the user, we MUST handle it.
+    if (_pendingImageFile != null) {
+      // OFFLINE-FIRST: Check connectivity before attempting upload
+      final isOnline = ConnectivityService.statusNotifier.value.isOnline;
+
+      if (!isOnline) {
+        // OFFLINE: Convert to base64 and save locally
+        zlog(data: "Device offline: Saving player image as base64 for now");
+        try {
+          final bytes = await _pendingImageFile!.readAsBytes();
+          finalBase64 = base64Encode(bytes);
+          finalImagePath = null; // Clear URL, will upload when online
+
+          BotToast.showText(
+            text: "Saved offline. Image will sync when online.",
+            duration: Duration(seconds: 2),
+          );
+        } catch (e) {
+          zlog(data: "Failed to convert image to base64: $e");
+          BotToast.showText(text: "Error processing image. Please try again.");
+          return; // Stop the save
+        }
+      } else {
+        // ONLINE: Upload to Firebase Storage
+        try {
+          BotToast.showLoading(); // Show a global loader for the upload
+
+          // Use a unique ID for the file. If creating a new player, generate one.
+          final String playerIdForUpload =
+              widget.player?.id ?? RandomGenerator.generateId();
+
+          // 1. CALL OUR NEW UPLOAD SERVICE
+          final String downloadURL = await _storageService.uploadPlayerImage(
+            imageFile: _pendingImageFile!,
+            playerId: playerIdForUpload,
+          );
+
+          // 2. This network URL is the new path we will save
+          finalImagePath = downloadURL;
+          finalBase64 =
+              null; // Clear any old base64 data, the URL is the new truth
+        } catch (e) {
+          zlog(data: "Failed to upload image to Firebase Storage: $e");
+          BotToast.showText(text: "Error uploading image. Please try again.");
+          BotToast.cleanAll(); // Make sure to clean the loader on failure
+          return; // Stop the save
+        } finally {
+          BotToast.cleanAll(); // Clean loader on success
+        }
+      }
     }
 
     PlayerModel resultPlayer;
@@ -976,20 +1011,26 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       resultPlayer = widget.player!.copyWith(
         name: _nameController.text.trim(),
         role: _selectedRole,
-        jerseyNumber: _selectedJerseyNumber,
-        imageBase64: _currentImageBase64,
-        imagePath: '',
+        // Save the parsed int to displayNumber (can be -1 for no number)
+        displayNumber: jerseyNumberInt,
+        imageBase64: finalBase64, // Pass the (likely null) Base64
+        imagePath: finalImagePath, // Pass the new PERMANENT path
+        borderColor: _selectedBorderColor, // Save custom border color
         updatedAt: DateTime.now(),
       );
     } else {
+      // Logic for creating a new player
       final now = DateTime.now();
       resultPlayer = PlayerModel(
-        id: playerIdForCheck,
+        id: RandomGenerator.generateId(),
         playerType: widget.playerType,
         role: _selectedRole!,
-        jerseyNumber: _selectedJerseyNumber!,
+        jerseyNumber: jerseyNumberInt, // Now always has a value
+        displayNumber: jerseyNumberInt,
         name: _nameController.text.trim(),
-        imageBase64: _currentImageBase64,
+        imageBase64: finalBase64,
+        imagePath: finalImagePath, // Save the new permanent path
+        borderColor: _selectedBorderColor, // Save custom border color
         color: widget.playerType == PlayerType.HOME
             ? ColorManager.blueAccent
             : ColorManager.red,
@@ -1000,21 +1041,56 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       );
     }
     if (mounted) {
-      // --- MODIFIED: Return the correct result type ---
-      Navigator.of(context).pop(PlayerUpdateResult(resultPlayer));
+      if (isEditMode) {
+        Navigator.of(context).pop(PlayerUpdateResult(resultPlayer));
+      } else {
+        Navigator.of(context).pop(resultPlayer);
+      }
     }
   }
 
-  /// Decodes the Base64 string into an ImageProvider for the UI.
+  // ImageProvider? _getImageProvider() {
+  //   if (_currentImageBase64 != null && _currentImageBase64!.isNotEmpty) {
+  //     try {
+  //       return MemoryImage(base64Decode(_currentImageBase64!));
+  //     } catch (e) {
+  //       zlog(data: "Error decoding Base64 for UI: $e");
+  //       return null;
+  //     }
+  //   }
+  //   return null;
+  // }
+
+  // Replace your _getImageProvider() function
+
   ImageProvider? _getImageProvider() {
-    if (_currentImageBase64 != null && _currentImageBase64!.isNotEmpty) {
+    // 1. Did the user just pick a NEW file? Show that (from the temp path).
+    if (_pendingImageFile != null) {
+      return FileImage(_pendingImageFile!);
+    }
+
+    // 2. Is there an existing Base64 string? (for old data)
+    if (_existingImageBase64 != null && _existingImageBase64!.isNotEmpty) {
       try {
-        return MemoryImage(base64Decode(_currentImageBase64!));
+        return MemoryImage(base64Decode(_existingImageBase64!));
       } catch (e) {
         zlog(data: "Error decoding Base64 for UI: $e");
-        return null;
       }
     }
+
+    // 3. Is there an existing PERMANENT path/URL? Show that.
+    if (_existingImagePath != null && _existingImagePath!.isNotEmpty) {
+      // Check if it's a network URL (starts with http:// or https://)
+      if (_existingImagePath!.startsWith('http://') ||
+          _existingImagePath!.startsWith('https://')) {
+        return NetworkImage(_existingImagePath!);
+      } else {
+        // It's a local file path
+        return FileImage(File(_existingImagePath!));
+      }
+    }
+
+    // 4. If nothing else, show null (which shows the "add photo" icon).
     return null;
   }
 
@@ -1025,10 +1101,6 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
     final String buttonText =
         _isDefaultPlayer ? "Reset to Default" : "Delete Permanently";
-    final Color buttonColor =
-        _isDefaultPlayer ? (ColorManager.yellow) : (ColorManager.red);
-
-    // --- NEW: A flag to disable editing fields if a replacement is chosen ---
     final bool isReplacing = _selectedReplacementPlayer != null;
 
     return Dialog(
@@ -1059,8 +1131,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                     children: [
                       Center(
                         child: GestureDetector(
-                          onTap:
-                              _pickImage, // This is now controlled by AbsorbPointer
+                          onTap: _pickImage,
                           child: Container(
                             width: 100,
                             height: 100,
@@ -1084,31 +1155,28 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                       const SizedBox(height: 24),
                       Row(
                         children: [
+                          // --- CHANGE 7: Replace DropdownSelector with TextFormField ---
                           Expanded(
-                            child: DropdownSelector<int>(
-                              label: 'Nr',
-                              items: widget.availableJerseyNumbers,
-                              initialValue: _selectedJerseyNumber,
-                              hint: "Select Nr",
-                              itemAsString: (item) => item.toString(),
-                              onChanged: (value) async {
-                                if (value == null) {
-                                  setState(() => _selectedJerseyNumber = null);
-                                  return;
-                                }
-                                bool isTaken =
-                                    await PlayerUtilsV2.isJerseyNumberTaken(
-                                        value,
-                                        widget.playerType,
-                                        isEditMode ? widget.player!.id : '');
-                                if (isTaken) {
-                                  BotToast.showText(
-                                      text:
-                                          'Jersey number $value is already taken!');
-                                } else {
-                                  setState(() => _selectedJerseyNumber = value);
-                                }
-                              },
+                            child: TextFormField(
+                              // --- MODIFICATION 3: Use the correctly named controller ---
+                              controller: _displayNumberController,
+
+                              style: TextStyle(color: ColorManager.white),
+                              keyboardType: TextInputType.text,
+                              decoration: InputDecoration(
+                                // --- MODIFICATION 4: Update labels for clarity ---
+                                labelText: isEditMode
+                                    ? 'Shirt Number (Editable)'
+                                    : 'Shirt Number',
+                                labelStyle: TextStyle(
+                                    color: ColorManager.white.withOpacity(0.7)),
+                                hintText: 'Enter number or "-" for none',
+                                filled: true,
+                                fillColor: ColorManager.dark2,
+                                border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                    borderSide: BorderSide.none),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -1130,10 +1198,10 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                         controller: _nameController,
                         style: TextStyle(color: ColorManager.white),
                         decoration: InputDecoration(
-                          labelText: 'Name',
+                          labelText: 'Name (optional)',
                           labelStyle: TextStyle(
                               color: ColorManager.white.withOpacity(0.7)),
-                          hintText: 'Edit name...',
+                          hintText: 'Leave empty or "-" for no name',
                           hintStyle: TextStyle(
                               color: ColorManager.white.withOpacity(0.5)),
                           filled: true,
@@ -1143,93 +1211,74 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                               borderSide: BorderSide.none),
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      // Border Color Picker
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Player Border Color',
+                                  style: TextStyle(
+                                    color: ColorManager.white.withOpacity(0.7),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _selectedBorderColor == null
+                                      ? 'Using team default'
+                                      : 'Custom color',
+                                  style: TextStyle(
+                                    color: ColorManager.grey.withOpacity(0.6),
+                                    fontSize: 11,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _pickBorderColor(),
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: _selectedBorderColor ??
+                                    _getDefaultBorderColor(),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: ColorManager.white.withOpacity(0.5),
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.color_lens_outlined,
+                                color: ColorManager.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (_selectedBorderColor != null)
+                            IconButton(
+                              icon: Icon(Icons.refresh,
+                                  color: ColorManager.white),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedBorderColor = null;
+                                });
+                              },
+                              tooltip: 'Reset to default team color',
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
               ),
-              // Center(
-              //   child: GestureDetector(
-              //     onTap: _pickImage,
-              //     child: Container(
-              //       width: 100,
-              //       height: 100,
-              //       decoration: BoxDecoration(
-              //           borderRadius: BorderRadius.circular(10),
-              //           color: ColorManager.white.withOpacity(0.4),
-              //           image: imageProvider != null
-              //               ? DecorationImage(
-              //                   fit: BoxFit.cover, image: imageProvider)
-              //               : null),
-              //       child: imageProvider == null
-              //           ? Icon(
-              //               Icons.add_a_photo_outlined,
-              //               size: 40,
-              //               color: ColorManager.white.withOpacity(0.7),
-              //             )
-              //           : null,
-              //     ),
-              //   ),
-              // ),
-              // const SizedBox(height: 24),
-              // Row(
-              //   children: [
-              //     Expanded(
-              //       child: DropdownSelector<int>(
-              //         label: 'Nr',
-              //         items: widget.availableJerseyNumbers,
-              //         initialValue: _selectedJerseyNumber,
-              //         hint: "Select Nr",
-              //         itemAsString: (item) => item.toString(),
-              //         onChanged: (value) async {
-              //           if (value == null) {
-              //             setState(() => _selectedJerseyNumber = null);
-              //             return;
-              //           }
-              //           bool isTaken = await PlayerUtilsV2.isJerseyNumberTaken(
-              //               value,
-              //               widget.playerType,
-              //               isEditMode ? widget.player!.id : '');
-              //           if (isTaken) {
-              //             BotToast.showText(
-              //                 text: 'Jersey number $value is already taken!');
-              //           } else {
-              //             setState(() => _selectedJerseyNumber = value);
-              //           }
-              //         },
-              //       ),
-              //     ),
-              //     const SizedBox(width: 16),
-              //     Expanded(
-              //       child: DropdownSelector<String>(
-              //         label: 'Role',
-              //         items: widget.availableRoles,
-              //         initialValue: _selectedRole,
-              //         hint: "Select Role",
-              //         itemAsString: (item) => item,
-              //         onChanged: (value) =>
-              //             setState(() => _selectedRole = value),
-              //       ),
-              //     ),
-              //   ],
-              // ),
-              // const SizedBox(height: 16),
-              // TextFormField(
-              //   controller: _nameController,
-              //   style: TextStyle(color: ColorManager.white),
-              //   decoration: InputDecoration(
-              //     labelText: 'Name',
-              //     labelStyle:
-              //         TextStyle(color: ColorManager.white.withOpacity(0.7)),
-              //     hintText: 'Enter name...',
-              //     hintStyle:
-              //         TextStyle(color: ColorManager.white.withOpacity(0.5)),
-              //     filled: true,
-              //     fillColor: ColorManager.dark2,
-              //     border: OutlineInputBorder(
-              //         borderRadius: BorderRadius.circular(8.0),
-              //         borderSide: BorderSide.none),
-              //   ),
-              // ),
               const SizedBox(height: 24),
               if (isEditMode && widget.showReplace) ...[
                 const Center(
@@ -1250,17 +1299,16 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
                         hint: widget.availableReplacements.isEmpty
                             ? "No Players Available"
                             : "Select player from roster",
-                        items: widget
-                            .availableReplacements, // Use the passed-in list
+                        items: widget.availableReplacements,
                         initialValue: _selectedReplacementPlayer,
                         onChanged: (player) {
                           setState(() {
                             _selectedReplacementPlayer = player;
                           });
                         },
-                        // Nicely format the player's name in the dropdown
+                        // --- CHANGE 8: Show the correct number in the dropdown ---
                         itemAsString: (player) =>
-                            '${player.jerseyNumber}. ${player.name ?? 'Player'} - ${player.role}',
+                            '${player.displayNumber ?? player.jerseyNumber}. ${player.name ?? 'Player'} - ${player.role}',
                       ),
                     ),
                     if (isReplacing) ...[

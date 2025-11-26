@@ -3,17 +3,19 @@ import 'package:appwrite/appwrite.dart' as appwrite;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/admin/datasource/tutorial_datasource.dart';
-import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart'; // Your zlog helper
+import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart';
 
 // --- Appwrite & Firebase Constants ---
 const String _videosBucketId = "684e06ba00040901ce09";
 const String _thumbnailsBucketId = "684e06ba00040901ce09";
+// --- NEW BUCKET ID FOR MEDIA GALLERY ---
+const String _mediaBucketId =
+    "684e06ba00040901ce09"; // Assuming a new bucket for media
 const String _tutorialsCollection = "defaultTutorials";
 
 class TutorialDatasourceHybridImpl implements TutorialDatasource {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final appwrite.Storage _appwriteStorage;
-  // We need the Appwrite endpoint and project ID to construct the final URL
   final String _appwriteEndpoint;
   final String _appwriteProjectId;
 
@@ -28,8 +30,6 @@ class TutorialDatasourceHybridImpl implements TutorialDatasource {
         _appwriteProjectId = appwriteProjectId {
     _tutorialsRef = _firestore.collection(_tutorialsCollection);
   }
-
-  // --- Firestore Methods ---
 
   @override
   Future<List<Tutorial>> getAllTutorials() async {
@@ -53,8 +53,6 @@ class TutorialDatasourceHybridImpl implements TutorialDatasource {
     await _tutorialsRef.doc(tutorialId).delete();
   }
 
-  // --- Appwrite Method ---
-
   @override
   Future<String> uploadVideo(File videoFile, String tutorialId) async {
     zlog(data: "Appwrite Storage: Uploading video for tutorial $tutorialId");
@@ -65,12 +63,9 @@ class TutorialDatasourceHybridImpl implements TutorialDatasource {
         file: appwrite.InputFile.fromPath(
             path: videoFile.path, filename: 'tutorial_video.mp4'),
       );
-
-      // Manually construct the public URL for the file
       final fileId = file.$id;
       final url =
           "$_appwriteEndpoint/storage/buckets/$_videosBucketId/files/$fileId/view?project=$_appwriteProjectId";
-
       zlog(data: "Appwrite Storage: Upload complete. URL: $url");
       return url;
     } on appwrite.AppwriteException catch (e) {
@@ -79,20 +74,19 @@ class TutorialDatasourceHybridImpl implements TutorialDatasource {
     }
   }
 
+  @override
   Future<String> uploadThumbnail(File imageFile, String tutorialId) async {
     zlog(
         data: "Appwrite Storage: Uploading thumbnail for tutorial $tutorialId");
     try {
       final file = await _appwriteStorage.createFile(
-        bucketId: _thumbnailsBucketId, // Use the new bucket ID
+        bucketId: _thumbnailsBucketId,
         fileId: appwrite.ID.unique(),
         file: appwrite.InputFile.fromPath(path: imageFile.path),
       );
-
       final fileId = file.$id;
       final url =
           "$_appwriteEndpoint/storage/buckets/$_thumbnailsBucketId/files/$fileId/view?project=$_appwriteProjectId";
-
       zlog(data: "Appwrite Storage: Thumbnail upload complete. URL: $url");
       return url;
     } on appwrite.AppwriteException catch (e) {
@@ -115,6 +109,53 @@ class TutorialDatasourceHybridImpl implements TutorialDatasource {
     } catch (e) {
       zlog(data: "Firestore DS: Error batch-saving tutorials: $e");
       throw Exception("Error saving tutorial order: $e");
+    }
+  }
+
+  // --- NEW METHOD IMPLEMENTATIONS ---
+
+  @override
+  Future<String> uploadMediaFile(File mediaFile, String tutorialId) async {
+    zlog(data: "Appwrite Storage: Uploading media for tutorial $tutorialId");
+    try {
+      final file = await _appwriteStorage.createFile(
+        bucketId: _mediaBucketId, // Use the dedicated media bucket
+        fileId: appwrite.ID.unique(),
+        file: appwrite.InputFile.fromPath(path: mediaFile.path),
+      );
+      final fileId = file.$id;
+      final url =
+          "$_appwriteEndpoint/storage/buckets/$_mediaBucketId/files/$fileId/view?project=$_appwriteProjectId";
+      zlog(data: "Appwrite Storage: Media upload complete. URL: $url");
+      return url;
+    } on appwrite.AppwriteException catch (e) {
+      zlog(data: "Appwrite Storage: Error uploading media: ${e.message}");
+      throw Exception("Media file upload failed.");
+    }
+  }
+
+  @override
+  Future<void> deleteMediaFile(String mediaUrl) async {
+    zlog(data: "Appwrite Storage: Deleting media file: $mediaUrl");
+    try {
+      // Extract the bucketId and fileId from the URL
+      final uri = Uri.parse(mediaUrl);
+      final pathSegments = uri.pathSegments;
+      // Expected path: /storage/buckets/{bucketId}/files/{fileId}/view
+      if (pathSegments.length >= 5) {
+        final bucketId = pathSegments[2];
+        final fileId = pathSegments[4];
+        await _appwriteStorage.deleteFile(bucketId: bucketId, fileId: fileId);
+        zlog(
+            data:
+                "Appwrite Storage: Successfully deleted file $fileId from bucket $bucketId");
+      } else {
+        throw Exception("Invalid media URL format.");
+      }
+    } on appwrite.AppwriteException catch (e) {
+      zlog(data: "Appwrite Storage: Error deleting media file: ${e.message}");
+      // Don't throw an exception here, as the user might be deleting a URL
+      // that was already deleted. Just log the error.
     }
   }
 }

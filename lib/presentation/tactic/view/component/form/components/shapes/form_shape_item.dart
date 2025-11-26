@@ -1,13 +1,22 @@
+import 'package:flame/components.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
+
+// --- IMPORTS ---
+import 'package:zporter_tactical_board/app/helper/logger.dart';
+import 'package:zporter_tactical_board/app/helper/shape_generator.dart';
+import 'package:zporter_tactical_board/data/tactic/model/circle_shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart';
+// --- END IMPORTS ---
 
 class FormShapeItem extends ConsumerStatefulWidget {
   const FormShapeItem({
@@ -25,63 +34,84 @@ class FormShapeItem extends ConsumerStatefulWidget {
 class _FormShapeItemState extends ConsumerState<FormShapeItem> {
   @override
   Widget build(BuildContext context) {
-    final lp = ref.watch(lineProvider);
     return GestureDetector(
       onTap: () {
-        if (lp.isShapeActiveToAddIntoGameField) {
-          String? activeId = ref.read(lineProvider).activeId;
+        // 1. Get game instance and ALL relevant sizes
+        final TacticBoardGame? game = ref.read(boardProvider).tacticBoardGame;
+        final Vector2? gameWidgetSize =
+            game?.size; // The size of the whole game area
+        final Vector2? gameFieldSize =
+            game?.gameField.size; // The size of the field itself
 
-          if (activeId == widget.shapeModel.id) {
-            ref.read(lineProvider.notifier).dismissActiveFormItem();
-          } else {
-            ref.read(lineProvider.notifier).dismissActiveFormItem();
-            ref
-                .read(lineProvider.notifier)
-                .loadActiveShapeModelToAddIntoGameFieldEvent(
-                  shapeModel: widget.shapeModel,
-                );
-          }
-        } else {
-          ref
-              .read(lineProvider.notifier)
-              .loadActiveShapeModelToAddIntoGameFieldEvent(
-                shapeModel: widget.shapeModel,
-              );
+        // 2. Safety check
+        if (game == null ||
+            gameWidgetSize == null ||
+            gameFieldSize == null ||
+            gameWidgetSize == Vector2.zero() ||
+            gameFieldSize == Vector2.zero()) {
+          zlog(data: "Game not ready, cannot add shape.");
+          return;
         }
 
+        // 3. Calculate center
+        //
+        //    *** THIS IS THE FINAL, CORRECT LOGIC ***
+        //    We must use the center of the WIDGET (gameWidgetSize).
+        //
+        final Vector2 visualCenter = (gameWidgetSize - Vector2(0, 22.5)) / 2;
+
+        // 4. Determine which shape to create
+        final ShapeModel shape = widget.shapeModel;
+        FieldItemModel? newShape;
+
+        // We use gameFieldSize for relative conversion, but visualCenter for positioning
+        if (shape.imagePath == 'circle.png') {
+          newShape = createDefaultCircle(
+            gameSize: gameFieldSize,
+            visualCenter: visualCenter,
+          );
+        } else if (shape.imagePath == 'square.png') {
+          newShape = createDefaultSquare(
+            gameSize: gameFieldSize,
+            visualCenter: visualCenter,
+          );
+        } else if (shape.imagePath == 'triangle.png') {
+          newShape = createDefaultTriangle(
+            gameSize: gameFieldSize,
+            center: visualCenter,
+          );
+        } else if (shape.imagePath == 'polygon.png') {
+          newShape = createDefaultOctagon(
+            gameSize: gameFieldSize,
+            center: visualCenter,
+          );
+        }
+
+        // 5. Add the new shape to the game
+        if (newShape != null) {
+          game.addItem(newShape);
+        } else {
+          zlog(data: "Could not create default shape for ${shape.name}");
+        }
+
+        // 6. Dismiss any active tool
+        ref.read(lineProvider.notifier).dismissActiveFormItem();
+
+        // 7. Call original onTap
         widget.onTap();
       },
-      child: _buildShapeComponent(isFocusedWidget(lp)),
+      child: _buildShapeComponent(),
     );
   }
 
-  bool isFocusedWidget(LineState lsp) {
-    if (lsp.isShapeActiveToAddIntoGameField) {
-      FieldItemModel? fim = lsp.activeForm;
-      if (fim is ShapeModel) {
-        if (fim.fieldItemType == widget.shapeModel.fieldItemType) {
-          if (fim is PolygonShapeModel) {
-            if (fim.imagePath == widget.shapeModel.imagePath) {
-              return true;
-            } else {
-              return false;
-            }
-          } else {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  Widget _buildShapeComponent(bool isFocused) {
+  // This component now just displays the icon
+  Widget _buildShapeComponent() {
     return RepaintBoundary(
       key: UniqueKey(),
       child: Center(
         child: Image.asset(
           "assets/images/${widget.shapeModel.imagePath}",
-          color: isFocused ? ColorManager.yellow : ColorManager.white,
+          color: ColorManager.white,
           height: AppSize.s32,
           width: AppSize.s32,
         ),

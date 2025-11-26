@@ -31,4 +31,13 @@ class TutorialRepositoryImpl implements TutorialRepository {
   @override
   Future<void> saveAllTutorials(List<Tutorial> tutorials) =>
       datasource.saveAllTutorials(tutorials);
+
+  // --- NEW METHODS ---
+  @override
+  Future<String> uploadMediaFile(File mediaFile, String tutorialId) =>
+      datasource.uploadMediaFile(mediaFile, tutorialId);
+
+  @override
+  Future<void> deleteMediaFile(String mediaUrl) =>
+      datasource.deleteMediaFile(mediaUrl);
 }

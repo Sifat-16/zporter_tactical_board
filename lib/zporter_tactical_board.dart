@@ -4,5 +4,9 @@ library zporter_tactical_board;
 
 // Export the initialization function
 export 'app/services/injection_container.dart'
-    show initializeTacticBoardDependencies;
+    show initializeTacticBoardDependencies, sl;
 export 'tactic_page.dart' show TacticPage;
+
+// Export sync services
+export 'app/services/sync/sync_queue_manager.dart'
+    show SyncQueueManager, SyncQueueStatus;

@@ -15,6 +15,8 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/square_shape_model.dart';
 // Import game and providers
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/player/player_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 // --- DraggableDot Class ---
@@ -36,11 +38,11 @@ class SquareRadiusDraggableDot extends CircleComponent
     super.radius = 8.0,
     Color color = Colors.blue,
   }) : super(
-         position: initialPosition,
-         anchor: Anchor.bottomLeft,
-         paint: Paint()..color = color,
-         priority: 2, // Render above the square
-       );
+          position: initialPosition,
+          anchor: Anchor.bottomLeft,
+          paint: Paint()..color = color,
+          priority: 2, // Render above the square
+        );
 
   Vector2? _dragStartLocalPosition;
   final double extraTapRadius = 15.0; // Increased tap area tolerance
@@ -100,8 +102,7 @@ const degrees2Radians = math.pi / 180.0;
 
 // --- MODIFIED: SquareShapeDrawerComponent extends RectangleComponent ---
 class SquareShapeDrawerComponent
-    extends
-        RectangleComponent // Changed base class
+    extends RectangleComponent // Changed base class
     with
         TapCallbacks,
         DragCallbacks,
@@ -116,13 +117,13 @@ class SquareShapeDrawerComponent
   final double _minSide = 8.0;
   late Paint _strokePaint;
   Paint?
-  _fillPaint; // Keep for data model consistency, but won't be used in render
+      _fillPaint; // Keep for data model consistency, but won't be used in render
   late Paint _activeStrokePaint;
 
   final List<SquareRadiusDraggableDot> _resizeDots = [];
 
   SquareShapeDrawerComponent({required this.squareModel})
-    : super(priority: 1, anchor: Anchor.center);
+      : super(priority: 1, anchor: Anchor.center);
 
   @override
   FutureOr<void> onLoad() {
@@ -186,8 +187,8 @@ class SquareShapeDrawerComponent
           // Need to adjust this based on which dot 'i' is being dragged.
           // Let's assume dotIndex maps directly for now (needs verification)
           final int draggedListIndex = i; // Use the loop index 'i'
-          Vector2 previousDotPos =
-              cornerPositions[draggedListIndex].clone()..rotate(angle);
+          Vector2 previousDotPos = cornerPositions[draggedListIndex].clone()
+            ..rotate(angle);
 
           // 2. Calculate the distance change: did the dot move further or closer to the center?
           double previousDist =
@@ -201,8 +202,7 @@ class SquareShapeDrawerComponent
           //    The change in side length should be proportional to the change in distance.
           //    Since distance relates to halfSide * sqrt(2), the change in side should be roughly distanceChange * 2 / sqrt(2) = distanceChange * sqrt(2)
           //    Let's try a simpler direct scaling for now: add double the distance change to the side.
-          double newActualSide =
-              _actualSide +
+          double newActualSide = _actualSide +
               (distanceChange *
                   2.0); // Grow/shrink side by twice the distance change
 
@@ -214,13 +214,11 @@ class SquareShapeDrawerComponent
 
           if (i == 0) {
             if (isIncreasingFirstDot) {
-              newActualSide =
-                  _actualSide +
+              newActualSide = _actualSide +
                   (distanceChange *
                       2.0); // Grow/shrink side by twice the distance change
             } else {
-              newActualSide =
-                  _actualSide -
+              newActualSide = _actualSide -
                   (distanceChange *
                       2.0); // Grow/shrink side by twice the distance change
             }
@@ -307,24 +305,21 @@ class SquareShapeDrawerComponent
     final baseOpacity = squareModel.opacity ?? 1.0;
 
     // Configure Stroke Paint
-    _strokePaint =
-        Paint()
-          ..color = baseStrokeColor.withOpacity(baseOpacity)
-          ..strokeWidth = baseStrokeWidth
-          ..style = PaintingStyle.stroke;
+    _strokePaint = Paint()
+      ..color = baseStrokeColor.withOpacity(baseOpacity)
+      ..strokeWidth = baseStrokeWidth
+      ..style = PaintingStyle.stroke;
 
     // Configure Active Stroke Paint
-    _activeStrokePaint =
-        Paint()
-          ..color = squareModel.color ?? ColorManager.white
-          ..strokeWidth = baseStrokeWidth + 2.0
-          ..style = PaintingStyle.stroke;
+    _activeStrokePaint = Paint()
+      ..color = squareModel.color ?? ColorManager.white
+      ..strokeWidth = baseStrokeWidth + 2.0
+      ..style = PaintingStyle.stroke;
 
     // Configure Fill Paint (but it won't be used in render)
-    _fillPaint =
-        Paint()
-          ..color = baseFillColor
-          ..style = PaintingStyle.fill;
+    _fillPaint = Paint()
+      ..color = baseFillColor
+      ..style = PaintingStyle.fill;
 
     paint = _fillPaint!;
   }
@@ -332,25 +327,49 @@ class SquareShapeDrawerComponent
   // REMOVED: render(Canvas canvas) method override
 
   /// Contains local point check
+  // @override
+  // bool containsLocalPoint(Vector2 point) {
+  //   if ((point.x >= 0 && point.x <= 5) ||
+  //       (point.y >= 0 && point.y <= 5) ||
+  //       ((point.x - size.x).abs() >= 0 && (point.x - size.x).abs() <= 5) ||
+  //       ((point.y - size.y).abs() >= 0 && (point.y - size.y).abs() <= 5)) {
+  //     return true;
+  //   } else {
+  //     return false;
+  //   }
+  //   zlog(
+  //     data: "Check the point is on the side of the square ${point} - ${size}",
+  //   );
+  //
+  //   final bool contains = super.containsLocalPoint(point);
+  //
+  //   return contains;
+  // }
+
+  // --- ADD THIS ---
   @override
   bool containsLocalPoint(Vector2 point) {
-    if ((point.x >= 0 && point.x <= 5) ||
-        (point.y >= 0 && point.y <= 5) ||
-        ((point.x - size.x).abs() >= 0 && (point.x - size.x).abs() <= 5) ||
-        ((point.y - size.y).abs() >= 0 && (point.y - size.y).abs() <= 5)) {
-      return true;
-    } else {
-      return false;
-    }
+    // This component's anchor is Anchor.center, so (0,0) is the center.
+    // 'point' is the tap location relative to the center.
+
+    // We check if the tap is inside the square's bounds,
+    // including the _tapTolerance (which is 5.0 in your file).
+
+    final halfWidth = (size.x) + _tapTolerance;
+    final halfHeight = (size.y) + _tapTolerance;
+
     zlog(
-      data: "Check the point is on the side of the square ${point} - ${size}",
-    );
+        data:
+            "data ${point.x} - ${point.y.abs()} - ${halfWidth} - ${halfHeight}",
+        show: true);
 
-    final bool contains = super.containsLocalPoint(point);
-
-    return contains;
+    return point.x >= 0 &&
+        point.x <= halfWidth &&
+        point.y >= 0 &&
+        point.y <= halfHeight;
   }
 
+// --- END ADD ---
   // --- Tap Handling ---
   @override
   void onTapDown(TapDownEvent event) {
@@ -385,12 +404,49 @@ class SquareShapeDrawerComponent
   }
 
   // --- Drag Handling ---
+  // @override
+  // void onDragStart(DragStartEvent event) {
+  //   // ... (Drag start logic remains the same) ...
+  //   zlog(
+  //     data: "Square ${squareModel.id}: onDragStart at ${event.localPosition}",
+  //   );
+  //   bool handledByDot = false;
+  //   if (isActive && _resizeDots.isNotEmpty) {
+  //     final hitResizeDot = _resizeDots.firstWhereOrNull(
+  //       (dot) => dot.containsLocalPoint(event.localPosition),
+  //     );
+  //     if (hitResizeDot != null) {
+  //       handledByDot = true;
+  //       zlog(data: "Square ${squareModel.id}: Drag started on RESIZE dot.");
+  //     }
+  //   }
+  //   if (handledByDot) {
+  //     event.continuePropagation = true;
+  //     super.onDragStart(event);
+  //     return;
+  //   }
+  //   if (isActive && containsLocalPoint(event.localPosition)) {
+  //     // Uses super.containsLocalPoint now
+  //     _isDragging = true;
+  //     event.continuePropagation = false;
+  //     zlog(
+  //       data:
+  //           "Square ${squareModel.id}: Component Drag Started (_isDragging = true)",
+  //     );
+  //   } else {
+  //     _isDragging = false;
+  //     super.onDragStart(event);
+  //     event.continuePropagation = true;
+  //   }
+  // }
+
   @override
   void onDragStart(DragStartEvent event) {
-    // ... (Drag start logic remains the same) ...
     zlog(
       data: "Square ${squareModel.id}: onDragStart at ${event.localPosition}",
     );
+
+    // Check if drag started on a resize dot
     bool handledByDot = false;
     if (isActive && _resizeDots.isNotEmpty) {
       final hitResizeDot = _resizeDots.firstWhereOrNull(
@@ -406,8 +462,20 @@ class SquareShapeDrawerComponent
       super.onDragStart(event);
       return;
     }
+
+    // Check for "drag from inside" (using the corrected containsLocalPoint)
     if (isActive && containsLocalPoint(event.localPosition)) {
-      // Uses super.containsLocalPoint now
+      // --- NEW LOGIC ---
+      // Check if an item (Player/Equipment) is on top of us
+      if (_isItemOnTop(event.localPosition)) {
+        // An item is on top. Do NOT drag this shape.
+        // Let the event fall through to the item.
+        zlog(data: "Square ${squareModel.id}: Drag ignored, item on top.");
+        return;
+      }
+      // --- END NEW LOGIC ---
+
+      // No item on top, we can drag this shape.
       _isDragging = true;
       event.continuePropagation = false;
       zlog(
@@ -504,6 +572,17 @@ class SquareShapeDrawerComponent
           "Square ${squareModel.id}: Notifying provider (Final Save): ${updatedModel.toJson()}",
     );
     ref.read(boardProvider.notifier).updateShape(shape: updatedModel);
+
+    // Trigger immediate save after square shape update
+    try {
+      final tacticBoard = game as dynamic;
+      if (tacticBoard.triggerImmediateSave != null) {
+        tacticBoard.triggerImmediateSave(
+            reason: "Square shape update: ${squareModel.id}");
+      }
+    } catch (e) {
+      // Fallback if method not available
+    }
     // --- END MODIFICATION ---
   }
 
@@ -542,5 +621,25 @@ class SquareShapeDrawerComponent
     } catch (e) {
       zlog(data: "Error removing resize dots: $e");
     }
+  }
+
+  bool _isItemOnTop(Vector2 tapPosition) {
+    // Find all Player and Equipment components
+    final items = game.children
+        .where((c) => c is PlayerComponent || c is EquipmentComponent);
+
+    // Check if any of them contain the tap point
+    for (final item in items) {
+      if (item is PositionComponent) {
+        // Convert the tap position (from game space) to the item's local space
+        final itemLocalTap = item.toLocal(tapPosition);
+        if (item.containsLocalPoint(itemLocalTap)) {
+          // Found an item on top!
+          return true;
+        }
+      }
+    }
+    // No items found at this spot
+    return false;
   }
 }

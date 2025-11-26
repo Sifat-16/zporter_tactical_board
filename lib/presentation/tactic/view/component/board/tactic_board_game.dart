@@ -5,6 +5,7 @@ import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
@@ -12,6 +13,7 @@ import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/smart_guide_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game_animation.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
@@ -25,9 +27,13 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/f
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/animation/trajectory_editor_manager.dart';
+import 'package:zporter_tactical_board/data/animation/model/animation_trajectory_data.dart';
+import 'package:zporter_tactical_board/data/animation/model/trajectory_path_model.dart';
 
 // Assuming GameField is defined in 'game_field.dart' as per your import
 import 'game_field.dart';
+import 'grid_component.dart';
 import 'mixin/board_riverpod_integration.dart';
 import 'mixin/drawing_input_handler.dart';
 import 'mixin/item_management.dart';
@@ -39,7 +45,7 @@ String? _boardComparator;
 abstract class TacticBoardGame extends FlameGame
     with
         DragCallbacks,
-        TapDetector,
+        TapCallbacks,
         RiverpodGameMixin,
         AnimationPlaybackControls {
   late GameField gameField;
@@ -47,6 +53,9 @@ abstract class TacticBoardGame extends FlameGame
   late DrawingBoardComponent drawingBoard;
   addItem(FieldItemModel item, {bool save = true});
   late BuildContext context;
+
+  /// Trajectory editor manager - must be accessible from abstract class for field components
+  TrajectoryEditorManager? get trajectoryManager;
 }
 
 // ---- The Refactored TacticBoard Class ----
@@ -57,22 +66,34 @@ class TacticBoard extends TacticBoardGame
         LayeringManagement, // Provides layering helpers and _moveUp/DownElement
         BoardRiverpodIntegration, // Provides setupBoardListeners
         AnimationPlaybackMixin {
+  late final GridComponent grid;
+  late final SmartGuideComponent smartGuide;
   AnimationItemModel? scene;
   bool saveToDb;
   BuildContext myContext;
   Function(AnimationItemModel?)? onSceneSave;
+
+  /// Trajectory editor manager for animation path editing (PRO feature)
+  /// Only initialized when editing multi-scene animations
+  TrajectoryEditorManager? _trajectoryManager;
+
+  @override
+  TrajectoryEditorManager? get trajectoryManager => _trajectoryManager;
+
   TacticBoard(
       {required this.scene,
       this.saveToDb = true,
       this.onSceneSave,
       required this.myContext});
 
-  // --- Variables for the 1-second timer ---
+  // --- Variables for auto-save timer (Phase 1 optimization) ---
   double _timerAccumulator = 0.0; // Accumulates delta time
-  final double _checkInterval = 1.0; // Desired interval in seconds
+  final double _checkInterval =
+      FeatureFlags.autoSaveIntervalSeconds; // Phase 1: 30s (was 1s)
 
   // --- Variable to store the previous state for comparison ---
-  // Ensure this is a member variable if used across update calls
+  // Ensures we only save when state actually changes
+  bool _hasUnsavedChanges = false;
 
   @override
   FutureOr<void> onLoad() async {
@@ -82,18 +103,44 @@ class TacticBoard extends TacticBoardGame
     context = myContext;
   }
 
-  // Methods specific to TacticBoard remain here
+  // In class TacticBoard
   _initiateField() {
     gameField = GameField(
       size: Vector2(size.x - 22.5, size.y - 22.5),
-      initialColor: scene?.fieldColor,
+      // Use the provider for the initial color too, for consistency.
+      initialColor: ref.read(boardProvider).boardColor,
     );
+
+    // --- ADD THIS BLOCK ---
+    // 1. Create the grid
+    grid = GridComponent(); // You can adjust 50.0
+    // 2. Set its size to match the field
+    grid.size = gameField.size;
+    // 3. Hide it by default
+    grid.isHidden = true;
+    // 4. Add it AS A CHILD of the gameField
+    gameField.add(grid);
+    // --- END ADD ---
+
+    // --- ADD THIS BLOCK ---
+    // 1. Create the smart guide component
+    smartGuide = SmartGuideComponent();
+    // 2. Set its size to match the field
+    smartGuide.size = gameField.size;
+    // 4. Add it AS A CHILD of the gameField
+    gameField.add(smartGuide);
+
     WidgetsBinding.instance.addPostFrameCallback((t) {
+      if (!isMounted) return; // Add mounted check
       ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
-      add(gameField); // add() is available via FlameGame
-      addInitialItems(scene?.components ?? []);
+      add(gameField);
+
+      // This is the correct logic: Get items from the provider state,
+      // which initializeFromScene already prepared for us.
+      final currentItems = ref.read(boardProvider.notifier).allFieldItems();
+
+      addInitialItems(currentItems);
     });
-    // initiateFieldColor();
   }
 
   @override
@@ -105,15 +152,16 @@ class TacticBoard extends TacticBoardGame
   bool get debugMode => false; // Unchanged
 
   @override
-  void onTapDown(TapDownInfo info) {
+  void onTapDown(TapDownEvent info) {
     if (isAnimating) return;
     super.onTapDown(info);
-    final tapPosition = info.raw.localPosition; // Position in game coordinates
+    final tapPosition = info.localPosition; // Position in game coordinates
 
-    final components = componentsAtPoint(tapPosition.toVector2());
+    final components = componentsAtPoint(tapPosition);
 
     if (components.isNotEmpty) {
       if (!components.any((t) => t is FieldComponent) &&
+          !components.any((t) => t is DrawingBoardComponent) &&
           !components.any((t) => t is DraggableRectangleComponent) &&
           !components.any((t) => t is LineDrawerComponentV2) &&
           !components.any((t) => t is CircleShapeDrawerComponent) &&
@@ -164,62 +212,133 @@ class TacticBoard extends TacticBoardGame
     }
   }
 
-  // --- Updated update method with Timer Logic ---
   @override
   void update(double dt) {
-    // Accumulate the time passed since the last frame
     _timerAccumulator += dt;
 
-    // Check if the accumulated time has reached or exceeded the interval
     if (_timerAccumulator >= _checkInterval) {
       WidgetsBinding.instance.addPostFrameCallback((t) {
-        // --- Your change detection logic goes here ---
+        // CRITICAL FIX: Skip auto-save during undo/redo operations OR video recording
+        if (ref.read(animationProvider).isPerformingUndo ||
+            ref.read(animationProvider).skipHistorySave ||
+            ref.read(animationProvider).isRecordingAnimation) {
+          if (FeatureFlags.enableSaveDebugLogs) {
+            zlog(
+                data:
+                    "Skipping auto-save during undo/redo or recording operation");
+          }
+          _timerAccumulator -= _checkInterval;
+          return;
+        }
 
-        // Assuming FieldItemModel is the correct type here
-        List<FieldItemModel> items =
-            ref.read(boardProvider.notifier).onAnimationSave();
+        // Phase 1: Skip auto-save during active drag to prevent mid-drag saves
+        if (ref.read(boardProvider).isDraggingItem) {
+          if (FeatureFlags.enableSaveDebugLogs) {
+            zlog(data: "Skipping auto-save during active drag");
+          }
+          _timerAccumulator -= _checkInterval;
+          return;
+        }
 
-        // Consider if toJson() is expensive; maybe compare models directly if possible
-        String current = items.map((e) => e.toJson()).join(
-              ',',
-            ); // Use join for a more stable string representation if order matters
-
-        current =
-            "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
+        String current = _getCurrentBoardStateString();
 
         if (_boardComparator == null) {
           _boardComparator = current;
+          _hasUnsavedChanges = false;
         } else {
+          // Phase 1: Only save if state actually changed
           if (_boardComparator != current) {
-            // --- ACTION: Do something when a change is detected ---
-            // e.g., trigger autosave, update external UI, etc.
-            _boardComparator = current; // Update comparator to the new state
+            _boardComparator = current;
+            _hasUnsavedChanges = true;
 
-            updateDatabase();
-          } else {}
+            if (FeatureFlags.enableSaveDebugLogs) {
+              zlog(
+                  data:
+                      "Auto-save triggered: State changed (${_checkInterval}s interval)");
+            }
+
+            updateDatabase(isAutoSave: true);
+          } else {
+            if (FeatureFlags.enableSaveDebugLogs && _hasUnsavedChanges) {
+              zlog(data: "Auto-save skipped: No state changes detected");
+            }
+          }
         }
         _timerAccumulator -= _checkInterval;
       });
     }
-
-    // Other update logic can remain here and run every frame if needed
-    super.update(dt); // Always call super.update!
+    super.update(dt);
   }
 
-  updateDatabase() {
+  /// Phase 1: Trigger immediate save for critical user actions
+  /// Call this after drag-end, component add/delete, drawing complete
+  void triggerImmediateSave({String? reason}) {
+    if (!FeatureFlags.enableEventDrivenSave) {
+      return; // Feature disabled
+    }
+
+    if (ref.read(animationProvider).isPerformingUndo ||
+        ref.read(animationProvider).skipHistorySave ||
+        ref.read(animationProvider).isRecordingAnimation) {
+      return; // Skip during special operations
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((t) {
+      String current = _getCurrentBoardStateString();
+
+      if (_boardComparator != current) {
+        _boardComparator = current;
+        _hasUnsavedChanges = false; // Mark as saved
+
+        if (FeatureFlags.enableSaveDebugLogs) {
+          zlog(data: "Event-driven save triggered: ${reason ?? 'User action'}");
+        }
+
+        updateDatabase(isAutoSave: false);
+        _timerAccumulator = 0.0; // Reset timer to avoid duplicate save
+      }
+    });
+  }
+
+  updateDatabase({bool isAutoSave = true}) {
     if (!isAnimating) {
-      WidgetsBinding.instance.addPostFrameCallback((t) {
+      WidgetsBinding.instance.addPostFrameCallback((t) async {
         ref
             .read(animationProvider.notifier)
-            .updateDatabaseOnChange(saveToDb: saveToDb)
-            .then((a) {
-          zlog(data: "After save coming animation item model ${a?.toJson()}");
-          ref.read(animationProvider.notifier).saveHistory(scene: a);
-          onSceneSave?.call(a);
-        });
+            .toggleLoadingSave(showLoading: true);
+        try {
+          // Phase 1: Pass isAutoSave flag to skip history on auto-saves
+          await ref
+              .read(animationProvider.notifier)
+              .updateDatabaseOnChange(
+                saveToDb: saveToDb,
+                isAutoSave: isAutoSave,
+              )
+              .then((a) {
+            if (FeatureFlags.enableSaveDebugLogs) {
+              zlog(
+                  data:
+                      "Save completed (${isAutoSave ? 'auto' : 'manual'}): ${a?.id} - $saveToDb");
+            }
+            // REMOVED: History is now saved BEFORE the update in updateDatabaseOnChange
+            // This prevents the race condition
+            onSceneSave?.call(a);
+          });
+        } catch (e) {
+          zlog(data: "Error updating database: $e");
+        }
+
+        ref
+            .read(animationProvider.notifier)
+            .toggleLoadingSave(showLoading: false);
       });
     } else {
-      zlog(data: "Is animating");
+      ref
+          .read(animationProvider.notifier)
+          .toggleLoadingSave(showLoading: false);
+      if (FeatureFlags.enableSaveDebugLogs) {
+        zlog(data: "Save skipped: Animation playing");
+      }
     }
   }
 
@@ -233,5 +352,227 @@ class TacticBoard extends TacticBoardGame
         resetItems(items);
       } catch (e) {}
     });
+  }
+
+  void forceUpdateComparator() {
+    try {
+      _boardComparator = _getCurrentBoardStateString(); // <-- USE HELPER
+      _timerAccumulator = 0.0;
+    } catch (e) {
+      zlog(data: "Error forcing comparator update: $e");
+    }
+  }
+
+  String _getCurrentBoardStateString() {
+    try {
+      List<FieldItemModel> items =
+          ref.read(boardProvider.notifier).onAnimationSave();
+      String current = items.map((e) => e.toJson()).join(
+            ',',
+          );
+      current =
+          "$current,${ref.read(animationProvider.notifier).getFieldColor().toARGB32()},";
+
+      // IMPORTANT: Include trajectory data in the state string for auto-save detection
+      final currentScene = ref.read(animationProvider).selectedScene;
+      if (currentScene?.trajectoryData != null) {
+        final trajectoryJson = currentScene!.trajectoryData!.toJson();
+        current = "$current,trajectory:$trajectoryJson";
+      }
+
+      return current;
+    } catch (e) {
+      // This can happen if providers aren't ready. Default to a "clean" state string.
+      zlog(data: "Error getting current board state string: $e");
+      return _boardComparator ??
+          ""; // Return the last known comparator if error
+    }
+  }
+
+  bool get isDirty {
+    // If comparator hasn't been set yet, assume it's not dirty.
+    if (_boardComparator == null) {
+      return false;
+    }
+    // Compare the last saved state to the current state.
+    return _boardComparator != _getCurrentBoardStateString();
+  }
+
+  // ========== Trajectory Editor Management ==========
+
+  /// Initialize trajectory editor for animation path editing
+  /// Call this when entering animation mode with multiple scenes
+  Future<void> initializeTrajectoryEditor() async {
+    try {
+      final animationState = ref.read(animationProvider);
+      final currentScene = animationState.selectedScene;
+      final animationModel = animationState.selectedAnimationModel;
+
+      if (currentScene == null || animationModel == null) return;
+
+      final scenes = animationModel.animationScenes;
+      final currentIndex = scenes.indexWhere((s) => s.id == currentScene.id);
+
+      // Don't initialize if this is the first scene (no previous scene for trajectory)
+      if (currentIndex <= 0) {
+        await cleanupTrajectoryEditor();
+        return;
+      }
+
+      final previousScene = scenes[currentIndex - 1];
+
+      // Remove existing manager if present
+      if (_trajectoryManager != null) {
+        world.remove(_trajectoryManager!);
+        _trajectoryManager = null;
+      }
+
+      // Create new manager
+      _trajectoryManager = TrajectoryEditorManager(
+        currentScene: currentScene,
+        previousScene: previousScene,
+        onTrajectoryChanged: _handleTrajectoryChanged,
+        priority: 5,
+      );
+
+      await world.add(_trajectoryManager!);
+      zlog(data: "Trajectory editor initialized for scene ${currentScene.id}");
+    } catch (e, s) {
+      zlog(data: "Error initializing trajectory editor: $e\n$s");
+    }
+  }
+
+  /// Handle trajectory changes from the editor
+  void _handleTrajectoryChanged(
+    String componentId,
+    TrajectoryPathModel trajectory,
+  ) {
+    try {
+      final animationState = ref.read(animationProvider);
+      final currentScene = animationState.selectedScene;
+      final animationModel = animationState.selectedAnimationModel;
+
+      if (currentScene == null || animationModel == null) {
+        return;
+      }
+
+      // Get or create trajectory data
+      final trajectoryData =
+          currentScene.trajectoryData ?? AnimationTrajectoryData();
+
+      // Update trajectory for this component
+      trajectoryData.setTrajectory(componentId, trajectory);
+
+      // Update scene with new trajectory data
+      final updatedScene = currentScene.copyWith(
+        trajectoryData: trajectoryData,
+      );
+
+      // Find the scene index in the animation
+      final sceneIndex = animationModel.animationScenes
+          .indexWhere((s) => s.id == currentScene.id);
+
+      if (sceneIndex != -1) {
+        // Update the scene in the animation model
+        animationModel.animationScenes[sceneIndex] = updatedScene;
+      }
+
+      // Update state with the new scene
+      ref.read(animationProvider.notifier).selectScene(scene: updatedScene);
+
+      // CRITICAL: Update the trajectory manager's scene reference
+      // so it has the latest trajectory data for subsequent operations
+      if (_trajectoryManager != null) {
+        final scenes = animationModel.animationScenes;
+        final previousSceneForManager =
+            sceneIndex > 0 ? scenes[sceneIndex - 1] : null;
+        _trajectoryManager!.updateScenes(
+          newCurrentScene: updatedScene,
+          newPreviousScene: previousSceneForManager,
+        );
+      }
+
+      // IMPORTANT: Save to database
+      if (onSceneSave != null) {
+        onSceneSave!(updatedScene);
+      }
+
+      zlog(
+          data:
+              "Trajectory updated for component $componentId in scene ${currentScene.id}");
+      zlog(data: "  Control points: ${trajectory.controlPoints.length}");
+      zlog(data: "  Enabled: ${trajectory.enabled}");
+      zlog(
+          data:
+              "  Positions: ${trajectory.controlPoints.map((cp) => cp.position).toList()}");
+    } catch (e, s) {
+      zlog(data: "Error handling trajectory change: $e\n$s");
+    }
+  }
+
+  /// Clean up trajectory editor when exiting animation mode or switching scenes
+  Future<void> cleanupTrajectoryEditor() async {
+    if (_trajectoryManager != null) {
+      await _trajectoryManager!.hideTrajectory();
+      world.remove(_trajectoryManager!);
+      _trajectoryManager = null;
+      zlog(data: "Trajectory editor cleaned up");
+    }
+  }
+
+  /// Show trajectory editing UI for a specific component
+  Future<void> showTrajectoryForComponent({
+    required String componentId,
+    required FieldItemModel currentItem,
+  }) async {
+    // Always ensure trajectory manager is initialized with fresh data
+    if (trajectoryManager == null) {
+      await initializeTrajectoryEditor();
+    }
+
+    // If still null after initialization, can't show trajectory
+    if (trajectoryManager == null) {
+      print('⚠️ Cannot show trajectory - manager not initialized');
+      return;
+    }
+
+    await trajectoryManager!.showTrajectoryForComponent(
+      componentId: componentId,
+      currentItem: currentItem,
+    );
+  }
+
+  /// Hide trajectory editing UI
+  Future<void> hideTrajectory() async {
+    await trajectoryManager?.hideTrajectory();
+  }
+
+  /// Check if trajectory editing is currently active
+  bool get isTrajectoryEditingActive =>
+      trajectoryManager?.isEditingTrajectory ?? false;
+
+  /// Get current trajectory for selected component
+  TrajectoryPathModel? get currentTrajectory {
+    if (trajectoryManager == null) return null;
+    final selectedId = trajectoryManager!.selectedComponentId;
+    if (selectedId == null) return null;
+
+    final currentScene = ref.read(animationProvider).selectedScene;
+    return currentScene?.trajectoryData?.getTrajectory(selectedId);
+  }
+
+  /// Add a control point to the current trajectory
+  Future<void> addTrajectoryControlPoint() async {
+    await trajectoryManager?.addControlPoint();
+  }
+
+  /// Remove the last control point from the current trajectory
+  Future<void> removeTrajectoryControlPoint() async {
+    await trajectoryManager?.removeControlPoint();
+  }
+
+  /// Update the smoothness of the current trajectory (0.0 to 1.0)
+  void updateTrajectorySmoothness(double smoothness) {
+    trajectoryManager?.updateSmoothness(smoothness);
   }
 }

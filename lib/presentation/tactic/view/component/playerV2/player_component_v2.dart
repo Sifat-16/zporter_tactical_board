@@ -32,9 +32,36 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
     });
   }
 
-  bool containsPlayerImage(String? imagePath) {
-    if (imagePath == null) return false;
-    return File(imagePath).existsSync();
+  // Replace the old 'containsPlayerImage' method with this new helper function:
+  ImageProvider? _getImageProvider() {
+    final model = widget.playerModel;
+
+    // Priority 1: Check for Base64 (for any old data)
+    if (model.imageBase64 != null && model.imageBase64!.isNotEmpty) {
+      try {
+        return MemoryImage(base64Decode(model.imageBase64!));
+      } catch (e) {
+        zlog(data: "Failed to decode base64 in PlayerComponentV2: $e");
+        // Fall through to check imagePath
+      }
+    }
+
+    // Priority 2: Check imagePath (which can be a Network URL or Local File Path)
+    if (model.imagePath != null && model.imagePath!.isNotEmpty) {
+      // Check if it's a network URL
+      if (model.imagePath!.startsWith('http')) {
+        return NetworkImage(model.imagePath!);
+      }
+      // Check if it's a local file path
+      else {
+        // Note: FileImage will throw an error if the file doesn't exist,
+        // but this is the expected behavior. Our logic *should* be creating valid files.
+        return FileImage(File(model.imagePath!));
+      }
+    }
+
+    // No image source found
+    return null;
   }
 
   @override
@@ -99,9 +126,11 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
 
   Widget _buildPlayerComponent({bool isDragging = false}) {
     final theme = Theme.of(context);
-    // --- MODIFIED: Check imageBase64 instead of file path ---
-    final imageBase64 = widget.playerModel.imageBase64;
-    final hasImage = imageBase64 != null && imageBase64.isNotEmpty;
+
+    // --- THIS IS THE NEW LOGIC ---
+    final ImageProvider? imageProvider = _getImageProvider();
+    final bool hasImage = imageProvider != null;
+    // --- END NEW LOGIC ---
 
     final roleTextStyle = theme.textTheme.labelLarge?.copyWith(
           color: ColorManager.white,
@@ -126,7 +155,7 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
         image: hasImage
             ? DecorationImage(
                 // --- MODIFIED: Use MemoryImage with base64Decode ---
-                image: MemoryImage(base64Decode(imageBase64)),
+                image: imageProvider,
                 fit: BoxFit.cover,
               )
             : null,
@@ -144,7 +173,8 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          if (!hasImage)
+          // Only show role if there's no image AND role is not "-" (neutral)
+          if (!hasImage && widget.playerModel.role != '-')
             Center(
               child: Text(
                 widget.playerModel.role,
@@ -154,7 +184,12 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
                 textAlign: TextAlign.center,
               ),
             ),
-          if (widget.playerModel.jerseyNumber > 0 && !isDragging)
+
+          // Only show number if it's greater than 0 (not -1 for neutral) and not dragging
+          if ((widget.playerModel.displayNumber ??
+                      widget.playerModel.jerseyNumber) >
+                  0 &&
+              !isDragging)
             Positioned(
               top: -10,
               right: -10,
@@ -162,7 +197,8 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
                 child: Text(
-                  "${widget.playerModel.jerseyNumber}",
+                  // Prioritize displayNumber, fall back to jerseyNumber
+                  "${widget.playerModel.displayNumber ?? widget.playerModel.jerseyNumber}",
                   style: indexTextStyle,
                 ),
               ),
@@ -191,17 +227,11 @@ class _FittedPlayerName extends StatelessWidget {
         .copyWith(color: ColorManager.white);
 
     final playerName = name ?? '';
-    if (playerName.isEmpty) {
+    // Hide name if empty or if it's "-" (neutral)
+    if (playerName.isEmpty || playerName == '-') {
       // Return a small sized box to maintain layout stability.
       return SizedBox(height: style.fontSize);
     }
-
-    // // The complex _getBestFitName function has been removed.
-    // // We now directly format the name for two-line display.
-    // String textToRender = playerName;
-    // if (playerName.contains(' ')) {
-    //   textToRender = playerName.replaceFirst(' ', '\n');
-    // }
 
     // --- START: MODIFIED NAME LOGIC ---
     // Requirement 3: Truncate names to 9 characters.
@@ -222,17 +252,6 @@ class _FittedPlayerName extends StatelessWidget {
     // --- END: MODIFIED NAME LOGIC ---
 
     return SizedBox(
-      // width: maxWidth,
-      // child: Text(
-      //   textToRender,
-      //   textScaler: TextScaler.linear(0.7),
-      //   style: style,
-      //   textAlign: TextAlign.start, // Center align the name block
-      //   overflow: TextOverflow.ellipsis,
-      //   // Allow up to 2 lines for the name
-      //   maxLines: 2,
-      // ),
-
       width: maxWidth * 1.5,
       child: Text(
         textToRender,

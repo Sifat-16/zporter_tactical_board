@@ -1,29 +1,32 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:logger/logger.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/equipment/equipment_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/playerV2/player_utils_v2.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
-/// PlayerComponent built based on the working EquipmentComponent structure.
-/// It handles rendering a player and mirrors the state/gesture handling of a known-good component.
+final Map<String, ui.Image> _playerImageCache = {};
+
 class PlayerComponent extends FieldComponent<PlayerModel>
     with DoubleTapCallbacks {
   PlayerComponent({required super.object});
 
-  // --- Rendering utilities ---
   final Paint _backgroundPaint = Paint();
   final TextPainter _textPainter =
       TextPainter(textDirection: TextDirection.ltr);
@@ -34,36 +37,62 @@ class PlayerComponent extends FieldComponent<PlayerModel>
 
   Sprite? _playerImageSprite;
 
-  /// Loads the player image from Base64 or a fallback file path.
+  bool _isLoadingImage = false; // Tracks the loading state
+  double _loadingArcAngle = 0.0;
+
+  final double _snapTolerance =
+      5.0; // How close to be before snapping (in pixels)
+  final double _gridSize = 50.0; // Must match the gridSize in GridComponent
+  final List<GuideLine> _activeGuides = [];
+
   Future<void> _loadPlayerImage() async {
     _playerImageSprite = null;
-    final imageBase64 = object.imageBase64;
+    final imageSourceIdentifier = _getImageSourceIdentifier();
 
-    if (imageBase64 != null && imageBase64.isNotEmpty) {
-      try {
-        final Uint8List bytes = base64Decode(imageBase64);
-        final ui.Image image = await decodeImageFromList(bytes);
-        _playerImageSprite = Sprite(image);
-        return;
-      } catch (e) {
-        zlog(data: "Failed to decode player image from Base64. Error: $e");
-        _playerImageSprite = null;
-      }
+    if (imageSourceIdentifier == null || imageSourceIdentifier.isEmpty) {
+      _isLoadingImage = false; // No image to load
+      return;
     }
 
-    final imagePath = object.imagePath;
-    if (imagePath != null && imagePath.isNotEmpty) {
-      try {
+    // 1. Check cache.
+    if (_playerImageCache.containsKey(imageSourceIdentifier)) {
+      _playerImageSprite = Sprite(_playerImageCache[imageSourceIdentifier]!);
+      _isLoadingImage = false; // Found in cache, not loading.
+      return;
+    }
+
+    // 2. Not in cache. _isLoadingImage was already set to true in onLoad.
+    // Start loading from source.
+    try {
+      Uint8List? imageBytes;
+      final imageBase64 = object.imageBase64;
+      final imagePath = object.imagePath;
+      final isNetworkUrl = imagePath != null && (imagePath.startsWith('http'));
+
+      if (imageBase64 != null && imageBase64.isNotEmpty) {
+        imageBytes = base64Decode(imageBase64);
+      } else if (isNetworkUrl) {
+        final ByteData data =
+            await NetworkAssetBundle(Uri.parse(imagePath!)).load(imagePath!);
+        imageBytes = data.buffer.asUint8List();
+      } else if (imagePath != null && imagePath.isNotEmpty) {
         final file = File(imagePath);
         if (await file.exists()) {
-          final Uint8List bytes = await file.readAsBytes();
-          final ui.Image image = await decodeImageFromList(bytes);
-          _playerImageSprite = Sprite(image);
+          imageBytes = await file.readAsBytes();
         }
-      } catch (e) {
-        zlog(data: "Failed to load player image from file path. Error: $e");
-        _playerImageSprite = null;
       }
+
+      if (imageBytes != null) {
+        final ui.Image decodedImage = await decodeImageFromList(imageBytes);
+        _playerImageCache[imageSourceIdentifier] = decodedImage;
+        _playerImageSprite = Sprite(decodedImage);
+      }
+    } catch (e) {
+      zlog(level: Level.error, data: "Failed to load/cache player image: $e");
+      _playerImageSprite = null;
+    } finally {
+      // 3. ALWAYS set loading to false when done (or failed)
+      _isLoadingImage = false;
     }
   }
 
@@ -71,15 +100,27 @@ class PlayerComponent extends FieldComponent<PlayerModel>
   Future<void> onLoad() async {
     await super.onLoad();
     sprite = await game.loadSprite("ball.png", srcSize: Vector2.zero());
-    await _loadPlayerImage();
+    // await _loadPlayerImage();
 
-    // Set initial state exactly like in EquipmentComponent.
     size = object.size ?? Vector2(AppSize.s32, AppSize.s32);
     position = SizeHelper.getBoardActualVector(
       gameScreenSize: game.gameField.size,
       actualPosition: object.offset ?? Vector2(x, y),
     );
     angle = object.angle ?? 0;
+
+    // --- THIS IS THE FIX ---
+
+    // Check if we need to load data (logic moved from your _loadPlayerImage)
+    final imageKey = _getImageSourceIdentifier();
+    if (imageKey != null && !_playerImageCache.containsKey(imageKey)) {
+      // Image isn't in cache. Set the flag so the render() method shows the spinner.
+      _isLoadingImage = true;
+    }
+
+    // Call the load function but DO NOT await it.
+    // Let it run in the background. onLoad will now finish instantly.
+    _loadPlayerImage();
   }
 
   @override
@@ -88,14 +129,14 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     _syncWithDatabase();
   }
 
-  /// THE CORRECTED SYNC METHOD
   Future<void> _syncWithDatabase() async {
     try {
       final dbPlayer = await PlayerUtilsV2.getPlayerFromDbById(object.id);
       if (dbPlayer == null) return;
 
+      // --- CHANGE 1: Also check if displayNumber has changed ---
       final bool needsUpdate = dbPlayer.role != object.role ||
-          dbPlayer.jerseyNumber != object.jerseyNumber ||
+          dbPlayer.displayNumber != object.displayNumber ||
           dbPlayer.imageBase64 != object.imageBase64 ||
           dbPlayer.name != object.name;
 
@@ -103,18 +144,17 @@ class PlayerComponent extends FieldComponent<PlayerModel>
         zlog(data: "Syncing player ${object.id}: Data mismatch found.");
         final oldImage = object.imageBase64;
 
-        // This creates a NEW instance of the player model.
         final newModelInstance = object.copyWith(
           role: dbPlayer.role,
+          // Sync both numbers to be safe, though jerseyNumber shouldn't change
           jerseyNumber: dbPlayer.jerseyNumber,
+          displayNumber: dbPlayer.displayNumber,
           imageBase64: dbPlayer.imageBase64,
           name: dbPlayer.name,
         );
 
-        // Update the component's local object.
         object = newModelInstance;
 
-        // *** THE FIX: We MUST notify the provider about this new instance ***
         ref
             .read(boardProvider.notifier)
             .updatePlayerModel(newModel: newModelInstance);
@@ -128,11 +168,132 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     }
   }
 
-  // --- GESTURE AND STATE HANDLING (UNCHANGED) ---
+  // In class PlayerComponent
+
+  // In class PlayerComponent
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+
+    // Deselect component when drag starts
+    ref.read(boardProvider.notifier).toggleSelectItemEvent(
+          fieldItemModel: null,
+          camefrom: 'PlayerComponent.onDragStart',
+        );
+
+    ref.read(boardProvider.notifier).toggleItemDrag(true); // <-- RESTORE THIS
+    ref.read(boardProvider.notifier).clearGuides(); // <-- Good to add this here
+    event.continuePropagation = false;
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    ref.read(boardProvider.notifier).toggleItemDrag(false); // <-- RESTORE THIS
+    ref.read(boardProvider.notifier).clearGuides();
+
+    // Phase 1: Trigger immediate save after drag
+    if (game is TacticBoard) {
+      (game as TacticBoard).triggerImmediateSave(reason: 'Player drag end');
+    }
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    super.onDragCancel(event);
+    ref.read(boardProvider.notifier).toggleItemDrag(false); // <-- RESTORE THIS
+    ref.read(boardProvider.notifier).clearGuides();
+  }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
-    super.onDragUpdate(event);
+    if (isRotationHandleDragged) {
+      super.onDragUpdate(event); // Let the base class handle rotation
+      return;
+    }
+    _activeGuides.clear(); // Clear old guides from last frame
+
+    // 1. Apply the drag (no snapping)
+    position.add(event.canvasDelta);
+
+    // 2. Get my new alignment points
+    final myCenter = center - Vector2(10, 10);
+    // final myTop = myCenter.y - (size.y / 2);
+    // final myBottom = myCenter.y + (size.y / 2);
+    // final myLeft = myCenter.x - (size.x / 2);
+    // final myRight = myCenter.x + (size.x / 2);
+
+    bool didSmartAlign = false; // Flag to track if we found an alignment
+
+    // 3. Find other items to check against
+    final otherItems = game.children.where(
+        (c) => (c is PlayerComponent || c is EquipmentComponent) && c != this);
+
+    for (final item in otherItems) {
+      if (item is! PositionComponent) continue;
+
+      final otherCenter = item.center - Vector2(10, 10);
+      final otherTop = otherCenter.y - (item.size.y / 2);
+      final otherBottom = otherCenter.y + (item.size.y / 2);
+      final otherLeft = otherCenter.x - (item.size.x / 2);
+      final otherRight = otherCenter.x + (item.size.x / 2);
+
+      // --- Check X-axis Guides ---
+      if ((myCenter.x - otherCenter.x).abs() < _snapTolerance) {
+        _activeGuides.add(GuideLine(
+          start: Vector2(otherCenter.x, myCenter.y),
+          end: Vector2(otherCenter.x, otherCenter.y),
+        ));
+        didSmartAlign = true;
+      }
+      // if ((myLeft - otherLeft).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(otherLeft, myTop),
+      //     end: Vector2(otherLeft, otherTop),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+      // if ((myRight - otherRight).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(otherRight, myTop),
+      //     end: Vector2(otherRight, otherTop),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+
+      // --- Check Y-axis Guides ---
+      if ((myCenter.y - otherCenter.y).abs() < _snapTolerance) {
+        _activeGuides.add(GuideLine(
+          start: Vector2(myCenter.x, otherCenter.y),
+          end: Vector2(otherCenter.x, otherCenter.y),
+        ));
+        didSmartAlign = true;
+      }
+      // if ((myTop - otherTop).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(myLeft, otherTop),
+      //     end: Vector2(otherLeft, otherTop),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+      // if ((myBottom - otherBottom).abs() < _snapTolerance) {
+      //   _activeGuides.add(GuideLine(
+      //     start: Vector2(myLeft, otherBottom),
+      //     end: Vector2(otherLeft, otherBottom),
+      //   ));
+      //   didSmartAlign = true;
+      // }
+    }
+
+    // 4. Update the providers
+    ref.read(boardProvider.notifier).updateGuides(_activeGuides);
+
+    // *** THIS IS THE KEY ***
+    // Show the grid ONLY if we are NOT showing smart guides
+    ref.read(boardProvider.notifier).toggleItemDrag(!didSmartAlign);
+
+    // 5. Update the model
     object.offset = SizeHelper.getBoardRelativeVector(
       gameScreenSize: game.gameField.size,
       actualPosition: position,
@@ -153,27 +314,9 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     _executeEditAction();
   }
 
-  // void _executeEditAction() async {
-  //   PlayerModel? updatedPlayer = await PlayerUtilsV2.showEditPlayerDialog(
-  //     context: game.buildContext!,
-  //     player: object,
-  //   );
-  //
-  //   if (updatedPlayer != null) {
-  //     object = updatedPlayer;
-  //     await _loadPlayerImage();
-  //     ref
-  //         .read(boardProvider.notifier)
-  //         .updatePlayerModel(newModel: updatedPlayer);
-  //   }
-  // }
-
-  /// --- MODIFIED: This method now contains all the logic for editing and swapping ---
   void _executeEditAction() async {
-    // Ensure we have a build context.
     if (game.buildContext == null) return;
 
-    // 1. Get all players on the board to determine who is on the bench.
     final boardState = ref.read(boardProvider);
     final allPlayersOnTeamFromDb = await (object.playerType == PlayerType.HOME
         ? PlayerUtilsV2.getOrInitializeHomePlayers()
@@ -184,46 +327,46 @@ class PlayerComponent extends FieldComponent<PlayerModel>
         .map((p) => p.id)
         .toSet();
 
-    // 2. Filter to get the list of players available for replacement (the bench).
     final List<PlayerModel> rosterPlayers = allPlayersOnTeamFromDb
         .where((p) => !fieldPlayerIds.contains(p.id))
         .toList();
 
-    // 3. Show the dialog, now passing the roster players list.
     final result = await PlayerUtilsV2.showEditPlayerDialog(
         context: game.buildContext!,
-        player: object, // The player currently on the field
-        rosterPlayers: rosterPlayers, // The players on the bench
+        player: object,
+        rosterPlayers: rosterPlayers,
         showReplace: true);
 
-    // 4. Handle the dialog's result.
     if (result is PlayerSwapResult) {
-      // The user chose to swap the player.
       final TacticBoard tacticBoard = game as TacticBoard;
-
-      // The player coming in takes the exact position of the player going out.
       final playerToBringIn = result.playerToBringIn.copyWith(
         offset: result.playerToBench.offset,
       );
-
-      // Perform the swap on the tactical board.
       tacticBoard.removeFieldItems([result.playerToBench]);
       tacticBoard.addItem(playerToBringIn);
       zlog(
           data:
               "Swapped player ${result.playerToBench.id} with ${result.playerToBringIn.id}");
     } else if (result is PlayerUpdateResult) {
-      // The user edited the player's details.
+      try {
+        // This is the missing step: Save the update to the master Sembast DB
+        await PlayerUtilsV2.updatePlayerInDb(result.updatedPlayer);
+        zlog(
+            data:
+                "Successfully updated master player DB for ${result.updatedPlayer.id}");
+      } catch (e) {
+        zlog(data: "Failed to update master player DB: $e");
+        BotToast.showText(text: "Error saving player update.");
+        // We can still continue to update the local state to keep the UI responsive
+      }
+
       object = result.updatedPlayer;
-      await _loadPlayerImage(); // Reload image if it changed
-      // The utility function already saved to the DB,
-      // now we just ensure the provider and component are in sync.
+      await _loadPlayerImage();
       ref
           .read(boardProvider.notifier)
           .updatePlayerModel(newModel: result.updatedPlayer);
       zlog(data: "Updated player details for ${result.updatedPlayer.id}");
     }
-    // If result is null, the user cancelled, so we do nothing.
   }
 
   @override
@@ -247,7 +390,6 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     object.size = newSize;
   }
 
-  // --- RENDER METHOD (UNCHANGED) ---
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -263,13 +405,44 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     canvas.save();
     canvas.clipRRect(rrect);
 
-    if (object.showImage && _playerImageSprite != null) {
+    // --- THIS IS THE CRITICAL LOGIC ---
+    if (_isLoadingImage) {
+      // State 1: We are downloading the image. Draw a spinner.
+      final spinnerPaint = Paint()
+        ..color = ColorManager.yellow // Spinner color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3; // Spinner thickness
+
+      // Draw a spinning arc
+      canvas.drawArc(
+        size.toRect().deflate(
+            size.x * 0.3), // Make the spinner smaller than the component
+        _loadingArcAngle, // This is the rotating start angle from our update() loop
+        3.14159 * 1.5, // This is the length of the arc (270 degrees)
+        false,
+        spinnerPaint,
+      );
+    } else if (object.showImage && _playerImageSprite != null) {
+      // State 2: Image is loaded. Draw it.
       _playerImageSprite!.render(
         canvas,
         size: size,
         overridePaint: Paint()..color = Colors.white.withOpacity(baseOpacity),
       );
+
+      // Draw team border when image is shown
+      canvas.restore(); // Restore from clip to draw border on top
+      canvas.save();
+
+      final Color teamBorderColor = _getTeamBorderColor();
+      final borderPaint = Paint()
+        ..color = teamBorderColor.withOpacity(baseOpacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0; // Border thickness
+
+      canvas.drawRRect(rrect, borderPaint);
     } else {
+      // State 3: No image to show OR loading failed. Draw the colored placeholder.
       final Color baseColor = object.color ??
           (object.playerType == PlayerType.HOME
               ? ColorManager.blue
@@ -280,7 +453,8 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       _backgroundPaint.style = PaintingStyle.fill;
       canvas.drawRRect(rrect, _backgroundPaint);
 
-      if (object.showRole) {
+      // Only show role if showRole is true AND role is not "-" (neutral)
+      if (object.showRole && object.role != '-') {
         final fontSize = (size.x / 2) * 0.7;
         _textPainter.text = TextSpan(
           text: object.role,
@@ -298,15 +472,20 @@ class PlayerComponent extends FieldComponent<PlayerModel>
         );
       }
     }
+    // --- END NEW RENDER LOGIC ---
+
     canvas.restore();
 
-    String jerseyNumber = object.jerseyNumber.toString();
-    if (jerseyNumber == "-1") jerseyNumber = "";
+    // --- CHANGE 2: Logic to determine which number to display ---
+    // Prioritize the editable 'displayNumber', but fall back to the permanent 'jerseyNumber'.
+    String numberToRender =
+        (object.displayNumber ?? object.jerseyNumber).toString();
+    if (numberToRender == "-1") numberToRender = "";
 
-    if (object.showNr && jerseyNumber.isNotEmpty) {
+    if (object.showNr && numberToRender.isNotEmpty) {
       final double jerseyFontSize = size.x * 0.3;
       _jerseyTextPainter.text = TextSpan(
-        text: jerseyNumber,
+        text: numberToRender, // Use the determined number
         style: TextStyle(
           color: Colors.white.withOpacity(baseOpacity),
           fontSize: jerseyFontSize,
@@ -322,7 +501,11 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     }
 
     final playerName = object.name;
-    if (object.showName && playerName != null && playerName.isNotEmpty) {
+    // Only show name if showName is true AND name is not empty/null AND name is not "-" (neutral)
+    if (object.showName &&
+        playerName != null &&
+        playerName.isNotEmpty &&
+        playerName != '-') {
       final nameTextStyle = TextStyle(
         color: Colors.white.withOpacity(baseOpacity),
         fontSize: size.x * 0.25,
@@ -352,6 +535,55 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       final nameOffset =
           Offset((size.x - _nameTextPainter.width) / 2, size.y + 4.0);
       _nameTextPainter.paint(canvas, nameOffset);
+    }
+  }
+
+  String? _getImageSourceIdentifier() {
+    final imageBase64 = object.imageBase64;
+    final imagePath = object.imagePath;
+
+    if (imageBase64 != null && imageBase64.isNotEmpty) {
+      return imageBase64;
+    }
+    if (imagePath != null && imagePath.isNotEmpty) {
+      // This key works whether it's a local path OR a network URL
+      return imagePath;
+    }
+    return null;
+  }
+
+  /// Gets the border color for the player based on their team
+  /// Priority: 1) Individual player color, 2) Global team color from settings, 3) Fallback default
+  Color _getTeamBorderColor() {
+    // Priority 1: Check if player has a custom border color set (individual override)
+    if (object.borderColor != null) {
+      return object.borderColor!;
+    }
+
+    // Priority 2: Use global team colors from board settings
+    final boardState = ref.read(boardProvider);
+    switch (object.playerType) {
+      case PlayerType.HOME:
+        return boardState.homeTeamBorderColor; // Use settings color
+      case PlayerType.AWAY:
+        return boardState.awayTeamBorderColor; // Use settings color
+      case PlayerType.OTHER:
+        return ColorManager.grey; // Grey for other players
+      case PlayerType.UNKNOWN:
+        return ColorManager.grey; // Grey for unknown players
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_isLoadingImage) {
+      // This spins the start-angle of the arc, creating a rotation effect.
+      _loadingArcAngle +=
+          dt * 4; // You can change '4' to make it faster or slower
+      if (_loadingArcAngle > (3.14159 * 2)) {
+        _loadingArcAngle -= (3.14159 * 2);
+      }
     }
   }
 }

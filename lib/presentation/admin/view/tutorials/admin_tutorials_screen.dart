@@ -1,30 +1,27 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-
-// Adjust these imports to match your project's file structure
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/admin/model/tutorial_model.dart';
-import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/tutorials/add_edit_tutorials_content_screen.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/rich_text_tutorial_viewer_screen.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/video_viewer_dialog.dart';
+import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_controller.dart';
 import 'package:zporter_tactical_board/presentation/admin/view_model/tutorials/tutorials_state.dart';
 
 class AdminTutorialsScreen extends ConsumerWidget {
   const AdminTutorialsScreen({super.key});
 
-  /// Shows the combined dialog for adding/editing a tutorial.
   void _showAddEditTutorialDialog(BuildContext context, WidgetRef ref,
       [Tutorial? tutorial]) {
     showDialog(
       context: context,
-      builder: (_) => _AddEditTutorialDialog(
-        tutorial: tutorial,
-      ),
+      builder: (_) => _AddEditTutorialDialog(tutorial: tutorial),
     );
   }
 
-  /// Shows a confirmation dialog before deleting a tutorial.
   void _showDeleteDialog(
       BuildContext context, WidgetRef ref, Tutorial tutorial) {
     showDialog(
@@ -54,22 +51,44 @@ class AdminTutorialsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCreateNewButton(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0), // Add padding
-      child: ElevatedButton.icon(
-        icon: const Icon(Icons.add, color: ColorManager.white),
-        label: const Text('New Tutorial'),
-        onPressed: () => _showAddEditTutorialDialog(context, ref),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: ColorManager.green,
-          foregroundColor: ColorManager.white,
-          minimumSize: const Size(double.infinity, 50),
-          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  void _handleViewTutorialTap(BuildContext context, Tutorial tutorial) {
+    if (tutorial.tutorialType == TutorialType.video &&
+        tutorial.videoUrl != null) {
+      showDialog(
+        context: context,
+        builder: (context) => VideoViewerDialog(videoUrl: tutorial.videoUrl!),
+      );
+    } else if (tutorial.tutorialType == TutorialType.richText) {
+      // --- THIS IS THE CHANGE ---
+      // We now pass `isAdmin: true` so the viewer knows to show the admin controls.
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => RichTextTutorialViewerScreen(
+          tutorial: tutorial,
         ),
-      ),
-    );
+      ));
+    }
+  }
+
+  void _handleEditContentTap(BuildContext context, Tutorial tutorial) {
+    if (tutorial.tutorialType == TutorialType.richText) {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => TutorialEditorScreen(tutorial: tutorial),
+      ));
+    }
+  }
+
+  Widget _getTutorialTypeIcon(Tutorial tutorial) {
+    if (tutorial.tutorialType == TutorialType.video) {
+      bool isYoutube = tutorial.videoUrl?.contains('youtube.com') ?? false;
+      if (isYoutube) {
+        return const FaIcon(FontAwesomeIcons.youtube,
+            color: Colors.red, size: 18);
+      }
+      return const Icon(Icons.videocam_outlined,
+          color: ColorManager.grey, size: 20);
+    }
+    return const Icon(Icons.article_outlined,
+        color: ColorManager.grey, size: 20);
   }
 
   @override
@@ -88,7 +107,23 @@ class AdminTutorialsScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          _buildCreateNewButton(context, ref),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 0),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.add, color: ColorManager.white),
+              label: const Text('New Tutorial'),
+              onPressed: () => _showAddEditTutorialDialog(context, ref),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorManager.green,
+                foregroundColor: ColorManager.white,
+                minimumSize: const Size(double.infinity, 50),
+                textStyle:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ),
           Expanded(
             child: Stack(
               children: [
@@ -102,7 +137,7 @@ class AdminTutorialsScreen extends ConsumerWidget {
                           'Error: ${state.errorMessage ?? "An unknown error occurred."}'))
                 else
                   ReorderableListView.builder(
-                    padding: const EdgeInsets.only(bottom: 80),
+                    padding: const EdgeInsets.only(bottom: 80, top: 10),
                     itemCount: state.tutorials.length,
                     itemBuilder: (context, index) {
                       final tutorial = state.tutorials[index];
@@ -131,19 +166,32 @@ class AdminTutorialsScreen extends ConsumerWidget {
                                       color: ColorManager.grey, size: 40),
                             ),
                           ),
-                          title: Text(tutorial.name,
-                              style: const TextStyle(
-                                  color: ColorManager.white,
-                                  fontWeight: FontWeight.bold)),
-                          onTap: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) =>
-                                  TutorialEditorScreen(tutorial: tutorial),
-                            ));
-                          },
+                          title: Row(
+                            children: [
+                              _getTutorialTypeIcon(tutorial),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  tutorial.name,
+                                  style: const TextStyle(
+                                      color: ColorManager.white,
+                                      fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () => _handleEditContentTap(context, tutorial),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove_red_eye,
+                                    color: ColorManager.blueAccent),
+                                tooltip: 'View Tutorial',
+                                onPressed: () =>
+                                    _handleViewTutorialTap(context, tutorial),
+                              ),
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined,
                                     color: ColorManager.blueAccent),
@@ -190,21 +238,12 @@ class AdminTutorialsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      // floatingActionButton: FloatingActionButton.extended(
-      //   onPressed: () => _showAddEditTutorialDialog(context, ref),
-      //   backgroundColor: ColorManager.green,
-      //   icon: const Icon(Icons.add, color: ColorManager.white),
-      //   label: const Text('New Tutorial',
-      //       style: TextStyle(color: ColorManager.white)),
-      // ),
     );
   }
 }
 
-/// A dedicated stateful widget for the Add/Edit Tutorial Dialog.
 class _AddEditTutorialDialog extends ConsumerStatefulWidget {
   final Tutorial? tutorial;
-
   const _AddEditTutorialDialog({this.tutorial});
 
   @override
@@ -215,20 +254,25 @@ class _AddEditTutorialDialog extends ConsumerStatefulWidget {
 class __AddEditTutorialDialogState
     extends ConsumerState<_AddEditTutorialDialog> {
   late final TextEditingController _nameController;
-  File? _pickedThumbnailFile;
+  late final TextEditingController _videoUrlController;
   final _formKey = GlobalKey<FormState>();
-
+  File? _pickedThumbnailFile;
+  late TutorialType _selectedType;
   bool get _isEditing => widget.tutorial != null;
 
   @override
   void initState() {
     super.initState();
+    _selectedType = widget.tutorial?.tutorialType ?? TutorialType.richText;
     _nameController = TextEditingController(text: widget.tutorial?.name ?? '');
+    _videoUrlController =
+        TextEditingController(text: widget.tutorial?.videoUrl ?? '');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _videoUrlController.dispose();
     super.dispose();
   }
 
@@ -237,44 +281,46 @@ class __AddEditTutorialDialogState
     final xFile =
         await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (xFile != null) {
-      setState(() {
-        _pickedThumbnailFile = File(xFile.path);
-      });
+      setState(() => _pickedThumbnailFile = File(xFile.path));
     }
   }
 
   Future<void> _onSave() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
+    final videoUrl = _videoUrlController.text.trim();
     final tutorialsNotifier = ref.read(tutorialsProvider.notifier);
 
-    // Close the dialog before starting async operations
     if (mounted) Navigator.of(context).pop();
 
     if (_isEditing) {
-      // --- UPDATE FLOW ---
-      final tutorialToUpdate = widget.tutorial!;
-      // 1. Update the name if it has changed
-      if (tutorialToUpdate.name != name) {
-        await tutorialsNotifier
-            .updateTutorial(tutorialToUpdate.copyWith(name: name));
-      }
-      // 2. Upload a new thumbnail if one was picked
+      final tutorialToUpdate = widget.tutorial!.copyWith(
+        name: name,
+        tutorialType: _selectedType,
+        videoUrl: _selectedType == TutorialType.video ? videoUrl : null,
+        mediaUrls: widget.tutorial!.mediaUrls,
+        contentJson: _selectedType == TutorialType.richText
+            ? widget.tutorial!.contentJson
+            : '',
+      );
+      await tutorialsNotifier.updateTutorial(tutorialToUpdate);
       if (_pickedThumbnailFile != null) {
         await tutorialsNotifier.uploadThumbnailForTutorial(
             _pickedThumbnailFile!, tutorialToUpdate.id);
       }
     } else {
-      // --- CREATE FLOW ---
-      // 1. Create the tutorial document first to get an ID
-      final newTutorial = await tutorialsNotifier.addAndReturnTutorial(name);
-      if (newTutorial == null) return; // Handle error case
+      final newTutorialStub = Tutorial(
+        id: '',
+        name: name,
+        tutorialType: _selectedType,
+        videoUrl: _selectedType == TutorialType.video ? videoUrl : null,
+        mediaUrls: [],
+      );
+      final newTutorial =
+          await tutorialsNotifier.addAndReturnTutorial(newTutorialStub);
 
-      // 2. If a thumbnail was picked, upload it using the new ID
-      if (_pickedThumbnailFile != null) {
+      if (newTutorial != null && _pickedThumbnailFile != null) {
         await tutorialsNotifier.uploadThumbnailForTutorial(
             _pickedThumbnailFile!, newTutorial.id);
       }
@@ -289,64 +335,98 @@ class __AddEditTutorialDialogState
           style: const TextStyle(color: ColorManager.white)),
       content: Form(
         key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Thumbnail Preview and Upload Button
-            SizedBox(
-              width: 120,
-              height: 90,
-              child: InkWell(
-                onTap: _onPickThumbnail,
-                child: _pickedThumbnailFile != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(_pickedThumbnailFile!,
-                            fit: BoxFit.cover),
-                      )
-                    : widget.tutorial?.thumbnailUrl != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(widget.tutorial!.thumbnailUrl!,
-                                fit: BoxFit.cover),
-                          )
-                        : Container(
-                            decoration: BoxDecoration(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 120,
+                height: 90,
+                child: InkWell(
+                  onTap: _onPickThumbnail,
+                  child: _pickedThumbnailFile != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(_pickedThumbnailFile!,
+                              fit: BoxFit.cover))
+                      : widget.tutorial?.thumbnailUrl != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                  widget.tutorial!.thumbnailUrl!,
+                                  fit: BoxFit.cover))
+                          : Container(
+                              decoration: BoxDecoration(
                                 color: ColorManager.dark1,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: ColorManager.grey)),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo_outlined,
-                                    color: ColorManager.grey),
-                                SizedBox(height: 4),
-                                Text('Thumbnail',
-                                    style: TextStyle(
-                                        color: ColorManager.grey,
-                                        fontSize: 12)),
-                              ],
+                                border: Border.all(color: ColorManager.grey),
+                              ),
+                              child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_outlined,
+                                        color: ColorManager.grey),
+                                    SizedBox(height: 4),
+                                    Text('Thumbnail',
+                                        style: TextStyle(
+                                            color: ColorManager.grey,
+                                            fontSize: 12)),
+                                  ]),
                             ),
-                          ),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            // Name Text Field
-            TextFormField(
-              controller: _nameController,
-              autofocus: true,
-              style: const TextStyle(color: ColorManager.white),
-              decoration: const InputDecoration(
-                labelText: 'Tutorial Name',
-                labelStyle: TextStyle(color: ColorManager.grey),
-                focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: ColorManager.green)),
+              const SizedBox(height: 24),
+              DropdownButtonFormField<TutorialType>(
+                value: _selectedType,
+                dropdownColor: ColorManager.dark1,
+                style: const TextStyle(color: ColorManager.white),
+                decoration: const InputDecoration(
+                  labelText: 'Tutorial Type',
+                  labelStyle: TextStyle(color: ColorManager.grey),
+                ),
+                items: TutorialType.values
+                    .map((type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(type == TutorialType.richText
+                            ? 'Rich Text'
+                            : 'Video')))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) setState(() => _selectedType = value);
+                },
               ),
-              validator: (value) => (value == null || value.trim().isEmpty)
-                  ? 'Please enter a name'
-                  : null,
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _nameController,
+                autofocus: true,
+                style: const TextStyle(color: ColorManager.white),
+                decoration: const InputDecoration(
+                    labelText: 'Tutorial Name',
+                    labelStyle: TextStyle(color: ColorManager.grey)),
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? 'Please enter a name'
+                    : null,
+              ),
+              if (_selectedType == TutorialType.video)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: TextFormField(
+                    controller: _videoUrlController,
+                    style: const TextStyle(color: ColorManager.white),
+                    decoration: const InputDecoration(
+                        labelText: 'YouTube or Video URL',
+                        labelStyle: TextStyle(color: ColorManager.grey)),
+                    validator: (value) {
+                      if (_selectedType == TutorialType.video &&
+                          (value == null || value.trim().isEmpty)) {
+                        return 'Please enter a video URL';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
       actions: [

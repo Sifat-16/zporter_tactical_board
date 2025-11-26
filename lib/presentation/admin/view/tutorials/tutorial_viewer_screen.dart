@@ -1,5 +1,3 @@
-// file: presentation/user/widgets/tutorial_viewer_dialog.dart
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
@@ -51,10 +49,11 @@ class _TutorialViewerDialogState extends State<TutorialViewerDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: ColorManager.black,
+      insetPadding: EdgeInsets.symmetric(horizontal: 4),
       shape: RoundedRectangleBorder(
           side: BorderSide(
               color: ColorManager.yellowLight.withValues(alpha: 0.5)),
-          borderRadius: BorderRadius.circular(12.0)),
+          borderRadius: BorderRadius.circular(4.0)),
       child: Stack(
         children: [
           Padding(

@@ -16,6 +16,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 // UNCHANGED from your working code
 class DraggableDot extends CircleComponent with DragCallbacks {
   final Function(Vector2) onPositionChanged;
+  final VoidCallback? onDragEndCallback;
   final Vector2 initialPosition;
   final bool canModifyLine;
   final int dotIndex;
@@ -25,6 +26,7 @@ class DraggableDot extends CircleComponent with DragCallbacks {
     required this.onPositionChanged,
     required this.initialPosition,
     required this.dotIndex,
+    this.onDragEndCallback,
     this.canModifyLine = true,
     super.radius = 8.0,
     this.color = Colors.blue,
@@ -55,6 +57,7 @@ class DraggableDot extends CircleComponent with DragCallbacks {
   @override
   void onDragEnd(DragEndEvent event) {
     _dragStartLocalPosition = null;
+    onDragEndCallback?.call();
     event.continuePropagation = false;
     super.onDragEnd(event);
   }
@@ -106,7 +109,7 @@ class LineDrawerComponentV2 extends PositionComponent
 
   // UNCHANGED from your working code
   @override
-  FutureOr<void> onLoad() {
+  FutureOr<void> onLoad() async {
     addToGameWidgetBuild(() {
       ref.listen(boardProvider, (previous, current) {
         _updateIsActive(current.selectedItemOnTheBoard);
@@ -128,33 +131,28 @@ class LineDrawerComponentV2 extends PositionComponent
     _initializeControlPoints();
     _createDots();
 
-    return super.onLoad();
+    // After line is fully initialized, update provider and trigger save
+    // This ensures new lines are saved immediately after creation
+    await super.onLoad();
+
+    // Use addPostFrameCallback to ensure everything is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      updateLine(); // Updates the provider state
+
+      // Trigger immediate save for newly created line
+      try {
+        final tacticBoard = game as dynamic;
+        if (tacticBoard.triggerImmediateSave != null) {
+          tacticBoard.triggerImmediateSave(
+              reason: "Line created: ${lineModelV2.id}");
+        }
+      } catch (e) {
+        // Silent fail if method not available
+      }
+    });
   }
 
   // UNCHANGED from your working code
-  // void _initializeControlPoints() {
-  //   final start = _duplicateLine.start;
-  //   final end = _duplicateLine.end;
-  //   final diff = end - start;
-  //   if (_duplicateLine.controlPoint1 == null) {
-  //     _controlPoint1 = start + diff / 3.0;
-  //   } else {
-  //     _controlPoint1 = SizeHelper.getBoardActualVector(
-  //       gameScreenSize: game.gameField.size,
-  //       actualPosition: _duplicateLine.controlPoint1!,
-  //     );
-  //   }
-  //   if (_duplicateLine.controlPoint2 == null) {
-  //     _controlPoint2 = start + diff * 2.0 / 3.0;
-  //   } else {
-  //     _controlPoint2 = SizeHelper.getBoardActualVector(
-  //       gameScreenSize: game.gameField.size,
-  //       actualPosition: _duplicateLine.controlPoint2!,
-  //     );
-  //   }
-  // }
-
-  // THIS IS THE SIMPLIFIED _initializeControlPoints METHOD
   void _initializeControlPoints() {
     final start = _duplicateLine.start;
     final end = _duplicateLine.end;
@@ -185,10 +183,6 @@ class LineDrawerComponentV2 extends PositionComponent
     super.update(dt);
     updatePaint();
   }
-
-  // ####################################################################
-  // #                  START OF PAINTING MODIFICATIONS                 #
-  // ####################################################################
 
   @override
   void render(Canvas canvas) {
@@ -248,9 +242,28 @@ class LineDrawerComponentV2 extends PositionComponent
         _drawArrowHead(canvas, end, end - cp2, paint);
         break;
 
-      case LineType.PASS:
-      case LineType.PASS_HIGH_CROSS:
+      case LineType
+            .PASS: // MODIFIED: This now renders on its own as a solid line
         canvas.drawPath(splinePath, paint);
+        _drawArrowHead(canvas, end, end - cp2, paint);
+        break;
+
+      case LineType
+            .PASS_HIGH_CROSS: // NEW: This now has its own custom rendering logic
+        // 1. Define the shadow's appearance
+        final shadowPaint = Paint()
+          ..color = Colors.black.withOpacity(0.3) // Semi-transparent black
+          ..strokeWidth = paint.strokeWidth // Same thickness as the line
+          ..style = PaintingStyle.stroke;
+
+        // 2. Draw the shadow path first, with a slight offset
+        canvas.save();
+        canvas.translate(2.0, 2.0); // Offset the shadow down and to the right
+        _drawDashedPath(canvas, splinePath, shadowPaint, [8.0, 6.0]);
+        canvas.restore();
+
+        // 3. Draw the main dashed line on top of the shadow
+        _drawDashedPath(canvas, splinePath, paint, [8.0, 6.0]);
         _drawArrowHead(canvas, end, end - cp2, paint);
         break;
 
@@ -273,6 +286,7 @@ class LineDrawerComponentV2 extends PositionComponent
     }
   }
 
+  // All helper methods below this point are unchanged
   List<double> _getDashPatternForType(LineType lineType) {
     switch (lineType) {
       case LineType.WALK_ONE_WAY:
@@ -352,12 +366,6 @@ class LineDrawerComponentV2 extends PositionComponent
     _drawArrowHead(canvas, end, end - start, paint);
   }
 
-  void _drawStraightLineWithArrow(
-      Canvas canvas, Vector2 start, Vector2 end, Paint paint) {
-    canvas.drawLine(start.toOffset(), end.toOffset(), paint);
-    _drawArrowHead(canvas, end, end - start, paint);
-  }
-
   void _drawZigZagLine(Canvas canvas, Vector2 start, Vector2 end, Paint paint) {
     final distance = start.distanceTo(end);
     if (distance < 10) {
@@ -384,12 +392,6 @@ class LineDrawerComponentV2 extends PositionComponent
     canvas.drawPath(path, paint);
   }
 
-  // ################################################################
-  // #                  END OF PAINTING MODIFICATIONS               #
-  // ################################################################
-
-  // ALL METHODS BELOW ARE UNCHANGED FROM YOUR WORKING VERSION
-
   void _createDots() {
     dots.clear();
     dots = [
@@ -401,6 +403,7 @@ class LineDrawerComponentV2 extends PositionComponent
             _duplicateLine.start = newPos;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           canModifyLine: true,
           color: Colors.blue),
       DraggableDot(
@@ -411,6 +414,7 @@ class LineDrawerComponentV2 extends PositionComponent
             dots[1].position = _controlPoint1;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           color: Colors.blue,
           radius: circleRadius * .8),
       DraggableDot(
@@ -421,6 +425,7 @@ class LineDrawerComponentV2 extends PositionComponent
             dots[2].position = _controlPoint2;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           color: Colors.blue,
           radius: circleRadius * .8),
       DraggableDot(
@@ -431,64 +436,12 @@ class LineDrawerComponentV2 extends PositionComponent
             _duplicateLine.end = newPos;
             updateLine();
           },
+          onDragEndCallback: _onDotDragEnd,
           canModifyLine: true,
           color: Colors.blue),
     ];
   }
 
-  // void updateLine({bool recalculateControlPoints = false}) {
-  //   final start = _duplicateLine.start;
-  //   final end = _duplicateLine.end;
-  //
-  //   // This block is now "type-aware"
-  //   if (recalculateControlPoints) {
-  //     final diff = end - start;
-  //
-  //     // Check if the line should be curved by default
-  //     if (_duplicateLine.lineType == LineType.PASS_HIGH_CROSS ||
-  //         _duplicateLine.lineType == LineType.JUMP) {
-  //       // --- Logic to create a default curve ---
-  //       final perpendicular = Vector2(diff.y, -diff.x).normalized();
-  //       final double arcHeight = 40.0;
-  //
-  //       _controlPoint1 = start + diff * 0.25 + perpendicular * arcHeight;
-  //       _controlPoint2 = start + diff * 0.75 + perpendicular * arcHeight;
-  //     } else {
-  //       // Original logic for all other straight lines
-  //       _controlPoint1 = start + diff / 3.0;
-  //       _controlPoint2 = start + diff * 2.0 / 3.0;
-  //     }
-  //   }
-  //
-  //   // The rest of the method syncs the dots and updates the provider
-  //   if (dots.length == 4) {
-  //     dots[0].position = start;
-  //     dots[3].position = end;
-  //     dots[1].position = _controlPoint1;
-  //     dots[2].position = _controlPoint2;
-  //   }
-  //
-  //   lineModelV2 = _duplicateLine.copyWith(
-  //     start: SizeHelper.getBoardRelativeVector(
-  //         gameScreenSize: game.gameField.size, actualPosition: start),
-  //     end: SizeHelper.getBoardRelativeVector(
-  //         gameScreenSize: game.gameField.size, actualPosition: end),
-  //     controlPoint1: SizeHelper.getBoardRelativeVector(
-  //         gameScreenSize: game.gameField.size, actualPosition: _controlPoint1),
-  //     controlPoint2: SizeHelper.getBoardRelativeVector(
-  //         gameScreenSize: game.gameField.size, actualPosition: _controlPoint2),
-  //   );
-  //
-  //   WidgetsBinding.instance.addPostFrameCallback((t) {
-  //     try {
-  //       if (isMounted && ref.exists(boardProvider)) {
-  //         ref.read(boardProvider.notifier).updateLine(line: lineModelV2);
-  //       }
-  //     } catch (e) {}
-  //   });
-  // }
-
-  // THIS IS THE NEW, SMOOTHER CURVE updateLine METHOD
   void updateLine({bool recalculateControlPoints = false}) {
     final start = _duplicateLine.start;
     final end = _duplicateLine.end;
@@ -500,22 +453,10 @@ class LineDrawerComponentV2 extends PositionComponent
       if (_duplicateLine.lineType == LineType.PASS_HIGH_CROSS ||
           _duplicateLine.lineType == LineType.JUMP) {
         // --- NEW & IMPROVED LOGIC for a smooth parabolic curve ---
-
-        // 1. Find the midpoint of the straight line between start and end
         final midPoint = start + diff * 0.5;
-
-        // 2. Get the upward perpendicular direction
         final perpendicular = Vector2(diff.y, -diff.x).normalized();
-
-        // 3. Define the arc height. A smaller multiplier (e.g., 0.25) makes a flatter curve.
-        // You can adjust this 0.3 value to control the height.
         final arcHeight = diff.length * 0.15;
-
-        // 4. Define the single "ideal" control point for a quadratic (parabolic) curve
         final quadraticControlPoint = midPoint + perpendicular * arcHeight;
-
-        // 5. Convert the single quadratic control point to two cubic control points
-        // This is a standard formula for creating a smooth, parabolic-like curve.
         _controlPoint1 = start + (quadraticControlPoint - start) * (2 / 3);
         _controlPoint2 = end + (quadraticControlPoint - end) * (2 / 3);
       } else {
@@ -525,7 +466,6 @@ class LineDrawerComponentV2 extends PositionComponent
       }
     }
 
-    // The rest of the method remains the same
     if (dots.length == 4) {
       dots[0].position = start;
       dots[3].position = end;
@@ -548,6 +488,11 @@ class LineDrawerComponentV2 extends PositionComponent
       try {
         if (isMounted && ref.exists(boardProvider)) {
           ref.read(boardProvider.notifier).updateLine(line: lineModelV2);
+          // NOTE: We DON'T trigger save here because updateLine() is called
+          // continuously during dragging. Save is triggered by:
+          // - _onDotDragEnd() when dot drag finishes
+          // - onDragEnd() when line drag finishes
+          // This prevents race conditions and missed saves
         }
       } catch (e) {}
     });
@@ -587,6 +532,16 @@ class LineDrawerComponentV2 extends PositionComponent
   void onDragEnd(DragEndEvent event) {
     if (_isDragging) {
       _isDragging = false;
+      // Trigger immediate save after line drag
+      try {
+        final tacticBoard = game as dynamic;
+        if (tacticBoard.triggerImmediateSave != null) {
+          tacticBoard.triggerImmediateSave(
+              reason: "Line drag end: ${lineModelV2.id}");
+        }
+      } catch (e) {
+        // Fallback if method not available
+      }
       event.continuePropagation = false;
     } else {
       event.continuePropagation = true;
@@ -623,6 +578,19 @@ class LineDrawerComponentV2 extends PositionComponent
     ref
         .read(boardProvider.notifier)
         .toggleSelectItemEvent(fieldItemModel: lineModelV2);
+  }
+
+  void _onDotDragEnd() {
+    // Trigger immediate save after dot drag end
+    try {
+      final tacticBoard = game as dynamic;
+      if (tacticBoard.triggerImmediateSave != null) {
+        tacticBoard.triggerImmediateSave(
+            reason: "Line dot drag end: ${lineModelV2.id}");
+      }
+    } catch (e) {
+      // Fallback if method not available
+    }
   }
 
   void _updateIsActive(FieldItemModel? item) {

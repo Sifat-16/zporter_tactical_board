@@ -7,6 +7,7 @@ import 'package:flame/extensions.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart' show Colors, Color;
 import 'package:uuid/uuid.dart';
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -18,7 +19,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart';
 
-// --- Internal Representation Class ---
 class DrawnLine {
   /* ... same as before ... */
   List<Offset> points;
@@ -35,8 +35,8 @@ class DrawnLine {
 enum DrawingTool { draw, erase }
 
 class DrawingBoardComponent extends PositionComponent
-        // REMOVE DragCallbacks
-        with
+    // REMOVE DragCallbacks
+    with
         TapCallbacks,
         RiverpodComponentMixin,
         HasGameReference<TacticBoardGame> {
@@ -76,31 +76,44 @@ class DrawingBoardComponent extends PositionComponent
     this.eraserColor = Colors.white,
     this.eraserStrokeWidth = 10.0,
     this.selectedColor = Colors.green,
-    this.selectionHitTolerance = 10.0,
+    this.selectionHitTolerance = 20.0,
     this.initialLines,
     super.position,
     required Vector2 super.size,
   });
 
-  // _notifyDrawingChanged remains the same
+  // _notifyDrawingChanged - triggers immediate save
   void _notifyDrawingChanged(String operation) {
     /* ... same as before ... */
     try {
       List<FreeDrawModelV2> clones = getLines();
-      List<FreeDrawModelV2> relativeClones =
-          clones.map((e) {
-            e.points =
-                e.points
-                    .map(
-                      (p) => SizeHelper.getBoardRelativeVector(
-                        gameScreenSize: game.gameField.size,
-                        actualPosition: p,
-                      ),
-                    )
-                    .toList();
-            return e;
-          }).toList();
+      List<FreeDrawModelV2> relativeClones = clones.map((e) {
+        e.points = e.points
+            .map(
+              (p) => SizeHelper.getBoardRelativeVector(
+                gameScreenSize: game.gameField.size,
+                actualPosition: p,
+              ),
+            )
+            .toList();
+        return e;
+      }).toList();
       ref.read(boardProvider.notifier).updateFreeDraws(lines: relativeClones);
+
+      // Trigger immediate save after drawing changes
+      if (FeatureFlags.enableEventDrivenSave) {
+        try {
+          // Access the game instance - it's a TacticBoard which has triggerImmediateSave
+          final tacticBoard = game as dynamic;
+          if (tacticBoard.triggerImmediateSave != null) {
+            tacticBoard.triggerImmediateSave(reason: "Drawing: $operation");
+          }
+        } catch (e) {
+          // Fallback if method not available
+          print("Could not trigger immediate save for drawing: $e");
+        }
+      }
+
       print(
         "Drawing Changed: [$operation]. Total lines: ${_drawnLines.length}",
       );
@@ -126,10 +139,9 @@ class DrawingBoardComponent extends PositionComponent
         }
       });
       final initialState = ref.read(lineProvider);
-      currentTool =
-          initialState.isFreeDrawingActive
-              ? DrawingTool.draw
-              : initialState.isEraserActivated
+      currentTool = initialState.isFreeDrawingActive
+          ? DrawingTool.draw
+          : initialState.isEraserActivated
               ? DrawingTool.erase
               : null;
 
@@ -143,24 +155,21 @@ class DrawingBoardComponent extends PositionComponent
     );
     _componentBounds = Rect.fromLTWH(0, 0, size.x, size.y);
     zlog(data: "Component bound size ${_componentBounds}");
-    _drawingPaint =
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..isAntiAlias = true;
-    _selectedPaint =
-        Paint()
-          ..color = selectedColor
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..isAntiAlias = true;
-    _eraserPaint =
-        Paint()
-          ..color = eraserColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = eraserStrokeWidth
-          ..strokeCap = StrokeCap.round
-          ..isAntiAlias = true;
+    _drawingPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
+    _selectedPaint = Paint()
+      ..color = selectedColor
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
+    _eraserPaint = Paint()
+      ..color = eraserColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = eraserStrokeWidth
+      ..strokeCap = StrokeCap.round
+      ..isAntiAlias = true;
     final List<FreeDrawModelV2>? initialLinesToLoad =
         initialLines?.map((m) => m.clone()).toList();
     if (initialLinesToLoad != null && initialLinesToLoad.isNotEmpty) {
@@ -273,9 +282,7 @@ class DrawingBoardComponent extends PositionComponent
   void _selectLine(int index) {
     if (index >= 0 && index < _drawnLines.length) {
       _selectedLineIndex = index;
-      ref
-          .read(boardProvider.notifier)
-          .toggleSelectItemEvent(
+      ref.read(boardProvider.notifier).toggleSelectItemEvent(
             fieldItemModel: _drawnLines[_selectedLineIndex!],
             camefrom: "Drawing board select",
           );
@@ -289,9 +296,7 @@ class DrawingBoardComponent extends PositionComponent
     _originalMovingLinePoints = null;
     if (_selectedLineIndex != null) {
       print("Deselected line index: $_selectedLineIndex");
-      ref
-          .read(boardProvider.notifier)
-          .toggleSelectItemEvent(
+      ref.read(boardProvider.notifier).toggleSelectItemEvent(
             fieldItemModel: _drawnLines[_selectedLineIndex!],
             camefrom: "Drawing board deselect",
           );
@@ -300,29 +305,49 @@ class DrawingBoardComponent extends PositionComponent
   }
 
   // --- ADD Public Handlers for Drag Events ---
+  // bool handleDragStart(DragStartEvent event) {
+  //   final startPosOffset = event.localPosition.toOffset();
+  //   bool consumed = false;
+  //
+  //   // Logic moved from old onDragStart
+  //   if (currentTool == null && _selectedLineIndex != null) {
+  //     final selectedModel = _drawnLines[_selectedLineIndex!];
+  //     if (_isTapOnLine(
+  //       startPosOffset,
+  //       selectedModel.points,
+  //       selectedModel.thickness,
+  //     )) {
+  //       _isMovingLine = true;
+  //       _lineMoveStartPos = startPosOffset;
+  //       _originalMovingLinePoints = List<Vector2>.from(selectedModel.points);
+  //       print("Component started moving line: $_selectedLineIndex");
+  //       consumed = true;
+  //     } else {
+  //       _deselectLine();
+  //       // Don't consume yet, maybe game wants the drag
+  //     }
+  //   } else if (currentTool != null) {
+  //     _deselectLine();
+  //     if (_componentBounds.contains(startPosOffset)) {
+  //       _currentLine = [startPosOffset];
+  //       print("Component started drawing/erasing");
+  //       consumed = true;
+  //     } else {
+  //       _currentLine = null;
+  //     }
+  //   } else {
+  //     _isMovingLine = false;
+  //   }
+  //   return consumed;
+  // }
+
   bool handleDragStart(DragStartEvent event) {
     final startPosOffset = event.localPosition.toOffset();
     bool consumed = false;
 
-    // Logic moved from old onDragStart
-    if (currentTool == null && _selectedLineIndex != null) {
-      final selectedModel = _drawnLines[_selectedLineIndex!];
-      if (_isTapOnLine(
-        startPosOffset,
-        selectedModel.points,
-        selectedModel.thickness,
-      )) {
-        _isMovingLine = true;
-        _lineMoveStartPos = startPosOffset;
-        _originalMovingLinePoints = List<Vector2>.from(selectedModel.points);
-        print("Component started moving line: $_selectedLineIndex");
-        consumed = true;
-      } else {
-        _deselectLine();
-        // Don't consume yet, maybe game wants the drag
-      }
-    } else if (currentTool != null) {
-      _deselectLine();
+    // Case 1: A drawing or erasing tool is active.
+    if (currentTool != null) {
+      _deselectLine(); // A new drawing action should always deselect any line.
       if (_componentBounds.contains(startPosOffset)) {
         _currentLine = [startPosOffset];
         print("Component started drawing/erasing");
@@ -330,9 +355,50 @@ class DrawingBoardComponent extends PositionComponent
       } else {
         _currentLine = null;
       }
-    } else {
-      _isMovingLine = false;
+      return consumed;
     }
+
+    // Case 2: No tool is active (currentTool == null). We might be moving a line.
+    // We need to find if the drag started on ANY line.
+    int? lineIndexUnderDrag;
+    for (int i = _drawnLines.length - 1; i >= 0; i--) {
+      if (_isTapOnLine(
+        startPosOffset,
+        _drawnLines[i].points,
+        _drawnLines[i].thickness,
+      )) {
+        lineIndexUnderDrag = i;
+        break;
+      }
+    }
+
+    // Subcase 2.1: A line was found under the drag-start point.
+    if (lineIndexUnderDrag != null) {
+      // If this line isn't already the selected one, select it now.
+      if (_selectedLineIndex != lineIndexUnderDrag) {
+        _deselectLine(); // Clear any previous selection.
+        _selectLine(lineIndexUnderDrag);
+      }
+
+      // Now that the line is definitely selected, initiate the move.
+      _isMovingLine = true;
+      _lineMoveStartPos = startPosOffset;
+      _originalMovingLinePoints =
+          List<Vector2>.from(_drawnLines[lineIndexUnderDrag].points);
+      print("Component started moving line: $lineIndexUnderDrag");
+      consumed = true;
+    }
+    // Subcase 2.2: The drag started on an empty area of the board.
+    else {
+      // If a line was previously selected, this drag on an empty area deselects it.
+      if (_selectedLineIndex != null) {
+        _deselectLine();
+        // We consume the event to prevent other game components from reacting
+        // to a drag that was meant to deselect something on this component.
+        consumed = true;
+      }
+    }
+
     return consumed;
   }
 
@@ -345,10 +411,9 @@ class DrawingBoardComponent extends PositionComponent
       final currentPosOffset = event.localStartPosition.toOffset();
       final dragDeltaOffset = currentPosOffset - _lineMoveStartPos!;
       final dragDeltaVector = dragDeltaOffset.toVector2();
-      final List<Vector2> newPoints =
-          _originalMovingLinePoints!
-              .map((originalPoint) => originalPoint + dragDeltaVector)
-              .toList();
+      final List<Vector2> newPoints = _originalMovingLinePoints!
+          .map((originalPoint) => originalPoint + dragDeltaVector)
+          .toList();
       _drawnLines[_selectedLineIndex!].points = newPoints;
       consumed = true;
     } else if (currentTool != null && _currentLine != null) {

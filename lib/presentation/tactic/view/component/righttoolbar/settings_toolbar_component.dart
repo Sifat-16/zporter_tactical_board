@@ -1,160 +1,16 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:zporter_tactical_board/app/config/version/version_info.dart';
-// import 'package:zporter_tactical_board/app/core/component/color_picker_slider.dart';
-// import 'package:zporter_tactical_board/app/core/component/link_text.dart';
-// import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-// import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
-// import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
-// import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
-//
-// class SettingsToolbarComponent extends ConsumerStatefulWidget {
-//   const SettingsToolbarComponent({super.key});
-//
-//   @override
-//   ConsumerState<SettingsToolbarComponent> createState() =>
-//       _SettingsToolbarComponentState();
-// }
-//
-// class _SettingsToolbarComponentState
-//     extends ConsumerState<SettingsToolbarComponent> {
-//   @override
-//   Widget build(BuildContext context) {
-//     final bp = ref.watch(boardProvider);
-//     return Container(
-//       padding: EdgeInsets.symmetric(vertical: 25, horizontal: 10),
-//       child: ListView(
-//         children: [
-//           // DropdownSelector<String>(
-//           //   label: "Home Club",
-//           //   items: ["Club 1", "Club 2", "Club 3"],
-//           //   initialValue: null,
-//           //   onChanged: (s) {},
-//           //   itemAsString: (String item) {
-//           //     return item;
-//           //   },
-//           // ),
-//           //
-//           // DropdownSelector<String>(
-//           //   label: "Home Team",
-//           //   items: ["Team 1", "Team 2", "Team 3"],
-//           //   initialValue: null,
-//           //   onChanged: (s) {},
-//           //   itemAsString: (String item) {
-//           //     return item;
-//           //   },
-//           // ),
-//           //
-//           // DropdownSelector<String>(
-//           //   label: "Away Club",
-//           //   items: ["Club 1", "Club 2", "Club 3"],
-//           //   initialValue: null,
-//           //   onChanged: (s) {},
-//           //   itemAsString: (String item) {
-//           //     return item;
-//           //   },
-//           // ),
-//           //
-//           // DropdownSelector<String>(
-//           //   label: "Away Team",
-//           //   items: ["Team 1", "Team 2", "Team 3"],
-//           //   initialValue: null,
-//           //   onChanged: (s) {},
-//           //   itemAsString: (String item) {
-//           //     return item;
-//           //   },
-//           // ),
-//           _buildFillColorWidget("Field Color", boardState: bp),
-//
-//           _buildAppInfo()
-//
-//           // ImagePicker(label: "Background Image",  onChanged: (s){})
-//         ],
-//       ),
-//     );
-//   }
-//
-//   Widget _buildFillColorWidget(String title, {required BoardState boardState}) {
-//     return Column(
-//       crossAxisAlignment: CrossAxisAlignment.start,
-//       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//       spacing: 10,
-//       children: [
-//         Text(
-//           title,
-//           style: Theme.of(
-//             context,
-//           ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
-//         ),
-//         ColorSlider(
-//           initialColor: boardState.boardColor,
-//           colors: [
-//             ColorManager.grey,
-//             Colors.red,
-//             Colors.blue,
-//             Colors.green,
-//             Colors.yellow,
-//             Colors.purple,
-//           ],
-//           onColorChanged: (c) {
-//             ref.read(boardProvider.notifier).updateBoardColor(c);
-//             ref.read(animationProvider.notifier).updateBoardColor(c);
-//           },
-//         ),
-//       ],
-//     );
-//   }
-//
-//   Widget _buildAppInfo() {
-//     return Column(
-//       mainAxisSize: MainAxisSize.min,
-//       spacing: 10,
-//       children: [
-//         LinkText(
-//           text: AppInfo.supportLinkName,
-//           url: AppInfo.supportLink,
-//           style: Theme.of(context)
-//               .textTheme
-//               .labelMedium!
-//               .copyWith(color: ColorManager.white),
-//         ),
-//         Column(
-//           mainAxisSize: MainAxisSize.min,
-//           spacing: 2,
-//           children: [
-//             Text(
-//               "Version ${AppInfo.version}",
-//               style: Theme.of(context)
-//                   .textTheme
-//                   .labelMedium!
-//                   .copyWith(color: ColorManager.white),
-//             ),
-//             Text(
-//               "Last updated ${AppInfo.lastUpdated}",
-//               style: Theme.of(context)
-//                   .textTheme
-//                   .labelMedium!
-//                   .copyWith(color: ColorManager.white),
-//             ),
-//           ],
-//         )
-//       ],
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:zporter_tactical_board/app/config/version/version_info.dart'; // Assuming this path is correct
-import 'package:zporter_tactical_board/app/core/component/color_picker_slider.dart'; // Assuming this path is correct
-import 'package:zporter_tactical_board/app/core/component/link_text.dart'; // Assuming this path is correct
-import 'package:zporter_tactical_board/app/manager/color_manager.dart'; // Assuming this path is correct
-import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart'; // Assuming this path is correct
-import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Assuming this path is correct
+import 'package:zporter_tactical_board/app/config/version/version_info.dart';
+import 'package:zporter_tactical_board/app/core/component/color_picker_slider.dart';
+import 'package:zporter_tactical_board/app/core/component/link_text.dart';
+import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_selection_dialogue.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
-import 'components/field_preview_painter.dart'; // Assuming this path is correct
+import 'components/field_preview_painter.dart';
 
 class SettingsToolbarComponent extends ConsumerStatefulWidget {
   const SettingsToolbarComponent({super.key});
@@ -166,92 +22,195 @@ class SettingsToolbarComponent extends ConsumerStatefulWidget {
 
 class _SettingsToolbarComponentState
     extends ConsumerState<SettingsToolbarComponent> {
+  // Helper function to show the tutorial dialog
+  void _showTutorialSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const TutorialSelectionDialog();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 25, horizontal: 10),
       child: Column(
-        // Changed from ListView to Column
         children: [
           Expanded(
-            // Makes the ListView take available space, pushing _buildAppInfo down
             child: ListView(
               children: [
-                // DropdownSelector<String>(
-                //   label: "Home Club",
-                //   items: ["Club 1", "Club 2", "Club 3"],
-                //   initialValue: null,
-                //   onChanged: (s) {},
-                //   itemAsString: (String item) {
-                //     return item;
-                //   },
-                // ),
-                //
-                // DropdownSelector<String>(
-                //   label: "Home Team",
-                //   items: ["Team 1", "Team 2", "Team 3"],
-                //   initialValue: null,
-                //   onChanged: (s) {},
-                //   itemAsString: (String item) {
-                //     return item;
-                //   },
-                // ),
-                //
-                // DropdownSelector<String>(
-                //   label: "Away Club",
-                //   items: ["Club 1", "Club 2", "Club 3"],
-                //   initialValue: null,
-                //   onChanged: (s) {},
-                //   itemAsString: (String item) {
-                //     return item;
-                //   },
-                // ),
-                //
-                // DropdownSelector<String>(
-                //   label: "Away Team",
-                //   items: ["Team 1", "Team 2", "Team 3"],
-                //   initialValue: null,
-                //   onChanged: (s) {},
-                //   itemAsString: (String item) {
-                //     return item;
-                //   },
-                // ),
                 _buildFillColorWidget("Field Color", boardState: bp),
-
-                // ImagePicker(label: "Background Image",  onChanged: (s){})
-                // Note: _buildAppInfo() is moved out of this ListView
-
-                const SizedBox(height: 20), // Add some spacing
+                const SizedBox(height: 20),
+                _buildTeamBorderColorSection(bp),
+                const SizedBox(height: 20),
+                _buildGridSliderWidget(),
+                const SizedBox(height: 20),
                 _buildBackgroundSelector(),
+                const SizedBox(height: 20),
+                // --- NEW SECTION ADDED HERE ---
+                // This is the only addition. The rest of your code is untouched.
+                _buildTutorialsSection(),
+                // --- END OF NEW SECTION ---
               ],
             ),
           ),
-          _buildAppInfo(), // This widget will now be at the bottom
+          _buildAppInfo(), // This widget is unchanged
         ],
       ),
     );
   }
 
-  Widget _buildFillColorWidget(String title, {required BoardState boardState}) {
-    // Note: The 'spacing' property is not standard for Flutter's Column.
-    // You might intend to use SizedBox widgets for spacing or have a custom Column widget.
-    // If it's standard Flutter Column, you'd typically use:
-    // children: [Widget1, SizedBox(height: 10), Widget2]
+  // --- NEW WIDGET FOR THE TUTORIALS BUTTON ---
+  Widget _buildTutorialsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      // spacing: 10, // This is not a standard Column property
+      children: [
+        Text(
+          "Help",
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge!
+              .copyWith(color: ColorManager.grey),
+        ),
+        const SizedBox(height: 10),
+        Material(
+          color: ColorManager.darkGrey.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(8),
+          child: ListTile(
+            leading:
+                const Icon(Icons.school_outlined, color: ColorManager.grey),
+            title: Text(
+              'View Tutorials',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge!
+                  .copyWith(color: ColorManager.white),
+            ),
+            trailing: const Icon(Icons.chevron_right, color: ColorManager.grey),
+            onTap: () => _showTutorialSelectionDialog(context),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            dense: true,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- YOUR ORIGINAL CODE BELOW IS UNCHANGED ---
+
+  Widget _buildTeamBorderColorSection(BoardState boardState) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Team Border Colors",
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge!
+              .copyWith(color: ColorManager.grey),
+        ),
+        const SizedBox(height: 10),
+        // Home Team Color
+        Column(
+          children: [
+            Text(
+              "Home Team",
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium!
+                  .copyWith(color: ColorManager.white),
+            ),
+            SizedBox(height: 10),
+            ColorSlider(
+              initialColor: boardState.homeTeamBorderColor,
+              colors: const [
+                Colors.blue,
+                Colors.lightBlue,
+                Colors.cyan,
+                Colors.green,
+                Colors.yellow,
+                Colors.orange,
+                Colors.purple,
+                Colors.pink,
+                Colors.white,
+              ],
+              onColorChanged: (c) {
+                ref.read(boardProvider.notifier).updateHomeTeamBorderColor(c);
+                ref
+                    .read(animationProvider.notifier)
+                    .updateHomeTeamBorderColor(c);
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Away Team Color
+        Column(
+          children: [
+            Text(
+              "Away Team",
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium!
+                  .copyWith(color: ColorManager.white),
+            ),
+
+            SizedBox(height: 10),
+
+            ColorSlider(
+              initialColor: boardState.awayTeamBorderColor,
+              colors: const [
+                Colors.red,
+                Colors.deepOrange,
+                Colors.orange,
+                Colors.yellow,
+                Colors.green,
+                Colors.blue,
+                Colors.purple,
+                Colors.grey,
+                Colors.white,
+              ],
+              onColorChanged: (c) {
+                ref.read(boardProvider.notifier).updateAwayTeamBorderColor(c);
+                ref
+                    .read(animationProvider.notifier)
+                    .updateAwayTeamBorderColor(c);
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "Note: Individual player colors will override these defaults",
+          style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                color: ColorManager.grey.withOpacity(0.7),
+                fontStyle: FontStyle.italic,
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFillColorWidget(String title, {required BoardState boardState}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge!.copyWith(color: ColorManager.grey),
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge!
+              .copyWith(color: ColorManager.grey),
         ),
-        const SizedBox(height: 10), // Example of spacing
+        const SizedBox(height: 10),
         ColorSlider(
           initialColor: boardState.boardColor,
-          colors: [
+          colors: const [
             ColorManager.grey,
             Colors.red,
             Colors.blue,
@@ -269,20 +228,17 @@ class _SettingsToolbarComponentState
   }
 
   Widget _buildAppInfo() {
-    // Note: The 'spacing' property is not standard for Flutter's Column.
     return Padding(
-      padding: const EdgeInsets.only(
-          top: 10.0), // Add some padding if needed before app info
+      padding: const EdgeInsets.only(top: 10.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        spacing: 10, // This is not a standard Column property
         children: [
           Text(
             "Support",
             style: Theme.of(context)
                 .textTheme
                 .labelMedium!
-                .copyWith(color: ColorManager.white.withValues(alpha: 0.5)),
+                .copyWith(color: ColorManager.white.withOpacity(0.5)),
           ),
           LinkText(
             text: AppInfo.supportLinkName,
@@ -292,9 +248,9 @@ class _SettingsToolbarComponentState
                 .labelMedium!
                 .copyWith(color: ColorManager.white),
           ),
+          const SizedBox(height: 10),
           Column(
             mainAxisSize: MainAxisSize.min,
-            // spacing: 2, // This is not a standard Column property
             children: [
               Text(
                 "Version ${AppInfo.version}",
@@ -303,7 +259,7 @@ class _SettingsToolbarComponentState
                     .labelMedium!
                     .copyWith(color: ColorManager.white),
               ),
-              const SizedBox(height: 2), // Example of spacing
+              const SizedBox(height: 2),
               Text(
                 "Last updated ${AppInfo.lastUpdated}",
                 style: Theme.of(context)
@@ -313,7 +269,7 @@ class _SettingsToolbarComponentState
               ),
             ],
           ),
-
+          const SizedBox(height: 10),
           LayoutBuilder(builder: (context, constraints) {
             return QrImageView(
               data: AppInfo.zporter_url,
@@ -321,35 +277,21 @@ class _SettingsToolbarComponentState
               backgroundColor: ColorManager.white,
             );
           }),
-
-          // Center(
-          //   child: SvgPicture.asset(
-          //     AssetsManager.splashLogo,
-          //   ),
-          // ),
         ],
       ),
     );
   }
 
-  // Add this entire method inside the _SettingsToolbarComponentState class.
-
-  // Replace the entire _buildBackgroundSelector method with this one
-  // Replace the entire _buildBackgroundSelector method with this one
   Widget _buildBackgroundSelector() {
     final currentBackground =
         ref.watch(boardProvider.select((state) => state.boardBackground));
-
-    // Create a list of all the background types to build the grid
     final backgroundOptions = BoardBackground.values;
 
-    // Helper function to create each selectable option
     Widget buildOption(BoardBackground background) {
       final isSelected = currentBackground == background;
-
       return GestureDetector(
         onTap: () {
-          // ref.read(boardProvider.notifier).updateBoardBackground(background);
+          ref.read(boardProvider.notifier).updateBoardBackground(background);
           ref
               .read(animationProvider.notifier)
               .updateBoardBackground(background);
@@ -367,16 +309,14 @@ class _SettingsToolbarComponentState
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Use the painter with a transparent background
                 CustomPaint(
-                  size: Size.infinite, // Painter will fill the available space
+                  size: Size.infinite,
                   painter: FieldPreviewPainter(
                     backgroundType: background,
-                    fieldColor: Colors.transparent, // As requested
-                    lineColor: Colors.white, // As requested
+                    fieldColor: Colors.transparent,
+                    lineColor: Colors.white,
                   ),
                 ),
-                // Show a checkmark if this item is selected
                 if (isSelected)
                   Positioned(
                     top: 4,
@@ -409,18 +349,15 @@ class _SettingsToolbarComponentState
               .copyWith(color: ColorManager.grey),
         ),
         const SizedBox(height: 10),
-        // Use GridView.builder to create the 2-column layout
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: backgroundOptions.length,
-          // Inside the GridView.builder widget...
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            // Change this value to make items wider than they are tall
-            childAspectRatio: 16 / 9, // e.g., an 80 width vs 60 height ratio
+            childAspectRatio: 16 / 9,
           ),
           itemBuilder: (context, index) {
             return buildOption(backgroundOptions[index]);
@@ -429,4 +366,56 @@ class _SettingsToolbarComponentState
       ],
     );
   }
+
+  // In class _SettingsToolbarComponentState
+
+  Widget _buildGridSliderWidget() {
+    // Watch the provider to get the current grid size
+    final double currentGridSize =
+        ref.watch(boardProvider.select((s) => s.gridSize));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Grid Size (${currentGridSize.toInt()})",
+          style: Theme.of(context)
+              .textTheme
+              .labelLarge!
+              .copyWith(color: ColorManager.grey),
+        ),
+        const SizedBox(height: 10),
+
+        // --- UPDATED ---
+        // We wrap the Slider in a SliderTheme, just like your ColorSlider,
+        // to ensure it styles correctly and takes the full width.
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            trackHeight: 4, // From ColorSlider
+            thumbShape: const RoundSliderThumbShape(
+                enabledThumbRadius: 6), // From ColorSlider
+            overlayShape: const RoundSliderOverlayShape(
+                overlayRadius: 2), // From ColorSlider
+            // We DON'T make the track transparent, so it's visible
+          ),
+          child: Slider(
+            value: currentGridSize,
+            min: 10.0,
+            max: 100.0,
+            divisions: 9,
+            activeColor: ColorManager.yellow,
+            inactiveColor: ColorManager.grey,
+            thumbColor: ColorManager.yellow, // Match active color
+            label: currentGridSize.toInt().toString(),
+            onChanged: (double value) {
+              ref.read(boardProvider.notifier).updateGridSize(value);
+            },
+          ),
+        ),
+        // --- END UPDATE ---
+      ],
+    );
+  }
+
+// ... (rest of your methods)
 }

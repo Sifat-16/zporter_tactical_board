@@ -6,12 +6,14 @@ import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/component/zporter_logo_launcher.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
+import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
+import 'package:zporter_tactical_board/presentation/admin/view/tutorials/tutorial_selection_dialogue.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
@@ -22,8 +24,15 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/board/boar
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_state.dart';
 
 class TacticboardScreenTablet extends ConsumerStatefulWidget {
-  const TacticboardScreenTablet({super.key, required this.userId});
+  const TacticboardScreenTablet({
+    super.key,
+    required this.userId,
+    this.collectionId,
+    this.animationId,
+  });
   final String userId;
+  final String? collectionId;
+  final String? animationId;
 
   @override
   ConsumerState<TacticboardScreenTablet> createState() =>
@@ -94,13 +103,56 @@ class _TacticboardScreenTabletState
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      try {
-        await ref.read(animationProvider.notifier).getAllCollections();
-        await ref.read(animationProvider.notifier).configureDefaultAnimations();
-      } catch (e, s) {
-        zlog(data: "Error during initial data load or tutorial setup: $e \n$s");
-      }
+      // try {
+      //   await ref.read(animationProvider.notifier).getAllCollections();
+      //   await ref.read(animationProvider.notifier).configureDefaultAnimations();
+      // } catch (e, s) {
+      //   zlog(data: "Error during initial data load or tutorial setup: $e \n$s");
+      // }
+      _initialLoadAndSelect();
     });
+  }
+
+  Future<void> _initialLoadAndSelect() async {
+    try {
+      // 1. Fetch all collections and animations for the user first.
+      await ref.read(animationProvider.notifier).getAllCollections();
+
+      // After fetching, the state is now populated. Get the list of collections.
+      final collections = ref.read(animationProvider).animationCollections;
+
+      // 2. Check if a specific collectionId was passed from the URL.
+      if (widget.collectionId != null && collections.isNotEmpty) {
+        // Find the collection that matches the provided ID.
+        final targetCollection = collections.firstWhere(
+          (c) => c.id == widget.collectionId,
+          orElse: () => collections.first, // Fallback to the first collection
+        );
+
+        AnimationModel? targetAnimation;
+        // 3. If a collection was found, check for a specific animationId.
+        if (widget.animationId != null &&
+            targetCollection.animations.isNotEmpty) {
+          targetAnimation = targetCollection.animations
+              .firstWhereOrNull((a) => a.id == widget.animationId);
+        }
+
+        // 4. Select the found collection and/or animation.
+        // Your existing method already handles selecting both at once.
+        ref.read(animationProvider.notifier).selectAnimationCollection(
+              targetCollection,
+              animationSelect: targetAnimation,
+            );
+        return; // Exit after successful selection.
+      }
+
+      // 5. If no specific IDs were passed or found, run the default startup.
+      await ref.read(animationProvider.notifier).configureDefaultAnimations();
+    } catch (e, s) {
+      zlog(data: "Error during initial load and select: $e \n$s");
+      // Fallback to default animations in case of any error.
+      await ref.read(animationProvider.notifier).configureDefaultAnimations();
+    }
   }
 
   @override
@@ -133,6 +185,12 @@ class _TacticboardScreenTabletState
           // child: CircularProgressIndicator(color: ColorManager.white),
         ),
       );
+    }
+
+    if (selectedScene == null) {
+      return Center(
+          child:
+              Text("No scene selected", style: TextStyle(color: Colors.white)));
     }
 
     Widget screenContent;
@@ -276,7 +334,7 @@ class _TacticboardScreenTabletState
             child: SizedBox(
               height: context.screenHeight * .92,
               width: context.widthPercent(100),
-              child: _buildCentralContent(context, ref, ap, selectedScene),
+              child: _buildCentralContent(context, ref, ap, selectedScene, bp),
             ),
           ),
 
@@ -397,12 +455,18 @@ class _TacticboardScreenTabletState
     return screenContent;
   }
 
-  Widget _buildCentralContent(
-    BuildContext context,
-    WidgetRef ref,
-    AnimationState asp,
-    AnimationItemModel? selectedScene,
-  ) {
+  void _showTutorialSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // We return a dedicated widget for the dialog's content.
+        return const TutorialSelectionDialog();
+      },
+    );
+  }
+
+  Widget _buildCentralContent(BuildContext context, WidgetRef ref,
+      AnimationState asp, AnimationItemModel? selectedScene, BoardState bp) {
     AnimationModel? animationModel = asp.selectedAnimationModel;
     return Padding(
       padding: EdgeInsets.only(top: 50.0, left: 10, right: 10, bottom: 10),
@@ -410,16 +474,45 @@ class _TacticboardScreenTabletState
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           if (animationModel != null)
-            Padding(
-              padding: const EdgeInsets.all(5.0),
-              child: Text(
-                animationModel.name ?? "",
-                style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                    color: ColorManager.white.withValues(alpha: 0.8),
-                    fontSize: 14),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                    flex: 1,
+                    child: Opacity(
+                      opacity: 0,
+                      child: IconButton(
+                          onPressed: () {}, icon: Icon(Icons.cancel_outlined)),
+                    )),
+                Flexible(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Text(
+                      animationModel.name ?? "",
+                      style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                          color: ColorManager.white.withValues(alpha: 0.8),
+                          fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                Flexible(
+                    flex: 1,
+                    child: (bp.animatingObj?.isAnimating ?? false) == true
+                        ? SizedBox()
+                        : IconButton(
+                            onPressed: () {
+                              ref
+                                  .read(animationProvider.notifier)
+                                  .clearAnimation();
+                            },
+                            icon: Icon(
+                              Icons.cancel_outlined,
+                              color: ColorManager.white,
+                            )))
+              ],
             ),
           Expanded(child: GameScreen(scene: selectedScene)),
           if (animationModel == null)
@@ -444,6 +537,18 @@ class _TacticboardScreenTabletState
                     children: [
                       Container(
                         width: context.widthPercent(22),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: () {
+                              _showTutorialSelectionDialog(context);
+                            },
+                            child: Icon(
+                              Icons.school_outlined,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                         // color: Colors.yellow,
                       ),
                       if (asp.defaultAnimationItems.isNotEmpty)

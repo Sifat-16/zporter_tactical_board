@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/shape_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/text_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 
 const Object _sentinel = Object();
@@ -53,6 +54,24 @@ class BoardState {
   final AnimatingObj? animatingObj;
   final BoardBackground boardBackground;
 
+  final bool isTogglingFullscreen;
+
+  final bool isDraggingItem;
+
+  final List<GuideLine> activeGuides;
+
+  final double gridSize;
+
+  // Global team border colors (default colors for all players)
+  final Color homeTeamBorderColor;
+  final Color awayTeamBorderColor;
+
+  // Toggle to apply design changes to all similar items (same team for players, same type for equipment)
+  final bool applyDesignToAll;
+
+  // Toggle to enable trajectory editing mode in animations
+  final bool trajectoryEditingEnabled;
+
   const BoardState(
       {this.players = const [],
       this.equipments = const [],
@@ -78,6 +97,14 @@ class BoardState {
       this.showFullScreen = false,
       this.isDraggingElementToBoard = false,
       this.boardBackground = BoardBackground.full,
+      this.isTogglingFullscreen = false,
+      this.isDraggingItem = false,
+      this.activeGuides = const [],
+      this.gridSize = 50.0,
+      this.homeTeamBorderColor = Colors.blue,
+      this.awayTeamBorderColor = Colors.red,
+      this.applyDesignToAll = false,
+      this.trajectoryEditingEnabled = false,
       this.animatingObj});
 
   BoardState copyWith({
@@ -108,6 +135,14 @@ class BoardState {
     bool? isAnimating,
     Object? animatingObj = _sentinel,
     BoardBackground? boardBackground,
+    bool? isTogglingFullscreen,
+    bool? isDraggingItem,
+    List<GuideLine>? activeGuides,
+    double? gridSize,
+    Color? homeTeamBorderColor,
+    Color? awayTeamBorderColor,
+    bool? applyDesignToAll,
+    bool? trajectoryEditingEnabled,
   }) {
     return BoardState(
         players: players ?? this.players,
@@ -140,6 +175,15 @@ class BoardState {
             isDraggingElementToBoard ?? this.isDraggingElementToBoard,
         refreshBoard: refreshBoard ?? this.refreshBoard,
         boardBackground: boardBackground ?? this.boardBackground,
+        isTogglingFullscreen: isTogglingFullscreen ?? this.isTogglingFullscreen,
+        isDraggingItem: isDraggingItem ?? this.isDraggingItem,
+        activeGuides: activeGuides ?? this.activeGuides,
+        gridSize: gridSize ?? this.gridSize,
+        homeTeamBorderColor: homeTeamBorderColor ?? this.homeTeamBorderColor,
+        awayTeamBorderColor: awayTeamBorderColor ?? this.awayTeamBorderColor,
+        applyDesignToAll: applyDesignToAll ?? this.applyDesignToAll,
+        trajectoryEditingEnabled:
+            trajectoryEditingEnabled ?? this.trajectoryEditingEnabled,
         animatingObj: animatingObj == _sentinel
             ? this.animatingObj
             : animatingObj as AnimatingObj?);

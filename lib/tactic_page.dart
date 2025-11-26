@@ -8,11 +8,14 @@ import 'package:zporter_tactical_board/app/services/navigation_service.dart';
 import 'package:zporter_tactical_board/presentation/admin/view/admin_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/tacticboard_screen.dart';
 
+import 'app/listener/connectivity_listener.dart';
+
 class TacticApp extends StatelessWidget {
   const TacticApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final botToastBuilder = BotToastInit();
     return ScreenUtilInit(
       minTextAdapt: true,
       splitScreenMode: true,
@@ -21,7 +24,12 @@ class TacticApp extends StatelessWidget {
           navigatorKey: NavigationService.navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'Zporter Board',
-          builder: BotToastInit(),
+          builder: (context, child) {
+            // Wrap the child from BotToast with our new ConnectivityListener
+            child = ConnectivityListener(child: child!);
+            // Then, call the original builder from BotToast
+            return botToastBuilder(context, child);
+          },
           localizationsDelegates: const [
             // GlobalMaterialLocalizations.delegate,
             // GlobalCupertinoLocalizations.delegate,
@@ -34,6 +42,8 @@ class TacticApp extends StatelessWidget {
           home: Scaffold(
             backgroundColor: ColorManager.black,
             body: TacticPage(userId: "DUMMY_USER_ID"),
+
+            // body: TacticPage(userId: "9d995fa9-9931-4185-b1a5-b35d3d50ff41"),
           ),
           // home: GameScreen(),
         );
@@ -52,7 +62,7 @@ class TacticPage extends StatefulWidget {
 }
 
 class _TacticPageState extends State<TacticPage> {
-  bool isAdmin = true;
+  bool isAdmin = false;
   @override
   Widget build(BuildContext context) {
     return ProviderScope(

@@ -9,7 +9,12 @@ const Object _sentinel = Object();
 
 class PlayerModel extends FieldItemModel {
   String role;
+  // --- NO CHANGE: This is now the permanent "role" number for lineups ---
   int jerseyNumber;
+
+  // --- CHANGE 1: ADD the new editable display number ---
+  int? displayNumber;
+
   PlayerType playerType;
   String? name;
   bool showImage;
@@ -17,9 +22,10 @@ class PlayerModel extends FieldItemModel {
   bool showName;
   bool showRole;
 
-  // --- MODIFIED: Keep imagePath for compatibility, add imageBase64 for persistence ---
   String? imagePath;
   String? imageBase64;
+  String? imageUrl; // Firebase Storage URL (Phase 2 Week 2)
+  Color? borderColor; // Custom border color for team identification
 
   PlayerModel({
     required super.id,
@@ -35,15 +41,18 @@ class PlayerModel extends FieldItemModel {
     super.opacity,
     required this.role,
     required this.jerseyNumber,
+    // --- CHANGE 2: Add to constructor ---
+    this.displayNumber,
     required this.playerType,
     this.name,
     this.showImage = true,
     this.showName = true,
     this.showNr = true,
     this.showRole = true,
-    // --- MODIFIED ---
     this.imagePath,
     this.imageBase64,
+    this.imageUrl,
+    this.borderColor,
   });
 
   @override
@@ -52,15 +61,18 @@ class PlayerModel extends FieldItemModel {
       ...super.toJson(),
       'role': role,
       'jerseyNumber': jerseyNumber,
+      // --- CHANGE 3: Add to JSON ---
+      'displayNumber': displayNumber,
       'playerType': playerType.name,
       'name': name,
       'showName': showName,
       'showNr': showNr,
       'showRole': showRole,
       'showImage': showImage,
-      // --- MODIFIED: Add imageBase64 to the JSON output ---
-      'imagePath': imagePath, // Still here for temporary use if needed
+      'imagePath': imagePath,
       'imageBase64': imageBase64,
+      'imageUrl': imageUrl,
+      'borderColor': borderColor?.value,
     };
   }
 
@@ -80,23 +92,26 @@ class PlayerModel extends FieldItemModel {
     final opacity = json['opacity'] == null
         ? null
         : double.parse(json['opacity'].toString());
-
     final playerTypeString = json['playerType'] as String?;
     final playerType = PlayerType.values.firstWhere(
       (e) => describeEnum(e) == playerTypeString,
       orElse: () => PlayerType.UNKNOWN,
     );
     final role = json['role'] as String? ?? 'Unknown';
-    final jerseyNumber = json['jerseyNumber'] as int? ?? -1;
     final name = json['name'] as String?;
     final showImage = (json['showImage'] as bool?) ?? true;
     final showNr = (json['showNr'] as bool?) ?? true;
     final showName = (json['showName'] as bool?) ?? true;
     final showRole = (json['showRole'] as bool?) ?? true;
-
-    // --- MODIFIED: Deserialize imageBase64 ---
     final imagePath = json['imagePath'] as String?;
     final imageBase64 = json['imageBase64'] as String?;
+    final imageUrl = json['imageUrl'] as String?;
+    final borderColor =
+        json['borderColor'] != null ? Color(json['borderColor'] as int) : null;
+
+    // --- CHANGE 4: Update fromJson for new field and data migration ---
+    final jerseyNum = json['jerseyNumber'] as int? ?? -1;
+    final displayNum = json['displayNumber'] as int?;
 
     return PlayerModel(
       id: id,
@@ -115,11 +130,14 @@ class PlayerModel extends FieldItemModel {
       showNr: showNr,
       showRole: showRole,
       role: role,
-      jerseyNumber: jerseyNumber,
+      jerseyNumber: jerseyNum,
+      // If displayNumber is null (for old players), initialize it with the jerseyNumber
+      displayNumber: displayNum ?? jerseyNum,
       playerType: playerType,
-      // --- MODIFIED ---
       imagePath: imagePath,
       imageBase64: imageBase64,
+      imageUrl: imageUrl,
+      borderColor: borderColor,
     );
   }
 
@@ -138,15 +156,18 @@ class PlayerModel extends FieldItemModel {
     double? opacity,
     String? role,
     int? jerseyNumber,
+    // --- CHANGE 5: Add to copyWith ---
+    int? displayNumber,
     PlayerType? playerType,
     String? name,
     bool? showImage,
     bool? showNr,
     bool? showName,
     bool? showRole,
-    // --- MODIFIED: Add imageBase64 and allow clearing imagePath ---
     Object? imagePath = _sentinel,
     Object? imageBase64 = _sentinel,
+    Object? imageUrl = _sentinel,
+    Object? borderColor = _sentinel,
   }) {
     return PlayerModel(
       id: id ?? this.id,
@@ -162,20 +183,28 @@ class PlayerModel extends FieldItemModel {
       opacity: opacity ?? this.opacity,
       role: role ?? this.role,
       jerseyNumber: jerseyNumber ?? this.jerseyNumber,
+      // --- CHANGE 6: Update copyWith logic ---
+      displayNumber: displayNumber ?? this.displayNumber,
       playerType: playerType ?? this.playerType,
       name: name ?? this.name,
       showImage: showImage ?? this.showImage,
       showName: showName ?? this.showName,
       showNr: showNr ?? this.showNr,
       showRole: showRole ?? this.showRole,
-      // --- MODIFIED ---
-      // Important: Allow explicit null/empty to "remove" the image.
       imagePath: imagePath == _sentinel ? this.imagePath : imagePath as String?,
       imageBase64:
           imageBase64 == _sentinel ? this.imageBase64 : imageBase64 as String?,
+      imageUrl: imageUrl == _sentinel ? this.imageUrl : imageUrl as String?,
+      borderColor:
+          borderColor == _sentinel ? this.borderColor : borderColor as Color?,
     );
   }
 
   @override
   PlayerModel clone() => copyWith();
+
+  // Phase 2 Week 2: Image optimization helpers
+  bool get hasBase64Image => imageBase64 != null && imageBase64!.isNotEmpty;
+  bool get hasImageUrl => imageUrl != null && imageUrl!.isNotEmpty;
+  bool get needsImageMigration => hasBase64Image && !hasImageUrl;
 }

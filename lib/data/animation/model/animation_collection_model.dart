@@ -9,6 +9,9 @@ class AnimationCollectionModel {
   DateTime updatedAt;
   int orderIndex;
 
+  bool isTemplate = false;
+  bool hasPendingUpdates = false;
+
   AnimationCollectionModel({
     required this.id,
     required this.name,

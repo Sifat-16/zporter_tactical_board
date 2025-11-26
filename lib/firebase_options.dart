@@ -64,8 +64,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '134085653898',
     projectId: 'zporter-board-dev',
     storageBucket: 'zporter-board-dev.firebasestorage.app',
-    androidClientId: '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
-    iosClientId: '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
+    androidClientId:
+        '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
+    iosClientId:
+        '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
     iosBundleId: 'com.example.zporterTacticalBoard',
   );
 
@@ -75,8 +77,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '134085653898',
     projectId: 'zporter-board-dev',
     storageBucket: 'zporter-board-dev.firebasestorage.app',
-    androidClientId: '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
-    iosClientId: '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
+    androidClientId:
+        '134085653898-a2787uqbdujnvkhgerb07sd2f5qcij3d.apps.googleusercontent.com',
+    iosClientId:
+        '134085653898-i4ok6frvearr4bmj635988of676isjt8.apps.googleusercontent.com',
     iosBundleId: 'com.example.zporterTacticalBoard',
   );
 
@@ -90,4 +94,40 @@ class DefaultFirebaseOptions {
     measurementId: 'G-HNYGXNYXDP',
   );
 
+  /// Your original options for zporter-dev, now correctly named for Web
+  static const FirebaseOptions secondaryProjectOptionsWeb = FirebaseOptions(
+      apiKey: "AIzaSyD7JfGqgH_Y4opp0B7zgXEJe9FFa26phtE",
+      authDomain: "zporter-dev.firebaseapp.com",
+      databaseURL:
+          "https://zporter-dev-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "zporter-dev",
+      storageBucket: "zporter-dev.appspot.com",
+      messagingSenderId: "357104839495",
+      appId: "1:357104839495:web:924336770c1ea9b606fa62",
+      measurementId: "G-D7NS1ZG611");
+
+  /// NEW secondary options for iOS (from your GoogleService-Info.plist)
+  static const FirebaseOptions secondaryProjectOptionsIOS = FirebaseOptions(
+    apiKey: 'AIzaSyBe5YGwFbOT7N-K_EitxrLdlc0vg-pkU2I',
+    appId: '1:357104839495:ios:ff98d75917052e2d06fa62',
+    messagingSenderId: '357104839495',
+    projectId: 'zporter-dev',
+    databaseURL:
+        'https://zporter-dev-default-rtdb.europe-west1.firebasedatabase.app',
+    storageBucket: 'zporter-dev.appspot.com',
+    iosClientId:
+        '357104839495-3t0hue6iukejljlk7jblir7da4isl8hl.apps.googleusercontent.com',
+    iosBundleId: 'com.example.zporterTacticalBoard',
+  );
+
+  /// NEW secondary options for Android (from your google-services.json)
+  static const FirebaseOptions secondaryProjectOptionsAndroid = FirebaseOptions(
+    apiKey: 'AIzaSyC87yVsprWoLQD73869EEGyqKVJvnzhzJs',
+    appId: '1:357104839495:android:8054c01b5af161e006fa62',
+    messagingSenderId: '357104839495',
+    projectId: 'zporter-dev',
+    databaseURL:
+        'https://zporter-dev-default-rtdb.europe-west1.firebasedatabase.app',
+    storageBucket: 'zporter-dev.appspot.com',
+  );
 }

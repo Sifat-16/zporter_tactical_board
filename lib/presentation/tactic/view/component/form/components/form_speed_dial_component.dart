@@ -110,6 +110,11 @@ class _FormSpeedDialComponentState
 
   final GetHistoryStreamUseCase _historyStream =
       sl.get<GetHistoryStreamUseCase>(); // Assuming sl is your service locator
+
+  // Add debouncing for undo button
+  DateTime? _lastUndoClickTime;
+  static const Duration _undoDebounceDelay = Duration(milliseconds: 500);
+
   @override
   void initState() {
     super.initState();
@@ -346,18 +351,54 @@ class _FormSpeedDialComponentState
                     },
                     child: Icon(Icons.arrow_back, color: ColorManager.white),
                   ),
+                // if (config.showFullScreenButton)
+                //   if (ap.showLoadingOnSave)
+                //     SizedBox(
+                //       height: 16,
+                //       width: 16,
+                //       child: CircularProgressIndicator(
+                //         color: ColorManager.white,
+                //       ),
+                //     )
+                //   else
+                //     GestureDetector(
+                //       onTap: () {
+                //         ref.read(boardProvider.notifier).toggleFullScreen();
+                //       },
+                //       child: Icon(
+                //         bp.showFullScreen == false
+                //             ? Icons.fullscreen
+                //             : Icons.fullscreen_exit,
+                //         color: ColorManager.white,
+                //       ),
+                //     ),
+
                 if (config.showFullScreenButton)
-                  GestureDetector(
-                    onTap: () {
-                      ref.read(boardProvider.notifier).toggleFullScreen();
-                    },
-                    child: Icon(
-                      bp.showFullScreen == false
-                          ? Icons.fullscreen
-                          : Icons.fullscreen_exit,
-                      color: ColorManager.white,
+                  // --- THIS IS THE FIX ---
+                  // We check both the general auto-save flag (ap.showLoadingOnSave)
+                  // AND the new toggle-specific flag (bp.isTogglingFullscreen).
+                  if (ap.showLoadingOnSave || bp.isTogglingFullscreen)
+                    SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        color: ColorManager.white,
+                      ),
+                    )
+                  else
+                    // If no saves are happening, show the normal button.
+                    GestureDetector(
+                      onTap: () {
+                        // This now correctly calls your new ASYNC method in the controller.
+                        ref.read(boardProvider.notifier).toggleFullScreen();
+                      },
+                      child: Icon(
+                        bp.showFullScreen == false
+                            ? Icons.fullscreen
+                            : Icons.fullscreen_exit,
+                        color: ColorManager.white,
+                      ),
                     ),
-                  ),
                 const SizedBox(width: 10),
                 if (config.showShareButton)
                   GestureDetector(
@@ -380,20 +421,20 @@ class _FormSpeedDialComponentState
                       color: ColorManager.white,
                     ), // Your original color
                   ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: () {
-                    ref.read(tutorialsProvider.notifier).fetchTutorials();
-                    _showTutorialSelectionDialog(context);
-                  },
-                  child: Center(
-                    child: Icon(
-                      CupertinoIcons.info,
-                      color: ColorManager.white,
-                      size: 24,
-                    ),
-                  ),
-                ),
+                // const SizedBox(width: 10),
+                // GestureDetector(
+                //   onTap: () {
+                //     ref.read(tutorialsProvider.notifier).fetchTutorials();
+                //     _showTutorialSelectionDialog(context);
+                //   },
+                //   child: Center(
+                //     child: Icon(
+                //       CupertinoIcons.info,
+                //       color: ColorManager.white,
+                //       size: 24,
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -471,16 +512,56 @@ class _FormSpeedDialComponentState
                   ),
                 const SizedBox(width: 15),
                 if (config.showUndoButton && selectedScene != null)
+                  // StreamBuilder(
+                  //   stream: _historyStream.call(selectedScene.id),
+                  //   builder: (context, snapshot) {
+                  //     HistoryModel? history = snapshot.data;
+                  //
+                  //     if (history == null) {
+                  //       return SizedBox.shrink();
+                  //     } else {
+                  //       return GestureDetector(
+                  //         onTap: () {
+                  //           ref
+                  //               .read(animationProvider.notifier)
+                  //               .performUndoOperation();
+                  //         },
+                  //         child: Icon(
+                  //           FontAwesomeIcons.arrowRotateLeft,
+                  //           color: ColorManager.white,
+                  //         ),
+                  //       );
+                  //     }
+                  //   },
+                  // ),
                   StreamBuilder(
                     stream: _historyStream.call(selectedScene.id),
                     builder: (context, snapshot) {
                       HistoryModel? history = snapshot.data;
 
-                      if (history == null) {
-                        return SizedBox.shrink();
-                      } else {
+                      // --- NEW, CORRECTED LOGIC ---
+                      // The button should only be visible if the history object exists
+                      // AND its list of states is NOT empty.
+                      final bool canUndo =
+                          history != null && history.history.isNotEmpty;
+
+                      if (canUndo) {
                         return GestureDetector(
                           onTap: () {
+                            // Debouncing logic to prevent rapid clicks
+                            final now = DateTime.now();
+                            if (_lastUndoClickTime != null &&
+                                now.difference(_lastUndoClickTime!) <
+                                    _undoDebounceDelay) {
+                              zlog(
+                                data:
+                                    "Undo button clicked too quickly, ignoring.",
+                              );
+                              return;
+                            }
+                            _lastUndoClickTime = now;
+
+                            // Perform the undo operation
                             ref
                                 .read(animationProvider.notifier)
                                 .performUndoOperation();
@@ -490,6 +571,9 @@ class _FormSpeedDialComponentState
                             color: ColorManager.white,
                           ),
                         );
+                      } else {
+                        // If there's no history or the history is empty, show nothing.
+                        return const SizedBox.shrink();
                       }
                     },
                   ),
@@ -517,12 +601,16 @@ class _FormSpeedDialComponentState
                 ),
                 const SizedBox(width: 10),
                 if (config.showAddNewSceneButton)
-                  _buildAddNewScene(
-                    selectedCollection: collectionModel,
-                    collectionList: collectionList,
-                    selectedAnimation: animationModel,
-                    selectedScene: selectedScene,
-                  ),
+                  if (ap.showLoadingOnSave)
+                    Icon(CupertinoIcons.add_circled,
+                        color: ColorManager.white.withValues(alpha: 0.6))
+                  else
+                    _buildAddNewScene(
+                      selectedCollection: collectionModel,
+                      collectionList: collectionList,
+                      selectedAnimation: animationModel,
+                      selectedScene: selectedScene,
+                    ),
                 const SizedBox(width: 10),
                 if (config.showTrashButton)
                   GestureDetector(
@@ -676,15 +764,15 @@ class _FormSpeedDialComponentState
     );
   }
 
-  void _showTutorialSelectionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // We return a dedicated widget for the dialog's content.
-        return const TutorialSelectionDialog();
-      },
-    );
-  }
+  // void _showTutorialSelectionDialog(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       // We return a dedicated widget for the dialog's content.
+  //       return const TutorialSelectionDialog();
+  //     },
+  //   );
+  // }
 
   _showToast() {
     Widget toast = Container(

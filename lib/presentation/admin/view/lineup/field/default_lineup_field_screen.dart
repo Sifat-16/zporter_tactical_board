@@ -48,6 +48,9 @@ class _DefaultLineupFieldScreenState
     _rightPanelWidth = 250.0;
     saveTemplate = widget.template;
 
+    // zlog(
+    //     data: "Saved template data ${saveTemplate.scene.toJson()}", show: true);
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         setState(() {
@@ -86,25 +89,25 @@ class _DefaultLineupFieldScreenState
             child: Text(
               "SAVE",
               style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                fontWeight: FontWeight.bold,
-                color: ColorManager.yellow,
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: ColorManager.yellow,
+                  ),
             ),
             onPressed: () {
               ref
                   .read(lineupProvider.notifier)
                   .editLineupTemplate(saveTemplate)
                   .then((s) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Save action for ${widget.template.name}',
-                        ),
-                        backgroundColor: ColorManager.green.withOpacity(0.9),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Save action for ${widget.template.name}',
+                    ),
+                    backgroundColor: ColorManager.green.withOpacity(0.9),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              });
 
               zlog(
                 data:
@@ -116,7 +119,6 @@ class _DefaultLineupFieldScreenState
         ],
       ),
       backgroundColor: ColorManager.black,
-
       body: SafeArea(
         child: Stack(
           children: [
@@ -155,8 +157,7 @@ class _DefaultLineupFieldScreenState
               duration: _panelAnimationDuration,
               curve: Curves.easeInOut,
               left: _isLeftPanelOpen ? _leftPanelWidth - 20 : 5,
-              top:
-                  (context.heightPercent(92) / 2) -
+              top: (context.heightPercent(92) / 2) -
                   25, // Consider if context here refers to the correct one
               // It should be the context of the build method where screenContent is defined
               child: Material(
