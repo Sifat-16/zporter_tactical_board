@@ -192,6 +192,11 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     super.onDragEnd(event);
     ref.read(boardProvider.notifier).toggleItemDrag(false); // <-- RESTORE THIS
     ref.read(boardProvider.notifier).clearGuides();
+
+    // Phase 1: Trigger immediate save after drag
+    if (game is TacticBoard) {
+      (game as TacticBoard).triggerImmediateSave(reason: 'Player drag end');
+    }
   }
 
   @override

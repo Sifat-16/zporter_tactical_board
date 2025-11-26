@@ -54,6 +54,12 @@ mixin ItemManagement on TacticBoardGame {
     // }
     if (save) {
       ref.read(boardProvider.notifier).addBoardComponent(fieldItemModel: item);
+
+      // Phase 1: Trigger immediate save after adding component
+      if (this is TacticBoard) {
+        (this as TacticBoard).triggerImmediateSave(
+            reason: 'Component added: ${item.runtimeType}');
+      }
     }
     // --- End of exact code ---
   }
@@ -140,6 +146,12 @@ mixin ItemManagement on TacticBoardGame {
     if (component != null) {
       remove(component); // remove() is available via FlameGame
       ref.read(boardProvider.notifier).removeElementComplete();
+
+      // Phase 1: Trigger immediate save after removing component
+      if (this is TacticBoard) {
+        (this as TacticBoard).triggerImmediateSave(
+            reason: 'Component removed: ${itemToDelete?.runtimeType}');
+      }
     }
     // --- End of exact code ---
   }

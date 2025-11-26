@@ -4,6 +4,7 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/animation_copy_dialog.dart';
@@ -1001,6 +1002,7 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   Future<AnimationItemModel?> updateDatabaseOnChange({
     required bool saveToDb,
+    bool isAutoSave = true, // Phase 1: Track if this is auto-save or manual
   }) async {
     // Set save lock if actually saving to database
     if (saveToDb) {
@@ -1009,10 +1011,19 @@ class AnimationController extends StateNotifier<AnimationState> {
 
     try {
       // CRITICAL FIX: Save current state to history BEFORE updating
-      // This ensures we can undo to the current state
-      if (saveToDb && !state.skipHistorySave && state.selectedScene != null) {
+      // Phase 1: Skip history on auto-save to reduce write operations
+      bool shouldSaveHistory = saveToDb &&
+          !state.skipHistorySave &&
+          state.selectedScene != null &&
+          !(isAutoSave && FeatureFlags.enableHistoryOptimization);
+
+      if (shouldSaveHistory) {
         zlog(data: "Saving current state to history before update...");
         await _saveToHistory(scene: state.selectedScene!);
+      } else if (isAutoSave &&
+          FeatureFlags.enableHistoryOptimization &&
+          FeatureFlags.enableSaveDebugLogs) {
+        zlog(data: "History save skipped for auto-save (optimization enabled)");
       }
 
       if (saveToDb == false) {

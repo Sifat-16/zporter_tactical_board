@@ -287,6 +287,12 @@ class ControlPointComponent extends PositionComponent
     }
 
     _totalDragDistance = 0.0;
+
+    // Phase 1: Trigger immediate save after trajectory control point drag
+    if (game is TacticBoard) {
+      (game as TacticBoard)
+          .triggerImmediateSave(reason: 'Trajectory control point drag end');
+    }
   }
 
   @override

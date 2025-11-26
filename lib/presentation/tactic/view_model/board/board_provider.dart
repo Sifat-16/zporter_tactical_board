@@ -768,9 +768,9 @@ class BoardController extends StateNotifier<BoardState> {
     try {
       if (game is TacticBoard && game.isDirty) {
         zlog(data: "Toggle: Data is dirty, forcing save...");
-        await ref
-            .read(animationProvider.notifier)
-            .updateDatabaseOnChange(saveToDb: true);
+        await ref.read(animationProvider.notifier).updateDatabaseOnChange(
+            saveToDb: true,
+            isAutoSave: false); // Manual save on fullscreen toggle
         game.forceUpdateComparator();
       } else {
         zlog(data: "Toggle: Data is clean, skipping save.");

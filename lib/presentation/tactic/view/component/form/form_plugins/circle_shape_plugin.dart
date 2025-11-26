@@ -450,6 +450,17 @@ class CircleShapeDrawerComponent extends PositionComponent
           "Circle ${circleModel.id}: Notifying provider (Position Update): ${updatedModel.toJson()}",
     );
     ref.read(boardProvider.notifier).updateShape(shape: updatedModel);
+
+    // Trigger immediate save after circle shape update
+    try {
+      final tacticBoard = game as dynamic;
+      if (tacticBoard.triggerImmediateSave != null) {
+        tacticBoard.triggerImmediateSave(
+            reason: "Circle shape update: ${circleModel.id}");
+      }
+    } catch (e) {
+      // Fallback if method not available
+    }
   }
 
   /// Updates the provider with the final POSITION and RADIUS.

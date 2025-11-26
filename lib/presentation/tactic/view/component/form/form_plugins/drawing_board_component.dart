@@ -7,6 +7,7 @@ import 'package:flame/extensions.dart';
 import 'package:flame_riverpod/flame_riverpod.dart';
 import 'package:flutter/material.dart' show Colors, Color;
 import 'package:uuid/uuid.dart';
+import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
@@ -81,7 +82,7 @@ class DrawingBoardComponent extends PositionComponent
     required Vector2 super.size,
   });
 
-  // _notifyDrawingChanged remains the same
+  // _notifyDrawingChanged - triggers immediate save
   void _notifyDrawingChanged(String operation) {
     /* ... same as before ... */
     try {
@@ -98,6 +99,21 @@ class DrawingBoardComponent extends PositionComponent
         return e;
       }).toList();
       ref.read(boardProvider.notifier).updateFreeDraws(lines: relativeClones);
+
+      // Trigger immediate save after drawing changes
+      if (FeatureFlags.enableEventDrivenSave) {
+        try {
+          // Access the game instance - it's a TacticBoard which has triggerImmediateSave
+          final tacticBoard = game as dynamic;
+          if (tacticBoard.triggerImmediateSave != null) {
+            tacticBoard.triggerImmediateSave(reason: "Drawing: $operation");
+          }
+        } catch (e) {
+          // Fallback if method not available
+          print("Could not trigger immediate save for drawing: $e");
+        }
+      }
+
       print(
         "Drawing Changed: [$operation]. Total lines: ${_drawnLines.length}",
       );

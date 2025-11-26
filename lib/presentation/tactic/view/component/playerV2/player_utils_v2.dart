@@ -20,6 +20,7 @@ import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
+import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
 import 'package:zporter_tactical_board/app/services/firebase_storage_service.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
@@ -921,7 +922,6 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     if (jerseyNumberText == '-') {
       // User explicitly wants no number
       jerseyNumberInt = -1;
-
     } else if (jerseyNumberText.isEmpty) {
       // Empty is also acceptable (will use -1)
       jerseyNumberInt = -1;
@@ -954,32 +954,55 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
     String? finalBase64 =
         _existingImageBase64; // Start with existing Base64 (for backwards compatibility)
 
-    // A new file was picked by the user, we MUST upload it.
+    // A new file was picked by the user, we MUST handle it.
     if (_pendingImageFile != null) {
-      try {
-        BotToast.showLoading(); // Show a global loader for the upload
+      // OFFLINE-FIRST: Check connectivity before attempting upload
+      final isOnline = ConnectivityService.statusNotifier.value.isOnline;
 
-        // Use a unique ID for the file. If creating a new player, generate one.
-        final String playerIdForUpload =
-            widget.player?.id ?? RandomGenerator.generateId();
+      if (!isOnline) {
+        // OFFLINE: Convert to base64 and save locally
+        zlog(data: "Device offline: Saving player image as base64 for now");
+        try {
+          final bytes = await _pendingImageFile!.readAsBytes();
+          finalBase64 = base64Encode(bytes);
+          finalImagePath = null; // Clear URL, will upload when online
 
-        // 1. CALL OUR NEW UPLOAD SERVICE
-        final String downloadURL = await _storageService.uploadPlayerImage(
-          imageFile: _pendingImageFile!,
-          playerId: playerIdForUpload,
-        );
+          BotToast.showText(
+            text: "Saved offline. Image will sync when online.",
+            duration: Duration(seconds: 2),
+          );
+        } catch (e) {
+          zlog(data: "Failed to convert image to base64: $e");
+          BotToast.showText(text: "Error processing image. Please try again.");
+          return; // Stop the save
+        }
+      } else {
+        // ONLINE: Upload to Firebase Storage
+        try {
+          BotToast.showLoading(); // Show a global loader for the upload
 
-        // 2. This network URL is the new path we will save
-        finalImagePath = downloadURL;
-        finalBase64 =
-            null; // Clear any old base64 data, the URL is the new truth
-      } catch (e) {
-        zlog(data: "Failed to upload image to Firebase Storage: $e");
-        BotToast.showText(text: "Error saving image. Please try again.");
-        BotToast.cleanAll(); // Make sure to clean the loader on failure
-        return; // Stop the save
-      } finally {
-        BotToast.cleanAll(); // Clean loader on success
+          // Use a unique ID for the file. If creating a new player, generate one.
+          final String playerIdForUpload =
+              widget.player?.id ?? RandomGenerator.generateId();
+
+          // 1. CALL OUR NEW UPLOAD SERVICE
+          final String downloadURL = await _storageService.uploadPlayerImage(
+            imageFile: _pendingImageFile!,
+            playerId: playerIdForUpload,
+          );
+
+          // 2. This network URL is the new path we will save
+          finalImagePath = downloadURL;
+          finalBase64 =
+              null; // Clear any old base64 data, the URL is the new truth
+        } catch (e) {
+          zlog(data: "Failed to upload image to Firebase Storage: $e");
+          BotToast.showText(text: "Error uploading image. Please try again.");
+          BotToast.cleanAll(); // Make sure to clean the loader on failure
+          return; // Stop the save
+        } finally {
+          BotToast.cleanAll(); // Clean loader on success
+        }
       }
     }
 

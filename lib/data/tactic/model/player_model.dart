@@ -24,6 +24,7 @@ class PlayerModel extends FieldItemModel {
 
   String? imagePath;
   String? imageBase64;
+  String? imageUrl; // Firebase Storage URL (Phase 2 Week 2)
   Color? borderColor; // Custom border color for team identification
 
   PlayerModel({
@@ -50,6 +51,7 @@ class PlayerModel extends FieldItemModel {
     this.showRole = true,
     this.imagePath,
     this.imageBase64,
+    this.imageUrl,
     this.borderColor,
   });
 
@@ -69,6 +71,7 @@ class PlayerModel extends FieldItemModel {
       'showImage': showImage,
       'imagePath': imagePath,
       'imageBase64': imageBase64,
+      'imageUrl': imageUrl,
       'borderColor': borderColor?.value,
     };
   }
@@ -102,6 +105,7 @@ class PlayerModel extends FieldItemModel {
     final showRole = (json['showRole'] as bool?) ?? true;
     final imagePath = json['imagePath'] as String?;
     final imageBase64 = json['imageBase64'] as String?;
+    final imageUrl = json['imageUrl'] as String?;
     final borderColor =
         json['borderColor'] != null ? Color(json['borderColor'] as int) : null;
 
@@ -132,6 +136,7 @@ class PlayerModel extends FieldItemModel {
       playerType: playerType,
       imagePath: imagePath,
       imageBase64: imageBase64,
+      imageUrl: imageUrl,
       borderColor: borderColor,
     );
   }
@@ -161,6 +166,7 @@ class PlayerModel extends FieldItemModel {
     bool? showRole,
     Object? imagePath = _sentinel,
     Object? imageBase64 = _sentinel,
+    Object? imageUrl = _sentinel,
     Object? borderColor = _sentinel,
   }) {
     return PlayerModel(
@@ -188,6 +194,7 @@ class PlayerModel extends FieldItemModel {
       imagePath: imagePath == _sentinel ? this.imagePath : imagePath as String?,
       imageBase64:
           imageBase64 == _sentinel ? this.imageBase64 : imageBase64 as String?,
+      imageUrl: imageUrl == _sentinel ? this.imageUrl : imageUrl as String?,
       borderColor:
           borderColor == _sentinel ? this.borderColor : borderColor as Color?,
     );
@@ -195,4 +202,9 @@ class PlayerModel extends FieldItemModel {
 
   @override
   PlayerModel clone() => copyWith();
+
+  // Phase 2 Week 2: Image optimization helpers
+  bool get hasBase64Image => imageBase64 != null && imageBase64!.isNotEmpty;
+  bool get hasImageUrl => imageUrl != null && imageUrl!.isNotEmpty;
+  bool get needsImageMigration => hasBase64Image && !hasImageUrl;
 }
