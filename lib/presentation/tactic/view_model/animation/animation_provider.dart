@@ -186,16 +186,42 @@ class AnimationController extends StateNotifier<AnimationState> {
     final List<Future<void>> backgroundSaveTasks = [];
 
     try {
-      // Step 1: Fetch all data sources
-      final results = await Future.wait([
-        _getAllAnimationCollectionUseCase.call(_getUserId()),
-        _defaultAnimationRepository.getAllDefaultAnimationCollections(),
-        _defaultAnimationRepository.getAllDefaultAnimations(),
-      ]);
+      zlog(data: "[getAllCollections] Fetching data from Firebase");
 
-      final userCollections = results[0] as List<AnimationCollectionModel>;
-      final rawAdminCollections = results[1] as List<AnimationCollectionModel>;
-      final allDefaultAnimations = results[2] as List<AnimationModel>;
+      // Step 1: Fetch all data sources with individual error handling
+      List<AnimationCollectionModel> userCollections = [];
+      List<AnimationCollectionModel> rawAdminCollections = [];
+      List<AnimationModel> allDefaultAnimations = [];
+
+      try {
+        userCollections =
+            await _getAllAnimationCollectionUseCase.call(_getUserId());
+        zlog(
+            data:
+                "[getAllCollections] User collections loaded: ${userCollections.length}");
+      } catch (e) {
+        zlog(data: "[getAllCollections] ERROR loading user collections: $e");
+      }
+
+      try {
+        rawAdminCollections = await _defaultAnimationRepository
+            .getAllDefaultAnimationCollections();
+        zlog(
+            data:
+                "[getAllCollections] Admin collections loaded: ${rawAdminCollections.length}");
+      } catch (e) {
+        zlog(data: "[getAllCollections] ERROR loading admin collections: $e");
+      }
+
+      try {
+        allDefaultAnimations =
+            await _defaultAnimationRepository.getAllDefaultAnimations();
+        zlog(
+            data:
+                "[getAllCollections] Default animations loaded: ${allDefaultAnimations.length}");
+      } catch (e) {
+        zlog(data: "[getAllCollections] ERROR loading default animations: $e");
+      }
 
       // Step 2: Build the Admin Template Map
       final Map<String, AnimationCollectionModel> adminTemplateMap = {};
@@ -348,6 +374,120 @@ class AnimationController extends StateNotifier<AnimationState> {
       zlog(data: "Animation collection creating issue ${e}");
     } finally {
       BotToast.cleanAll();
+    }
+  }
+
+  /// Create a new collection and return it without showing loader
+  /// Used by exercise name flow to create "Exercises" collection
+  Future<AnimationCollectionModel?> createNewCollectionAndReturn(
+      String newCollectionName) async {
+    try {
+      AnimationCollectionModel animationCollectionModel =
+          AnimationCollectionModel(
+        id: RandomGenerator.generateId(),
+        userId: _getUserId(),
+        name: newCollectionName,
+        animations: [],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      List<AnimationCollectionModel> collections =
+          List.from(state.animationCollections);
+
+      if (_isDuplicateAnimationCollection(
+        collections,
+        animationCollectionModel,
+      )) {
+        zlog(data: "Duplicate collection name: $newCollectionName");
+        // Return existing collection with that name
+        return collections.firstWhereOrNull((c) => c.name == newCollectionName);
+      }
+
+      AnimationCollectionModel newAnimationCollectionModel =
+          await _saveAnimationCollectionUseCase.call(animationCollectionModel);
+      collections.add(newAnimationCollectionModel);
+      state = state.copyWith(animationCollections: collections);
+
+      return newAnimationCollectionModel;
+    } catch (e) {
+      zlog(data: "Animation collection creating issue ${e}");
+      return null;
+    }
+  }
+
+  /// Create a new animation with a given name in a collection
+  /// Used by exercise name flow to create animation with exercise name
+  Future<AnimationModel?> createNewAnimationWithName(
+    AnimationCollectionModel collection,
+    String animationName,
+  ) async {
+    try {
+      AnimationModel animationModel = AnimationModel(
+        userId: _getUserId(),
+        fieldColor: BoardConstant.field_color,
+        id: RandomGenerator.generateId(),
+        name: animationName,
+        animationScenes: [],
+        boardBackground: ref.read(boardProvider).boardBackground,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Check for duplicates
+      if (_isDuplicateAnimation(collection.animations, animationModel)) {
+        zlog(
+            data:
+                "Animation with name '$animationName' already exists, finding it");
+        final existing = collection.animations
+            .firstWhereOrNull((a) => a.name == animationName);
+        if (existing != null) {
+          selectAnimationCollection(collection, animationSelect: existing);
+        }
+        return existing;
+      }
+
+      // Add initial empty scene
+      animationModel.animationScenes.add(
+        AnimationItemModel(
+          index: 0,
+          fieldColor: BoardConstant.field_color,
+          id: RandomGenerator.generateId(),
+          userId: _getUserId(),
+          fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
+              Vector2(0, 0),
+          boardBackground: ref.read(boardProvider).boardBackground,
+          components: [], // Empty scene
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+      // Add to collection
+      collection.animations.add(animationModel);
+
+      // Save the collection
+      final savedCollection =
+          await _saveAnimationCollectionUseCase.call(collection);
+
+      // Update state
+      List<AnimationCollectionModel> collections =
+          List.from(state.animationCollections);
+      final index = collections.indexWhere((c) => c.id == savedCollection.id);
+      if (index >= 0) {
+        collections[index] = savedCollection;
+      }
+      state = state.copyWith(animationCollections: collections);
+
+      // Select the new animation
+      selectAnimationCollection(savedCollection,
+          animationSelect: animationModel);
+
+      zlog(data: "Created new animation: $animationName");
+      return animationModel;
+    } catch (e) {
+      zlog(data: "Animation creating issue ${e}");
+      return null;
     }
   }
 
@@ -759,6 +899,61 @@ class AnimationController extends StateNotifier<AnimationState> {
     ref
         .read(boardProvider.notifier)
         .updateBoardBackground(scene.boardBackground);
+  }
+
+  /// Load external scene data directly from JSON (e.g., from parent web app)
+  /// This creates a temporary animation structure to hold the external scene
+  /// without persisting to Firestore
+  void loadExternalSceneData(Map<String, dynamic> sceneJson) {
+    try {
+      zlog(data: "[loadExternalSceneData] Loading external scene data");
+
+      // Parse the scene from JSON
+      final scene = AnimationItemModel.fromJson(sceneJson);
+      zlog(data: "[loadExternalSceneData] Scene parsed: ${scene.id}");
+
+      // Create a temporary animation model to hold this scene
+      final tempAnimation = AnimationModel(
+        id: 'external-animation-${DateTime.now().millisecondsSinceEpoch}',
+        name: 'External Animation',
+        userId: scene.userId,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        animationScenes: [scene],
+        orderIndex: 0,
+        fieldColor: scene.fieldColor,
+        boardBackground: scene.boardBackground,
+      );
+
+      // Create a temporary collection model
+      final tempCollection = AnimationCollectionModel(
+        id: 'external-collection-${DateTime.now().millisecondsSinceEpoch}',
+        name: 'External Collection',
+        userId: scene.userId,
+        animations: [tempAnimation],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      // Set the state with the external data
+      state = state.copyWith(
+        selectedAnimationCollectionModel: tempCollection,
+        animations: [tempAnimation],
+        selectedAnimationModel: tempAnimation,
+        selectedScene: scene,
+        isLoadingAnimationCollections: false,
+      );
+
+      // Update board background
+      ref
+          .read(boardProvider.notifier)
+          .updateBoardBackground(scene.boardBackground);
+
+      zlog(data: "[loadExternalSceneData] External scene loaded successfully");
+    } catch (e, s) {
+      zlog(data: "[loadExternalSceneData] Error loading external scene: $e");
+      print("[loadExternalSceneData] Stack: $s");
+    }
   }
 
   void toggleAnimation() {

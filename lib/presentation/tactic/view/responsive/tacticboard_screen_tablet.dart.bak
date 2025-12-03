@@ -14,9 +14,7 @@ import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
-import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/app/services/js_interop/js_interop.dart';
-import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -37,19 +35,13 @@ class TacticboardScreenTablet extends ConsumerStatefulWidget {
     this.collectionId,
     this.animationId,
     this.tacticalBoardId,
-    this.exerciseName,
-    this.existingThumbnailUrl,
-    this.isPlayerMode = false,
-    this.stateManager,
+    required this.stateManager,
   });
   final String userId;
   final String? collectionId;
   final String? animationId;
   final String? tacticalBoardId;
-  final String? exerciseName;
-  final String? existingThumbnailUrl;
-  final bool isPlayerMode;
-  final TacticalBoardStateManager? stateManager;
+  final TacticalBoardStateManager stateManager;
 
   @override
   ConsumerState<TacticboardScreenTablet> createState() =>
@@ -63,7 +55,6 @@ class _TacticboardScreenTabletState
   late double _leftPanelWidth;
   late double _rightPanelWidth;
   final Duration _panelAnimationDuration = const Duration(milliseconds: 250);
-  bool _isInitialized = false; // Track if initial data load is complete
 
   void _toggleLeftPanel() {
     setState(() {
@@ -120,110 +111,32 @@ class _TacticboardScreenTabletState
   void initState() {
     super.initState();
 
-    // Register callbacks with the JS Interop state manager (only in widget mode)
-    widget.stateManager?.onSaveRequested(() {
+    // Register callbacks with the JS Interop state manager
+    widget.stateManager.onSaveRequested(() {
       zlog(data: "Save requested via JS Interop");
       _handleSave();
     });
 
-    widget.stateManager?.onCancelRequested(() {
+    widget.stateManager.onCancelRequested(() {
       zlog(data: "Cancel requested via JS Interop");
       _handleCancel();
     });
 
-    // Register callback for when initial animation data is set from JavaScript
-    // This is used when editing an existing tactical board
-    widget.stateManager?.onInitialAnimationDataSet(() {
-      zlog(
-          data:
-              "Initial animation data set via JS Interop - loading external data");
-      _loadExternalAnimationData();
-    });
-
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _initialLoadAndSelect();
+      _initialLoadAndSelect();
     });
-  }
-
-  /// Load animation data passed from the parent web app
-  Future<void> _loadExternalAnimationData() async {
-    final jsonData = widget.stateManager?.getInitialAnimationDataJson();
-    if (jsonData == null || jsonData.isEmpty) {
-      zlog(data: "[_loadExternalAnimationData] No external animation data");
-      return;
-    }
-
-    try {
-      zlog(
-          data:
-              "[_loadExternalAnimationData] Parsing external animation data...");
-      final Map<String, dynamic> data = jsonDecode(jsonData);
-
-      // The animation data should contain a 'scene' field with the scene data
-      final sceneData = data['scene'] as Map<String, dynamic>?;
-      if (sceneData != null) {
-        zlog(data: "[_loadExternalAnimationData] Found scene data, loading...");
-        ref.read(animationProvider.notifier).loadExternalSceneData(sceneData);
-
-        // Mark as initialized
-        if (mounted) {
-          setState(() {
-            _isInitialized = true;
-          });
-        }
-        zlog(
-            data:
-                "[_loadExternalAnimationData] External scene loaded successfully");
-      } else {
-        zlog(
-            data:
-                "[_loadExternalAnimationData] No scene data found in external data");
-        // Fallback to normal initialization
-        await _initialLoadAndSelect();
-      }
-    } catch (e, s) {
-      zlog(
-          data: "[_loadExternalAnimationData] Error loading external data: $e");
-      print("[_loadExternalAnimationData] Stack: $s");
-      // Fallback to normal initialization on error
-      await _initialLoadAndSelect();
-    }
   }
 
   Future<void> _initialLoadAndSelect() async {
     try {
-      print(
-          "[_initialLoadAndSelect] Starting initialization - userId: ${widget.userId}");
-
-      // Mark as not initialized during load
-      setState(() {
-        _isInitialized = false;
-      });
-
       // 1. Fetch all collections and animations for the user first.
-      print("[_initialLoadAndSelect] Calling getAllCollections...");
       await ref.read(animationProvider.notifier).getAllCollections();
-
-      print("[_initialLoadAndSelect] Collections loaded successfully");
 
       // After fetching, the state is now populated. Get the list of collections.
       final collections = ref.read(animationProvider).animationCollections;
 
-      print("[_initialLoadAndSelect] Found ${collections.length} collections");
-
-      // EXERCISE NAME HANDLING: If exerciseName is provided, find or create "Exercises" collection
-      if (widget.exerciseName != null && widget.exerciseName!.isNotEmpty) {
-        print(
-            "[_initialLoadAndSelect] Exercise name provided: ${widget.exerciseName}");
-        await _handleExerciseNameFlow(collections);
-        return;
-      }
-
       // 2. Check if a specific collectionId was passed from the URL.
       if (widget.collectionId != null && collections.isNotEmpty) {
-        print(
-            "[_initialLoadAndSelect] Looking for collection: ${widget.collectionId}");
-
         // Find the collection that matches the provided ID.
         final targetCollection = collections.firstWhere(
           (c) => c.id == widget.collectionId,
@@ -244,116 +157,16 @@ class _TacticboardScreenTabletState
               targetCollection,
               animationSelect: targetAnimation,
             );
-
-        print("[_initialLoadAndSelect] Collection selected successfully");
-
         return; // Exit after successful selection.
       }
 
       // 5. If no specific IDs were passed or found, run the default startup.
-      print("[_initialLoadAndSelect] Loading default animations");
       await ref.read(animationProvider.notifier).configureDefaultAnimations();
-      print("[_initialLoadAndSelect] Default animations loaded");
     } catch (e, s) {
-      print("[_initialLoadAndSelect] ERROR: $e");
-      print("[_initialLoadAndSelect] STACK: $s");
-
+      zlog(data: "Error during initial load and select: $e \n$s");
       // Fallback to default animations in case of any error.
-      try {
-        await ref.read(animationProvider.notifier).configureDefaultAnimations();
-        print("[_initialLoadAndSelect] Recovered with default animations");
-      } catch (fallbackError) {
-        print(
-            "[_initialLoadAndSelect] CRITICAL: Failed to load defaults: $fallbackError");
-      }
-    } finally {
-      // Mark as initialized after everything is done
-      if (mounted) {
-        // Wait for next frame to ensure provider state has fully propagated
-        await Future.delayed(Duration.zero);
-
-        setState(() {
-          _isInitialized = true;
-        });
-        print(
-            "[_initialLoadAndSelect] Initialization complete - marked as ready");
-      }
-    }
-  }
-
-  /// Handle the exercise name flow: find or create "Tactics-Exercise" collection,
-  /// then find or create an animation with the exercise name
-  Future<void> _handleExerciseNameFlow(
-      List<AnimationCollectionModel> collections) async {
-    const String exercisesCollectionName = "Tactics-Exercise";
-    final String exerciseName = widget.exerciseName!;
-
-    print(
-        "[_handleExerciseNameFlow] Looking for '$exercisesCollectionName' collection");
-
-    // Find or create "Exercises" collection
-    AnimationCollectionModel? exercisesCollection =
-        collections.firstWhereOrNull(
-      (c) => c.name == exercisesCollectionName,
-    );
-
-    if (exercisesCollection == null) {
-      // Create the "Exercises" collection
-      print(
-          "[_handleExerciseNameFlow] Creating new '$exercisesCollectionName' collection");
-      await ref.read(animationProvider.notifier).createNewCollectionAndReturn(
-            exercisesCollectionName,
-          );
-
-      // Refresh collections after creation
-      final updatedCollections =
-          ref.read(animationProvider).animationCollections;
-      exercisesCollection = updatedCollections.firstWhereOrNull(
-        (c) => c.name == exercisesCollectionName,
-      );
-    }
-
-    if (exercisesCollection == null) {
-      print(
-          "[_handleExerciseNameFlow] ERROR: Could not find or create '$exercisesCollectionName' collection");
-      // Fallback to default animations
       await ref.read(animationProvider.notifier).configureDefaultAnimations();
-      return;
     }
-
-    print(
-        "[_handleExerciseNameFlow] Found/created '$exercisesCollectionName' collection: ${exercisesCollection.id}");
-
-    // Find animation with the exercise name in this collection
-    AnimationModel? existingAnimation =
-        exercisesCollection.animations.firstWhereOrNull(
-      (a) => a.name == exerciseName,
-    );
-
-    if (existingAnimation != null) {
-      // Animation exists, select it
-      print(
-          "[_handleExerciseNameFlow] Found existing animation: ${existingAnimation.name}");
-      ref.read(animationProvider.notifier).selectAnimationCollection(
-            exercisesCollection,
-            animationSelect: existingAnimation,
-          );
-    } else {
-      // Create new animation with exercise name
-      print("[_handleExerciseNameFlow] Creating new animation: $exerciseName");
-      ref.read(animationProvider.notifier).selectAnimationCollection(
-            exercisesCollection,
-            changeSelectedScene: false,
-          );
-
-      // Create the animation with the exercise name
-      await ref.read(animationProvider.notifier).createNewAnimationWithName(
-            exercisesCollection,
-            exerciseName,
-          );
-    }
-
-    print("[_handleExerciseNameFlow] Exercise name flow completed");
   }
 
   @override
@@ -409,92 +222,38 @@ class _TacticboardScreenTabletState
   // Widget mode: Handle save action
   Future<void> _handleSave() async {
     try {
-      zlog(data: "Save requested - saving to Firebase and capturing thumbnail");
+      zlog(data: "Save requested - capturing thumbnail and preparing data");
 
-      // Step 1: Save the animation to Firebase using the animation provider
-      final ap = ref.read(animationProvider);
-      final selectedCollection = ap.selectedAnimationCollectionModel;
-      final selectedAnimation = ap.selectedAnimationModel;
-      final selectedScene = ap.selectedScene;
-
-      if (selectedCollection == null ||
-          selectedAnimation == null ||
-          selectedScene == null) {
-        BotToast.showText(text: "No animation data to save");
+      // Capture thumbnail
+      final thumbnail = await _captureThumbnail();
+      if (thumbnail == null) {
+        BotToast.showText(text: "Failed to capture thumbnail");
+        widget.stateManager.updateThumbnail("");
         return;
       }
 
-      // Save to Firebase via animation provider
-      await ref
-          .read(animationProvider.notifier)
-          .updateDatabaseOnChange(saveToDb: true);
+      // Update thumbnail in state manager
+      widget.stateManager.updateThumbnail(thumbnail);
 
-      zlog(
-          data:
-              "Saved to Firebase - Collection: ${selectedCollection.id}, Animation: ${selectedAnimation.id}");
-
-      // Step 2: Handle thumbnail
-      // Priority: 1. Use existing thumbnail if provided (user-uploaded or previously generated)
-      //           2. Generate new thumbnail only if none exists
-      String? thumbnailUrl = widget.existingThumbnailUrl;
-
-      if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
-        zlog(
-            data:
-                "Using existing thumbnail - skipping generation: $thumbnailUrl");
-      } else {
-        // No existing thumbnail, generate one
-        zlog(data: "No existing thumbnail - generating new one");
-        try {
-          final base64Thumbnail = await _captureThumbnail();
-          if (base64Thumbnail != null) {
-            try {
-              final imageService = sl.get<ImageStorageService>();
-              final thumbnailBytes = base64Decode(base64Thumbnail);
-              thumbnailUrl = await imageService.uploadTacticThumbnail(
-                userId: widget.userId,
-                animationId: selectedAnimation.id,
-                imageData: thumbnailBytes,
-              );
-              zlog(data: "Thumbnail uploaded successfully: $thumbnailUrl");
-            } catch (uploadError) {
-              zlog(data: "Thumbnail upload failed (CORS?): $uploadError");
-              // Continue without thumbnail - not a critical error
-            }
-          }
-        } catch (thumbnailError) {
-          zlog(data: "Thumbnail capture failed: $thumbnailError");
-          // Continue without thumbnail - not a critical error
-        }
-      }
-
-      // Step 3: ALWAYS set save result (even without thumbnail)
-      zlog(data: "Setting save result...");
-      widget.stateManager?.setSaveResult(
-        collectionId: selectedCollection.id,
-        animationId: selectedAnimation.id,
-        thumbnailUrl: thumbnailUrl,
-      );
-
-      zlog(
-          data:
-              "Save completed - collectionId: ${selectedCollection.id}, animationId: ${selectedAnimation.id}, thumbnailUrl: $thumbnailUrl");
-
-      BotToast.showText(text: "Tactical board saved successfully");
-    } catch (e, s) {
-      zlog(data: "Error saving tactical board: $e\n$s");
-      BotToast.showText(text: "Failed to save tactical board");
-
-      // Even on error, try to set a result so React doesn't timeout
+      // Get current animation data
       final ap = ref.read(animationProvider);
-      if (ap.selectedAnimationCollectionModel != null &&
-          ap.selectedAnimationModel != null) {
-        widget.stateManager?.setSaveResult(
-          collectionId: ap.selectedAnimationCollectionModel!.id,
-          animationId: ap.selectedAnimationModel!.id,
-          thumbnailUrl: null,
-        );
-      }
+      final animationData = {
+        'collectionId': ap.selectedAnimationCollectionModel?.id,
+        'animationId': ap.selectedAnimationModel?.id,
+        'sceneId': ap.selectedScene?.id,
+        'scene': ap.selectedScene?.toJson(),
+      };
+
+      // Update animation data in state manager
+      widget.stateManager.updateAnimationData(jsonEncode(animationData));
+
+      zlog(data: "Save data prepared and updated in state manager");
+      
+      // Parent app will read the data from the state manager
+      // and handle the actual save operation
+    } catch (e, s) {
+      zlog(data: "Error preparing save data: $e\n$s");
+      BotToast.showText(text: "Failed to prepare tactical board data");
     }
   }
 
@@ -511,44 +270,25 @@ class _TacticboardScreenTabletState
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
 
-    print(
-        "Build called - initialized: $_isInitialized, loading: ${ap.isLoadingAnimationCollections}, scene: ${selectedScene?.id}");
+    zlog(data: "Build called for selected scene ${selectedScene?.id}");
 
     _leftPanelWidth = context.widthPercent(25);
     _rightPanelWidth = context.widthPercent(25);
 
-    // Show loading until initialization is complete
-    if (!_isInitialized ||
-        ap.isLoadingAnimationCollections ||
-        selectedScene == null) {
-      print("Showing loading screen - waiting for initialization");
+    if (ap.isLoadingAnimationCollections) {
       return const Scaffold(
         backgroundColor: ColorManager.black,
         body: Center(
           child: ZLoader(logoAssetPath: "assets/image/logo.png"),
+          // child: CircularProgressIndicator(color: ColorManager.white),
         ),
       );
     }
 
-    print("Rendering tactical board UI - initialization complete");
-
-    // PLAYER MODE: Show only the game screen with animation controls
-    if (widget.isPlayerMode) {
-      // Auto-trigger animation playback when in player mode
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (ap.selectedAnimationModel != null && bp.animatingObj == null) {
-          ref
-              .read(boardProvider.notifier)
-              .toggleAnimating(animatingObj: AnimatingObj.animate());
-        }
-      });
-
-      return Scaffold(
-        backgroundColor: ColorManager.black,
-        body: SafeArea(
-          child: GameScreen(scene: selectedScene, isPlayerMode: true),
-        ),
-      );
+    if (selectedScene == null) {
+      return Center(
+          child:
+              Text("No scene selected", style: TextStyle(color: Colors.white)));
     }
 
     Widget screenContent;
@@ -573,7 +313,7 @@ class _TacticboardScreenTabletState
                   ),
                 ),
                 // Hide panels and toggles in widget mode
-                if (!isAnimating(bp))
+                if (!isAnimating(bp) && !widget.isWidgetMode)
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -590,7 +330,7 @@ class _TacticboardScreenTabletState
                       ),
                     ),
                   ),
-                if (!isAnimating(bp))
+                if (!isAnimating(bp) && !widget.isWidgetMode)
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -606,7 +346,7 @@ class _TacticboardScreenTabletState
                       ),
                     ),
                   ),
-                if (!isAnimating(bp))
+                if (!isAnimating(bp) && !widget.isWidgetMode)
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -642,7 +382,7 @@ class _TacticboardScreenTabletState
                       ),
                     ),
                   ),
-                if (!isAnimating(bp))
+                if (!isAnimating(bp) && !widget.isWidgetMode)
                   AnimatedPositioned(
                     duration: _panelAnimationDuration,
                     curve: Curves.easeInOut,
@@ -677,7 +417,88 @@ class _TacticboardScreenTabletState
                       ),
                     ),
                   ),
-                // Note: Save/Cancel buttons removed - parent app handles UI via JS Interop
+                // Widget mode: Save/Cancel buttons
+                if (widget.isWidgetMode)
+                  Positioned(
+                    top: 20,
+                    right: 20,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Cancel button
+                        Material(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(8),
+                          elevation: 4.0,
+                          child: InkWell(
+                            onTap: _handleCancel,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20.0,
+                                vertical: 12.0,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Save button
+                        Material(
+                          color: Colors.green[600],
+                          borderRadius: BorderRadius.circular(8),
+                          elevation: 4.0,
+                          child: InkWell(
+                            onTap: _handleSave,
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20.0,
+                                vertical: 12.0,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Save',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -849,7 +670,7 @@ class _TacticboardScreenTabletState
                   child: Padding(
                     padding: const EdgeInsets.all(5.0),
                     child: Text(
-                      animationModel.name,
+                      animationModel.name ?? "",
                       style: Theme.of(context).textTheme.labelMedium!.copyWith(
                           color: ColorManager.white.withValues(alpha: 0.8),
                           fontSize: 14),
