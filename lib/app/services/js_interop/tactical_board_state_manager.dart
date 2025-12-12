@@ -1,5 +1,33 @@
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
+import 'package:web/web.dart' as web;
+
+// Extension to access custom window properties
+extension WindowExtension on web.Window {
+  @JS('__tacticalBoardSaveRequestId')
+  external JSString? get tacticalBoardSaveRequestId;
+}
+
+// JavaScript interop classes for postMessage data
+@JS()
+@anonymous
+extension type SaveResultJS._(JSObject _) implements JSObject {
+  external factory SaveResultJS({
+    String collectionId,
+    String animationId,
+    String? thumbnailUrl,
+  });
+}
+
+@JS()
+@anonymous
+extension type SaveMessageJS._(JSObject _) implements JSObject {
+  external factory SaveMessageJS({
+    String type,
+    String requestId,
+    SaveResultJS result,
+  });
+}
 
 /// State manager that is exposed to JavaScript via JS Interop.
 /// Allows the parent web application to control and interact with the
@@ -159,8 +187,13 @@ class TacticalBoardStateManager {
   String? _savedAnimationId;
   String? _savedThumbnailUrl;
 
-  /// Set save result data after successful Firebase save
+  /// Set save result data after successful Firebase save and notify React via postMessage
   /// Called by Flutter widget after saving animation to Firebase
+  ///
+  /// This implements the event-driven save protocol:
+  /// 1. Read the requestId from window.__tacticalBoardSaveRequestId
+  /// 2. Send postMessage with type 'TACTICAL_BOARD_SAVED' and the save result
+  /// 3. Store the result data for backward compatibility (polling approach)
   void setSaveResult({
     required String collectionId,
     required String animationId,
@@ -169,11 +202,80 @@ class TacticalBoardStateManager {
     _savedCollectionId = collectionId;
     _savedAnimationId = animationId;
     _savedThumbnailUrl = thumbnailUrl;
+
     final truncatedUrl = thumbnailUrl != null && thumbnailUrl.length > 50
         ? '${thumbnailUrl.substring(0, 50)}...'
         : thumbnailUrl;
     print(
         '[TacticalBoardStateManager] Save result set: collectionId=$collectionId, animationId=$animationId, thumbnailUrl=$truncatedUrl');
+
+    // EVENT-DRIVEN APPROACH: Send postMessage to React
+    _notifyReactSaveComplete(
+      collectionId: collectionId,
+      animationId: animationId,
+      thumbnailUrl: thumbnailUrl,
+    );
+  }
+
+  /// Notify React that save is complete via postMessage (event-driven approach)
+  void _notifyReactSaveComplete({
+    required String collectionId,
+    required String animationId,
+    String? thumbnailUrl,
+  }) {
+    try {
+      // Step 1: Read the requestId that React stored in window
+      final requestId = _getRequestIdFromWindow();
+
+      if (requestId == null) {
+        print(
+            '[TacticalBoardStateManager] WARNING: No requestId found in window.__tacticalBoardSaveRequestId - React may be using polling approach');
+        // Still continue - backward compatible with polling approach
+        return;
+      }
+
+      // Step 2: Create JavaScript objects using proper interop types
+      final result = SaveResultJS(
+        collectionId: collectionId,
+        animationId: animationId,
+        thumbnailUrl: thumbnailUrl,
+      );
+
+      final message = SaveMessageJS(
+        type: 'TACTICAL_BOARD_SAVED',
+        requestId: requestId,
+        result: result,
+      );
+
+      // Step 3: Send postMessage to window (React app)
+      web.window.postMessage(message, '*'.toJS);
+
+      print(
+          '[TacticalBoardStateManager] ✅ Posted TACTICAL_BOARD_SAVED event to React with requestId: $requestId');
+    } catch (e, stackTrace) {
+      print(
+          '[TacticalBoardStateManager] ❌ Error sending postMessage to React: $e');
+      print('[TacticalBoardStateManager] Stack trace: $stackTrace');
+      // Don't throw - backward compatible with polling approach
+    }
+  }
+
+  /// Read the requestId that React stored in window.__tacticalBoardSaveRequestId
+  String? _getRequestIdFromWindow() {
+    try {
+      // Use extension method to access window property
+      final requestIdJS = web.window.tacticalBoardSaveRequestId;
+
+      if (requestIdJS == null) {
+        return null;
+      }
+
+      return requestIdJS.toDart;
+    } catch (e) {
+      print(
+          '[TacticalBoardStateManager] Error reading requestId from window: $e');
+      return null;
+    }
   }
 
   /// Get saved collection ID (called by React after save)
