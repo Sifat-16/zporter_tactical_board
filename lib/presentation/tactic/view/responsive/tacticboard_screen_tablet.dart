@@ -64,6 +64,7 @@ class _TacticboardScreenTabletState
   late double _rightPanelWidth;
   final Duration _panelAnimationDuration = const Duration(milliseconds: 250);
   bool _isInitialized = false; // Track if initial data load is complete
+  int _resizeCounter = 0; // Track resize events to force GameScreen rebuild
 
   void _toggleLeftPanel() {
     setState(() {
@@ -129,6 +130,11 @@ class _TacticboardScreenTabletState
     widget.stateManager?.onCancelRequested(() {
       zlog(data: "Cancel requested via JS Interop");
       _handleCancel();
+    });
+
+    widget.stateManager?.onResizeRequested(() {
+      zlog(data: "Resize requested via JS Interop");
+      _handleResize();
     });
 
     // Register callback for when initial animation data is set from JavaScript
@@ -505,6 +511,13 @@ class _TacticboardScreenTabletState
     // This is just for any cleanup needed in the Flutter widget
   }
 
+  void _handleResize() {
+    zlog(data: "Resize requested via JS Interop - toggling fullscreen");
+
+    // Call the same function that the toolbar fullscreen button uses
+    ref.read(boardProvider.notifier).toggleFullScreen();
+  }
+
   @override
   Widget build(BuildContext context) {
     final bp = ref.watch(boardProvider);
@@ -546,7 +559,11 @@ class _TacticboardScreenTabletState
       return Scaffold(
         backgroundColor: ColorManager.black,
         body: SafeArea(
-          child: GameScreen(scene: selectedScene, isPlayerMode: true),
+          child: GameScreen(
+            key: ValueKey('game_screen_$_resizeCounter'),
+            scene: selectedScene,
+            isPlayerMode: true,
+          ),
         ),
       );
     }
@@ -874,7 +891,12 @@ class _TacticboardScreenTabletState
                             )))
               ],
             ),
-          Expanded(child: GameScreen(scene: selectedScene)),
+          Expanded(
+            child: GameScreen(
+              key: ValueKey('game_screen_$_resizeCounter'),
+              scene: selectedScene,
+            ),
+          ),
           if (animationModel == null)
             Padding(
               padding: const EdgeInsets.only(top: 8.0),
@@ -1012,7 +1034,10 @@ class _TacticboardScreenTabletState
       child: SafeArea(
         top: true,
         bottom: true,
-        child: GameScreen(scene: selectedScene),
+        child: GameScreen(
+          key: ValueKey('game_screen_$_resizeCounter'),
+          scene: selectedScene,
+        ),
       ),
     );
   }

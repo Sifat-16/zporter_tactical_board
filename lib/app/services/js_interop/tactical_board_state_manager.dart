@@ -54,6 +54,7 @@ class TacticalBoardStateManager {
   // Callbacks that will be set by the Flutter widget
   VoidCallback? _onSaveCallback;
   VoidCallback? _onCancelCallback;
+  VoidCallback? _onResizeCallback;
 
   // Callback for when initial animation data is set by JavaScript
   VoidCallback? _onInitialAnimationDataSet;
@@ -127,6 +128,13 @@ class TacticalBoardStateManager {
     _onCancelCallback?.call();
   }
 
+  /// Request resize operation
+  /// This triggers the Flutter widget to resize the canvas
+  void resize() {
+    print('[TacticalBoardStateManager] resize() called from JavaScript');
+    _onResizeCallback?.call();
+  }
+
   /// Register callback for save requests
   /// Called by the Flutter widget to handle save operations
   void onSaveRequested(VoidCallback callback) {
@@ -139,6 +147,13 @@ class TacticalBoardStateManager {
   void onCancelRequested(VoidCallback callback) {
     _onCancelCallback = callback;
     print('[TacticalBoardStateManager] Cancel callback registered');
+  }
+
+  /// Register callback for resize requests
+  /// Called by the Flutter widget to handle resize operations
+  void onResizeRequested(VoidCallback callback) {
+    _onResizeCallback = callback;
+    print('[TacticalBoardStateManager] Resize callback registered');
   }
 
   /// Allows parent app to subscribe to animation data changes
