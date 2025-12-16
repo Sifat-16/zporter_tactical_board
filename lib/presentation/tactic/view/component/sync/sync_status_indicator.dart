@@ -16,10 +16,10 @@ class SyncStatusIndicator extends ConsumerWidget {
       data: (status) {
         return _buildIcon(status);
       },
-      loading: () => const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.orange),
+      loading: () => const Icon(
+        Icons.sync,
+        size: 20,
+        color: Colors.orange,
       ),
       error: (_, __) =>
           const Icon(Icons.error_outline, size: 20, color: Colors.red),

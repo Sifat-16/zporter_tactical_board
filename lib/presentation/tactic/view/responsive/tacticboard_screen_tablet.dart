@@ -148,6 +148,12 @@ class _TacticboardScreenTabletState
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Initialize fullscreen to true for web integration
+      if (widget.stateManager != null) {
+        ref.read(boardProvider.notifier).state =
+            ref.read(boardProvider).copyWith(showFullScreen: true);
+        zlog(data: "Web mode: Initialized with fullscreen enabled");
+      }
       await _initialLoadAndSelect();
     });
   }
@@ -513,10 +519,13 @@ class _TacticboardScreenTabletState
   }
 
   void _handleResize() {
-    zlog(data: "Resize requested via JS Interop - toggling fullscreen");
+    zlog(data: "Resize requested via JS Interop - forcing re-render");
 
-    // Call the same function that the toolbar fullscreen button uses
-    ref.read(boardProvider.notifier).toggleFullScreen();
+    // For web integration, don't toggle fullscreen - just force a re-render
+    // The modal will resize on the web side, and we stay in fullscreen mode
+    setState(() {
+      _resizeCounter++;
+    });
   }
 
   @override
