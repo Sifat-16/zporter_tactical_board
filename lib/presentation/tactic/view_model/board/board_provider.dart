@@ -614,7 +614,6 @@ class BoardController extends StateNotifier<BoardState> {
 
   showAnimationEvent() {
     state = state.copyWith(showAnimation: true);
-    BotToast.showText(text: "Playing animation");
   }
 
   completeAnimationEvent() {
@@ -675,7 +674,6 @@ class BoardController extends StateNotifier<BoardState> {
       lines: lines,
       texts: texts,
     );
-    BotToast.showText(text: "Item removed successfully");
   }
 
   void copyElement() {

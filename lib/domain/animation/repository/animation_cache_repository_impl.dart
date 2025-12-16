@@ -400,10 +400,107 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   Future<AnimationCollectionModel> saveAnimationCollection({
     required AnimationCollectionModel animationCollectionModel,
   }) async {
+    // ============================================================
+    // LOCAL-FIRST ARCHITECTURE (Always enabled when useOfflineFirstArchitecture = true)
+    // Strategy: Save locally FIRST (fast ~30ms), then queue for background sync
+    // This eliminates UI blocking regardless of network status
+    // ============================================================
+
+    if (FeatureFlags.useOfflineFirstArchitecture) {
+      // --- LOCAL-FIRST PATH: Always save local, always queue for sync ---
+      zlog(
+        level: Level.info,
+        data:
+            "[Repo] LOCAL-FIRST: Saving Collection ${animationCollectionModel.id} to LOCAL immediately.",
+      );
+      try {
+        // 1. Migrate images if needed (will be no-op if feature disabled)
+        final migratedCollection =
+            await _migrateCollectionImages(animationCollectionModel);
+
+        // 2. Save Locally First (fast ~30-50ms) - THIS IS THE ONLY AWAIT
+        final savedLocalModel = await _localDs.saveAnimationCollection(
+          animationCollectionModel: migratedCollection,
+        );
+        zlog(
+          level: Level.info,
+          data:
+              "[Repo] Saved collection ${savedLocalModel.id} to LOCAL successfully.",
+        );
+
+        // 3. Queue for background sync (NON-BLOCKING - no await)
+        if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Enqueuing background sync for ${savedLocalModel.id}...",
+          );
+          final syncOperation = SyncOperation(
+            id: RandomGenerator.generateId(),
+            type: SyncOperationType.update,
+            collectionId: savedLocalModel.id,
+            userId: savedLocalModel.userId,
+            priority: SyncPriority.high, // User-initiated action
+            createdAt: DateTime.now(),
+          );
+          // Fire-and-forget enqueue - don't await!
+          _syncQueueManager.enqueue(syncOperation).then((_) {
+            zlog(
+              level: Level.debug,
+              data: "[Repo] Sync operation enqueued for ${savedLocalModel.id}.",
+            );
+          }).catchError((e, s) {
+            zlog(
+              level: Level.error,
+              data:
+                  "[Repo] Failed to enqueue sync for ${savedLocalModel.id}: $e",
+            );
+          });
+        } else {
+          // Fallback: Fire and forget direct remote save
+          zlog(
+            level: Level.debug,
+            data:
+                "[Repo] Triggering background remote save for ${savedLocalModel.id}...",
+          );
+          _remoteDs
+              .saveAnimationCollection(
+                  animationCollectionModel: savedLocalModel)
+              .then((_) {
+            zlog(
+              level: Level.debug,
+              data:
+                  "[Repo] Background remote save completed for ${savedLocalModel.id}.",
+            );
+          }).catchError((e, s) {
+            zlog(
+              level: Level.error,
+              data:
+                  "[Repo] Background remote save FAILED for ${savedLocalModel.id}: $e",
+            );
+          });
+        }
+
+        // 4. Return immediately - UI is unblocked!
+        return savedLocalModel;
+      } catch (localError, localStack) {
+        zlog(
+          level: Level.error,
+          data:
+              "[Repo] LOCAL SAVE FAILED: Error saving collection ${animationCollectionModel.id}: $localError\n$localStack",
+        );
+        throw Exception(
+          "Failed to save animation collection to local storage: $localError",
+        );
+      }
+    }
+
+    // ============================================================
+    // LEGACY PATH (when useOfflineFirstArchitecture = false)
+    // Kept for emergency rollback - remove once stable
+    // ============================================================
+
     // 1. Check Connectivity Status
-    // Using cached status might be slightly faster if realtime check isn't critical here
-    // bool isOnline = ConnectivityService.isOnline;
-    // Using realtime check provides most current status before operation:
     bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
 
     if (!isOnline) {
@@ -545,7 +642,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
     required List<AnimationItemModel> animationItems,
     required String userId,
   }) async {
-    // 1. Check Connectivity Status
+    // Check connectivity status
     bool isOnline = await ConnectivityService.checkRealtimeConnectivity();
 
     if (!isOnline) {
@@ -556,42 +653,26 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
             "[Repo] Network Offline: Saving ${animationItems.length} Default Animations to LOCAL first.",
       );
       try {
-        // Prepare items for local save (e.g., ensure IDs, set pending status if tracked)
-        final itemsToSaveLocally = animationItems.map((item) {
-          // Example: if (item.id.isEmpty) item = item.copyWith(id: RandomId());
-          // Example: return item.copyWith(syncStatus: 'pending');
-          return item;
-        }).toList();
-
-        // 2a. Save Locally First (Await this)
-        final savedLocalItemsResult = await _localDs.saveDefaultAnimations(
-          animationItems: itemsToSaveLocally,
+        // Save locally first
+        final savedLocalItems = await _localDs.saveDefaultAnimations(
+          animationItems: animationItems,
           userId: userId,
         );
-        // Note: saveDefaultAnimations might return void or the saved items. Adjust based on its signature.
-        // Assuming it returns the list for consistency:
-        final savedLocalItems = savedLocalItemsResult; // Adjust if needed
+
         zlog(
           level: Level.info,
           data:
-              "[Repo] Saved/Synced ${savedLocalItems.length} default items to LOCAL successfully (Offline).",
+              "[Repo] Saved ${savedLocalItems.length} default items to LOCAL successfully (Offline).",
         );
 
-        // 2b. Choose sync strategy based on feature flags
+        // Enqueue to sync queue
         if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
-          // PHASE 2: Use sync queue with retry logic
-          zlog(
-            level: Level.debug,
-            data:
-                "[Repo] Phase 2: Enqueuing sync operation for default animations (user: $userId)...",
-          );
           final syncOperation = SyncOperation(
             id: RandomGenerator.generateId(),
             type: SyncOperationType.update,
-            collectionId:
-                'default_animations_$userId', // Unique ID for this user's default animations
+            collectionId: 'default_animations_$userId',
             userId: userId,
-            priority: SyncPriority.high, // User-initiated action
+            priority: SyncPriority.high,
             createdAt: DateTime.now(),
             metadata: {
               'dataType': 'defaultAnimations',
@@ -605,24 +686,13 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
                 "[Repo] Sync operation enqueued for default animations. Will sync when online.",
           );
         } else {
-          // PHASE 1: Fire and forget (original behavior)
-          zlog(
-            level: Level.debug,
-            data:
-                "[Repo] Phase 1: Triggering background remote save for default animations (fire and forget)...",
-          );
+          // Fallback: Fire and forget
           _remoteDs
               .saveDefaultAnimations(
             animationItems: savedLocalItems,
             userId: userId,
           )
-              .then((_) {
-            zlog(
-              level: Level.debug,
-              data:
-                  "[Repo] Background remote save ACKNOWLEDGED by SDK for default animations.",
-            );
-          }).catchError((e, s) {
+              .catchError((e, s) {
             zlog(
               level: Level.error,
               data:
@@ -631,7 +701,7 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
           });
         }
 
-        // 2c. Read back from Local to return consistent state
+        // Return local items
         final currentLocalItems = await _localDs.getDefaultAnimations(
           userId: userId,
         );
@@ -647,54 +717,74 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
         );
       }
     } else {
-      // --- ONLINE PATH: Save Remote First, Then Update Local ---
+      // --- ONLINE PATH: Still use offline-first pattern for consistency ---
       zlog(
         level: Level.info,
         data:
-            "[Repo] Network Online: Syncing ${animationItems.length} Default Animations to REMOTE first...",
+            "[Repo] Network Online: Using offline-first pattern for ${animationItems.length} Default Animations.",
       );
+
       try {
-        // 3a. Save/Sync to Remote First (Await this)
-        final savedRemoteItems = await _remoteDs.saveDefaultAnimations(
+        // Save to local first (instant response)
+        final savedLocalItems = await _localDs.saveDefaultAnimations(
           animationItems: animationItems,
           userId: userId,
         );
+        print(
+            '[Repo] ✅ Saved ${savedLocalItems.length} items to local Sembast');
         zlog(
           level: Level.info,
           data:
-              "[Repo] Synced ${savedRemoteItems.length} default items to REMOTE successfully.",
+              "[Repo] Saved ${savedLocalItems.length} default items to LOCAL (online mode).",
         );
 
-        // 3b. Update Local Cache (Await this)
-        zlog(
-          level: Level.debug,
-          data: "[Repo] Updating LOCAL cache for default animations...",
-        );
-        await _localDs.saveDefaultAnimations(
-          animationItems: savedRemoteItems, // Use list confirmed by remote
-          userId: userId,
-        );
-        zlog(
-          level: Level.debug,
-          data: "[Repo] LOCAL cache updated for default animations.",
-        );
+        // 3b. Enqueue to sync queue for background sync
+        if (FeatureFlags.enableSyncQueue && _syncQueueManager != null) {
+          print('[Repo] 📤 Enqueuing to sync queue...');
+          final syncOperation = SyncOperation(
+            id: RandomGenerator.generateId(),
+            type: SyncOperationType.update,
+            collectionId: 'default_animations_$userId',
+            userId: userId,
+            priority: SyncPriority.high,
+            createdAt: DateTime.now(),
+            metadata: {
+              'dataType': 'defaultAnimations',
+              'itemCount': savedLocalItems.length,
+            },
+          );
+          await _syncQueueManager.enqueue(syncOperation);
+          print('[Repo] ✅ Enqueued! Sync will happen in background.');
+          zlog(
+            level: Level.info,
+            data:
+                "[Repo] Sync operation enqueued for default animations (online mode).",
+          );
+        } else {
+          // Fallback: Direct remote save if sync queue disabled
+          _remoteDs
+              .saveDefaultAnimations(
+            animationItems: savedLocalItems,
+            userId: userId,
+          )
+              .catchError((e, s) {
+            zlog(
+              level: Level.error,
+              data: "[Repo] Background remote save FAILED: $e\n$s",
+            );
+            return <AnimationItemModel>[];
+          });
+        }
 
-        // 3c. Read back from Local Cache and return
+        // Return local items immediately
         final localItems = await _localDs.getDefaultAnimations(userId: userId);
-        zlog(
-          level: Level.info,
-          data:
-              "[Repo] Returning ${localItems.length} default animations from LOCAL Sembast after remote sync.",
-        );
         return localItems;
       } catch (e, stackTrace) {
-        // Handle failure during the ONLINE remote save OR the subsequent local update
         zlog(
           level: Level.error,
-          data:
-              "[Repo] ONLINE SAVE/SYNC FAILED: Error during saveDefaultAnimations (Remote or Local update): $e\n$stackTrace",
+          data: "[Repo] Error in online save: $e\n$stackTrace",
         );
-        throw Exception("Failed to save default animations while online: $e");
+        throw Exception("Failed to save default animations: $e");
       }
     }
   }

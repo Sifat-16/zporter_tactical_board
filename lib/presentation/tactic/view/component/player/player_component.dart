@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:bot_toast/bot_toast.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +15,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
+import 'package:zporter_tactical_board/app/services/image_migration/image_migration_service.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/model/guide_line.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
@@ -70,11 +73,30 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       final isNetworkUrl = imagePath != null && (imagePath.startsWith('http'));
 
       if (imageBase64 != null && imageBase64.isNotEmpty) {
+        // Trigger lazy migration in background (non-blocking)
+        ImageMigrationService().queueForMigration(object);
+
         imageBytes = base64Decode(imageBase64);
       } else if (isNetworkUrl) {
-        final ByteData data =
-            await NetworkAssetBundle(Uri.parse(imagePath!)).load(imagePath!);
-        imageBytes = data.buffer.asUint8List();
+        // Use CachedNetworkImageProvider for disk caching
+        final imageProvider = CachedNetworkImageProvider(imagePath!);
+        final imageStream = imageProvider.resolve(const ImageConfiguration());
+
+        // Create a completer to wait for the image to load
+        final completer = Completer<ui.Image>();
+        imageStream.addListener(
+          ImageStreamListener((ImageInfo info, bool _) {
+            completer.complete(info.image);
+          }, onError: (error, stackTrace) {
+            completer.completeError(error, stackTrace);
+          }),
+        );
+
+        final ui.Image cachedImage = await completer.future;
+        _playerImageCache[imageSourceIdentifier] = cachedImage;
+        _playerImageSprite = Sprite(cachedImage);
+        _isLoadingImage = false;
+        return; // Early return for network images
       } else if (imagePath != null && imagePath.isNotEmpty) {
         final file = File(imagePath);
         if (await file.exists()) {
@@ -184,6 +206,12 @@ class PlayerComponent extends FieldComponent<PlayerModel>
 
     ref.read(boardProvider.notifier).toggleItemDrag(true); // <-- RESTORE THIS
     ref.read(boardProvider.notifier).clearGuides(); // <-- Good to add this here
+
+    // Show drop zone visual indicator
+    if (game is TacticBoard) {
+      (game as TacticBoard).dropZone.show();
+    }
+
     event.continuePropagation = false;
   }
 
@@ -192,6 +220,28 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     super.onDragEnd(event);
     ref.read(boardProvider.notifier).toggleItemDrag(false); // <-- RESTORE THIS
     ref.read(boardProvider.notifier).clearGuides();
+
+    // Hide drop zone visual indicator
+    if (game is TacticBoard) {
+      (game as TacticBoard).dropZone.hide();
+    }
+
+    // Check if player was dragged to the drop zone (left of field)
+    final fieldLeftBoundary = game.gameField.position.x;
+    if (position.x < fieldLeftBoundary) {
+      // Player dragged to roster area - remove from pitch
+      // 1. Remove from game canvas
+      game.remove(this);
+      // 2. Remove from state using existing method (will auto-return to roster via filtering)
+      ref.read(boardProvider.notifier).removeFieldItems([object]);
+
+      // 3. Trigger save
+      if (game is TacticBoard) {
+        (game as TacticBoard)
+            .triggerImmediateSave(reason: 'Player removed via drag');
+      }
+      return; // Don't save position, player is being removed
+    }
 
     // Phase 1: Trigger immediate save after drag
     if (game is TacticBoard) {
@@ -204,6 +254,11 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     super.onDragCancel(event);
     ref.read(boardProvider.notifier).toggleItemDrag(false); // <-- RESTORE THIS
     ref.read(boardProvider.notifier).clearGuides();
+
+    // Hide drop zone visual indicator
+    if (game is TacticBoard) {
+      (game as TacticBoard).dropZone.hide();
+    }
   }
 
   @override
@@ -356,7 +411,6 @@ class PlayerComponent extends FieldComponent<PlayerModel>
                 "Successfully updated master player DB for ${result.updatedPlayer.id}");
       } catch (e) {
         zlog(data: "Failed to update master player DB: $e");
-        BotToast.showText(text: "Error saving player update.");
         // We can still continue to update the local state to keep the UI responsive
       }
 
@@ -404,6 +458,16 @@ class PlayerComponent extends FieldComponent<PlayerModel>
 
     canvas.save();
     canvas.clipRRect(rrect);
+
+    // Apply red tint when component is in drop zone
+    final fieldLeftBoundary = game.gameField.position.x;
+    if (position.x < fieldLeftBoundary) {
+      final redTint = ColorFilter.mode(
+        ColorManager.red.withOpacity(0.5),
+        BlendMode.srcATop,
+      );
+      canvas.saveLayer(rect, Paint()..colorFilter = redTint);
+    }
 
     // --- THIS IS THE CRITICAL LOGIC ---
     if (_isLoadingImage) {
@@ -473,6 +537,11 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       }
     }
     // --- END NEW RENDER LOGIC ---
+
+    // Restore layer if red tint was applied
+    if (position.x < fieldLeftBoundary) {
+      canvas.restore();
+    }
 
     canvas.restore();
 

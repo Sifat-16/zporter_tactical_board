@@ -159,9 +159,7 @@ class _SettingsToolbarComponentState
                   .bodyMedium!
                   .copyWith(color: ColorManager.white),
             ),
-
             SizedBox(height: 10),
-
             ColorSlider(
               initialColor: boardState.awayTeamBorderColor,
               colors: const [
@@ -393,9 +391,9 @@ class _SettingsToolbarComponentState
           data: SliderTheme.of(context).copyWith(
             trackHeight: 4, // From ColorSlider
             thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 6), // From ColorSlider
+                enabledThumbRadius: 10), // Comfortable thumb size
             overlayShape: const RoundSliderOverlayShape(
-                overlayRadius: 2), // From ColorSlider
+                overlayRadius: 24), // Larger touch area for better usability
             // We DON'T make the track transparent, so it's visible
           ),
           child: Slider(

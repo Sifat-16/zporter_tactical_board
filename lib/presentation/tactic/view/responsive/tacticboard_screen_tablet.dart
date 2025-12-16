@@ -25,6 +25,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view/component/lefttoolbarV2/lefttoolbar_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/r&d/game_screen.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/righttoolbar_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/sync/sync_status_indicator.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
@@ -925,7 +926,7 @@ class _TacticboardScreenTabletState
                             onTap: () {
                               _showTutorialSelectionDialog(context);
                             },
-                            child: Icon(
+                            child: const Icon(
                               Icons.school_outlined,
                               color: Colors.white,
                             ),

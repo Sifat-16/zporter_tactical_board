@@ -870,17 +870,14 @@ class AnimationController extends StateNotifier<AnimationState> {
     selectedAnimation.animationScenes.add(newAnimationItemModel);
 
     // 5. Save the ENTIRE collection (which now has the updated Scene A AND the new Scene B)
+    // Note: With local-first architecture, this save is instant (~30-50ms to local storage)
+    // Firebase sync happens in background, no need for loading spinner
     try {
-      // Show the save spinner that your UI already listens for
-      toggleLoadingSave(showLoading: true);
       selectedCollection =
           await _saveAnimationCollectionUseCase.call(selectedCollection);
     } catch (e) {
       zlog(data: "Error saving new scene: $e");
       BotToast.showText(text: "Error saving new scene.");
-    } finally {
-      // Hide the spinner
-      toggleLoadingSave(showLoading: false);
     }
 
     // 6. FINALLY, update the state ONCE to select the new, correct scene.
@@ -1160,44 +1157,74 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   Future<AnimationItemModel?> _onSaveDefault() async {
     try {
-      int index = state.defaultAnimationItemIndex;
-      List<AnimationItemModel> defaultAnimations = state.defaultAnimationItems;
+      // Get the current scene being edited
+      AnimationItemModel? currentScene = state.selectedScene;
+      if (currentScene == null) {
+        return null;
+      }
 
-      AnimationItemModel changeModel = defaultAnimations[index].clone();
-
-      changeModel.components =
+      // Update the scene with current board state
+      currentScene.components =
           ref.read(boardProvider.notifier).onAnimationSave();
-      changeModel.fieldSize =
+      currentScene.fieldSize =
           ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
 
-      defaultAnimations[index] = changeModel;
-      zlog(
-          data:
-              "Default animation model List ${changeModel.components} - ${changeModel.boardBackground}");
-      SaveDefaultAnimationParam defaultAnimationParam =
+      // Update timestamp
+      currentScene = currentScene.copyWith(updatedAt: DateTime.now());
+
+      // Get user's default animation items list
+      List<AnimationItemModel> defaultItems =
+          List.from(state.defaultAnimationItems);
+
+      // Find the scene in user's default animations list
+      int index = defaultItems.indexWhere((s) => s.id == currentScene!.id);
+      if (index != -1) {
+        // Update the scene in the list
+        defaultItems[index] = currentScene;
+
+        // Save using offline-first repository
+        final savedItems = await _saveDefaultAnimationUseCase.call(
           SaveDefaultAnimationParam(
-        animationItems: defaultAnimations,
-        userId: _getUserId(),
-      );
-      List<AnimationItemModel> cst =
-          await _saveDefaultAnimationUseCase.call(defaultAnimationParam);
+            animationItems: defaultItems,
+            userId: _getUserId(),
+          ),
+        );
 
-      zlog(
-          data:
-              "After saved the data the CST came ${cst} - ${defaultAnimationParam}",
-          show: true);
+        // Update state with the saved items
+        state = state.copyWith(
+          defaultAnimationItems: savedItems,
+          selectedScene: currentScene,
+        );
 
-      state = state.copyWith(selectedScene: changeModel);
-      return changeModel;
+        return currentScene;
+      } else {
+        // Scene not in list, add it as new
+        defaultItems.add(currentScene);
+
+        final savedItems = await _saveDefaultAnimationUseCase.call(
+          SaveDefaultAnimationParam(
+            animationItems: defaultItems,
+            userId: _getUserId(),
+          ),
+        );
+
+        state = state.copyWith(
+          defaultAnimationItems: savedItems,
+          selectedScene: currentScene,
+          defaultAnimationItemIndex: savedItems.length - 1,
+        );
+
+        return currentScene;
+      }
     } catch (e) {
-      zlog(data: "Default Auto save failed $e", show: true);
+      zlog(data: "Default animation save failed: $e", level: Level.error);
     }
     return null;
   }
 
   Future<AnimationItemModel?> updateDatabaseOnChange({
     required bool saveToDb,
-    bool isAutoSave = true, // Phase 1: Track if this is auto-save or manual
+    bool isAutoSave = true,
   }) async {
     // Set save lock if actually saving to database
     if (saveToDb) {
@@ -1205,20 +1232,15 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
 
     try {
-      // CRITICAL FIX: Save current state to history BEFORE updating
-      // Phase 1: Skip history on auto-save to reduce write operations
+      // Save current state to history BEFORE updating
+      // Skip history on auto-save to reduce write operations
       bool shouldSaveHistory = saveToDb &&
           !state.skipHistorySave &&
           state.selectedScene != null &&
           !(isAutoSave && FeatureFlags.enableHistoryOptimization);
 
       if (shouldSaveHistory) {
-        zlog(data: "Saving current state to history before update...");
         await _saveToHistory(scene: state.selectedScene!);
-      } else if (isAutoSave &&
-          FeatureFlags.enableHistoryOptimization &&
-          FeatureFlags.enableSaveDebugLogs) {
-        zlog(data: "History save skipped for auto-save (optimization enabled)");
       }
 
       if (saveToDb == false) {
@@ -1229,20 +1251,43 @@ class AnimationController extends StateNotifier<AnimationState> {
         changeModel.fieldSize =
             ref.read(boardProvider.notifier).fetchFieldSize() ?? Vector2.zero();
         state = state.copyWith(selectedScene: changeModel);
+
+        // If in admin/default animation mode (no collection but has animation),
+        // trigger the admin save directly
+        if (state.selectedAnimationCollectionModel == null &&
+            state.selectedAnimationModel != null) {
+          _onAnimationSaveAdmin(
+            selectedAnimation: state.selectedAnimationModel!,
+            selectedScene: changeModel,
+            showLoading: false,
+          );
+        }
+
         return changeModel;
       }
+
       AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+
       if (selectedAnimationModel == null) {
         try {
-          zlog(data: "Came on selected animation null", show: true);
           return await _onSaveDefault();
         } catch (e) {
-          zlog(data: "Auto save error");
+          zlog(data: "Auto save error: $e", level: Level.error);
         }
       } else {
         /// working on saved animation
         try {
-          zlog(data: "Came on _onAnimationSave", show: true);
+          // Check if we're in admin/default animation mode (no collection)
+          if (state.selectedAnimationCollectionModel == null) {
+            // Default animation mode - use admin save
+            return await _onAnimationSaveAdmin(
+              selectedAnimation: state.selectedAnimationModel!,
+              selectedScene: state.selectedScene!,
+              showLoading: false,
+            );
+          }
+
+          // Regular user animation - use normal save
           return await _onAnimationSave(
             selectedCollection: state.selectedAnimationCollectionModel!,
             selectedAnimation: state.selectedAnimationModel!,
@@ -1251,7 +1296,7 @@ class AnimationController extends StateNotifier<AnimationState> {
             saveToDb: saveToDb,
           );
         } catch (e) {
-          zlog(data: "Auto save error");
+          zlog(data: "Auto save error: $e", level: Level.error);
         }
       }
       return null;
@@ -1535,10 +1580,22 @@ class AnimationController extends StateNotifier<AnimationState> {
   /// Admin area
 
   void activateDefaultAnimation({required AnimationModel animationModel}) {
+    print(
+        '🟢 activateDefaultAnimation called with animation: ${animationModel.id}');
+    print('🟢 Animation has ${animationModel.animationScenes.length} scenes');
+    print(
+        '🟢 Before state update - selectedAnimationModel: ${state.selectedAnimationModel?.id}, collection: ${state.selectedAnimationCollectionModel?.id}');
+
     state = state.copyWith(
+      selectedAnimationCollectionModel:
+          null, // CRITICAL: Clear collection for admin mode
       selectedAnimationModel: animationModel,
       selectedScene: animationModel.animationScenes.firstOrNull,
     );
+
+    print(
+        '🟢 After state update - selectedAnimationModel: ${state.selectedAnimationModel?.id}, collection: ${state.selectedAnimationCollectionModel?.id}');
+    print('🟢 selectedScene: ${state.selectedScene?.id}');
   }
 
   void addNewSceneFromAdmin({
@@ -1576,6 +1633,10 @@ class AnimationController extends StateNotifier<AnimationState> {
     bool showLoading = true,
     bool saveToDb = true,
   }) async {
+    print('📝 _onAnimationSaveAdmin START');
+    BotToast.showText(
+        text: '📝 _onAnimationSaveAdmin START', duration: Duration(seconds: 3));
+
     List<FieldItemModel> components =
         ref.read(boardProvider.notifier).onAnimationSave();
 
@@ -1588,8 +1649,15 @@ class AnimationController extends StateNotifier<AnimationState> {
     if (sceneIndex != -1) {
       selectedAnimation.animationScenes[sceneIndex] = selectedScene;
 
+      BotToast.showText(
+          text: '💾 Calling repository.saveDefaultAnimation...',
+          duration: Duration(seconds: 3));
+
       selectedAnimation = await _defaultAnimationRepository
           .saveDefaultAnimation(selectedAnimation);
+
+      BotToast.showText(
+          text: '✅ Repository save returned!', duration: Duration(seconds: 3));
 
       state = state.copyWith(
         selectedAnimationModel: selectedAnimation,
@@ -1602,12 +1670,19 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   triggerAutoSaveForAdmin() {
+    BotToast.showText(
+        text: '🎯 triggerAutoSaveForAdmin CALLED',
+        duration: Duration(seconds: 3));
     try {
       _onAnimationSaveAdmin(
         selectedAnimation: state.selectedAnimationModel!,
         selectedScene: state.selectedScene!,
       );
-    } catch (e) {}
+    } catch (e) {
+      BotToast.showText(
+          text: '❌ Error in triggerAutoSaveForAdmin: $e',
+          duration: Duration(seconds: 5));
+    }
   }
 
   void deleteAdminScene({required AnimationItemModel scene}) async {

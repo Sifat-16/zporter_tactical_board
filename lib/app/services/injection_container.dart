@@ -109,6 +109,7 @@ Future<void> initializeTacticBoardDependencies() async {
     () => SyncQueueManager(
       localDataSource: AnimationLocalDatasourceImpl(),
       remoteDataSource: AnimationRemoteDatasourceImpl(),
+      defaultAnimationDataSource: sl.get<DefaultAnimationDatasource>(),
       imageStorageService: FeatureFlags.enableImageOptimization
           ? ImageStorageService()
           : null, // Only inject if image optimization is enabled
@@ -287,8 +288,7 @@ Future<void> initializeTacticBoardDependencies() async {
   // ============================================================
   // CRITICAL: Start the sync orchestrator to enable automatic background sync
   // This must happen AFTER all dependencies are registered
-  // NOTE: Disabled on web due to compatibility issues with embedded mode
-  if (FeatureFlags.enableSyncOrchestrator && !kIsWeb) {
+  if (FeatureFlags.enableSyncOrchestrator) {
     try {
       final orchestrator = sl.get<SyncOrchestratorService>();
       orchestrator.start();
@@ -297,9 +297,6 @@ Future<void> initializeTacticBoardDependencies() async {
       print('[Init] Failed to start sync orchestrator: $e');
       // Non-critical - app can continue without background sync
     }
-  } else if (kIsWeb) {
-    print(
-        '[Init] Sync orchestrator disabled on web (not needed for embedded mode)');
   }
 }
 

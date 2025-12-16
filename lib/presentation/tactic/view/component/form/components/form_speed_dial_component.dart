@@ -26,6 +26,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/c
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/sync/sync_status_indicator.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart'; // Adjust path
@@ -344,6 +345,9 @@ class _FormSpeedDialComponentState
               mainAxisAlignment:
                   MainAxisAlignment.end, // Your original alignment
               children: [
+                // Sync status indicator - always visible
+                const SyncStatusIndicator(),
+                const SizedBox(width: 12),
                 if (config.showBackButton)
                   GestureDetector(
                     onTap: () {
@@ -374,10 +378,8 @@ class _FormSpeedDialComponentState
                 //     ),
 
                 if (config.showFullScreenButton)
-                  // --- THIS IS THE FIX ---
-                  // We check both the general auto-save flag (ap.showLoadingOnSave)
-                  // AND the new toggle-specific flag (bp.isTogglingFullscreen).
-                  if (ap.showLoadingOnSave || bp.isTogglingFullscreen)
+                  // Only show loading during fullscreen toggle transition
+                  if (bp.isTogglingFullscreen)
                     SizedBox(
                       height: 16,
                       width: 16,
@@ -386,10 +388,8 @@ class _FormSpeedDialComponentState
                       ),
                     )
                   else
-                    // If no saves are happening, show the normal button.
                     GestureDetector(
                       onTap: () {
-                        // This now correctly calls your new ASYNC method in the controller.
                         ref.read(boardProvider.notifier).toggleFullScreen();
                       },
                       child: Icon(
@@ -601,16 +601,12 @@ class _FormSpeedDialComponentState
                 ),
                 const SizedBox(width: 10),
                 if (config.showAddNewSceneButton)
-                  if (ap.showLoadingOnSave)
-                    Icon(CupertinoIcons.add_circled,
-                        color: ColorManager.white.withValues(alpha: 0.6))
-                  else
-                    _buildAddNewScene(
-                      selectedCollection: collectionModel,
-                      collectionList: collectionList,
-                      selectedAnimation: animationModel,
-                      selectedScene: selectedScene,
-                    ),
+                  _buildAddNewScene(
+                    selectedCollection: collectionModel,
+                    collectionList: collectionList,
+                    selectedAnimation: animationModel,
+                    selectedScene: selectedScene,
+                  ),
                 const SizedBox(width: 10),
                 if (config.showTrashButton)
                   GestureDetector(
