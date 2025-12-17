@@ -6,7 +6,13 @@
 ///
 /// Based on the ng-flutter example from Flutter samples:
 /// https://github.com/flutter/samples/tree/main/web_embedding/ng-flutter
+///
+/// This library uses conditional exports to provide web-specific implementations
+/// on web platforms and stub implementations on mobile/desktop platforms.
 library;
 
-export 'tactical_board_state_manager.dart';
-export 'helper.dart' show broadcastAppEvent;
+// Export web implementations for web, stub implementations for mobile/desktop
+export 'tactical_board_state_manager_web.dart'
+    if (dart.library.io) 'tactical_board_state_manager_stub.dart';
+export 'helper_web.dart' if (dart.library.io) 'helper_stub.dart'
+    show broadcastAppEvent;
