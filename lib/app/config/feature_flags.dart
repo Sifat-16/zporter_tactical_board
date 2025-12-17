@@ -65,9 +65,10 @@ class FeatureFlags {
   static const int maxSyncQueueSize = 50;
   static const int maxSyncRetries = 3;
 
-  /// Periodic sync interval (minutes)
+  /// Periodic sync interval (seconds)
   /// How often to check for pending sync operations
-  static const int periodicSyncIntervalMinutes = 5;
+  /// Changed from 5 minutes to 30 seconds for faster user feedback
+  static const int periodicSyncIntervalSeconds = 30;
 
   /// Debounce delay for connectivity changes (seconds)
   /// Prevents rapid sync triggers during network fluctuations
@@ -83,7 +84,7 @@ class FeatureFlags {
 
   /// Master switch for all offline-first features
   /// Set to false to instantly rollback to original behavior
-  static const bool useOfflineFirstArchitecture = false;
+  static const bool useOfflineFirstArchitecture = true;
 
   // ============================================================
   // DEBUGGING & MONITORING

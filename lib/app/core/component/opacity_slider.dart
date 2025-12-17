@@ -6,7 +6,7 @@ class OpacitySlider extends StatefulWidget {
   final double initial;
 
   const OpacitySlider({Key? key, this.onOpacityChanged, required this.initial})
-    : super(key: key);
+      : super(key: key);
 
   @override
   _OpacitySliderState createState() => _OpacitySliderState();
@@ -47,10 +47,10 @@ class _OpacitySliderState extends State<OpacitySlider> {
             data: SliderTheme.of(context).copyWith(
               trackHeight: 4, // Makes the track thinner
               thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 8, // Smaller thumb size
+                enabledThumbRadius: 10, // Comfortable thumb size
               ),
               overlayShape: const RoundSliderOverlayShape(
-                overlayRadius: 12, // Adjust overlay size
+                overlayRadius: 24, // Larger touch area for better usability
               ),
               inactiveTrackColor: Colors.grey[400], // Inactive track color
               activeTrackColor: Colors.grey, // Active track color
@@ -74,10 +74,10 @@ class _OpacitySliderState extends State<OpacitySlider> {
             Text(
               '${(_opacityValue * 100).round()}%', // Display percentage
               style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                color: ColorManager.grey,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
+                    color: ColorManager.grey,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
             ),
           ],
         ),

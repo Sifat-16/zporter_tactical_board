@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/manager/values_manager.dart';
+import 'package:zporter_tactical_board/app/services/image_migration/image_migration_service.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
@@ -39,6 +41,9 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
     // Priority 1: Check for Base64 (for any old data)
     if (model.imageBase64 != null && model.imageBase64!.isNotEmpty) {
       try {
+        // Trigger lazy migration in background
+        ImageMigrationService().queueForMigration(model);
+
         return MemoryImage(base64Decode(model.imageBase64!));
       } catch (e) {
         zlog(data: "Failed to decode base64 in PlayerComponentV2: $e");
@@ -48,9 +53,9 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
 
     // Priority 2: Check imagePath (which can be a Network URL or Local File Path)
     if (model.imagePath != null && model.imagePath!.isNotEmpty) {
-      // Check if it's a network URL
+      // Check if it's a network URL - use cached provider for better performance
       if (model.imagePath!.startsWith('http')) {
-        return NetworkImage(model.imagePath!);
+        return CachedNetworkImageProvider(model.imagePath!);
       }
       // Check if it's a local file path
       else {

@@ -61,7 +61,7 @@ class _ColorSliderState extends State<ColorSlider> {
         // Check every 5% along segment
         Color lerpedColor =
             Color.lerp(widget.colors[i], widget.colors[i + 1], t) ??
-            widget.colors[i];
+                widget.colors[i];
         double diff = _colorDifference(targetColor, lerpedColor);
         if (diff < minDifference) {
           minDifference = diff;
@@ -109,9 +109,9 @@ class _ColorSliderState extends State<ColorSlider> {
     int sectionCount = widget.colors.length - 1;
     double scaledValue = value * sectionCount;
     int index = scaledValue.floor().clamp(
-      0,
-      sectionCount - 1,
-    ); // Ensure index is valid
+          0,
+          sectionCount - 1,
+        ); // Ensure index is valid
 
     // Ensure t is between 0.0 and 1.0
     double t = (scaledValue - index).clamp(0.0, 1.0);
@@ -154,8 +154,8 @@ class _ColorSliderState extends State<ColorSlider> {
           child: SliderTheme(
             data: SliderTheme.of(context).copyWith(
               trackHeight: 4,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
               // Make track transparent so gradient shows through
               activeTrackColor: Colors.transparent,
               inactiveTrackColor: Colors.transparent,

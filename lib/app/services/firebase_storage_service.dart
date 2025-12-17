@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:logger/logger.dart';
@@ -56,6 +57,44 @@ class FirebaseStorageService {
       rethrow; // Re-throw to be caught by the UI
     } catch (e) {
       zlog(level: Level.error, data: "General upload error: $e");
+      rethrow;
+    }
+  }
+
+  // Upload player image from bytes (for base64 migration)
+  Future<String> uploadPlayerImageFromBytes({
+    required List<int> imageBytes,
+    required String playerId,
+  }) async {
+    try {
+      final FirebaseApp storageApp = Firebase.app(_storageAppName);
+      final FirebaseStorage storage =
+          FirebaseStorage.instanceFor(app: storageApp);
+
+      final String filePath = 'football_pad/player_images/$playerId.jpg';
+      final Reference ref = storage.ref().child(filePath);
+
+      zlog(
+          data:
+              "[Migration] Uploading image bytes to $filePath in bucket: ${storage.bucket}...");
+
+      // Upload bytes directly
+      UploadTask task = ref.putData(
+        Uint8List.fromList(imageBytes),
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      TaskSnapshot snapshot = await task;
+
+      String downloadURL = await snapshot.ref.getDownloadURL();
+      zlog(data: "[Migration] Upload complete. URL: $downloadURL");
+      return downloadURL;
+    } on FirebaseException catch (e) {
+      zlog(
+          level: Level.error,
+          data: "[Migration] Firebase Storage upload error: ${e.message}");
+      rethrow;
+    } catch (e) {
+      zlog(level: Level.error, data: "[Migration] General upload error: $e");
       rethrow;
     }
   }
