@@ -222,10 +222,12 @@ class SyncQueueManager {
 
       zlog(
         level: Level.info,
-        data: 'Processing sync queue: ${snapshots.length} operations',
+        data:
+            '🚀 Processing sync queue: ${snapshots.length} operations in parallel',
       );
 
-      for (final snapshot in snapshots) {
+      // Process all operations in parallel using Future.wait()
+      final futures = snapshots.map((snapshot) async {
         try {
           final operation = SyncOperation.fromJson(snapshot.value);
 
@@ -233,7 +235,7 @@ class SyncQueueManager {
           if (operation.status == SyncOperationStatus.processing ||
               operation.status == SyncOperationStatus.completed ||
               !operation.isReadyToRetry) {
-            continue;
+            return;
           }
 
           // Process the operation
@@ -245,7 +247,10 @@ class SyncQueueManager {
                 'Error processing sync operation ${snapshot.key}: $e\n$stackTrace',
           );
         }
-      }
+      }).toList();
+
+      // Wait for all operations to complete
+      await Future.wait(futures);
 
       // Update status after processing
       await _updateStatus();
