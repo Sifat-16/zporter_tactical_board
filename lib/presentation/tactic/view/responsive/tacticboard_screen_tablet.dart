@@ -17,6 +17,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/app/services/js_interop/js_interop.dart';
 import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
+import 'package:zporter_tactical_board/app/services/sync/sync_queue_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -437,14 +438,40 @@ class _TacticboardScreenTabletState
         return;
       }
 
-      // Save to Firebase via animation provider
+      // Save to Firebase via animation provider (saves to local Sembast + enqueues sync)
       await ref
           .read(animationProvider.notifier)
           .updateDatabaseOnChange(saveToDb: true);
 
       zlog(
           data:
-              "Saved to Firebase - Collection: ${selectedCollection.id}, Animation: ${selectedAnimation.id}");
+              "Saved to local - Collection: ${selectedCollection.id}, Animation: ${selectedAnimation.id}");
+
+      // Step 1.5: FORCE IMMEDIATE SYNC - Process all pending operations in sync queue
+      // This ensures data is in Firestore before we return to web app
+      // CRITICAL: We wait for FULL sync completion - no timeout
+      // The web app should have a generous timeout (60+ seconds) to handle large syncs
+      zlog(
+          data:
+              "Forcing immediate Firestore sync of ALL pending operations (this may take time)...");
+      final syncStartTime = DateTime.now();
+      try {
+        final syncManager = sl.get<SyncQueueManager>();
+        await syncManager.processQueue();
+        final syncDuration = DateTime.now().difference(syncStartTime);
+        zlog(
+            data:
+                "✅ SUCCESS: All data synced to Firestore in ${syncDuration.inSeconds} seconds");
+      } catch (syncError) {
+        final syncDuration = DateTime.now().difference(syncStartTime);
+        zlog(
+            data:
+                "❌ ERROR: Firestore sync failed after ${syncDuration.inSeconds} seconds: $syncError");
+        BotToast.showText(
+            text:
+                "Saved locally - cloud sync failed. Will retry automatically.");
+        // Don't throw - data is safe in local storage and will retry
+      }
 
       // Step 2: Handle thumbnail
       // Priority: 1. Use existing thumbnail if provided (user-uploaded or previously generated)
