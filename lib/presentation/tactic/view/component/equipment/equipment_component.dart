@@ -208,8 +208,15 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
   // UPDATED: This render method now uses the altitude and visualSize properties.
   @override
   void render(Canvas canvas) {
-    tint(object.color ?? ColorManager.white);
-    opacity = object.opacity ?? 1;
+    // Apply red tint when component is in drop zone
+    final fieldLeftBoundary = game.gameField.position.x;
+    if (position.x < fieldLeftBoundary) {
+      tint(ColorManager.red);
+      opacity = 0.5;
+    } else {
+      tint(object.color ?? ColorManager.white);
+      opacity = object.opacity ?? 1;
+    }
     // Use the temporary visual size if available, otherwise use the model's size.
     size = visualSize ?? object.size ?? Vector2(AppSize.s32, AppSize.s32);
 
@@ -324,6 +331,12 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
 
     ref.read(boardProvider.notifier).toggleItemDrag(true);
     ref.read(boardProvider.notifier).clearGuides();
+
+    // Show drop zone visual indicator
+    if (game is TacticBoard) {
+      (game as TacticBoard).dropZone.show();
+    }
+
     event.continuePropagation = false;
   }
 
@@ -332,6 +345,28 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
     super.onDragEnd(event);
     ref.read(boardProvider.notifier).toggleItemDrag(false);
     ref.read(boardProvider.notifier).clearGuides();
+
+    // Hide drop zone visual indicator
+    if (game is TacticBoard) {
+      (game as TacticBoard).dropZone.hide();
+    }
+
+    // Check if equipment was dragged to the drop zone (left of field)
+    final fieldLeftBoundary = game.gameField.position.x;
+    if (position.x < fieldLeftBoundary) {
+      // Equipment dragged to repository area - remove from pitch
+      // 1. Remove from game canvas
+      game.remove(this);
+      // 2. Remove from state using existing method (equipment stays in repository, instance removed)
+      ref.read(boardProvider.notifier).removeFieldItems([object]);
+
+      // 3. Trigger save
+      if (game is TacticBoard) {
+        (game as TacticBoard)
+            .triggerImmediateSave(reason: 'Equipment removed via drag');
+      }
+      return; // Don't save position, equipment is being removed
+    }
 
     // Phase 1: Trigger immediate save after drag
     if (game is TacticBoard) {
@@ -344,5 +379,10 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
     super.onDragCancel(event);
     ref.read(boardProvider.notifier).toggleItemDrag(false);
     ref.read(boardProvider.notifier).clearGuides();
+
+    // Hide drop zone visual indicator
+    if (game is TacticBoard) {
+      (game as TacticBoard).dropZone.hide();
+    }
   }
 }

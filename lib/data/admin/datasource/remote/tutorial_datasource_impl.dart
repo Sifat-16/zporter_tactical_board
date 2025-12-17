@@ -37,6 +37,7 @@ class TutorialDatasourceHybridImpl implements TutorialDatasource {
     final snapshot = await _tutorialsRef.get();
     return snapshot.docs.map((doc) => Tutorial.fromJson(doc.data())).toList();
   }
+  
 
   @override
   Future<Tutorial> saveTutorial(Tutorial tutorial) async {

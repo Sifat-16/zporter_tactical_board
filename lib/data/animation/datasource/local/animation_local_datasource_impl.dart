@@ -17,6 +17,10 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
   static final _defaultAnimationItemStore = stringMapStoreFactory.store(
     'default_animation_items',
   );
+  // Store for default animations (full AnimationModel, system-wide)
+  static final _defaultAnimationsStore = stringMapStoreFactory.store(
+    'default_animations',
+  );
 
   static final _historyStore = stringMapStoreFactory.store('animation_history');
 
@@ -104,6 +108,62 @@ class AnimationLocalDatasourceImpl implements AnimationDatasource {
       throw Exception(
         "Error getting animation collections locally for user $userId: $e",
       );
+    }
+  }
+
+  // --- Default AnimationModel Methods (System-wide) ---
+
+  Future<AnimationModel?> getDefaultAnimationById(String animationId) async {
+    try {
+      final db = await SemDB.database;
+      final snapshot =
+          await _defaultAnimationsStore.record(animationId).get(db);
+      if (snapshot == null) return null;
+      return AnimationModel.fromJson(snapshot);
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data:
+            "Sembast: Error getting default animation $animationId: $e\n$stackTrace",
+      );
+      return null;
+    }
+  }
+
+  Future<AnimationModel> saveDefaultAnimationModel(
+      AnimationModel animation) async {
+    try {
+      final db = await SemDB.database;
+      await _defaultAnimationsStore
+          .record(animation.id)
+          .put(db, animation.toJson());
+      zlog(
+        level: Level.debug,
+        data: "Sembast: Saved default animation ${animation.id}",
+      );
+      return animation;
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: "Sembast: Error saving default animation: $e\n$stackTrace",
+      );
+      throw Exception("Error saving default animation locally: $e");
+    }
+  }
+
+  Future<List<AnimationModel>> getAllDefaultAnimationModels() async {
+    try {
+      final db = await SemDB.database;
+      final snapshots = await _defaultAnimationsStore.find(db);
+      return snapshots
+          .map((snapshot) => AnimationModel.fromJson(snapshot.value))
+          .toList();
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: "Sembast: Error getting all default animations: $e\n$stackTrace",
+      );
+      return [];
     }
   }
 

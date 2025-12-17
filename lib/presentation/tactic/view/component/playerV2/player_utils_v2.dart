@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
@@ -613,7 +614,8 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   // String? _currentImageBase64;
 
   final FirebaseStorageService _storageService = FirebaseStorageService();
-  File? _pendingImageFile; // This will hold the new image the user picked
+  CroppedFile?
+      _pendingImageFile; // This will hold the new image the user picked (works on web & mobile)
   String? _existingImagePath; // This will hold the player's current path/base64
   String? _existingImageBase64;
   Color? _selectedBorderColor; // Custom border color
@@ -654,13 +656,16 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   }
 
   String _isNegativeOrEmpty(String? value) {
-    if (value == null) return '';
-    if (value.isEmpty) return 'Please enter a number.';
+    if (value == null || value.isEmpty) return '';
+
     final intValue = int.tryParse(value);
+    // Return empty string for negative numbers (-1) or invalid input
     if (intValue == null || intValue < 0) {
       return '';
     }
-    return '';
+
+    // Return the actual value for valid positive numbers
+    return value;
   }
 
   @override
@@ -713,6 +718,14 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
             resetAspectRatioEnabled: false,
             aspectRatioPickerButtonHidden: true,
           ),
+          WebUiSettings(
+            context: context,
+            presentStyle: WebPresentStyle.dialog,
+            size: const CropperSize(
+              width: 520,
+              height: 520,
+            ),
+          ),
         ],
       );
 
@@ -720,14 +733,10 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       if (!mounted) return;
       if (croppedFile == null) return;
 
-      // Verify the file exists and is accessible
-      final file = File(croppedFile.path);
-      if (!await file.exists()) {
-        throw Exception('Cropped file does not exist');
-      }
-
+      // Store the CroppedFile directly - it works on both web and mobile
+      // CroppedFile has a readAsBytes() method that works on all platforms
       setState(() {
-        _pendingImageFile = file;
+        _pendingImageFile = croppedFile;
         _existingImageBase64 = null; // Clear old images so the new one shows
         _existingImagePath = null; // Clear old images so the new one shows
       });
@@ -986,15 +995,33 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
               widget.player?.id ?? RandomGenerator.generateId();
 
           // 1. CALL OUR NEW UPLOAD SERVICE
-          final String downloadURL = await _storageService.uploadPlayerImage(
-            imageFile: _pendingImageFile!,
-            playerId: playerIdForUpload,
-          );
+          // On web, we need to use uploadPlayerImageFromBytes since File class doesn't exist
+          final String downloadURL;
+          if (kIsWeb) {
+            final bytes = await _pendingImageFile!.readAsBytes();
+            downloadURL = await _storageService.uploadPlayerImageFromBytes(
+              imageBytes: bytes,
+              playerId: playerIdForUpload,
+            );
+          } else {
+            downloadURL = await _storageService.uploadPlayerImage(
+              imageFile: File(_pendingImageFile!.path),
+              playerId: playerIdForUpload,
+            );
+          }
 
           // 2. This network URL is the new path we will save
           finalImagePath = downloadURL;
           finalBase64 =
               null; // Clear any old base64 data, the URL is the new truth
+
+          // 3. Update the UI state to show the uploaded image immediately
+          setState(() {
+            _existingImagePath = downloadURL;
+            _existingImageBase64 = null;
+            _pendingImageFile =
+                null; // Clear pending file since it's now uploaded
+          });
         } catch (e) {
           zlog(data: "Failed to upload image to Firebase Storage: $e");
           BotToast.showText(text: "Error uploading image. Please try again.");
@@ -1066,7 +1093,13 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
   ImageProvider? _getImageProvider() {
     // 1. Did the user just pick a NEW file? Show that (from the temp path).
     if (_pendingImageFile != null) {
-      return FileImage(_pendingImageFile!);
+      // CroppedFile.path works on both web (blob URL) and mobile (file path)
+      if (kIsWeb) {
+        // On web, use NetworkImage with the blob URL
+        return NetworkImage(_pendingImageFile!.path);
+      } else {
+        return FileImage(File(_pendingImageFile!.path));
+      }
     }
 
     // 2. Is there an existing Base64 string? (for old data)

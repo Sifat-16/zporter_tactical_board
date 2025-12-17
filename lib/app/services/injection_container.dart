@@ -63,12 +63,20 @@ final sl = GetIt.instance;
 
 Future<void> initializeTacticBoardDependencies() async {
   // ============================================================
-  // LOCAL-FIRST APPROACH: Initialize Firebase in background
-  // App starts immediately with local data, Firebase connects when ready
+  // PLATFORM-SPECIFIC FIREBASE INITIALIZATION
+  // Web: Wait for Firebase (synchronous) - required for element embedding
+  // Mobile: Background init (async) - faster app startup with local-first
   // ============================================================
 
-  // Start Firebase initialization in background (non-blocking)
-  _initializeFirebaseInBackground();
+  if (kIsWeb) {
+    // Web: Initialize Firebase synchronously and wait
+    print('[Init] Web detected - waiting for Firebase initialization...');
+    await _initializeFirebaseSynchronously();
+  } else {
+    // Mobile: Initialize Firebase in background (non-blocking)
+    print('[Init] Mobile detected - Firebase initializing in background...');
+    _initializeFirebaseInBackground();
+  }
 
   // Continue with immediate app initialization
   sl.registerLazySingleton<Logger>(() => Logger());
@@ -101,6 +109,7 @@ Future<void> initializeTacticBoardDependencies() async {
     () => SyncQueueManager(
       localDataSource: AnimationLocalDatasourceImpl(),
       remoteDataSource: AnimationRemoteDatasourceImpl(),
+      defaultAnimationDataSource: sl.get<DefaultAnimationDatasource>(),
       imageStorageService: FeatureFlags.enableImageOptimization
           ? ImageStorageService()
           : null, // Only inject if image optimization is enabled
@@ -292,19 +301,49 @@ Future<void> initializeTacticBoardDependencies() async {
 }
 
 // ============================================================
-// BACKGROUND FIREBASE INITIALIZATION (LOCAL-FIRST)
+// ============================================================
+// FIREBASE INITIALIZATION STRATEGIES
 // ============================================================
 
-/// Initialize Firebase in background without blocking app startup.
-/// This is the correct local-first approach:
-/// 1. App starts immediately with local Sembast data
-/// 2. Firebase connects asynchronously when network is available
-/// 3. No timeouts, no delays, no blocking - just start when ready
+/// Initialize Firebase synchronously (Web only)
+/// Web element embedding requires Firebase to be ready before widget loads
+Future<void> _initializeFirebaseSynchronously() async {
+  try {
+    // Check if Firebase is already initialized (important for widget reloads)
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform);
+      print('[Init] Firebase initialized successfully');
+
+      // Configure Firestore after successful initialization
+      _configureFirebaseServices();
+
+      // Initialize secondary Firebase app for image storage
+      _initializeSecondaryFirebaseApp();
+      print('[Init] All Firebase services ready');
+    } else {
+      print('[Init] Firebase already initialized - reusing existing instance');
+    }
+  } catch (e) {
+    print('[Init] Firebase initialization failed: $e');
+    print('[Init] App will continue in offline-only mode');
+    // App continues working fine with local Sembast storage
+  }
+}
+
+/// Initialize Firebase in background without blocking app startup (Mobile only)
+/// Local-first approach: App starts immediately with local data
 void _initializeFirebaseInBackground() {
+  // Check if already initialized
+  if (Firebase.apps.isNotEmpty) {
+    print('[Init] Firebase already initialized - skipping background init');
+    return;
+  }
+
   // Fire and forget - let Firebase initialize whenever it can
   Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
       .then((_) {
-    print('[Init] Firebase initialized successfully');
+    print('[Init] Firebase initialized successfully in background');
 
     // Configure Firestore after successful initialization
     _configureFirebaseServices();
@@ -312,7 +351,7 @@ void _initializeFirebaseInBackground() {
     // Initialize secondary Firebase app for image storage
     _initializeSecondaryFirebaseApp();
   }).catchError((e) {
-    print('[Init] Firebase initialization failed: $e');
+    print('[Init] Firebase background initialization failed: $e');
     print('[Init] App will continue in offline-only mode');
     // App continues working fine with local Sembast storage
   });
@@ -326,14 +365,29 @@ void _configureFirebaseServices() {
       cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
     );
 
-    FlutterError.onError = (errorDetails) {
-      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
-    };
+    // Crashlytics is not available on web
+    if (!kIsWeb) {
+      FlutterError.onError = (errorDetails) {
+        FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+      };
 
-    PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-      return true;
-    };
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+    } else {
+      // Web-specific error handling
+      FlutterError.onError = (errorDetails) {
+        print('[Error] ${errorDetails.exceptionAsString()}');
+        print('[Stack] ${errorDetails.stack}');
+      };
+
+      PlatformDispatcher.instance.onError = (error, stack) {
+        print('[Error] $error');
+        print('[Stack] $stack');
+        return true;
+      };
+    }
 
     print('[Init] Firebase services configured');
   } catch (e) {

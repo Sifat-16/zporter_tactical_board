@@ -37,7 +37,7 @@ enum AnimationShareType { image, video }
 
 final GlobalKey<RiverpodAwareGameWidgetState> gameWidgetKey =
     GlobalKey<RiverpodAwareGameWidgetState>();
-final GlobalKey _gameBoundaryKey = GlobalKey();
+final GlobalKey gameBoundaryKey = GlobalKey();
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({
@@ -46,11 +46,13 @@ class GameScreen extends ConsumerStatefulWidget {
     this.config,
     this.saveToDb = true,
     this.onSceneSave,
+    this.isPlayerMode = false,
   });
   final AnimationItemModel? scene;
   final FormSpeedDialConfig? config;
   final bool saveToDb;
   final Function(AnimationItemModel?)? onSceneSave;
+  final bool isPlayerMode;
 
   @override
   ConsumerState<GameScreen> createState() => _GameScreenState();
@@ -710,7 +712,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 child: Stack(
                   children: [
                     RepaintBoundary(
-                        key: _gameBoundaryKey,
+                        key: gameBoundaryKey,
                         child: WidgetCaptureXPlus(
                             controller: _widgetCaptureXPlusController,
                             childToRecord: Container(
@@ -823,7 +825,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       }
                                       if (selectedAnimation == null) {
                                         await AnimationSharer.captureAndShare(
-                                            _gameBoundaryKey,
+                                            gameBoundaryKey,
                                             context: context,
                                             fileName: FileNameGenerator
                                                 .generateZporterCaptureFilename());
@@ -833,7 +835,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                                 context, 'Share As');
                                         if (type == AnimationShareType.image) {
                                           await AnimationSharer.captureAndShare(
-                                              _gameBoundaryKey,
+                                              gameBoundaryKey,
                                               context: context,
                                               fileName: FileNameGenerator
                                                   .generateZporterCaptureFilename());
@@ -936,8 +938,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                       }
                                       if (selectedAnimation == null) {
                                         await AnimationDownloader
-                                            .captureAndDownload(
-                                                _gameBoundaryKey,
+                                            .captureAndDownload(gameBoundaryKey,
                                                 fileName: FileNameGenerator
                                                     .generateZporterCaptureFilename());
                                       } else {
@@ -947,7 +948,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                         if (type == AnimationShareType.image) {
                                           await AnimationDownloader
                                               .captureAndDownload(
-                                                  _gameBoundaryKey,
+                                                  gameBoundaryKey,
                                                   fileName: FileNameGenerator
                                                       .generateZporterCaptureFilename());
                                         } else if (type ==
@@ -1026,7 +1027,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     // Trajectory editing toolbar removed - now in design toolbar
                     if (bp.animatingObj?.isAnimating == true &&
                         !bp.animatingObj!.isExporting &&
-                        _currentExportDialogContext == null)
+                        _currentExportDialogContext == null &&
+                        !widget.isPlayerMode)
                       Positioned(
                         /* ... (Close button for normal animation) ... */
                         top: 10.0,

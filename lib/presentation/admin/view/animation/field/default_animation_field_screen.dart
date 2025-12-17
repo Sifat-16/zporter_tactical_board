@@ -1,3 +1,4 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
@@ -58,10 +59,23 @@ class _DefaultAnimationFieldScreenState
         });
       }
       try {
+        print(
+            '🎬 DefaultAnimationFieldScreen: About to call activateDefaultAnimation');
+        print('🎬 Animation ID: ${widget.animationModel.id}');
+        print('🎬 Animation name: ${widget.animationModel.name}');
+        print(
+            '🎬 Number of scenes: ${widget.animationModel.animationScenes.length}');
+        if (widget.animationModel.animationScenes.isNotEmpty) {
+          print(
+              '🎬 First scene ID: ${widget.animationModel.animationScenes.first.id}');
+        }
         ref
             .read(animationProvider.notifier)
             .activateDefaultAnimation(animationModel: widget.animationModel);
-      } catch (e) {}
+        print('🎬 activateDefaultAnimation call completed');
+      } catch (e) {
+        print('❌ Error calling activateDefaultAnimation: $e');
+      }
     });
   }
 
@@ -217,8 +231,12 @@ class _DefaultAnimationFieldScreenState
       padding: EdgeInsets.all(5),
       child: GameScreen(
         scene: selectedScene,
-        saveToDb: false,
+        // saveToDb: true is the default - let it use normal save flow
+        // which now detects admin mode automatically
         onSceneSave: (a) {
+          BotToast.showText(
+              text: '🔔 onSceneSave CALLBACK FIRED!',
+              duration: Duration(seconds: 5));
           ref.read(animationProvider.notifier).triggerAutoSaveForAdmin();
           zlog(data: "Animation item found for save triggered ${a?.toJson()}");
         },

@@ -54,10 +54,10 @@ class _CustomSliderState extends State<CustomSlider> {
             data: SliderTheme.of(context).copyWith(
               trackHeight: 4, // Makes the track thinner
               thumbShape: const RoundSliderThumbShape(
-                enabledThumbRadius: 8, // Smaller thumb size
+                enabledThumbRadius: 10, // Comfortable thumb size
               ),
               overlayShape: const RoundSliderOverlayShape(
-                overlayRadius: 12, // Adjust overlay size
+                overlayRadius: 24, // Larger touch area for better usability
               ),
               inactiveTrackColor: Colors.grey[400], // Inactive track color
               activeTrackColor: Colors.grey, // Active track color
@@ -81,10 +81,10 @@ class _CustomSliderState extends State<CustomSlider> {
             Text(
               '${(_value).round()}', // Display percentage
               style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                color: ColorManager.grey,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
+                    color: ColorManager.grey,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
             ),
           ],
         ),

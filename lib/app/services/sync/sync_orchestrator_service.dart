@@ -19,7 +19,7 @@ class SyncOrchestratorService {
   bool _isPaused = false;
 
   // Configuration
-  static const Duration periodicSyncInterval = Duration(minutes: 5);
+  static const Duration periodicSyncInterval = Duration(seconds: 30);
   static const Duration debounceDelay = Duration(seconds: 2);
 
   // Debounce timer for connectivity changes

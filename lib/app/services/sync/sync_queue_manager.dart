@@ -9,6 +9,7 @@ import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
 import 'package:zporter_tactical_board/app/services/storage/image_conversion_service.dart';
 import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
 import 'package:zporter_tactical_board/app/services/sync/models/sync_operation.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/default_animation_datasource.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/local/animation_local_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/datasource/remote/animation_remote_datasource_impl.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
@@ -85,6 +86,7 @@ class SyncQueueManager {
   // Local and remote datasources
   final AnimationLocalDatasourceImpl _localDataSource;
   final AnimationRemoteDatasourceImpl _remoteDataSource;
+  final DefaultAnimationDatasource? _defaultAnimationDataSource;
   final ImageStorageService? _imageStorageService;
 
   // Status stream controller
@@ -102,10 +104,54 @@ class SyncQueueManager {
   SyncQueueManager({
     required AnimationLocalDatasourceImpl localDataSource,
     required AnimationRemoteDatasourceImpl remoteDataSource,
+    DefaultAnimationDatasource? defaultAnimationDataSource,
     ImageStorageService? imageStorageService,
   })  : _localDataSource = localDataSource,
         _remoteDataSource = remoteDataSource,
-        _imageStorageService = imageStorageService;
+        _defaultAnimationDataSource = defaultAnimationDataSource,
+        _imageStorageService = imageStorageService {
+    // Reset any stuck processing operations on initialization
+    _resetStuckOperations();
+  }
+
+  /// Reset any operations stuck in 'processing' state back to 'pending'
+  /// This can happen if the app crashes or is closed while syncing
+  Future<void> _resetStuckOperations() async {
+    try {
+      final db = await SemDB.database;
+      final finder = Finder(
+        filter: Filter.equals('status', 'processing'),
+      );
+      final processingOps = await _syncQueueStore.find(db, finder: finder);
+
+      if (processingOps.isEmpty) return;
+
+      zlog(
+        level: Level.info,
+        data:
+            'Resetting ${processingOps.length} stuck operations to pending...',
+      );
+
+      for (final snapshot in processingOps) {
+        final operation = SyncOperation.fromJson(snapshot.value);
+        final resetOp = operation.copyWith(
+          status: SyncOperationStatus.pending,
+          lastAttemptAt: null,
+        );
+        await _syncQueueStore.record(snapshot.key).put(db, resetOp.toJson());
+      }
+
+      zlog(
+        level: Level.info,
+        data: 'All stuck operations reset successfully',
+      );
+    } catch (e, stackTrace) {
+      zlog(
+        level: Level.error,
+        data: 'Error resetting stuck operations: $e\n$stackTrace',
+      );
+    }
+  }
 
   /// Stream of sync queue status updates
   Stream<SyncQueueStatus> get statusStream => _statusController.stream;
@@ -154,7 +200,6 @@ class SyncQueueManager {
   /// Process all pending operations in the queue
   Future<void> processQueue() async {
     if (_isProcessing) {
-      print('[SyncQueue] Already processing, skipping...');
       zlog(
         level: Level.debug,
         data: 'Sync queue already processing, skipping...',
@@ -162,7 +207,6 @@ class SyncQueueManager {
       return;
     }
 
-    print('[SyncQueue] Starting queue processing...');
     _isProcessing = true;
     _currentStatus = _currentStatus.copyWith(isSyncing: true);
     _statusController.add(_currentStatus);
@@ -176,41 +220,37 @@ class SyncQueueManager {
       );
       final snapshots = await _syncQueueStore.find(db, finder: finder);
 
-      print('[SyncQueue] Found ${snapshots.length} operations in queue');
       zlog(
         level: Level.info,
-        data: 'Processing sync queue: ${snapshots.length} operations',
+        data:
+            '🚀 Processing sync queue: ${snapshots.length} operations in parallel',
       );
 
-      for (final snapshot in snapshots) {
+      // Process all operations in parallel using Future.wait()
+      final futures = snapshots.map((snapshot) async {
         try {
           final operation = SyncOperation.fromJson(snapshot.value);
-
-          print(
-              '[SyncQueue] Operation ${snapshot.key}: status=${operation.status.name}, '
-              'type=${operation.type.name}, ready=${operation.isReadyToRetry}');
 
           // Skip if not ready to process
           if (operation.status == SyncOperationStatus.processing ||
               operation.status == SyncOperationStatus.completed ||
               !operation.isReadyToRetry) {
-            print('[SyncQueue] Skipping operation ${snapshot.key} (not ready)');
-            continue;
+            return;
           }
 
-          print('[SyncQueue] Processing operation ${snapshot.key}...');
           // Process the operation
           await _processOperation(db, snapshot.key, operation);
-          print('[SyncQueue] Operation ${snapshot.key} processed successfully');
         } catch (e, stackTrace) {
-          print('[SyncQueue] ERROR processing operation ${snapshot.key}: $e');
           zlog(
             level: Level.error,
             data:
                 'Error processing sync operation ${snapshot.key}: $e\n$stackTrace',
           );
         }
-      }
+      }).toList();
+
+      // Wait for all operations to complete
+      await Future.wait(futures);
 
       // Update status after processing
       await _updateStatus();
@@ -286,21 +326,38 @@ class SyncQueueManager {
     // Check data type from metadata
     final dataType = operation.metadata?['dataType'] as String? ?? 'collection';
 
-    print('[SyncQueue] Syncing $dataType: ${operation.collectionId}');
+    if (dataType == 'singleDefaultAnimation') {
+      // Handle single default animation sync (from admin screen)
+      if (_defaultAnimationDataSource == null) {
+        throw Exception('DefaultAnimationDatasource not available for sync');
+      }
 
-    if (dataType == 'defaultAnimations') {
+      final animationId = operation.metadata?['animationId'] as String?;
+      if (animationId == null) {
+        throw Exception('No animationId in sync operation metadata');
+      }
+
+      // Get the animation from local storage
+      final animation =
+          await _localDataSource.getDefaultAnimationById(animationId);
+      if (animation == null) {
+        throw Exception(
+            'Default animation $animationId not found in local storage');
+      }
+
+      // Save to Firebase using the default animation datasource
+      await _defaultAnimationDataSource.saveDefaultAnimation(animation);
+    } else if (dataType == 'defaultAnimations') {
       // Handle default animations sync
       final defaultAnimations = await _localDataSource.getDefaultAnimations(
         userId: operation.userId,
       );
 
       if (defaultAnimations.isEmpty) {
-        print(
-            '[SyncQueue] No default animations found for user ${operation.userId}');
         return;
       }
 
-      // CRITICAL FIX: Migrate default animation images before uploading
+      // Migrate default animation images before uploading
       // This ensures base64 images convert to Firebase Storage URLs during sync
       zlog(
         level: Level.info,
@@ -321,9 +378,6 @@ class SyncQueueManager {
         animationItems: migratedAnimations,
         userId: operation.userId,
       );
-
-      print(
-          '[SyncQueue] Synced ${migratedAnimations.length} default animations with migrated images');
     } else {
       // Handle animation collection sync (original logic)
       final collections = await _localDataSource.getAllAnimationCollection(

@@ -47,4 +47,8 @@ app.*.map.json
 # FVM Version Cache
 .fvm/
 
+# Firebase Hosting
+.firebase/
+public/
+
 /assets/secure/fcm_service_account.json

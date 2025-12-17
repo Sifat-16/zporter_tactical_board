@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/events.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/game.dart';
@@ -14,6 +15,7 @@ import 'package:zporter_tactical_board/data/tactic/model/free_draw_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/polygon_shape_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/mixin/animation_playback_mixin.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/smart_guide_component.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/board/drop_zone_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game_animation.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/draggable_circle_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
@@ -68,6 +70,7 @@ class TacticBoard extends TacticBoardGame
         AnimationPlaybackMixin {
   late final GridComponent grid;
   late final SmartGuideComponent smartGuide;
+  late final DropZoneComponent dropZone;
   AnimationItemModel? scene;
   bool saveToDb;
   BuildContext myContext;
@@ -130,10 +133,24 @@ class TacticBoard extends TacticBoardGame
     // 4. Add it AS A CHILD of the gameField
     gameField.add(smartGuide);
 
+    // --- ADD DROP ZONE ---
+    // 1. Create the drop zone component (left side of field)
+    final dropZoneWidth = gameField.position.x;
+    final dropZoneHeight = size.y; // Full canvas height
+    dropZone = DropZoneComponent(
+      size: Vector2(dropZoneWidth, dropZoneHeight),
+      position: Vector2(0, 0), // Start from top of canvas
+    );
+    dropZone.priority = 1000; // Very high priority to render on top
+    dropZone.hide(); // Hidden by default
+    // Note: Add directly to game, not to gameField
+    // We'll add it after gameField is added
+
     WidgetsBinding.instance.addPostFrameCallback((t) {
       if (!isMounted) return; // Add mounted check
       ref.read(boardProvider.notifier).updateFieldSize(size: gameField.size);
       add(gameField);
+      add(dropZone); // Add drop zone to game
 
       // This is the correct logic: Get items from the provider state,
       // which initializeFromScene already prepared for us.
