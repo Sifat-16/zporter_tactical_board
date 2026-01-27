@@ -35,6 +35,7 @@ abstract class FieldItemModel {
   Vector2? size;
   Color? color;
   double? opacity;
+  int? zIndex; // For z-ordering/layering persistence
 
   // Base constructor for subclasses
   FieldItemModel({
@@ -49,6 +50,7 @@ abstract class FieldItemModel {
     required this.size,
     required this.color,
     this.opacity = 1.0,
+    this.zIndex,
   });
 
   // toJson includes the fieldItemType for dispatching in fromJson
@@ -66,6 +68,7 @@ abstract class FieldItemModel {
       'size': vector2ToJson(size),
       'color': color?.value,
       'opacity': opacity,
+      'zIndex': zIndex,
     };
   }
 
@@ -85,11 +88,9 @@ abstract class FieldItemModel {
         // zlog(data: "Field item type string enum ${e}");
         return e.toString().split('.').last == typeString;
       },
-      orElse:
-          () =>
-              throw Exception(
-                'Unknown FieldItemType string: $typeString',
-              ), // Throw if type string is invalid
+      orElse: () => throw Exception(
+        'Unknown FieldItemType string: $typeString',
+      ), // Throw if type string is invalid
     );
 
     // Switch based on the enum value and delegate to subclass constructors
@@ -144,6 +145,7 @@ abstract class FieldItemModel {
     Vector2? size,
     Color? color,
     double? opacity,
+    int? zIndex,
   });
 
   // clone MUST be implemented by concrete subclasses

@@ -21,20 +21,21 @@ class TextModel extends FieldItemModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     double? opacity,
+    super.zIndex,
     required this.name,
     required this.imagePath,
   }) : super(
-         // Pass through or provide defaults for other super parameters
-         offset: offset ?? Vector2.zero(), // Example default
-         size: size ?? Vector2(100, 30), // Example default: width, height
-         color: color ?? Colors.black, // Example default
-         angle: angle ?? 0.0,
-         scaleSymmetrically: scaleSymmetrically ?? false,
-         canBeCopied: canBeCopied ?? true,
-         createdAt: createdAt ?? DateTime.now(),
-         updatedAt: updatedAt ?? DateTime.now(),
-         opacity: opacity ?? 1.0,
-       );
+          // Pass through or provide defaults for other super parameters
+          offset: offset ?? Vector2.zero(), // Example default
+          size: size ?? Vector2(100, 30), // Example default: width, height
+          color: color ?? Colors.black, // Example default
+          angle: angle ?? 0.0,
+          scaleSymmetrically: scaleSymmetrically ?? false,
+          canBeCopied: canBeCopied ?? true,
+          createdAt: createdAt ?? DateTime.now(),
+          updatedAt: updatedAt ?? DateTime.now(),
+          opacity: opacity ?? 1.0,
+        );
 
   @override
   Map<String, dynamic> toJson() {
@@ -61,6 +62,7 @@ class TextModel extends FieldItemModel {
     final size = FieldItemModel.vector2FromJson(json['size']);
     final color = json['color'] != null ? Color(json['color']) : Colors.black;
     final opacity = json['opacity'] as double?;
+    final zIndex = json['zIndex'] as int?;
     final name = json['name'] as String? ?? '';
     final imagePath = json['imagePath'] as String? ?? '';
 
@@ -76,6 +78,7 @@ class TextModel extends FieldItemModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       opacity: opacity,
+      zIndex: zIndex,
       name: name,
       imagePath: imagePath,
     );
@@ -95,6 +98,7 @@ class TextModel extends FieldItemModel {
     Vector2? size,
     Color? color,
     double? opacity,
+    int? zIndex,
     String? text,
     String? name,
     String? imagePath,
@@ -112,6 +116,7 @@ class TextModel extends FieldItemModel {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
       name: name ?? this.name,
       imagePath: imagePath ?? this.imagePath,
     );

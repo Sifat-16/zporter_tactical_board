@@ -26,6 +26,7 @@ class FreeDrawModelV2 extends FieldItemModel {
     super.color, // Base color (optional, maybe unused for Line)
     super.opacity,
     super.offset,
+    super.zIndex,
 
     // LineModel specific properties
     required this.points,
@@ -42,8 +43,7 @@ class FreeDrawModelV2 extends FieldItemModel {
     final imagePath = json['imagePath'];
 
     final id = json['_id']; // Use helper
-    final offset =
-        FieldItemModel.offsetFromJson(json['offset']) ??
+    final offset = FieldItemModel.offsetFromJson(json['offset']) ??
         Vector2.zero(); // Use helper + Default
     final scaleSymmetrically =
         json['scaleSymmetrically'] as bool? ?? true; // Default from constructor
@@ -56,10 +56,10 @@ class FreeDrawModelV2 extends FieldItemModel {
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
     final size = FieldItemModel.vector2FromJson(json['size']); // Use helper
     final color = json['color'] != null ? Color(json['color']) : null;
-    final opacity =
-        json['opacity'] == null
-            ? null
-            : double.parse(json['opacity'].toString());
+    final opacity = json['opacity'] == null
+        ? null
+        : double.parse(json['opacity'].toString());
+    final zIndex = json['zIndex'] as int?;
 
     // --- Construct and Return LineModel Instance ---
     return FreeDrawModelV2(
@@ -74,10 +74,10 @@ class FreeDrawModelV2 extends FieldItemModel {
       size: size,
       color: color, // Base color
       opacity: opacity,
+      zIndex: zIndex,
       fieldItemType: FieldItemType.FREEDRAW, // Explicitly set type
       // Pass LineModel specific properties
-      points:
-          (json['points'] as List<dynamic>?)
+      points: (json['points'] as List<dynamic>?)
               ?.map(
                 (pointJson) =>
                     FieldItemModel.vector2FromJson(pointJson) ?? Vector2.zero(),
@@ -93,19 +93,18 @@ class FreeDrawModelV2 extends FieldItemModel {
   // --- Updated toJson Method ---
   @override
   Map<String, dynamic> toJson() => {
-    ...super
-        .toJson(), // Includes base fields (id, offset (as start), type=LINE, etc.)
-    // Add LineModel specific fields
-    'points': points.map((p) => FieldItemModel.vector2ToJson(p)).toList(),
-    'name': name,
-    'lineColor':
-        color
+        ...super
+            .toJson(), // Includes base fields (id, offset (as start), type=LINE, etc.)
+        // Add LineModel specific fields
+        'points': points.map((p) => FieldItemModel.vector2ToJson(p)).toList(),
+        'name': name,
+        'lineColor': color
             ?.value, // Use specific key 'lineColor' to avoid clash with base color
-    'thickness': thickness,
+        'thickness': thickness,
 
-    'imagePath': imagePath,
-    // Note: 'start' is implicitly saved as 'offset' in super.toJson()
-  };
+        'imagePath': imagePath,
+        // Note: 'start' is implicitly saved as 'offset' in super.toJson()
+      };
 
   // --- Updated copyWith Method ---
   @override
@@ -121,28 +120,31 @@ class FreeDrawModelV2 extends FieldItemModel {
     Vector2? size,
     Color? color,
     double? opacity,
+    int? zIndex,
     // LineModel properties
     Color? lineColor, // Parameter for line color
     double? thickness,
     List<Vector2>? points,
-  }) => FreeDrawModelV2(
-    // Base properties
-    id: id ?? this.id,
-    points: points ?? this.points,
-    scaleSymmetrically: scaleSymmetrically ?? this.scaleSymmetrically,
-    angle: angle ?? this.angle,
-    canBeCopied: canBeCopied ?? this.canBeCopied,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    size: size ?? this.size?.clone(),
-    color: color ?? this.color, // Base color
-    opacity: opacity ?? this.opacity,
-    fieldItemType: this.fieldItemType, // Keep original type
-    // LineModel properties
-    thickness: thickness ?? this.thickness,
-    name: name,
-    imagePath: imagePath,
-  );
+  }) =>
+      FreeDrawModelV2(
+        // Base properties
+        id: id ?? this.id,
+        points: points ?? this.points,
+        scaleSymmetrically: scaleSymmetrically ?? this.scaleSymmetrically,
+        angle: angle ?? this.angle,
+        canBeCopied: canBeCopied ?? this.canBeCopied,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+        size: size ?? this.size?.clone(),
+        color: color ?? this.color, // Base color
+        opacity: opacity ?? this.opacity,
+        zIndex: zIndex ?? this.zIndex,
+        fieldItemType: this.fieldItemType, // Keep original type
+        // LineModel properties
+        thickness: thickness ?? this.thickness,
+        name: name,
+        imagePath: imagePath,
+      );
 
   // --- Updated clone Method ---
   @override

@@ -56,6 +56,7 @@ class LineModelV2 extends FieldItemModel {
     super.color, // Base color (can store line color here too now)
     super.opacity,
     super.offset,
+    super.zIndex,
 
     // LineModel specific properties
     required this.end,
@@ -112,6 +113,7 @@ class LineModelV2 extends FieldItemModel {
     // --- NEW: Parse Control Points (Optional) ---
     final controlPoint1 = FieldItemModel.vector2FromJson(json['controlPoint1']);
     final controlPoint2 = FieldItemModel.vector2FromJson(json['controlPoint2']);
+    final zIndex = json['zIndex'] as int?;
 
     return LineModelV2(
       // Base properties
@@ -127,6 +129,7 @@ class LineModelV2 extends FieldItemModel {
       color: color, // Set base color as line color
       opacity: opacity,
       fieldItemType: fieldItemType,
+      zIndex: zIndex,
       // LineModel specific properties
       start: start,
       end: end,
@@ -179,6 +182,7 @@ class LineModelV2 extends FieldItemModel {
     Vector2? size,
     Color? color, // Handles line color now
     double? opacity,
+    int? zIndex,
     // LineModel parameters
     Vector2? start,
     Vector2? end,
@@ -219,6 +223,7 @@ class LineModelV2 extends FieldItemModel {
       size: size ?? this.size?.clone(),
       color: color ?? this.color, // Use base color
       opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
       fieldItemType: fieldItemType ??
           this.fieldItemType, // Allow changing type? Usually no.
       // LineModel properties

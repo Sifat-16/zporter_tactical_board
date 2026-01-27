@@ -776,11 +776,12 @@ class AnimationController extends StateNotifier<AnimationState> {
             );
           }
 
-          // state = state.copyWith(
-          //   selectedAnimationCollectionModel: selectedCollection,
-          //   selectedAnimationModel: selectedAnimation,
-          //   selectedScene: selectedScene,
-          // );
+          // Update state with the saved data to ensure consistency
+          state = state.copyWith(
+            selectedAnimationCollectionModel: selectedCollection,
+            selectedAnimationModel: selectedAnimation,
+            selectedScene: selectedScene,
+          );
           BotToast.showText(text: "Scene Saved Successfully ${selectedScene}");
           return selectedScene;
         } catch (e) {
@@ -1004,6 +1005,169 @@ class AnimationController extends StateNotifier<AnimationState> {
     } else {
       BotToast.showText(text: "No animation found");
     }
+  }
+
+  /// Clears the current scene's components and optionally deletes all following scenes.
+  /// This is an ATOMIC operation that ensures data consistency.
+  ///
+  /// [clearFollowingScenes] - if true, also deletes all scenes after the current one
+  ///
+  /// This method:
+  /// 1. Gets the cleared components from boardProvider (already cleared by caller)
+  /// 2. Updates the current scene with empty components
+  /// 3. Optionally removes following scenes
+  /// 4. Saves everything in a single database operation
+  Future<void> clearCurrentSceneAtomic(
+      {bool clearFollowingScenes = false}) async {
+    AnimationCollectionModel? selectedCollectionModel =
+        state.selectedAnimationCollectionModel;
+    AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+    AnimationItemModel? currentScene = state.selectedScene;
+
+    if (selectedCollectionModel == null ||
+        selectedAnimationModel == null ||
+        currentScene == null) {
+      BotToast.showText(text: "No animation found");
+      return;
+    }
+
+    // 1. Get the current (cleared) components from boardProvider
+    final clearedComponents =
+        ref.read(boardProvider.notifier).onAnimationSave();
+
+    // 2. Update the current scene with cleared components
+    final updatedScene = currentScene.copyWith(
+      components: clearedComponents,
+      updatedAt: DateTime.now(),
+    );
+
+    // 3. Find and update the scene in the animation
+    final currentSceneIndex = selectedAnimationModel.animationScenes.indexWhere(
+      (s) => s.id == currentScene.id,
+    );
+
+    if (currentSceneIndex == -1) {
+      BotToast.showText(text: "Scene not found in animation");
+      return;
+    }
+
+    // Update the scene in place
+    selectedAnimationModel.animationScenes[currentSceneIndex] = updatedScene;
+
+    // 4. Optionally delete following scenes
+    if (clearFollowingScenes &&
+        currentSceneIndex < selectedAnimationModel.animationScenes.length - 1) {
+      // Remove all scenes after current
+      selectedAnimationModel.animationScenes.removeRange(
+        currentSceneIndex + 1,
+        selectedAnimationModel.animationScenes.length,
+      );
+
+      // Re-index remaining scenes
+      for (var i = 0; i < selectedAnimationModel.animationScenes.length; i++) {
+        selectedAnimationModel.animationScenes[i] =
+            selectedAnimationModel.animationScenes[i].copyWith(index: i);
+      }
+    }
+
+    // 5. Update the collection with modified animation
+    final animationIndex = selectedCollectionModel.animations.indexWhere(
+      (a) => a.id == selectedAnimationModel.id,
+    );
+    if (animationIndex != -1) {
+      selectedCollectionModel.animations[animationIndex] =
+          selectedAnimationModel;
+    }
+
+    // 6. Save to database (single atomic save)
+    selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
+      selectedCollectionModel,
+    );
+
+    // 7. Update state with the saved data
+    state = state.copyWith(
+      selectedAnimationCollectionModel: selectedCollectionModel,
+      selectedAnimationModel: selectedAnimationModel,
+      selectedScene: updatedScene,
+    );
+
+    final deletedCount = clearFollowingScenes
+        ? (selectedAnimationModel.animationScenes.length -
+            currentSceneIndex -
+            1)
+        : 0;
+
+    if (clearFollowingScenes && deletedCount > 0) {
+      BotToast.showText(
+          text: 'Scene cleared and $deletedCount following scenes deleted');
+    } else {
+      BotToast.showText(text: 'Scene cleared');
+    }
+  }
+
+  /// Deletes all scenes from the given index onwards (for clearing a scene and removing following ones)
+  /// This is used when clearing a middle scene to maintain animation continuity
+  void deleteFollowingScenes({required int fromIndex}) async {
+    AnimationCollectionModel? selectedCollectionModel =
+        state.selectedAnimationCollectionModel;
+    AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+
+    if (selectedCollectionModel == null || selectedAnimationModel == null) {
+      BotToast.showText(text: "No animation found");
+      return;
+    }
+
+    // Remove all scenes from fromIndex onwards
+    final scenesToRemove = selectedAnimationModel.animationScenes
+        .where((scene) => scene.index >= fromIndex)
+        .toList();
+
+    for (final scene in scenesToRemove) {
+      selectedAnimationModel.animationScenes.removeWhere(
+        (t) => t.id == scene.id,
+      );
+    }
+
+    // Re-index the remaining scenes (should still be correct, but ensure consistency)
+    for (var i = 0; i < selectedAnimationModel.animationScenes.length; i++) {
+      selectedAnimationModel.animationScenes[i] =
+          selectedAnimationModel.animationScenes[i].copyWith(index: i);
+    }
+
+    // Ensure at least one scene exists
+    if (selectedAnimationModel.animationScenes.isEmpty) {
+      selectedAnimationModel.animationScenes.add(
+        AnimationItemModel(
+          index: 0,
+          fieldColor: BoardConstant.field_color,
+          id: RandomGenerator.generateId(),
+          components: [],
+          userId: _getUserId(),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
+              Vector2(0, 0),
+        ),
+      );
+    }
+
+    // Update the collection with the modified animation
+    int index = selectedCollectionModel.animations.indexWhere(
+      (t) => t.id == selectedAnimationModel.id,
+    );
+    if (index != -1) {
+      selectedCollectionModel.animations[index] = selectedAnimationModel;
+    }
+
+    // Save and update state
+    selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
+      selectedCollectionModel,
+    );
+    state = state.copyWith(
+      selectedAnimationCollectionModel: selectedCollectionModel,
+      selectedAnimationModel: selectedAnimationModel,
+      selectedScene: selectedAnimationModel.animationScenes.lastOrNull,
+    );
   }
 
   void deleteAnimation({required AnimationModel animation}) async {

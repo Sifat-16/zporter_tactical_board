@@ -18,6 +18,7 @@ class TriangleShapeModel extends ShapeModel {
     super.canBeCopied = false,
     super.createdAt,
     super.updatedAt,
+    super.zIndex,
 
     // Shape properties
     super.fillColor,
@@ -34,13 +35,13 @@ class TriangleShapeModel extends ShapeModel {
     required super.name,
     required super.imagePath,
   }) : super(
-         offset: center, // Map center to the base 'offset'
-         color: strokeColor, // Map strokeColor to the base 'color'
-         fieldItemType: FieldItemType.TRIANGLE, // Set the specific type
-         scaleSymmetrically: false,
-         // Size needs to be calculated based on vertices if needed
-         size: Vector2.zero(), // User had Vector2.zero() here
-       );
+          offset: center, // Map center to the base 'offset'
+          color: strokeColor, // Map strokeColor to the base 'color'
+          fieldItemType: FieldItemType.TRIANGLE, // Set the specific type
+          scaleSymmetrically: false,
+          // Size needs to be calculated based on vertices if needed
+          size: Vector2.zero(), // User had Vector2.zero() here
+        );
 
   /// Gets the center position (same as offset).
   Vector2 get center =>
@@ -65,8 +66,7 @@ class TriangleShapeModel extends ShapeModel {
   static TriangleShapeModel fromJson(Map<String, dynamic> json) {
     // Parse base FieldItemModel & Shape properties
     final id = json['_id'] as String? ?? '';
-    final offset =
-        FieldItemModel.offsetFromJson(json['offset']) ??
+    final offset = FieldItemModel.offsetFromJson(json['offset']) ??
         Vector2.zero(); // Center
     final angle = (json['angle'] as num?)?.toDouble() ?? 0.0;
     final strokeColor = json['color'] != null ? Color(json['color']) : null;
@@ -76,6 +76,7 @@ class TriangleShapeModel extends ShapeModel {
         json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
     final updatedAt =
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
+    final zIndex = json['zIndex'] as int?;
     final fillColor =
         json['fillColor'] != null ? Color(json['fillColor']) : null;
     final strokeWidth = (json['strokeWidth'] as num?)?.toDouble() ?? 2.0;
@@ -106,6 +107,7 @@ class TriangleShapeModel extends ShapeModel {
       canBeCopied: canBeCopied,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      zIndex: zIndex,
       fillColor: fillColor,
       strokeWidth: strokeWidth,
       vertexA: vertexA, // Assign potentially null vertex
@@ -119,13 +121,13 @@ class TriangleShapeModel extends ShapeModel {
   /// Converts this TriangleShapeModel instance to a JSON map.
   @override
   Map<String, dynamic> toJson() => {
-    ...super.toJson(), // Include base Shape and FieldItemModel fields
-    // --- MODIFIED: Handle nullable vertices ---
-    'vertexA': FieldItemModel.vector2ToJson(vertexA), // Pass nullable value
-    'vertexB': FieldItemModel.vector2ToJson(vertexB), // Pass nullable value
-    'vertexC': FieldItemModel.vector2ToJson(vertexC), // Pass nullable value
-    // --- END MODIFICATION ---
-  };
+        ...super.toJson(), // Include base Shape and FieldItemModel fields
+        // --- MODIFIED: Handle nullable vertices ---
+        'vertexA': FieldItemModel.vector2ToJson(vertexA), // Pass nullable value
+        'vertexB': FieldItemModel.vector2ToJson(vertexB), // Pass nullable value
+        'vertexC': FieldItemModel.vector2ToJson(vertexC), // Pass nullable value
+        // --- END MODIFICATION ---
+      };
 
   // --- CopyWith, Clone, Equality ---
 
@@ -144,6 +146,7 @@ class TriangleShapeModel extends ShapeModel {
     Vector2? size, // Usually ignored, calculated from vertices
     Color? color, // Represents strokeColor
     double? opacity,
+    int? zIndex,
     // Shape fields
     Color? fillColor,
     double? strokeWidth,
@@ -168,6 +171,7 @@ class TriangleShapeModel extends ShapeModel {
       canBeCopied: canBeCopied ?? this.canBeCopied,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      zIndex: zIndex ?? this.zIndex,
       fillColor: clearFillColor ? null : (fillColor ?? this.fillColor),
       strokeWidth: strokeWidth ?? this.strokeWidth,
       // --- MODIFIED: Handle nullable assignment ---
@@ -207,9 +211,9 @@ class TriangleShapeModel extends ShapeModel {
   String toString() {
     // --- MODIFIED: Handle nulls in toString ---
     String baseStr = super.toString().replaceFirst(
-      "ShapeModel(",
-      "",
-    ); // Assuming base class is ShapeModel now
+          "ShapeModel(",
+          "",
+        ); // Assuming base class is ShapeModel now
     return 'TriangleShapeModel(A: ${vertexA?.toString() ?? 'null'}, B: ${vertexB?.toString() ?? 'null'}, C: ${vertexC?.toString() ?? 'null'}, $baseStr';
     // --- END MODIFICATION ---
   }

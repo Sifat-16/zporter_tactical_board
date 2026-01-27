@@ -40,6 +40,9 @@ class PlayerComponent extends FieldComponent<PlayerModel>
 
   Sprite? _playerImageSprite;
 
+  // Cached team border color - updated by listener when boardProvider state changes
+  Color? _cachedTeamBorderColor;
+
   bool _isLoadingImage = false; // Tracks the loading state
   double _loadingArcAngle = 0.0;
 
@@ -47,6 +50,16 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       5.0; // How close to be before snapping (in pixels)
   final double _gridSize = 50.0; // Must match the gridSize in GridComponent
   final List<GuideLine> _activeGuides = [];
+
+  /// Public method to reload player image when model data changes
+  /// Called from board_riverpod_integration when player state updates
+  void reloadImageIfNeeded(PlayerModel oldModel) {
+    if (oldModel.imageBase64 != object.imageBase64 ||
+        oldModel.imagePath != object.imagePath) {
+      zlog(data: "Player ${object.id} image changed, reloading...");
+      _loadPlayerImage();
+    }
+  }
 
   Future<void> _loadPlayerImage() async {
     _playerImageSprite = null;
@@ -131,7 +144,10 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     );
     angle = object.angle ?? 0;
 
-    // --- THIS IS THE FIX ---
+    // Set priority from model's zIndex for persistence across reloads
+    if (object.zIndex != null) {
+      priority = object.zIndex!;
+    }
 
     // Check if we need to load data (logic moved from your _loadPlayerImage)
     final imageKey = _getImageSourceIdentifier();
@@ -148,7 +164,64 @@ class PlayerComponent extends FieldComponent<PlayerModel>
   @override
   void onMount() {
     super.onMount();
+
+    // Initialize cached team border color
+    _updateCachedTeamBorderColor();
+
     _syncWithDatabase();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    // Check if team border color changed in state and update cached value
+    final boardState = ref.read(boardProvider);
+    Color? newColor;
+
+    switch (object.playerType) {
+      case PlayerType.HOME:
+        newColor = boardState.homeTeamBorderColor;
+        break;
+      case PlayerType.AWAY:
+        newColor = boardState.awayTeamBorderColor;
+        break;
+      case PlayerType.OTHER:
+      case PlayerType.UNKNOWN:
+        // These don't use global colors, skip check
+        return;
+    }
+
+    // If color changed, update cache
+    if (newColor != null && _cachedTeamBorderColor != newColor) {
+      _cachedTeamBorderColor = newColor;
+    }
+
+    if (_isLoadingImage) {
+      // This spins the start-angle of the arc, creating a rotation effect.
+      _loadingArcAngle +=
+          dt * 4; // You can change '4' to make it faster or slower
+      if (_loadingArcAngle > (3.14159 * 2)) {
+        _loadingArcAngle -= (3.14159 * 2);
+      }
+    }
+  }
+
+  /// Initialize the cached team border color from current state
+  void _updateCachedTeamBorderColor() {
+    final boardState = ref.read(boardProvider);
+    switch (object.playerType) {
+      case PlayerType.HOME:
+        _cachedTeamBorderColor = boardState.homeTeamBorderColor;
+        break;
+      case PlayerType.AWAY:
+        _cachedTeamBorderColor = boardState.awayTeamBorderColor;
+        break;
+      case PlayerType.OTHER:
+      case PlayerType.UNKNOWN:
+        _cachedTeamBorderColor = ColorManager.grey;
+        break;
+    }
   }
 
   Future<void> _syncWithDatabase() async {
@@ -156,15 +229,18 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       final dbPlayer = await PlayerUtilsV2.getPlayerFromDbById(object.id);
       if (dbPlayer == null) return;
 
-      // --- CHANGE 1: Also check if displayNumber has changed ---
+      // Check if any relevant field has changed
       final bool needsUpdate = dbPlayer.role != object.role ||
           dbPlayer.displayNumber != object.displayNumber ||
           dbPlayer.imageBase64 != object.imageBase64 ||
+          dbPlayer.imagePath !=
+              object.imagePath || // Also check imagePath for URL updates
           dbPlayer.name != object.name;
 
       if (needsUpdate) {
         zlog(data: "Syncing player ${object.id}: Data mismatch found.");
-        final oldImage = object.imageBase64;
+        final oldImageBase64 = object.imageBase64;
+        final oldImagePath = object.imagePath;
 
         final newModelInstance = object.copyWith(
           role: dbPlayer.role,
@@ -172,6 +248,7 @@ class PlayerComponent extends FieldComponent<PlayerModel>
           jerseyNumber: dbPlayer.jerseyNumber,
           displayNumber: dbPlayer.displayNumber,
           imageBase64: dbPlayer.imageBase64,
+          imagePath: dbPlayer.imagePath, // Sync the image URL as well
           name: dbPlayer.name,
         );
 
@@ -181,7 +258,9 @@ class PlayerComponent extends FieldComponent<PlayerModel>
             .read(boardProvider.notifier)
             .updatePlayerModel(newModel: newModelInstance);
 
-        if (dbPlayer.imageBase64 != oldImage) {
+        // Reload image if either base64 or URL changed
+        if (dbPlayer.imageBase64 != oldImageBase64 ||
+            dbPlayer.imagePath != oldImagePath) {
           await _loadPlayerImage();
         }
       }
@@ -507,12 +586,8 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       canvas.drawRRect(rrect, borderPaint);
     } else {
       // State 3: No image to show OR loading failed. Draw the colored placeholder.
-      final Color baseColor = object.color ??
-          (object.playerType == PlayerType.HOME
-              ? ColorManager.blue
-              : (object.playerType == PlayerType.AWAY
-                  ? ColorManager.red
-                  : ColorManager.grey));
+      // Use the team border color as the fill color for players without images
+      final Color baseColor = _getTeamBorderColor();
       _backgroundPaint.color = baseColor.withOpacity(baseOpacity);
       _backgroundPaint.style = PaintingStyle.fill;
       canvas.drawRRect(rrect, _backgroundPaint);
@@ -622,37 +697,29 @@ class PlayerComponent extends FieldComponent<PlayerModel>
   }
 
   /// Gets the border color for the player based on their team
-  /// Priority: 1) Individual player color, 2) Global team color from settings, 3) Fallback default
+  /// Priority: 1) Individual player color, 2) Cached global team color, 3) Fallback
   Color _getTeamBorderColor() {
     // Priority 1: Check if player has a custom border color set (individual override)
     if (object.borderColor != null) {
       return object.borderColor!;
     }
 
-    // Priority 2: Use global team colors from board settings
+    // Priority 2: Use cached team color (updated by listener)
+    if (_cachedTeamBorderColor != null) {
+      return _cachedTeamBorderColor!;
+    }
+
+    // Priority 3: Fallback - read directly from state (for initial render before listener sets up)
     final boardState = ref.read(boardProvider);
     switch (object.playerType) {
       case PlayerType.HOME:
-        return boardState.homeTeamBorderColor; // Use settings color
+        return boardState.homeTeamBorderColor;
       case PlayerType.AWAY:
-        return boardState.awayTeamBorderColor; // Use settings color
+        return boardState.awayTeamBorderColor;
       case PlayerType.OTHER:
-        return ColorManager.grey; // Grey for other players
+        return ColorManager.grey;
       case PlayerType.UNKNOWN:
-        return ColorManager.grey; // Grey for unknown players
-    }
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    if (_isLoadingImage) {
-      // This spins the start-angle of the arc, creating a rotation effect.
-      _loadingArcAngle +=
-          dt * 4; // You can change '4' to make it faster or slower
-      if (_loadingArcAngle > (3.14159 * 2)) {
-        _loadingArcAngle -= (3.14159 * 2);
-      }
+        return ColorManager.grey;
     }
   }
 }

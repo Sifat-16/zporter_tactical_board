@@ -203,6 +203,11 @@ class EquipmentComponent extends FieldComponent<EquipmentModel>
     angle = object.angle ?? 0;
     tint(object.color ?? ColorManager.white);
     opacity = object.opacity ?? 1;
+
+    // Set priority from model's zIndex for persistence across reloads
+    if (object.zIndex != null) {
+      priority = object.zIndex!;
+    }
   }
 
   // UPDATED: This render method now uses the altitude and visualSize properties.

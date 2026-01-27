@@ -31,6 +31,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_state.dart'; // Adjust path
+import 'package:zporter_tactical_board/app/core/dialogs/clear_scene_dialog.dart';
 
 import 'form_item_speed_dial.dart'; // Adjust path
 import 'line/form_line_item.dart'; // Adjust path
@@ -46,6 +47,7 @@ class FormSpeedDialConfig {
   final bool showEraserButton;
   final bool showUndoButton;
   final bool showTrashButton;
+  final bool showClearAllButton; // NEW: Clear all items button
   final bool showPlayAnimationButton;
   final bool showAddNewSceneButton;
   final Function? addNewSceneForAdmin;
@@ -62,6 +64,7 @@ class FormSpeedDialConfig {
       this.showEraserButton = true,
       this.showUndoButton = true,
       this.showTrashButton = true,
+      this.showClearAllButton = true, // NEW: Default to true
       this.showPlayAnimationButton = true,
       this.showAddNewSceneButton = true,
       this.addNewSceneForAdmin,
@@ -80,6 +83,7 @@ class FormSpeedDialConfig {
     showUndoButton:
         true, // Assuming undo might still be relevant for view changes if any
     showTrashButton: false,
+    showClearAllButton: false, // No clear all in view mode
     showPlayAnimationButton: true,
     showAddNewSceneButton: false,
   );
@@ -621,6 +625,20 @@ class _FormSpeedDialComponentState
                           isPlacingItem,
                     ),
                   ),
+                // Clear All Button - clears all items from the board
+                if (config.showClearAllButton) ...[
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => _onClearAllPressed(
+                      context: context,
+                      animationModel: animationModel,
+                      selectedScene: selectedScene,
+                    ),
+                    child: _buildClearAllComponent(
+                      isDimmed: isPlacingItem,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -819,5 +837,111 @@ class _FormSpeedDialComponentState
         );
       },
     );
+  }
+
+  /// Builds the Clear All button icon
+  Widget _buildClearAllComponent({
+    required bool isDimmed,
+  }) {
+    Color defaultColor = ColorManager.white;
+    Color dimmedColor = ColorManager.white.withOpacity(0.5);
+
+    return Center(
+      child: Icon(
+        Icons.backspace,
+        color: isDimmed ? dimmedColor : defaultColor,
+        size: 24,
+      ),
+    );
+  }
+
+  /// Handles the Clear All button press with scene awareness
+  Future<void> _onClearAllPressed({
+    required BuildContext context,
+    required AnimationModel? animationModel,
+    required AnimationItemModel? selectedScene,
+  }) async {
+    // Check if we have items to clear
+    final boardState = ref.read(boardProvider);
+    final hasItems = boardState.players.isNotEmpty ||
+        boardState.equipments.isNotEmpty ||
+        boardState.freeDraw.isNotEmpty ||
+        boardState.lines.isNotEmpty ||
+        boardState.shapes.isNotEmpty ||
+        boardState.texts.isNotEmpty;
+
+    if (!hasItems) {
+      BotToast.showText(text: 'Board is already empty');
+      return;
+    }
+
+    // Check if we're in animation mode
+    final isAnimationMode = animationModel != null;
+    final totalScenes = animationModel?.animationScenes.length ?? 0;
+    final currentSceneIndex = selectedScene?.index ?? 0;
+    final isLastScene =
+        !isAnimationMode || currentSceneIndex == totalScenes - 1;
+
+    if (isLastScene) {
+      // Simple confirmation for last scene or single board mode
+      final confirmed = await showSimpleClearDialog(context: context);
+      if (confirmed == true) {
+        // Clear items from board provider state
+        ref.read(boardProvider.notifier).clearItems();
+
+        // Remove all components from the Flame game canvas
+        final tacticBoard = ref.read(boardProvider).tacticBoardGame;
+        if (tacticBoard != null && tacticBoard is TacticBoard) {
+          tacticBoard.clearItems([]);
+        }
+
+        // Save the cleared state to animation if in animation mode
+        if (isAnimationMode) {
+          // Use atomic method for consistent state handling
+          await ref.read(animationProvider.notifier).clearCurrentSceneAtomic(
+                clearFollowingScenes: false,
+              );
+        } else {
+          // Trigger immediate save to local database for single board mode
+          if (tacticBoard != null && tacticBoard is TacticBoard) {
+            tacticBoard.triggerImmediateSave(reason: 'Clear all items');
+          }
+          BotToast.showText(text: 'Board cleared');
+        }
+      }
+    } else {
+      // Show options dialog for middle scenes
+      final option = await showClearSceneOptionsDialog(
+        context: context,
+        currentSceneNumber: currentSceneIndex + 1, // 1-indexed for display
+        totalScenes: totalScenes,
+      );
+
+      if (option == null) return; // User cancelled
+
+      // Clear items from board provider state first
+      ref.read(boardProvider.notifier).clearItems();
+
+      // Remove all components from the Flame game canvas
+      final tacticBoard = ref.read(boardProvider).tacticBoardGame;
+      if (tacticBoard != null && tacticBoard is TacticBoard) {
+        tacticBoard.clearItems([]);
+      }
+
+      switch (option) {
+        case ClearSceneOption.clearOnly:
+          // Use atomic method - clears current scene only
+          await ref.read(animationProvider.notifier).clearCurrentSceneAtomic(
+                clearFollowingScenes: false,
+              );
+          break;
+        case ClearSceneOption.clearAndDeleteFollowing:
+          // Use atomic method - clears current scene AND deletes following scenes
+          await ref.read(animationProvider.notifier).clearCurrentSceneAtomic(
+                clearFollowingScenes: true,
+              );
+          break;
+      }
+    }
   }
 }

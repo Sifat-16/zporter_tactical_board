@@ -28,6 +28,11 @@ class TextFieldComponent extends FieldComponent<TextModel>
     // Load the background sprite for TextFieldComponent
     sprite = await game.loadSprite("text.png", srcSize: Vector2.zero());
 
+    // Set priority from model's zIndex for persistence across reloads
+    if (object.zIndex != null) {
+      priority = object.zIndex!;
+    }
+
     size = object.size ?? Vector2(100, 30);
     position = SizeHelper.getBoardActualVector(
       gameScreenSize: game.gameField.size,

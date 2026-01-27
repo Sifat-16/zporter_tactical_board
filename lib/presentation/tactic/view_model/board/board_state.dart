@@ -72,6 +72,10 @@ class BoardState {
   // Toggle to enable trajectory editing mode in animations
   final bool trajectoryEditingEnabled;
 
+  // Move to absolute front/back
+  final bool moveToFront;
+  final bool moveToBack;
+
   const BoardState(
       {this.players = const [],
       this.equipments = const [],
@@ -105,6 +109,8 @@ class BoardState {
       this.awayTeamBorderColor = Colors.red,
       this.applyDesignToAll = false,
       this.trajectoryEditingEnabled = false,
+      this.moveToFront = false,
+      this.moveToBack = false,
       this.animatingObj});
 
   BoardState copyWith({
@@ -143,6 +149,8 @@ class BoardState {
     Color? awayTeamBorderColor,
     bool? applyDesignToAll,
     bool? trajectoryEditingEnabled,
+    bool? moveToFront,
+    bool? moveToBack,
   }) {
     return BoardState(
         players: players ?? this.players,
@@ -184,6 +192,8 @@ class BoardState {
         applyDesignToAll: applyDesignToAll ?? this.applyDesignToAll,
         trajectoryEditingEnabled:
             trajectoryEditingEnabled ?? this.trajectoryEditingEnabled,
+        moveToFront: moveToFront ?? this.moveToFront,
+        moveToBack: moveToBack ?? this.moveToBack,
         animatingObj: animatingObj == _sentinel
             ? this.animatingObj
             : animatingObj as AnimatingObj?);

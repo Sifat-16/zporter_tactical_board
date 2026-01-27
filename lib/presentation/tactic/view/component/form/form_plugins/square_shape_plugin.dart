@@ -135,6 +135,10 @@ class SquareShapeDrawerComponent
       });
     });
     _internalSquare = squareModel.clone();
+    // Set priority from model's zIndex for persistence across reloads
+    if (squareModel.zIndex != null) {
+      priority = squareModel.zIndex!;
+    }
     position = SizeHelper.getBoardActualVector(
       gameScreenSize: game.gameField.size,
       actualPosition: _internalSquare.center,

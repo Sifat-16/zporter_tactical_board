@@ -5,41 +5,68 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/data/tactic/model/field_item_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
+import 'package:zporter_tactical_board/data/tactic/model/equipment_model.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/board/tactic_board_game.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/field/field_component.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/line_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/circle_shape_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/square_shape_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/form/form_plugins/polygon_shape_plugin.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
 
 mixin LayeringManagement on TacticBoardGame {
   // Helper methods moved from TacticBoard (Code inside unchanged)
   Component? _findComponentByModelId(String? modelId) {
-    // --- Exact code from original TacticBoard._findComponentByModelId ---
     if (modelId == null) return null;
 
-    // Use standard lastWhere with orElse to return null if not found
     try {
       // children is available via FlameGame/Component
       return children.lastWhere((component) {
-        // Your existing conditions to match the component
+        // FieldComponent covers PlayerComponent and EquipmentComponent
+        // since they extend FieldComponent<PlayerModel> and FieldComponent<EquipmentModel>
         if (component is FieldComponent && component.object.id == modelId) {
           return true;
         }
+        // Lines
         if (component is LineDrawerComponentV2 &&
             component.lineModelV2.id == modelId) {
           return true;
         }
-        // if (component is FreeDrawerComponentV2 &&
-        //     component.freeDrawModelV2.id == modelId) {
-        //   return true;
-        // }
-        // Add other component type checks if necessary...
-        // e.g., FreeDrawerComponent
+        // Shapes - Circle
+        if (component is CircleShapeDrawerComponent &&
+            component.circleModel.id == modelId) {
+          return true;
+        }
+        // Shapes - Square
+        if (component is SquareShapeDrawerComponent &&
+            component.squareModel.id == modelId) {
+          return true;
+        }
+        // Shapes - Polygon
+        if (component is PolygonShapeDrawerComponent &&
+            component.polygonModel.id == modelId) {
+          return true;
+        }
+        // Text - TextFieldComponent extends FieldComponent<TextModel>
+        // Already covered by FieldComponent check above
         return false;
       });
     } catch (e) {
       // lastWhere throws StateError if no element found
       return null;
     }
-    // --- End of exact code ---
+  }
+
+  /// Check if a component is relevant for layering operations
+  bool _isRelevantForLayering(Component component) {
+    if (component == gameField) return false; // Never include the game field
+
+    return component is FieldComponent || // Players, Equipment, Text
+        component is LineDrawerComponentV2 || // Lines
+        component is CircleShapeDrawerComponent || // Circle shapes
+        component is SquareShapeDrawerComponent || // Square shapes
+        component is PolygonShapeDrawerComponent; // Polygon shapes
   }
 
   Rect? _getComponentBounds(Component component) {
@@ -73,53 +100,38 @@ mixin LayeringManagement on TacticBoardGame {
   }
 
   void moveDownElement(FieldItemModel? selectedItem) {
-    // --- Exact code from original TacticBoard._moveDownElement ---
-    // 1. Find selectedComp and selectedBounds (same as before)
+    // 1. Find selectedComp and selectedBounds
     if (selectedItem == null) {
-      /*... return ...*/ // Keep original comment style if desired
-      return; // Add explicit return for clarity
+      return;
     }
-    final selectedComp = _findComponentByModelId(
-      selectedItem.id,
-    ); // Uses mixin's method
+    final selectedComp = _findComponentByModelId(selectedItem.id);
     if (selectedComp == null) {
-      /*... return ...*/
-      return; // Add explicit return
+      zlog(data: "Move Down: Could not find component for ${selectedItem.id}");
+      return;
     }
-    final selectedBounds = _getComponentBounds(
-      selectedComp,
-    ); // Uses mixin's method
+    final selectedBounds = _getComponentBounds(selectedComp);
     if (selectedBounds == null || selectedBounds.isEmpty) {
-      /*... return ...*/
-      return; // Add explicit return
+      return;
     }
-    final int currentSelectedPriority =
-        selectedComp.priority; // priority is available via Component
+    final int currentSelectedPriority = selectedComp.priority;
     zlog(
       data:
-          "Move Down (Simple Prio): Processing ${selectedComp.runtimeType} current prio $currentSelectedPriority",
+          "Move Down: Processing ${selectedComp.runtimeType} current prio $currentSelectedPriority",
     );
 
-    // 2. Find overlappingUnderlying components (same as before, but include those at same level)
-    List<Component> overlapping =
-        []; // Find ALL overlapping relevant items first
-    // children is available via FlameGame/Component
+    // 2. Find overlapping components using the helper method
+    List<Component> overlapping = [];
     for (final otherComp in children.toList().reversed) {
       if (otherComp == selectedComp) continue;
-      // Check if 'otherComp' is a type relevant for layering
-      bool isRelevant =
-          (otherComp is FieldComponent || otherComp is LineDrawerComponentV2
-          /* Add other relevant types */ ) &&
-          otherComp != gameField; // gameField is available via TacticBoardGame
 
-      // If not relevant, skip to the next component in the loop
-      if (!isRelevant) continue;
+      // Use the centralized helper method for relevancy check
+      if (!_isRelevantForLayering(otherComp)) continue;
+
       // Note: No priority check here yet, find all overlaps first
-      final otherBounds = _getComponentBounds(otherComp); // Uses mixin's method
+      final otherBounds = _getComponentBounds(otherComp);
       if (otherBounds == null ||
           otherBounds.isEmpty ||
           !selectedBounds.overlaps(otherBounds)) {
-        // overlaps is from Rect
         continue;
       }
       overlapping.add(otherComp);
@@ -127,22 +139,20 @@ mixin LayeringManagement on TacticBoardGame {
 
     if (overlapping.isEmpty) {
       zlog(
-        data:
-            "Move Down (Simple Prio): No overlapping components found. No change.",
+        data: "Move Down: No overlapping components found. No change.",
       );
       return;
     }
     zlog(
-      data:
-          "Move Down (Simple Prio): Found ${overlapping.length} overlapping components.",
+      data: "Move Down: Found ${overlapping.length} overlapping components.",
     );
 
     // 3. Apply fixed priorities based on user request
     zlog(
       data:
-          "Move Down (Simple Prio): Setting selected component (${selectedComp.runtimeType}) priority to 1.",
+          "Move Down: Setting selected component (${selectedComp.runtimeType}) priority to 1.",
     );
-    selectedComp.priority = 1; // priority is available via Component
+    selectedComp.priority = 1;
 
     for (final otherComp in overlapping) {
       // Check if the overlapping component was originally below or at the same level
@@ -150,51 +160,34 @@ mixin LayeringManagement on TacticBoardGame {
       if (otherComp.priority <= currentSelectedPriority) {
         zlog(
           data:
-              "Move Down (Simple Prio): Setting overlapping component (${otherComp.runtimeType}, original prio ${otherComp.priority}) priority to 2.",
+              "Move Down: Setting overlapping component (${otherComp.runtimeType}, original prio ${otherComp.priority}) priority to 2.",
         );
-        otherComp.priority = 2; // priority is available via Component
+        otherComp.priority = 2;
       } else {
-        // Optional: If an overlapping component was originally ABOVE the selected one,
-        // should its priority also be set to 2, or left alone?
-        // Let's leave items that were originally above the selected one alone to avoid pulling them down.
+        // Leave items that were originally above the selected one alone
         zlog(
           data:
-              "Move Down (Simple Prio): Skipping overlapping component (${otherComp.runtimeType}, original prio ${otherComp.priority}) as it was already above selected.",
+              "Move Down: Skipping overlapping component (${otherComp.runtimeType}, original prio ${otherComp.priority}) as it was already above selected.",
         );
       }
     }
-
-    // Re-filter overlappingUnderlying based on original priority <= currentSelectedPriority
-    // List<Component> overlappingUnderlying = overlapping.where((c) => c.priority <= currentSelectedPriority).toList();
-    // if (overlappingUnderlying.isEmpty) { /* ... handle ... */ }
-    // Set selectedComp.priority = 1;
-    // for (final comp in overlappingUnderlying) { comp.priority = 2; }
-    // --- End of exact code ---
   }
 
   void moveUpElement(FieldItemModel? selectedItem) {
-    // --- Exact code from original TacticBoard._moveUpElement ---
     // 1. Find selectedComp, selectedBounds, currentSelectedPriority
     if (selectedItem == null) {
-      /*... return ...*/
-      return; // Add explicit return
+      return;
     }
-    final selectedComp = _findComponentByModelId(
-      selectedItem.id,
-    ); // Uses mixin's method
+    final selectedComp = _findComponentByModelId(selectedItem.id);
     if (selectedComp == null) {
-      /*... return ...*/
-      return; // Add explicit return
+      zlog(data: "Move Up: Could not find component for ${selectedItem.id}");
+      return;
     }
-    final selectedBounds = _getComponentBounds(
-      selectedComp,
-    ); // Uses mixin's method
+    final selectedBounds = _getComponentBounds(selectedComp);
     if (selectedBounds == null || selectedBounds.isEmpty) {
-      /*... return ...*/
-      return; // Add explicit return
+      return;
     }
-    final int currentSelectedPriority =
-        selectedComp.priority; // priority is available via Component
+    final int currentSelectedPriority = selectedComp.priority;
     zlog(
       data:
           "Move Up: Processing ${selectedComp.runtimeType} prio $currentSelectedPriority",
@@ -202,24 +195,16 @@ mixin LayeringManagement on TacticBoardGame {
 
     // 2. Find overlapping components that are originally ABOVE or AT THE SAME LEVEL
     List<Component> overlappingAbove = [];
-    // children is available via FlameGame/Component
     for (final otherComp in children.toList()) {
-      // Iterate normally or reversed, doesn't matter much here
       if (otherComp == selectedComp) continue;
-      // Check if 'otherComp' is a type relevant for layering
-      bool isRelevant =
-          (otherComp is FieldComponent ||
-              otherComp
-                  is LineDrawerComponentV2 /* Add other relevant types */ ) &&
-          otherComp != gameField; // gameField is available via TacticBoardGame
 
-      // If not relevant, skip to the next component in the loop
-      if (!isRelevant) continue;
+      // Use the centralized helper method for relevancy check
+      if (!_isRelevantForLayering(otherComp)) continue;
 
       // *** Key filter: Only consider items above or at the same level ***
       if (otherComp.priority < currentSelectedPriority) continue;
 
-      final otherBounds = _getComponentBounds(otherComp); // Uses mixin's method
+      final otherBounds = _getComponentBounds(otherComp);
       if (otherBounds == null ||
           otherBounds.isEmpty ||
           !selectedBounds.overlaps(otherBounds)) // overlaps is from Rect
@@ -260,20 +245,129 @@ mixin LayeringManagement on TacticBoardGame {
 
     // Only change if the new priority is actually higher than the current one
     if (newPriority > currentSelectedPriority) {
-      selectedComp.priority =
-          newPriority; // priority is available via Component
+      selectedComp.priority = newPriority;
       zlog(data: "Move Up: Moved selected component to priority $newPriority.");
     } else {
       zlog(
         data:
-            "Move Up: Selected component already effectively above or at top of overlapping items (current: $currentSelectedPriority, target: $newPriority). No change.",
+            "Move Up: Selected component already at top of overlapping items (current: $currentSelectedPriority, target: $newPriority). No change.",
       );
-      // This case might happen if selected was already prio X, max above was also X. newPriority is X+1.
-      // If selected was X+1, max above was X, newPriority is X+1. No change needed.
-      // If selected was X, max above was X-1 (shouldn't happen due to filter), newPriority is X. No change needed.
+    }
+  }
+
+  /// Move element to absolute front (highest priority among all relevant components)
+  void moveElementToFront(FieldItemModel? selectedItem) {
+    if (selectedItem == null) return;
+
+    final selectedComp = _findComponentByModelId(selectedItem.id);
+    if (selectedComp == null) {
+      zlog(
+          data:
+              "Move to Front: Could not find component for ${selectedItem.id}");
+      return;
     }
 
-    // Do NOT change priorities of overlappingAbove components.
-    // --- End of exact code ---
+    // Find max priority among all relevant components
+    int maxPriority = 0;
+    for (final comp in children) {
+      if (_isRelevantForLayering(comp)) {
+        maxPriority = max(maxPriority, comp.priority);
+      }
+    }
+
+    // Set to max + 1 (but cap at 999 to leave room for drop zone at 1000)
+    final newPriority = min(maxPriority + 1, 999);
+    if (newPriority > selectedComp.priority) {
+      // Update the Flame component's priority
+      selectedComp.priority = newPriority;
+
+      // Update the model's zIndex so it persists
+      selectedItem.zIndex = newPriority;
+
+      // Update the model in provider to trigger save
+      _updateModelInProvider(selectedItem);
+
+      // Trigger immediate save to local database
+      if (this is TacticBoard) {
+        (this as TacticBoard).triggerImmediateSave(reason: 'Move to front');
+      }
+
+      zlog(
+          data:
+              "Move to Front: Set ${selectedComp.runtimeType} to priority $newPriority");
+    } else {
+      zlog(
+          data:
+              "Move to Front: ${selectedComp.runtimeType} already at front (priority ${selectedComp.priority})");
+    }
+  }
+
+  /// Move element to absolute back (priority 1, lowest among field items)
+  void moveElementToBack(FieldItemModel? selectedItem) {
+    if (selectedItem == null) return;
+
+    final selectedComp = _findComponentByModelId(selectedItem.id);
+    if (selectedComp == null) {
+      zlog(
+          data:
+              "Move to Back: Could not find component for ${selectedItem.id}");
+      return;
+    }
+
+    // Find all relevant components with priority 1 or 2, we need to push them up
+    final componentsToAdjust = <Component>[];
+    for (final comp in children) {
+      if (comp == selectedComp) continue;
+      if (_isRelevantForLayering(comp) && comp.priority <= 2) {
+        componentsToAdjust.add(comp);
+      }
+    }
+
+    // Set selected to priority 1 (back)
+    selectedComp.priority = 1;
+
+    // Update the model's zIndex so it persists
+    selectedItem.zIndex = 1;
+
+    // Push other low-priority items up by 1 to make room
+    for (final comp in componentsToAdjust) {
+      comp.priority = comp.priority + 1;
+      // Also update the model's zIndex for these components
+      _updateComponentModelZIndex(comp, comp.priority);
+    }
+
+    // Update the model in provider to trigger save
+    _updateModelInProvider(selectedItem);
+
+    // Trigger immediate save to local database
+    if (this is TacticBoard) {
+      (this as TacticBoard).triggerImmediateSave(reason: 'Move to back');
+    }
+
+    zlog(
+        data:
+            "Move to Back: Set ${selectedComp.runtimeType} to priority 1, adjusted ${componentsToAdjust.length} other components");
+  }
+
+  /// Helper to update a component's model zIndex
+  void _updateComponentModelZIndex(Component comp, int newZIndex) {
+    if (comp is FieldComponent) {
+      comp.object.zIndex = newZIndex;
+      _updateModelInProvider(comp.object);
+    } else if (comp is LineDrawerComponentV2) {
+      comp.lineModelV2.zIndex = newZIndex;
+      ref.read(boardProvider.notifier).updateLine(line: comp.lineModelV2);
+    }
+    // Shape zIndex updates can be added when shape update methods are available
+  }
+
+  /// Helper to update a model in the provider to trigger persistence
+  void _updateModelInProvider(FieldItemModel item) {
+    if (item is PlayerModel) {
+      ref.read(boardProvider.notifier).updatePlayerModel(newModel: item);
+    } else if (item is EquipmentModel) {
+      ref.read(boardProvider.notifier).updateEquipmentModel(newModel: item);
+    }
+    // Lines are handled by updateLine method
   }
 }

@@ -27,6 +27,7 @@ class PolygonShapeModel extends ShapeModel {
     super.canBeCopied = false,
     super.createdAt,
     super.updatedAt,
+    super.zIndex,
 
     // Shape properties
     super.fillColor,
@@ -40,13 +41,13 @@ class PolygonShapeModel extends ShapeModel {
     required super.name,
     required super.imagePath,
   }) : super(
-         offset: center, // Map center to the base 'offset'
-         color: strokeColor, // Map strokeColor to the base 'color'
-         fieldItemType: FieldItemType.POLYGON, // Set the specific type
-         scaleSymmetrically:
-             false, // Polygons generally don't scale symmetrically
-         size: null, // Bounding box size can be calculated if needed
-       );
+          offset: center, // Map center to the base 'offset'
+          color: strokeColor, // Map strokeColor to the base 'color'
+          fieldItemType: FieldItemType.POLYGON, // Set the specific type
+          scaleSymmetrically:
+              false, // Polygons generally don't scale symmetrically
+          size: null, // Bounding box size can be calculated if needed
+        );
 
   /// Gets the center position (same as offset).
   Vector2 get center => offset ?? Vector2.zero();
@@ -70,8 +71,7 @@ class PolygonShapeModel extends ShapeModel {
   static PolygonShapeModel fromJson(Map<String, dynamic> json) {
     // Parse base FieldItemModel & Shape properties
     final id = json['_id'] as String? ?? '';
-    final offset =
-        FieldItemModel.offsetFromJson(json['offset']) ??
+    final offset = FieldItemModel.offsetFromJson(json['offset']) ??
         Vector2.zero(); // Center
     final angle = (json['angle'] as num?)?.toDouble() ?? 0.0;
     final strokeColor = json['color'] != null ? Color(json['color']) : null;
@@ -82,6 +82,7 @@ class PolygonShapeModel extends ShapeModel {
         json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
     final updatedAt =
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
+    final zIndex = json['zIndex'] as int?;
     final fillColor =
         json['fillColor'] != null ? Color(json['fillColor']) : null;
     final strokeWidth = (json['strokeWidth'] as num?)?.toDouble() ?? 2.0;
@@ -91,11 +92,10 @@ class PolygonShapeModel extends ShapeModel {
     // Parse Polygon specific properties (list of vertices)
     List<Vector2> vertices = [];
     if (json['relativeVertices'] is List) {
-      vertices =
-          (json['relativeVertices'] as List)
-              .map((vJson) => FieldItemModel.vector2FromJson(vJson))
-              .whereType<Vector2>() // Filter out any nulls from parsing
-              .toList();
+      vertices = (json['relativeVertices'] as List)
+          .map((vJson) => FieldItemModel.vector2FromJson(vJson))
+          .whereType<Vector2>() // Filter out any nulls from parsing
+          .toList();
     }
 
     final maxVertices = json['maxVertices'] as int?;
@@ -111,6 +111,7 @@ class PolygonShapeModel extends ShapeModel {
       canBeCopied: canBeCopied,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      zIndex: zIndex,
       fillColor: fillColor,
       strokeWidth: strokeWidth,
       relativeVertices: vertices,
@@ -124,14 +125,15 @@ class PolygonShapeModel extends ShapeModel {
   /// Converts this PolygonShapeModel instance to a JSON map.
   @override
   Map<String, dynamic> toJson() => {
-    ...super.toJson(), // Include base Shape and FieldItemModel fields
-    'relativeVertices':
-        relativeVertices.map((v) => FieldItemModel.vector2ToJson(v)).toList(),
-    if (maxVertices != null) 'maxVertices': maxVertices,
-    // <<< ADDED: Serialize minVertices (it has a default, so always include or only if not default?)
-    // For consistency, let's always include it.
-    'minVertices': minVertices,
-  };
+        ...super.toJson(), // Include base Shape and FieldItemModel fields
+        'relativeVertices': relativeVertices
+            .map((v) => FieldItemModel.vector2ToJson(v))
+            .toList(),
+        if (maxVertices != null) 'maxVertices': maxVertices,
+        // <<< ADDED: Serialize minVertices (it has a default, so always include or only if not default?)
+        // For consistency, let's always include it.
+        'minVertices': minVertices,
+      };
 
   // --- CopyWith, Clone, Equality ---
 
@@ -150,6 +152,7 @@ class PolygonShapeModel extends ShapeModel {
     Vector2? size, // Usually ignored
     Color? color, // Represents strokeColor
     double? opacity,
+    int? zIndex,
     // Shape fields
     Color? fillColor,
     double? strokeWidth,
@@ -171,10 +174,10 @@ class PolygonShapeModel extends ShapeModel {
       canBeCopied: canBeCopied ?? this.canBeCopied,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      zIndex: zIndex ?? this.zIndex,
       fillColor: clearFillColor ? null : (fillColor ?? this.fillColor),
       strokeWidth: strokeWidth ?? this.strokeWidth,
-      relativeVertices:
-          relativeVertices ??
+      relativeVertices: relativeVertices ??
           this.relativeVertices.map((v) => v.clone()).toList(),
       maxVertices: maxVertices ?? this.maxVertices,
       minVertices: minVertices ?? this.minVertices, // <<< ADDED

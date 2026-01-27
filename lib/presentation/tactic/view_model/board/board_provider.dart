@@ -700,6 +700,22 @@ class BoardController extends StateNotifier<BoardState> {
     state = state.copyWith(moveUp: false);
   }
 
+  void moveToFront() {
+    state = state.copyWith(moveToFront: true);
+  }
+
+  void moveToFrontComplete() {
+    state = state.copyWith(moveToFront: false);
+  }
+
+  void moveToBack() {
+    state = state.copyWith(moveToBack: true);
+  }
+
+  void moveToBackComplete() {
+    state = state.copyWith(moveToBack: false);
+  }
+
   void updateBoardColor(Color color) {
     state = state.copyWith(boardColor: color);
   }
@@ -998,14 +1014,12 @@ class BoardController extends StateNotifier<BoardState> {
   // Update global home team border color
   void updateHomeTeamBorderColor(Color color) {
     state = state.copyWith(homeTeamBorderColor: color);
-    // Save to user preferences
     sl.get<UserPreferencesService>().setHomeTeamBorderColor(color);
   }
 
   // Update global away team border color
   void updateAwayTeamBorderColor(Color color) {
     state = state.copyWith(awayTeamBorderColor: color);
-    // Save to user preferences
     sl.get<UserPreferencesService>().setAwayTeamBorderColor(color);
   }
 

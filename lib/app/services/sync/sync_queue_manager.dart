@@ -599,12 +599,20 @@ class SyncQueueManager {
                 } else {
                   print(
                       '[SyncQueue] Failed to convert base64 to bytes for player ${component.id}');
+                  // CRITICAL: Strip base64 even if conversion fails - never send to Firestore
+                  migratedComponents[i] = component.copyWith(imageBase64: null);
+                  sceneChanged = true;
+                  hasChanges = true;
                 }
               } catch (e, stackTrace) {
                 print(
-                    '[SyncQueue] ❌ Failed to migrate player image ${component.id}: $e\n$stackTrace. Keeping base64 as fallback.');
-                // Keep original component with base64 - don't fail entire sync
-                // This handles cases where upload fails due to network issues
+                    '[SyncQueue] ❌ Failed to migrate player image ${component.id}: $e\n$stackTrace. Stripping base64 to prevent large Firestore document.');
+                // CRITICAL FIX: Strip base64 even when upload fails
+                // Base64 stays in LOCAL Sembast for display, but NEVER goes to Firestore
+                // The ImageMigrationService will retry the upload in background
+                migratedComponents[i] = component.copyWith(imageBase64: null);
+                sceneChanged = true;
+                hasChanges = true;
               }
             }
           }
