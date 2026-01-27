@@ -63,20 +63,14 @@ final sl = GetIt.instance;
 
 Future<void> initializeTacticBoardDependencies() async {
   // ============================================================
-  // PLATFORM-SPECIFIC FIREBASE INITIALIZATION
-  // Web: Wait for Firebase (synchronous) - required for element embedding
-  // Mobile: Background init (async) - faster app startup with local-first
+  // FIREBASE INITIALIZATION (All Platforms)
+  // Firebase must be initialized before services that use FirebaseFirestore.instance
+  // Note: Firebase.initializeApp() does NOT require network - it's local SDK init
+  // Offline mode works because Firestore has built-in offline persistence
   // ============================================================
 
-  if (kIsWeb) {
-    // Web: Initialize Firebase synchronously and wait
-    print('[Init] Web detected - waiting for Firebase initialization...');
-    await _initializeFirebaseSynchronously();
-  } else {
-    // Mobile: Initialize Firebase in background (non-blocking)
-    print('[Init] Mobile detected - Firebase initializing in background...');
-    _initializeFirebaseInBackground();
-  }
+  print('[Init] Initializing Firebase...');
+  await _initializeFirebaseSynchronously();
 
   // Continue with immediate app initialization
   sl.registerLazySingleton<Logger>(() => Logger());
