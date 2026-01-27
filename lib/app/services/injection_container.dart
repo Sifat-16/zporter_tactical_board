@@ -69,8 +69,15 @@ Future<void> initializeTacticBoardDependencies() async {
   // Offline mode works because Firestore has built-in offline persistence
   // ============================================================
 
-  print('[Init] Initializing Firebase...');
-  await _initializeFirebaseSynchronously();
+  if (kIsWeb) {
+    // Web: Initialize Firebase synchronously and wait
+    print('[Init] Web detected - waiting for Firebase initialization...');
+    await _initializeFirebaseSynchronously();
+  } else {
+    // Mobile: Initialize Firebase in background (non-blocking)
+    print('[Init] Mobile detected - Firebase initializing in background...');
+    _initializeFirebaseInBackground();
+  }
 
   // Continue with immediate app initialization
   sl.registerLazySingleton<Logger>(() => Logger());
