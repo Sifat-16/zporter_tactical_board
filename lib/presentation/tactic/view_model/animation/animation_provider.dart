@@ -188,40 +188,36 @@ class AnimationController extends StateNotifier<AnimationState> {
     try {
       zlog(data: "[getAllCollections] Fetching data from Firebase");
 
-      // Step 1: Fetch all data sources with individual error handling
+      // Step 1: Fetch all data sources IN PARALLEL for fast startup
       List<AnimationCollectionModel> userCollections = [];
       List<AnimationCollectionModel> rawAdminCollections = [];
       List<AnimationModel> allDefaultAnimations = [];
 
-      try {
-        userCollections =
-            await _getAllAnimationCollectionUseCase.call(_getUserId());
-        zlog(
-            data:
-                "[getAllCollections] User collections loaded: ${userCollections.length}");
-      } catch (e) {
-        zlog(data: "[getAllCollections] ERROR loading user collections: $e");
-      }
+      final results = await Future.wait([
+        _getAllAnimationCollectionUseCase.call(_getUserId()).catchError((e) {
+          zlog(data: "[getAllCollections] ERROR loading user collections: $e");
+          return <AnimationCollectionModel>[];
+        }),
+        _defaultAnimationRepository
+            .getAllDefaultAnimationCollections()
+            .catchError((e) {
+          zlog(data: "[getAllCollections] ERROR loading admin collections: $e");
+          return <AnimationCollectionModel>[];
+        }),
+        _defaultAnimationRepository.getAllDefaultAnimations().catchError((e) {
+          zlog(
+              data: "[getAllCollections] ERROR loading default animations: $e");
+          return <AnimationModel>[];
+        }),
+      ]);
 
-      try {
-        rawAdminCollections = await _defaultAnimationRepository
-            .getAllDefaultAnimationCollections();
-        zlog(
-            data:
-                "[getAllCollections] Admin collections loaded: ${rawAdminCollections.length}");
-      } catch (e) {
-        zlog(data: "[getAllCollections] ERROR loading admin collections: $e");
-      }
+      userCollections = results[0] as List<AnimationCollectionModel>;
+      rawAdminCollections = results[1] as List<AnimationCollectionModel>;
+      allDefaultAnimations = results[2] as List<AnimationModel>;
 
-      try {
-        allDefaultAnimations =
-            await _defaultAnimationRepository.getAllDefaultAnimations();
-        zlog(
-            data:
-                "[getAllCollections] Default animations loaded: ${allDefaultAnimations.length}");
-      } catch (e) {
-        zlog(data: "[getAllCollections] ERROR loading default animations: $e");
-      }
+      zlog(
+          data:
+              "[getAllCollections] Loaded: ${userCollections.length} user, ${rawAdminCollections.length} admin, ${allDefaultAnimations.length} default animations");
 
       // Step 2: Build the Admin Template Map
       final Map<String, AnimationCollectionModel> adminTemplateMap = {};
