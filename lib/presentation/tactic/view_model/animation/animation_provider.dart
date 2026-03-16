@@ -1531,6 +1531,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       defaultAnimationItemIndex: defaultItems.length - 1,
       selectedScene: defaultItems.last,
     );
+    _saveSessionState();
   }
 
   void copyCurrentDefaultScene() {
@@ -1555,6 +1556,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         defaultAnimationItemIndex: index,
         selectedScene: defaultItems[index],
       );
+      _saveSessionState();
     }
   }
 
@@ -1597,6 +1599,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         defaultAnimationItemIndex: index,
         selectedScene: defaultItems[index],
       );
+      _saveSessionState();
       ref.read(boardProvider.notifier).clearItems();
     } catch (e) {}
     BotToast.cleanAll();
@@ -1734,7 +1737,16 @@ class AnimationController extends StateNotifier<AnimationState> {
   /// Fire-and-forget — never blocks, never throws.
   void _saveSessionState() {
     try {
+      // Auto-detect navigation type from current state:
+      // If a collection is actively selected → collection view.
+      // Otherwise → default screen view.
+      final isCollectionView =
+          state.selectedAnimationCollectionModel != null;
+
       final sessionState = SessionStateModel(
+        navigationType: isCollectionView
+            ? SessionNavigationType.collection
+            : SessionNavigationType.defaultScreen,
         defaultAnimationItemIndex: state.defaultAnimationItemIndex,
         selectedCollectionId: state.selectedAnimationCollectionModel?.id,
         selectedCollectionName: state.selectedAnimationCollectionModel?.name,
@@ -1754,65 +1766,80 @@ class AnimationController extends StateNotifier<AnimationState> {
   bool restoreFromSessionState(SessionStateModel sessionState) {
     try {
       zlog(data: "SessionState: Restoring — "
+          "type=${sessionState.navigationType}, "
           "collectionId=${sessionState.selectedCollectionId}, "
           "animationId=${sessionState.selectedAnimationId}, "
           "sceneId=${sessionState.selectedSceneId}, "
           "defaultIdx=${sessionState.defaultAnimationItemIndex}, "
           "available defaults=${state.defaultAnimationItems.length}");
 
-      // Case 1: User had a collection + animation open
-      if (sessionState.selectedCollectionId != null) {
-        final collection = state.animationCollections.firstWhereOrNull(
-          (c) => c.id == sessionState.selectedCollectionId,
-        );
-        if (collection != null) {
-          AnimationModel? animation;
-          if (sessionState.selectedAnimationId != null) {
-            animation = collection.animations.firstWhereOrNull(
-              (a) => a.id == sessionState.selectedAnimationId,
-            );
-          }
-
-          // Select the collection but KEEP the current selectedScene if the
-          // animation has no scenes to show — prevents selectedScene becoming
-          // null which triggers the zLoader.
-          selectAnimationCollection(
-            collection,
-            animationSelect: animation,
-            changeSelectedScene: animation?.animationScenes.isNotEmpty == true,
-          );
-
-          // If a specific scene was saved, navigate to it
-          if (animation != null && sessionState.selectedSceneId != null) {
-            final scene = animation.animationScenes.firstWhereOrNull(
-              (s) => s.id == sessionState.selectedSceneId,
-            );
-            if (scene != null) {
-              state = state.copyWith(selectedScene: scene);
-            }
-          }
-          zlog(data: "SessionState: Restored collection/animation");
-          return true;
-        }
-        zlog(data: "SessionState: Collection ${sessionState.selectedCollectionId} not found in loaded collections");
+      // Switch on the explicit navigation type — never fall through from
+      // one type to another. This prevents a stale default index from
+      // overriding a collection/animation/scene restore.
+      switch (sessionState.navigationType) {
+        case SessionNavigationType.collection:
+          return _restoreCollectionView(sessionState);
+        case SessionNavigationType.defaultScreen:
+          return _restoreDefaultScreen(sessionState);
       }
-
-      // Case 2: User was on a specific default screen (no collection)
-      if (sessionState.defaultAnimationItemIndex > 0 &&
-          sessionState.defaultAnimationItemIndex <
-              state.defaultAnimationItems.length) {
-        zlog(data: "SessionState: Restoring default screen index ${sessionState.defaultAnimationItemIndex}");
-        changeDefaultAnimationIndex(sessionState.defaultAnimationItemIndex);
-        return true;
-      }
-
-      zlog(data: "SessionState: Nothing to restore (idx=${sessionState.defaultAnimationItemIndex}, "
-          "items=${state.defaultAnimationItems.length})");
-      return false;
     } catch (e) {
       zlog(data: "SessionState: Error restoring session: $e");
       return false;
     }
+  }
+
+  bool _restoreCollectionView(SessionStateModel sessionState) {
+    if (sessionState.selectedCollectionId == null) {
+      zlog(data: "SessionState: collection type but no collectionId — skip");
+      return false;
+    }
+
+    final collection = state.animationCollections.firstWhereOrNull(
+      (c) => c.id == sessionState.selectedCollectionId,
+    );
+    if (collection == null) {
+      zlog(data: "SessionState: Collection "
+          "${sessionState.selectedCollectionId} not found — skip");
+      return false;
+    }
+
+    AnimationModel? animation;
+    if (sessionState.selectedAnimationId != null) {
+      animation = collection.animations.firstWhereOrNull(
+        (a) => a.id == sessionState.selectedAnimationId,
+      );
+    }
+
+    selectAnimationCollection(
+      collection,
+      animationSelect: animation,
+      changeSelectedScene: animation?.animationScenes.isNotEmpty == true,
+    );
+
+    // Navigate to the specific scene if saved
+    if (animation != null && sessionState.selectedSceneId != null) {
+      final scene = animation.animationScenes.firstWhereOrNull(
+        (s) => s.id == sessionState.selectedSceneId,
+      );
+      if (scene != null) {
+        state = state.copyWith(selectedScene: scene);
+      }
+    }
+
+    zlog(data: "SessionState: Restored collection/animation");
+    return true;
+  }
+
+  bool _restoreDefaultScreen(SessionStateModel sessionState) {
+    final idx = sessionState.defaultAnimationItemIndex;
+    if (idx > 0 && idx < state.defaultAnimationItems.length) {
+      zlog(data: "SessionState: Restoring default screen index $idx");
+      changeDefaultAnimationIndex(idx);
+      return true;
+    }
+    zlog(data: "SessionState: Default index $idx out of range "
+        "(0..${state.defaultAnimationItems.length - 1}) — skip");
+    return false;
   }
 
   Future<void> _saveToHistory({required AnimationItemModel scene}) async {

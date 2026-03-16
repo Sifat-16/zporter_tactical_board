@@ -1,4 +1,19 @@
+/// Explicitly tracks which kind of view the user was on.
+/// Prevents one state type from accidentally restoring as another.
+enum SessionNavigationType {
+  defaultScreen, // On one of the default animation screens (paginator)
+  collection;    // Viewing a collection (with optional animation/scene)
+
+  String toJson() => name;
+
+  static SessionNavigationType fromJson(String? value) {
+    if (value == 'collection') return SessionNavigationType.collection;
+    return SessionNavigationType.defaultScreen;
+  }
+}
+
 class SessionStateModel {
+  final SessionNavigationType navigationType;
   final int defaultAnimationItemIndex;
   final String? selectedCollectionId;
   final String? selectedCollectionName;
@@ -8,6 +23,7 @@ class SessionStateModel {
   final DateTime savedAt;
 
   SessionStateModel({
+    required this.navigationType,
     required this.defaultAnimationItemIndex,
     this.selectedCollectionId,
     this.selectedCollectionName,
@@ -19,6 +35,8 @@ class SessionStateModel {
 
   factory SessionStateModel.fromJson(Map<String, dynamic> json) {
     return SessionStateModel(
+      navigationType: SessionNavigationType.fromJson(
+          json['navigationType'] as String?),
       defaultAnimationItemIndex: json['defaultAnimationItemIndex'] as int? ?? 0,
       selectedCollectionId: json['selectedCollectionId'] as String?,
       selectedCollectionName: json['selectedCollectionName'] as String?,
@@ -33,6 +51,7 @@ class SessionStateModel {
 
   Map<String, dynamic> toJson() {
     return {
+      'navigationType': navigationType.toJson(),
       'defaultAnimationItemIndex': defaultAnimationItemIndex,
       'selectedCollectionId': selectedCollectionId,
       'selectedCollectionName': selectedCollectionName,
@@ -45,9 +64,8 @@ class SessionStateModel {
 
   /// Whether this state has meaningful context beyond just "Screen 1".
   bool get hasMeaningfulContext =>
-      defaultAnimationItemIndex > 0 ||
-      selectedCollectionId != null ||
-      selectedAnimationId != null;
+      navigationType == SessionNavigationType.collection ||
+      defaultAnimationItemIndex > 0;
 
   /// Whether this state is recent enough to be worth resuming (within 7 days).
   bool get isRecent =>
@@ -55,16 +73,12 @@ class SessionStateModel {
 
   /// A human-readable summary of where the user was.
   String get displaySummary {
-    final parts = <String>[];
-    if (selectedCollectionName != null) {
-      parts.add(selectedCollectionName!);
+    if (navigationType == SessionNavigationType.collection) {
+      final parts = <String>[];
+      if (selectedCollectionName != null) parts.add(selectedCollectionName!);
+      if (selectedAnimationName != null) parts.add(selectedAnimationName!);
+      if (parts.isNotEmpty) return parts.join(' › ');
     }
-    if (selectedAnimationName != null) {
-      parts.add(selectedAnimationName!);
-    }
-    if (parts.isEmpty) {
-      parts.add('Screen ${defaultAnimationItemIndex + 1}');
-    }
-    return parts.join(' › ');
+    return 'Screen ${defaultAnimationItemIndex + 1}';
   }
 }
