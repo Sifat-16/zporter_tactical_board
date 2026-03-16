@@ -17,6 +17,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/sync/sync_status_indicator.dart';
 
 import 'animation_data_input_component.dart';
 
@@ -93,6 +94,10 @@ class _AnimationToolbarComponentState
     return Container(
       child: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: SyncStatusIndicator(),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Column(

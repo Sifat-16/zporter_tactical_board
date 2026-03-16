@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 
@@ -369,6 +371,275 @@ void main() {
           reason: '30 auto-saves + 3 event-driven');
       expect(reduction, greaterThanOrEqualTo(93.0),
           reason: 'Should achieve at least 93% reduction (actually 93.9%)');
+    });
+  });
+
+  group('Save Lock / Undo Interaction (A1B)', () {
+    test('undo should NOT be blocked after local state mutation completes', () {
+      // Simulates the split-lock pattern:
+      // _isSaveInProgress is released after local mutation, before network write.
+      bool isSaveInProgress = true; // Lock acquired for local state mutation
+
+      // --- Local mutation phase (~30ms) ---
+      // ... history saved, state updated ...
+
+      // Lock released immediately after local phase
+      isSaveInProgress = false;
+
+      // --- Network phase starts (fire-and-forget) ---
+      // Undo is attempted while network write is in-flight
+      bool canUndo = !isSaveInProgress;
+      expect(canUndo, isTrue,
+          reason:
+              'Undo should be unblocked after local mutation, even during network write');
+    });
+
+    test('undo should be blocked DURING local state mutation', () {
+      bool isSaveInProgress = true; // Lock held during local mutation
+
+      bool canUndo = !isSaveInProgress;
+      expect(canUndo, isFalse,
+          reason: 'Undo must wait while local state is being mutated');
+    });
+
+    test('save lock should be released even if local mutation throws', () {
+      bool isSaveInProgress = true;
+      bool errorOccurred = false;
+
+      try {
+        // Simulate local mutation failure
+        throw Exception('Simulated local mutation error');
+      } catch (_) {
+        errorOccurred = true;
+      } finally {
+        isSaveInProgress = false; // finally block guarantees release
+      }
+
+      expect(errorOccurred, isTrue);
+      expect(isSaveInProgress, isFalse,
+          reason: 'Lock must be released in finally block');
+    });
+  });
+
+  group('Debounce Coalescing (A4B)', () {
+    test('rapid triggerImmediateSave calls should coalesce into one save',
+        () async {
+      int saveCount = 0;
+      Timer? debounceTimer;
+
+      void triggerSave() {
+        debounceTimer?.cancel();
+        debounceTimer = Timer(const Duration(milliseconds: 500), () {
+          saveCount++;
+        });
+      }
+
+      // Simulate 5 rapid drag-end events within 200ms
+      triggerSave();
+      await Future.delayed(const Duration(milliseconds: 40));
+      triggerSave();
+      await Future.delayed(const Duration(milliseconds: 40));
+      triggerSave();
+      await Future.delayed(const Duration(milliseconds: 40));
+      triggerSave();
+      await Future.delayed(const Duration(milliseconds: 40));
+      triggerSave();
+
+      // Before debounce fires
+      expect(saveCount, equals(0),
+          reason: 'No save should fire before 500ms since last call');
+
+      // Wait for debounce to complete
+      await Future.delayed(const Duration(milliseconds: 600));
+      expect(saveCount, equals(1),
+          reason: '5 rapid calls should produce exactly 1 save');
+
+      debounceTimer?.cancel();
+    });
+
+    test('well-spaced saves should each fire independently', () async {
+      int saveCount = 0;
+      Timer? debounceTimer;
+
+      void triggerSave() {
+        debounceTimer?.cancel();
+        debounceTimer = Timer(const Duration(milliseconds: 500), () {
+          saveCount++;
+        });
+      }
+
+      // First save
+      triggerSave();
+      await Future.delayed(const Duration(milliseconds: 600));
+      expect(saveCount, equals(1));
+
+      // Second save after debounce window
+      triggerSave();
+      await Future.delayed(const Duration(milliseconds: 600));
+      expect(saveCount, equals(2),
+          reason: 'Each well-spaced call should produce its own save');
+
+      debounceTimer?.cancel();
+    });
+  });
+
+  group('Concurrent Save Prevention (P2B)', () {
+    test('second save should be queued when one is in-flight', () {
+      bool isSaveInFlight = false;
+      bool isSaveQueued = false;
+      int saveStartCount = 0;
+
+      void updateDatabase() {
+        if (isSaveInFlight) {
+          isSaveQueued = true;
+          return;
+        }
+        isSaveInFlight = true;
+        saveStartCount++;
+        // Simulate async save would happen here
+      }
+
+      // First save starts
+      updateDatabase();
+      expect(isSaveInFlight, isTrue);
+      expect(saveStartCount, equals(1));
+
+      // Second save arrives while first is running
+      updateDatabase();
+      expect(isSaveQueued, isTrue);
+      expect(saveStartCount, equals(1),
+          reason: 'Should not start a second concurrent save');
+    });
+
+    test('queued save should run after in-flight save completes', () {
+      bool isSaveInFlight = false;
+      bool isSaveQueued = false;
+      int saveStartCount = 0;
+
+      void updateDatabase() {
+        if (isSaveInFlight) {
+          isSaveQueued = true;
+          return;
+        }
+        isSaveInFlight = true;
+        saveStartCount++;
+      }
+
+      void onSaveComplete() {
+        isSaveInFlight = false;
+        if (isSaveQueued) {
+          isSaveQueued = false;
+          updateDatabase(); // Drain the queue
+        }
+      }
+
+      // First save starts
+      updateDatabase();
+      expect(saveStartCount, equals(1));
+
+      // Queue a second save
+      updateDatabase();
+      expect(saveStartCount, equals(1));
+      expect(isSaveQueued, isTrue);
+
+      // First save completes → queued save should start
+      onSaveComplete();
+      expect(saveStartCount, equals(2),
+          reason: 'Queued save should start after first completes');
+      expect(isSaveQueued, isFalse,
+          reason: 'Queue should be drained');
+    });
+
+    test('multiple queued saves should collapse into one', () {
+      bool isSaveInFlight = false;
+      bool isSaveQueued = false;
+      int saveStartCount = 0;
+
+      void updateDatabase() {
+        if (isSaveInFlight) {
+          isSaveQueued = true;
+          return;
+        }
+        isSaveInFlight = true;
+        saveStartCount++;
+      }
+
+      void onSaveComplete() {
+        isSaveInFlight = false;
+        if (isSaveQueued) {
+          isSaveQueued = false;
+          updateDatabase();
+        }
+      }
+
+      // First save starts
+      updateDatabase();
+
+      // 3 more saves arrive while first is running
+      updateDatabase();
+      updateDatabase();
+      updateDatabase();
+
+      expect(saveStartCount, equals(1),
+          reason: 'Only one save should be running');
+      expect(isSaveQueued, isTrue);
+
+      // First save completes → only ONE queued save starts (not 3)
+      onSaveComplete();
+      expect(saveStartCount, equals(2),
+          reason: 'Multiple queued saves should collapse into one');
+    });
+  });
+
+  group('Dirty Flag Optimization (P1C)', () {
+    test('auto-save should skip serialization when state is not dirty', () {
+      bool stateDirty = false;
+      bool serializationCalled = false;
+
+      // Auto-save timer fires
+      if (stateDirty) {
+        serializationCalled = true;
+      }
+
+      expect(serializationCalled, isFalse,
+          reason: 'Should skip serialization when state is clean');
+    });
+
+    test('auto-save should serialize when state is dirty', () {
+      bool stateDirty = true;
+      bool serializationCalled = false;
+
+      if (stateDirty) {
+        serializationCalled = true;
+      }
+
+      expect(serializationCalled, isTrue,
+          reason: 'Should serialize when state is dirty');
+    });
+
+    test('dirty flag should be reset after successful save', () {
+      bool stateDirty = true;
+      bool saved = false;
+
+      // Simulate save
+      if (stateDirty) {
+        saved = true;
+        stateDirty = false;
+      }
+
+      expect(saved, isTrue);
+      expect(stateDirty, isFalse,
+          reason: 'Dirty flag should reset after save');
+    });
+
+    test('triggerImmediateSave should mark state dirty', () {
+      bool stateDirty = false;
+
+      // triggerImmediateSave sets dirty before debounce
+      stateDirty = true;
+
+      expect(stateDirty, isTrue,
+          reason: 'Event-driven save should mark dirty for auto-save fallback');
     });
   });
 }

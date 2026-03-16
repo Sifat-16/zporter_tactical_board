@@ -26,7 +26,6 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/form/c
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/line_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/form/shape_utils.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view/component/righttoolbar/animation_data_input_component.dart';
-import 'package:zporter_tactical_board/presentation/tactic/view/component/sync/sync_status_indicator.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart'; // Adjust path
 import 'package:zporter_tactical_board/presentation/tactic/view_model/form/line/line_provider.dart'; // Adjust path
@@ -349,9 +348,6 @@ class _FormSpeedDialComponentState
               mainAxisAlignment:
                   MainAxisAlignment.end, // Your original alignment
               children: [
-                // Sync status indicator - always visible
-                const SyncStatusIndicator(),
-                const SizedBox(width: 12),
                 if (config.showBackButton)
                   GestureDetector(
                     onTap: () {

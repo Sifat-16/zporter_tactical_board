@@ -35,7 +35,7 @@ class AnimationCollectionModel {
       id: id ?? this.id,
       name: name ?? this.name,
       userId: userId ?? this.userId,
-      animations: animations ?? this.animations,
+      animations: animations ?? this.animations.map((e) => e.clone()).toList(),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       orderIndex: orderIndex ?? this.orderIndex,

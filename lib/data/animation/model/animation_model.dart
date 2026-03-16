@@ -48,7 +48,7 @@ class AnimationModel {
       name: name ?? this.name,
       collectionId: collectionId ?? this.collectionId,
       fieldColor: fieldColor ?? this.fieldColor,
-      animationScenes: animationScenes ?? this.animationScenes,
+      animationScenes: animationScenes ?? this.animationScenes.map((e) => e.clone()).toList(),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       boardBackground: boardBackground ?? this.boardBackground,
