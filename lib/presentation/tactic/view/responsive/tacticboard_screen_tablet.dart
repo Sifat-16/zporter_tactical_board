@@ -218,7 +218,12 @@ class _TacticboardScreenTabletState
 
       // 1. Fetch all collections and animations for the user first.
       print("[_initialLoadAndSelect] Calling getAllCollections...");
-      await ref.read(animationProvider.notifier).getAllCollections();
+      await ref
+          .read(animationProvider.notifier)
+          .getAllCollections()
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        print("[_initialLoadAndSelect] getAllCollections timed out after 10s — continuing with available data");
+      });
 
       print("[_initialLoadAndSelect] Collections loaded successfully");
 

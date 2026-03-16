@@ -61,6 +61,14 @@ import 'user_preferences_service.dart';
 
 final sl = GetIt.instance;
 
+/// Completer that resolves to true when Firebase is ready, false if init failed.
+/// Other code can await this to know Firebase is available before making queries.
+final Completer<bool> _firebaseReadyCompleter = Completer<bool>();
+
+/// Future that completes when Firebase initialization finishes (or fails).
+/// Resolves to `true` if Firebase is available, `false` otherwise.
+Future<bool> get firebaseReady => _firebaseReadyCompleter.future;
+
 Future<void> initializeTacticBoardDependencies() async {
   // ============================================================
   // FIREBASE INITIALIZATION (All Platforms)
@@ -325,9 +333,15 @@ Future<void> _initializeFirebaseSynchronously() async {
     } else {
       print('[Init] Firebase already initialized - reusing existing instance');
     }
+    if (!_firebaseReadyCompleter.isCompleted) {
+      _firebaseReadyCompleter.complete(true);
+    }
   } catch (e) {
     print('[Init] Firebase initialization failed: $e');
     print('[Init] App will continue in offline-only mode');
+    if (!_firebaseReadyCompleter.isCompleted) {
+      _firebaseReadyCompleter.complete(false);
+    }
     // App continues working fine with local Sembast storage
   }
 }
@@ -338,6 +352,9 @@ void _initializeFirebaseInBackground() {
   // Check if already initialized
   if (Firebase.apps.isNotEmpty) {
     print('[Init] Firebase already initialized - skipping background init');
+    if (!_firebaseReadyCompleter.isCompleted) {
+      _firebaseReadyCompleter.complete(true);
+    }
     return;
   }
 
@@ -351,9 +368,16 @@ void _initializeFirebaseInBackground() {
 
     // Initialize secondary Firebase app for image storage
     _initializeSecondaryFirebaseApp();
+
+    if (!_firebaseReadyCompleter.isCompleted) {
+      _firebaseReadyCompleter.complete(true);
+    }
   }).catchError((e) {
     print('[Init] Firebase background initialization failed: $e');
     print('[Init] App will continue in offline-only mode');
+    if (!_firebaseReadyCompleter.isCompleted) {
+      _firebaseReadyCompleter.complete(false);
+    }
     // App continues working fine with local Sembast storage
   });
 }

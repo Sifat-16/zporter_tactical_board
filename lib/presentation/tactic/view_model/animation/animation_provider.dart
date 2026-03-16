@@ -14,6 +14,7 @@ import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/app/services/session/session_state_model.dart';
 import 'package:zporter_tactical_board/app/services/session/session_state_service.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/local/default_animation_local_cache.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -189,34 +190,71 @@ class AnimationController extends StateNotifier<AnimationState> {
     final List<Future<void>> backgroundSaveTasks = [];
 
     try {
-      zlog(data: "[getAllCollections] Fetching data from Firebase");
+      zlog(data: "[getAllCollections] Fetching data");
 
       // Step 1: Fetch all data sources IN PARALLEL for fast startup
       List<AnimationCollectionModel> userCollections = [];
       List<AnimationCollectionModel> rawAdminCollections = [];
       List<AnimationModel> allDefaultAnimations = [];
 
-      final results = await Future.wait([
-        _getAllAnimationCollectionUseCase.call(_getUserId()).catchError((e) {
-          zlog(data: "[getAllCollections] ERROR loading user collections: $e");
-          return <AnimationCollectionModel>[];
-        }),
-        _defaultAnimationRepository
+      // User collections are already local-first (Sembast), always safe to call.
+      final userCollectionsFuture =
+          _getAllAnimationCollectionUseCase.call(_getUserId()).catchError((e) {
+        zlog(data: "[getAllCollections] ERROR loading user collections: $e");
+        return <AnimationCollectionModel>[];
+      });
+
+      // Admin data goes directly to Firebase — needs Firebase to be ready.
+      // Wait up to 3 seconds for Firebase, then fall back to local cache.
+      final bool isFirebaseAvailable = await firebaseReady
+          .timeout(const Duration(seconds: 3), onTimeout: () => false);
+
+      Future<List<AnimationCollectionModel>> adminCollectionsFuture;
+      Future<List<AnimationModel>> defaultAnimationsFuture;
+
+      if (isFirebaseAvailable) {
+        zlog(data: "[getAllCollections] Firebase ready — fetching admin data from remote");
+        adminCollectionsFuture = _defaultAnimationRepository
             .getAllDefaultAnimationCollections()
-            .catchError((e) {
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          zlog(data: "[getAllCollections] Admin collections timed out — using cache");
+          return DefaultAnimationLocalCache.getCachedCollections();
+        }).catchError((e) {
           zlog(data: "[getAllCollections] ERROR loading admin collections: $e");
-          return <AnimationCollectionModel>[];
-        }),
-        _defaultAnimationRepository.getAllDefaultAnimations().catchError((e) {
-          zlog(
-              data: "[getAllCollections] ERROR loading default animations: $e");
-          return <AnimationModel>[];
-        }),
+          return DefaultAnimationLocalCache.getCachedCollections();
+        });
+
+        defaultAnimationsFuture = _defaultAnimationRepository
+            .getAllDefaultAnimations()
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          zlog(data: "[getAllCollections] Default animations timed out — using cache");
+          return DefaultAnimationLocalCache.getCachedAnimations();
+        }).catchError((e) {
+          zlog(data: "[getAllCollections] ERROR loading default animations: $e");
+          return DefaultAnimationLocalCache.getCachedAnimations();
+        });
+      } else {
+        zlog(data: "[getAllCollections] Firebase NOT ready — using local cache for admin data");
+        adminCollectionsFuture = DefaultAnimationLocalCache.getCachedCollections();
+        defaultAnimationsFuture = DefaultAnimationLocalCache.getCachedAnimations();
+      }
+
+      final results = await Future.wait([
+        userCollectionsFuture,
+        adminCollectionsFuture,
+        defaultAnimationsFuture,
       ]);
 
       userCollections = results[0] as List<AnimationCollectionModel>;
       rawAdminCollections = results[1] as List<AnimationCollectionModel>;
       allDefaultAnimations = results[2] as List<AnimationModel>;
+
+      // Cache admin data for next offline startup (fire-and-forget)
+      if (isFirebaseAvailable &&
+          (rawAdminCollections.isNotEmpty || allDefaultAnimations.isNotEmpty)) {
+        DefaultAnimationLocalCache.cacheCollections(rawAdminCollections);
+        DefaultAnimationLocalCache.cacheAnimations(allDefaultAnimations);
+      }
 
       zlog(
           data:
@@ -901,6 +939,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     ref
         .read(boardProvider.notifier)
         .updateBoardBackground(scene.boardBackground);
+    _saveSessionState();
   }
 
   /// Load external scene data directly from JSON (e.g., from parent web app)
@@ -1311,6 +1350,8 @@ class AnimationController extends StateNotifier<AnimationState> {
       defaultAnimationItems: animationItems,
       selectedScene: animationItems.first,
       defaultAnimationItemIndex: 0,
+      selectedAnimationCollectionModel: null,
+      selectedAnimationModel: null,
     );
   }
 
