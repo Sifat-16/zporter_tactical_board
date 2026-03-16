@@ -682,6 +682,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     final items = state.defaultAnimationItems;
     final lastIndex = state.defaultAnimationItemIndex.clamp(0, items.length - 1);
     state = state.copyWith(
+      selectedAnimationCollectionModel: null,
       selectedAnimationModel: null,
       selectedScene: items[lastIndex],
       defaultAnimationItemIndex: lastIndex,
@@ -1353,6 +1354,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedAnimationCollectionModel: null,
       selectedAnimationModel: null,
     );
+    // Keep Sembast in sync — the old session was already pre-read for the
+    // resume toast, so this write won't interfere with it.
+    _saveSessionState();
   }
 
   void changeDefaultAnimationIndex(int index) {
@@ -1749,6 +1753,13 @@ class AnimationController extends StateNotifier<AnimationState> {
   /// Returns true if restoration was successful.
   bool restoreFromSessionState(SessionStateModel sessionState) {
     try {
+      zlog(data: "SessionState: Restoring — "
+          "collectionId=${sessionState.selectedCollectionId}, "
+          "animationId=${sessionState.selectedAnimationId}, "
+          "sceneId=${sessionState.selectedSceneId}, "
+          "defaultIdx=${sessionState.defaultAnimationItemIndex}, "
+          "available defaults=${state.defaultAnimationItems.length}");
+
       // Case 1: User had a collection + animation open
       if (sessionState.selectedCollectionId != null) {
         final collection = state.animationCollections.firstWhereOrNull(
@@ -1780,18 +1791,23 @@ class AnimationController extends StateNotifier<AnimationState> {
               state = state.copyWith(selectedScene: scene);
             }
           }
+          zlog(data: "SessionState: Restored collection/animation");
           return true;
         }
+        zlog(data: "SessionState: Collection ${sessionState.selectedCollectionId} not found in loaded collections");
       }
 
       // Case 2: User was on a specific default screen (no collection)
       if (sessionState.defaultAnimationItemIndex > 0 &&
           sessionState.defaultAnimationItemIndex <
               state.defaultAnimationItems.length) {
+        zlog(data: "SessionState: Restoring default screen index ${sessionState.defaultAnimationItemIndex}");
         changeDefaultAnimationIndex(sessionState.defaultAnimationItemIndex);
         return true;
       }
 
+      zlog(data: "SessionState: Nothing to restore (idx=${sessionState.defaultAnimationItemIndex}, "
+          "items=${state.defaultAnimationItems.length})");
       return false;
     } catch (e) {
       zlog(data: "SessionState: Error restoring session: $e");
