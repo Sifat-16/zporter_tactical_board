@@ -207,6 +207,14 @@ class _TacticboardScreenTabletState
   }
 
   Future<void> _initialLoadAndSelect() async {
+    // Read the saved session state BEFORE getAllCollections() runs,
+    // because getAllCollections → selectAnimationCollection → _saveSessionState()
+    // will overwrite the persisted session before the toast can read it.
+    SessionStateModel? savedSessionState;
+    try {
+      savedSessionState = await SessionStateService.get();
+    } catch (_) {}
+
     try {
       print(
           "[_initialLoadAndSelect] Starting initialization - userId: ${widget.userId}");
@@ -300,14 +308,16 @@ class _TacticboardScreenTabletState
             "[_initialLoadAndSelect] Initialization complete - marked as ready");
 
         // Show resume toast AFTER the board is fully visible
-        _showResumeToastIfNeeded();
+        _showResumeToastIfNeeded(savedSessionState);
       }
     }
   }
 
   /// Shows a non-blocking toast at the top-right if there is a saved session.
   /// The board is already loaded and visible — this is purely optional.
-  void _showResumeToastIfNeeded() async {
+  /// [preReadState] is the session state read BEFORE getAllCollections() ran,
+  /// because getAllCollections overwrites the persisted session during startup.
+  void _showResumeToastIfNeeded(SessionStateModel? preReadState) {
     try {
       // Only offer resume on the default startup path (no deep-link IDs)
       if (widget.collectionId != null ||
@@ -316,7 +326,7 @@ class _TacticboardScreenTabletState
         return;
       }
 
-      final sessionState = await SessionStateService.get();
+      final sessionState = preReadState;
       if (sessionState == null ||
           !sessionState.hasMeaningfulContext ||
           !sessionState.isRecent) {
