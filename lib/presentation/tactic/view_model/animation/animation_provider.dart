@@ -103,6 +103,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     AnimationCollectionModel? animationCollectionModel, {
     AnimationModel? animationSelect,
     bool changeSelectedScene = true,
+    bool skipSessionSave = false,
   }) {
     AnimationModel? selectedAnimation = animationSelect;
 
@@ -123,7 +124,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       showNewAnimationInput: false,
       showQuickSave: false,
     );
-    _saveSessionState();
+    if (!skipSessionSave) {
+      _saveSessionState();
+    }
   }
 
   // Future<void> getAllCollections() async {
@@ -357,7 +360,10 @@ class AnimationController extends StateNotifier<AnimationState> {
         isLoadingAnimationCollections: false,
       );
 
-      selectAnimationCollection(selectedCollection);
+      // During init, skip session save — the pre-read session state for
+      // the resume toast was already captured, and writing here would race
+      // with user-triggered saves that happen right after.
+      selectAnimationCollection(selectedCollection, skipSessionSave: true);
     } catch (e) {
       zlog(data: "Animation collection fetching/syncing issue: $e");
       state = state.copyWith(isLoadingAnimationCollections: false);
@@ -1354,9 +1360,10 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedAnimationCollectionModel: null,
       selectedAnimationModel: null,
     );
-    // Keep Sembast in sync — the old session was already pre-read for the
-    // resume toast, so this write won't interfere with it.
-    _saveSessionState();
+    // NOTE: No _saveSessionState() here — this is an initialization step,
+    // not a user navigation action. The pre-read session (for the resume
+    // toast) was already captured before this runs, so writing here would
+    // only create race conditions with user-triggered saves.
   }
 
   void changeDefaultAnimationIndex(int index) {
@@ -1737,19 +1744,36 @@ class AnimationController extends StateNotifier<AnimationState> {
   /// Fire-and-forget — never blocks, never throws.
   void _saveSessionState() {
     try {
-      // Auto-detect navigation type from current state:
-      // If a collection is actively selected → collection view.
-      // Otherwise → default screen view.
+      // Determine collection info — prefer the explicitly selected collection
+      // model, but fall back to the animation's collectionId when the model
+      // is null (e.g. after configureDefaultAnimations cleared it but the
+      // user then selected an animation via the sidebar).
+      String? collectionId = state.selectedAnimationCollectionModel?.id;
+      String? collectionName = state.selectedAnimationCollectionModel?.name;
+
+      if (collectionId == null && state.selectedAnimationModel != null) {
+        final animColId = state.selectedAnimationModel!.collectionId;
+        if (animColId != null) {
+          collectionId = animColId;
+          final col = state.animationCollections.firstWhereOrNull(
+            (c) => c.id == animColId,
+          );
+          collectionName = col?.name;
+        }
+      }
+
+      // If we resolved a collection OR have an animation selected, it's
+      // a collection view. Otherwise it's a default-screen view.
       final isCollectionView =
-          state.selectedAnimationCollectionModel != null;
+          collectionId != null || state.selectedAnimationModel != null;
 
       final sessionState = SessionStateModel(
         navigationType: isCollectionView
             ? SessionNavigationType.collection
             : SessionNavigationType.defaultScreen,
         defaultAnimationItemIndex: state.defaultAnimationItemIndex,
-        selectedCollectionId: state.selectedAnimationCollectionModel?.id,
-        selectedCollectionName: state.selectedAnimationCollectionModel?.name,
+        selectedCollectionId: collectionId,
+        selectedCollectionName: collectionName,
         selectedAnimationId: state.selectedAnimationModel?.id,
         selectedAnimationName: state.selectedAnimationModel?.name,
         selectedSceneId: state.selectedScene?.id,
