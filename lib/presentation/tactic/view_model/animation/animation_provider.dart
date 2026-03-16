@@ -1720,9 +1720,14 @@ class AnimationController extends StateNotifier<AnimationState> {
               (a) => a.id == sessionState.selectedAnimationId,
             );
           }
+
+          // Select the collection but KEEP the current selectedScene if the
+          // animation has no scenes to show — prevents selectedScene becoming
+          // null which triggers the zLoader.
           selectAnimationCollection(
             collection,
             animationSelect: animation,
+            changeSelectedScene: animation?.animationScenes.isNotEmpty == true,
           );
 
           // If a specific scene was saved, navigate to it
