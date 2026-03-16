@@ -674,6 +674,32 @@ class AnimationController extends StateNotifier<AnimationState> {
 
   void selectAnimation(AnimationModel? s) {
     zlog(data: "Animation model came ${s}");
+
+    // If no collection is explicitly selected but the animation has a
+    // collectionId, re-associate so _saveSessionState picks it up.
+    if (s != null &&
+        state.selectedAnimationCollectionModel == null &&
+        s.collectionId != null) {
+      final col = state.animationCollections.firstWhereOrNull(
+        (c) => c.id == s.collectionId,
+      );
+      if (col != null) {
+        zlog(data: "SessionState: Re-associating collection ${col.name} "
+            "for animation ${s.name}");
+        state = state.copyWith(
+          selectedAnimationCollectionModel: col,
+          selectedAnimationModel: s,
+          selectedScene: s.animationScenes.firstOrNull,
+        );
+        ref
+            .read(boardProvider.notifier)
+            .updateBoardBackground(
+                s.boardBackground ?? BoardBackground.full);
+        _saveSessionState();
+        return;
+      }
+    }
+
     state = state.copyWith(
       selectedAnimationModel: s,
       selectedScene: s?.animationScenes.firstOrNull,
@@ -830,6 +856,7 @@ class AnimationController extends StateNotifier<AnimationState> {
             selectedAnimationModel: selectedAnimation,
             selectedScene: selectedScene,
           );
+          _saveSessionState();
           return selectedScene;
         } catch (e) {
           BotToast.showText(text: "Unexpected server error ${e}");
@@ -938,6 +965,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           .clone(), // Use a clone to force the UI to refresh the list
       selectedScene: newAnimationItemModel, // Select Scene B
     );
+    _saveSessionState();
   }
 
   void selectScene({required AnimationItemModel scene}) {
@@ -1779,6 +1807,14 @@ class AnimationController extends StateNotifier<AnimationState> {
         selectedSceneId: state.selectedScene?.id,
         savedAt: DateTime.now(),
       );
+
+      zlog(data: "SessionState: SAVING — "
+          "type=${sessionState.navigationType}, "
+          "colId=$collectionId, "
+          "animId=${state.selectedAnimationModel?.id}, "
+          "sceneId=${state.selectedScene?.id}, "
+          "defaultIdx=${state.defaultAnimationItemIndex}");
+
       SessionStateService.save(sessionState);
     } catch (e) {
       zlog(data: "SessionState: Error in _saveSessionState: $e");
@@ -1832,25 +1868,40 @@ class AnimationController extends StateNotifier<AnimationState> {
       animation = collection.animations.firstWhereOrNull(
         (a) => a.id == sessionState.selectedAnimationId,
       );
+      zlog(data: "SessionState: Found animation? ${animation != null}, "
+          "scenes count: ${animation?.animationScenes.length ?? 0}");
     }
 
+    // Select collection+animation but skip saving — we'll save the final
+    // state after scene restoration below.
     selectAnimationCollection(
       collection,
       animationSelect: animation,
       changeSelectedScene: animation?.animationScenes.isNotEmpty == true,
+      skipSessionSave: true,
     );
 
     // Navigate to the specific scene if saved
     if (animation != null && sessionState.selectedSceneId != null) {
+      zlog(data: "SessionState: Looking for scene ${sessionState.selectedSceneId} "
+          "in ${animation.animationScenes.length} scenes: "
+          "${animation.animationScenes.map((s) => s.id).toList()}");
       final scene = animation.animationScenes.firstWhereOrNull(
         (s) => s.id == sessionState.selectedSceneId,
       );
       if (scene != null) {
+        zlog(data: "SessionState: Setting selectedScene to ${scene.id}");
         state = state.copyWith(selectedScene: scene);
+      } else {
+        zlog(data: "SessionState: Scene ${sessionState.selectedSceneId} NOT found in animation scenes");
       }
     }
 
-    zlog(data: "SessionState: Restored collection/animation");
+    // Now save the final restored state (with the correct scene).
+    _saveSessionState();
+
+    zlog(data: "SessionState: Restored collection/animation, "
+        "final selectedScene=${state.selectedScene?.id}");
     return true;
   }
 

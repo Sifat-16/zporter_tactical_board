@@ -330,8 +330,20 @@ class _TacticboardScreenTabletState
       if (sessionState == null ||
           !sessionState.hasMeaningfulContext ||
           !sessionState.isRecent) {
+        print("[Resume] No meaningful/recent session to resume: "
+            "state=${sessionState != null}, "
+            "meaningful=${sessionState?.hasMeaningfulContext}, "
+            "recent=${sessionState?.isRecent}");
         return;
       }
+
+      print("[Resume] Showing toast — "
+          "type=${sessionState.navigationType}, "
+          "colId=${sessionState.selectedCollectionId}, "
+          "animId=${sessionState.selectedAnimationId}, "
+          "sceneId=${sessionState.selectedSceneId}, "
+          "defaultIdx=${sessionState.defaultAnimationItemIndex}, "
+          "summary=${sessionState.displaySummary}");
 
       if (!mounted) return;
 
