@@ -10,6 +10,7 @@ import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/component/zporter_logo_launcher.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
+import 'package:zporter_tactical_board/app/core/dialogs/resume_session_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -17,6 +18,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/app/services/js_interop/js_interop.dart';
 import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_service.dart';
 import 'package:zporter_tactical_board/app/services/sync/sync_queue_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
@@ -268,6 +270,9 @@ class _TacticboardScreenTabletState
       print("[_initialLoadAndSelect] Loading default animations");
       await ref.read(animationProvider.notifier).configureDefaultAnimations();
       print("[_initialLoadAndSelect] Default animations loaded");
+
+      // 6. Check for saved session state and offer to resume.
+      await _checkAndOfferResume();
     } catch (e, s) {
       print("[_initialLoadAndSelect] ERROR: $e");
       print("[_initialLoadAndSelect] STACK: $s");
@@ -292,6 +297,38 @@ class _TacticboardScreenTabletState
         print(
             "[_initialLoadAndSelect] Initialization complete - marked as ready");
       }
+    }
+  }
+
+  /// Check for a saved session state and show the resume dialog if applicable.
+  Future<void> _checkAndOfferResume() async {
+    try {
+      final sessionState = await SessionStateService.get();
+      if (sessionState == null ||
+          !sessionState.hasMeaningfulContext ||
+          !sessionState.isRecent) {
+        return;
+      }
+
+      if (!mounted) return;
+
+      // Wait for the UI to be ready before showing the dialog
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      final shouldResume = await showResumeSessionDialog(
+        context: context,
+        sessionState: sessionState,
+      );
+
+      if (shouldResume == true && mounted) {
+        ref
+            .read(animationProvider.notifier)
+            .restoreFromSessionState(sessionState);
+        print("[_checkAndOfferResume] Session restored successfully");
+      }
+    } catch (e) {
+      print("[_checkAndOfferResume] Error checking session state: $e");
     }
   }
 

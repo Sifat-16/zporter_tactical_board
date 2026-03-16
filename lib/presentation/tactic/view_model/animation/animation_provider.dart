@@ -12,6 +12,8 @@ import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_model.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_service.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -120,6 +122,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       showNewAnimationInput: false,
       showQuickSave: false,
     );
+    _saveSessionState();
   }
 
   // Future<void> getAllCollections() async {
@@ -634,6 +637,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     ref
         .read(boardProvider.notifier)
         .updateBoardBackground(s?.boardBackground ?? BoardBackground.full);
+    _saveSessionState();
   }
 
   void clearAnimation() {
@@ -644,6 +648,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       selectedScene: items[lastIndex],
       defaultAnimationItemIndex: lastIndex,
     );
+    _saveSessionState();
   }
 
   void copyAnimation(AnimationCopyItem animationCopyItem) async {
@@ -1316,6 +1321,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       defaultAnimationItemIndex: index,
       selectedScene: selectedScene,
     );
+    _saveSessionState();
   }
 
   Future<AnimationItemModel?> _onSaveDefault() async {
@@ -1676,6 +1682,75 @@ class AnimationController extends StateNotifier<AnimationState> {
       throw Exception("User Id Not Found");
     }
     return userId;
+  }
+
+  /// Persists the current navigation context to Sembast so the app can
+  /// offer "resume where you left off" on the next launch.
+  /// Fire-and-forget — never blocks, never throws.
+  void _saveSessionState() {
+    try {
+      final sessionState = SessionStateModel(
+        defaultAnimationItemIndex: state.defaultAnimationItemIndex,
+        selectedCollectionId: state.selectedAnimationCollectionModel?.id,
+        selectedCollectionName: state.selectedAnimationCollectionModel?.name,
+        selectedAnimationId: state.selectedAnimationModel?.id,
+        selectedAnimationName: state.selectedAnimationModel?.name,
+        selectedSceneId: state.selectedScene?.id,
+        savedAt: DateTime.now(),
+      );
+      SessionStateService.save(sessionState);
+    } catch (e) {
+      zlog(data: "SessionState: Error in _saveSessionState: $e");
+    }
+  }
+
+  /// Restores navigation to a previously saved session state.
+  /// Returns true if restoration was successful.
+  bool restoreFromSessionState(SessionStateModel sessionState) {
+    try {
+      // Case 1: User had a collection + animation open
+      if (sessionState.selectedCollectionId != null) {
+        final collection = state.animationCollections.firstWhereOrNull(
+          (c) => c.id == sessionState.selectedCollectionId,
+        );
+        if (collection != null) {
+          AnimationModel? animation;
+          if (sessionState.selectedAnimationId != null) {
+            animation = collection.animations.firstWhereOrNull(
+              (a) => a.id == sessionState.selectedAnimationId,
+            );
+          }
+          selectAnimationCollection(
+            collection,
+            animationSelect: animation,
+          );
+
+          // If a specific scene was saved, navigate to it
+          if (animation != null && sessionState.selectedSceneId != null) {
+            final scene = animation.animationScenes.firstWhereOrNull(
+              (s) => s.id == sessionState.selectedSceneId,
+            );
+            if (scene != null) {
+              state = state.copyWith(selectedScene: scene);
+            }
+          }
+          return true;
+        }
+      }
+
+      // Case 2: User was on a specific default screen (no collection)
+      if (sessionState.defaultAnimationItemIndex > 0 &&
+          sessionState.defaultAnimationItemIndex <
+              state.defaultAnimationItems.length) {
+        changeDefaultAnimationIndex(sessionState.defaultAnimationItemIndex);
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      zlog(data: "SessionState: Error restoring session: $e");
+      return false;
+    }
   }
 
   Future<void> _saveToHistory({required AnimationItemModel scene}) async {
