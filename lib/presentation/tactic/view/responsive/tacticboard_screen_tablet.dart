@@ -10,7 +10,6 @@ import 'package:zporter_tactical_board/app/core/component/compact_paginator.dart
 import 'package:zporter_tactical_board/app/core/component/z_loader.dart';
 import 'package:zporter_tactical_board/app/core/component/zporter_logo_launcher.dart';
 import 'package:zporter_tactical_board/app/core/dialogs/confirmation_dialog.dart';
-import 'package:zporter_tactical_board/app/core/dialogs/resume_session_dialog.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
 import 'package:zporter_tactical_board/app/extensions/size_extension.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -18,6 +17,7 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/app/services/js_interop/js_interop.dart';
 import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_model.dart';
 import 'package:zporter_tactical_board/app/services/session/session_state_service.dart';
 import 'package:zporter_tactical_board/app/services/sync/sync_queue_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
@@ -270,9 +270,6 @@ class _TacticboardScreenTabletState
       print("[_initialLoadAndSelect] Loading default animations");
       await ref.read(animationProvider.notifier).configureDefaultAnimations();
       print("[_initialLoadAndSelect] Default animations loaded");
-
-      // 6. Check for saved session state and offer to resume.
-      await _checkAndOfferResume();
     } catch (e, s) {
       print("[_initialLoadAndSelect] ERROR: $e");
       print("[_initialLoadAndSelect] STACK: $s");
@@ -296,13 +293,24 @@ class _TacticboardScreenTabletState
         });
         print(
             "[_initialLoadAndSelect] Initialization complete - marked as ready");
+
+        // Show resume toast AFTER the board is fully visible
+        _showResumeToastIfNeeded();
       }
     }
   }
 
-  /// Check for a saved session state and show the resume dialog if applicable.
-  Future<void> _checkAndOfferResume() async {
+  /// Shows a non-blocking toast at the top-right if there is a saved session.
+  /// The board is already loaded and visible — this is purely optional.
+  void _showResumeToastIfNeeded() async {
     try {
+      // Only offer resume on the default startup path (no deep-link IDs)
+      if (widget.collectionId != null ||
+          widget.animationId != null ||
+          (widget.exerciseName != null && widget.exerciseName!.isNotEmpty)) {
+        return;
+      }
+
       final sessionState = await SessionStateService.get();
       if (sessionState == null ||
           !sessionState.hasMeaningfulContext ||
@@ -312,23 +320,24 @@ class _TacticboardScreenTabletState
 
       if (!mounted) return;
 
-      // Wait for the UI to be ready before showing the dialog
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-
-      final shouldResume = await showResumeSessionDialog(
-        context: context,
-        sessionState: sessionState,
+      BotToast.showCustomNotification(
+        duration: const Duration(seconds: 6),
+        align: const Alignment(1.0, -1.0),
+        toastBuilder: (cancelFunc) {
+          return _ResumeToast(
+            sessionState: sessionState,
+            onResume: () {
+              cancelFunc();
+              ref
+                  .read(animationProvider.notifier)
+                  .restoreFromSessionState(sessionState);
+            },
+            onDismiss: cancelFunc,
+          );
+        },
       );
-
-      if (shouldResume == true && mounted) {
-        ref
-            .read(animationProvider.notifier)
-            .restoreFromSessionState(sessionState);
-        print("[_checkAndOfferResume] Session restored successfully");
-      }
     } catch (e) {
-      print("[_checkAndOfferResume] Error checking session state: $e");
+      // Never block the board for a resume toast failure
     }
   }
 
@@ -1111,6 +1120,95 @@ class _TacticboardScreenTabletState
         child: GameScreen(
           key: ValueKey('game_screen_$_resizeCounter'),
           scene: selectedScene,
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact, non-blocking toast widget shown at the top-right of the field.
+/// Auto-dismisses after a few seconds. Tapping "Resume" restores the session.
+class _ResumeToast extends StatelessWidget {
+  final SessionStateModel sessionState;
+  final VoidCallback onResume;
+  final VoidCallback onDismiss;
+
+  const _ResumeToast({
+    required this.sessionState,
+    required this.onResume,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, right: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 300),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: ColorManager.dark1,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: ColorManager.grey.withValues(alpha: 0.3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.history, color: ColorManager.blue, size: 18),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  sessionState.displaySummary,
+                  style: const TextStyle(
+                    color: ColorManager.white,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: onResume,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: ColorManager.blue,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Resume',
+                    style: TextStyle(
+                      color: ColorManager.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: onDismiss,
+                child: const Icon(
+                  Icons.close,
+                  color: ColorManager.grey,
+                  size: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
