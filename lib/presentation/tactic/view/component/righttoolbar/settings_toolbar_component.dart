@@ -163,13 +163,13 @@ class _SettingsToolbarComponentState
             ColorSlider(
               initialColor: boardState.awayTeamBorderColor,
               colors: const [
+                Color(0xFF974AC8),
                 Colors.red,
                 Colors.deepOrange,
                 Colors.orange,
                 Colors.yellow,
                 Colors.green,
                 Colors.blue,
-                Colors.purple,
                 Colors.grey,
                 Colors.white,
               ],

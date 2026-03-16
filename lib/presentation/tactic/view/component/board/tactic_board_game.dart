@@ -320,9 +320,6 @@ class TacticBoard extends TacticBoardGame
   updateDatabase({bool isAutoSave = true}) {
     if (!isAnimating) {
       WidgetsBinding.instance.addPostFrameCallback((t) async {
-        ref
-            .read(animationProvider.notifier)
-            .toggleLoadingSave(showLoading: true);
         try {
           // Phase 1: Pass isAutoSave flag to skip history on auto-saves
           await ref
@@ -344,15 +341,8 @@ class TacticBoard extends TacticBoardGame
         } catch (e) {
           zlog(data: "Error updating database: $e");
         }
-
-        ref
-            .read(animationProvider.notifier)
-            .toggleLoadingSave(showLoading: false);
       });
     } else {
-      ref
-          .read(animationProvider.notifier)
-          .toggleLoadingSave(showLoading: false);
       if (FeatureFlags.enableSaveDebugLogs) {
         zlog(data: "Save skipped: Animation playing");
       }

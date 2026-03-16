@@ -106,7 +106,7 @@ class BoardState {
       this.activeGuides = const [],
       this.gridSize = 50.0,
       this.homeTeamBorderColor = Colors.blue,
-      this.awayTeamBorderColor = Colors.red,
+      this.awayTeamBorderColor = const Color(0xFF974AC8),
       this.applyDesignToAll = false,
       this.trajectoryEditingEnabled = false,
       this.moveToFront = false,

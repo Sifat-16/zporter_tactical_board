@@ -641,10 +641,12 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void clearAnimation() {
+    final items = state.defaultAnimationItems;
+    final lastIndex = state.defaultAnimationItemIndex.clamp(0, items.length - 1);
     state = state.copyWith(
       selectedAnimationModel: null,
-      selectedScene: state.defaultAnimationItems[0],
-      defaultAnimationItemIndex: 0,
+      selectedScene: items[lastIndex],
+      defaultAnimationItemIndex: lastIndex,
     );
   }
 
@@ -782,12 +784,13 @@ class AnimationController extends StateNotifier<AnimationState> {
             selectedAnimationModel: selectedAnimation,
             selectedScene: selectedScene,
           );
-          BotToast.showText(text: "Scene Saved Successfully ${selectedScene}");
           return selectedScene;
         } catch (e) {
           BotToast.showText(text: "Unexpected server error ${e}");
         } finally {
-          BotToast.cleanAll();
+          if (showLoading) {
+            BotToast.cleanAll();
+          }
         }
       } else {
         BotToast.showText(text: "No Animation found!!");
@@ -1797,10 +1800,6 @@ class AnimationController extends StateNotifier<AnimationState> {
     bool showLoading = true,
     bool saveToDb = true,
   }) async {
-    print('📝 _onAnimationSaveAdmin START');
-    BotToast.showText(
-        text: '📝 _onAnimationSaveAdmin START', duration: Duration(seconds: 3));
-
     List<FieldItemModel> components =
         ref.read(boardProvider.notifier).onAnimationSave();
 
@@ -1813,15 +1812,8 @@ class AnimationController extends StateNotifier<AnimationState> {
     if (sceneIndex != -1) {
       selectedAnimation.animationScenes[sceneIndex] = selectedScene;
 
-      BotToast.showText(
-          text: '💾 Calling repository.saveDefaultAnimation...',
-          duration: Duration(seconds: 3));
-
       selectedAnimation = await _defaultAnimationRepository
           .saveDefaultAnimation(selectedAnimation);
-
-      BotToast.showText(
-          text: '✅ Repository save returned!', duration: Duration(seconds: 3));
 
       state = state.copyWith(
         selectedAnimationModel: selectedAnimation,
@@ -1834,18 +1826,13 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   triggerAutoSaveForAdmin() {
-    BotToast.showText(
-        text: '🎯 triggerAutoSaveForAdmin CALLED',
-        duration: Duration(seconds: 3));
     try {
       _onAnimationSaveAdmin(
         selectedAnimation: state.selectedAnimationModel!,
         selectedScene: state.selectedScene!,
       );
     } catch (e) {
-      BotToast.showText(
-          text: '❌ Error in triggerAutoSaveForAdmin: $e',
-          duration: Duration(seconds: 5));
+      zlog(data: "Error in triggerAutoSaveForAdmin: $e", level: Level.error);
     }
   }
 

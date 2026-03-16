@@ -586,9 +586,22 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       canvas.drawRRect(rrect, borderPaint);
     } else {
       // State 3: No image to show OR loading failed. Draw the colored placeholder.
-      // Use the team border color as the fill color for players without images
-      final Color baseColor = _getTeamBorderColor();
-      _backgroundPaint.color = baseColor.withOpacity(baseOpacity);
+      // Use team identity colors for fill (not border color, which may differ)
+      final Color fillColor;
+      if (object.borderColor != null) {
+        fillColor = object.borderColor!;
+      } else {
+        switch (object.playerType) {
+          case PlayerType.HOME:
+            fillColor = Colors.blue;
+          case PlayerType.AWAY:
+            fillColor = Colors.red;
+          case PlayerType.OTHER:
+          case PlayerType.UNKNOWN:
+            fillColor = ColorManager.grey;
+        }
+      }
+      _backgroundPaint.color = fillColor.withOpacity(baseOpacity);
       _backgroundPaint.style = PaintingStyle.fill;
       canvas.drawRRect(rrect, _backgroundPaint);
 
@@ -610,6 +623,17 @@ class PlayerComponent extends FieldComponent<PlayerModel>
               Offset(_textPainter.width / 2, _textPainter.height / 2),
         );
       }
+
+      // Draw border line on top with team border color
+      canvas.restore();
+      canvas.save();
+
+      final Color teamBorderColor = _getTeamBorderColor();
+      final borderPaint = Paint()
+        ..color = teamBorderColor.withOpacity(baseOpacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+      canvas.drawRRect(rrect, borderPaint);
     }
     // --- END NEW RENDER LOGIC ---
 
