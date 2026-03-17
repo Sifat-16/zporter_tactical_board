@@ -193,8 +193,6 @@ class AnimationController extends StateNotifier<AnimationState> {
     final List<Future<void>> backgroundSaveTasks = [];
 
     try {
-      zlog(data: "[getAllCollections] Fetching data");
-
       // Step 1: Fetch all data sources IN PARALLEL for fast startup
       List<AnimationCollectionModel> userCollections = [];
       List<AnimationCollectionModel> rawAdminCollections = [];
@@ -203,7 +201,6 @@ class AnimationController extends StateNotifier<AnimationState> {
       // User collections are already local-first (Sembast), always safe to call.
       final userCollectionsFuture =
           _getAllAnimationCollectionUseCase.call(_getUserId()).catchError((e) {
-        zlog(data: "[getAllCollections] ERROR loading user collections: $e");
         return <AnimationCollectionModel>[];
       });
 
@@ -216,28 +213,22 @@ class AnimationController extends StateNotifier<AnimationState> {
       Future<List<AnimationModel>> defaultAnimationsFuture;
 
       if (isFirebaseAvailable) {
-        zlog(data: "[getAllCollections] Firebase ready — fetching admin data from remote");
         adminCollectionsFuture = _defaultAnimationRepository
             .getAllDefaultAnimationCollections()
             .timeout(const Duration(seconds: 5), onTimeout: () {
-          zlog(data: "[getAllCollections] Admin collections timed out — using cache");
           return DefaultAnimationLocalCache.getCachedCollections();
         }).catchError((e) {
-          zlog(data: "[getAllCollections] ERROR loading admin collections: $e");
           return DefaultAnimationLocalCache.getCachedCollections();
         });
 
         defaultAnimationsFuture = _defaultAnimationRepository
             .getAllDefaultAnimations()
             .timeout(const Duration(seconds: 5), onTimeout: () {
-          zlog(data: "[getAllCollections] Default animations timed out — using cache");
           return DefaultAnimationLocalCache.getCachedAnimations();
         }).catchError((e) {
-          zlog(data: "[getAllCollections] ERROR loading default animations: $e");
           return DefaultAnimationLocalCache.getCachedAnimations();
         });
       } else {
-        zlog(data: "[getAllCollections] Firebase NOT ready — using local cache for admin data");
         adminCollectionsFuture = DefaultAnimationLocalCache.getCachedCollections();
         defaultAnimationsFuture = DefaultAnimationLocalCache.getCachedAnimations();
       }
@@ -258,10 +249,6 @@ class AnimationController extends StateNotifier<AnimationState> {
         DefaultAnimationLocalCache.cacheCollections(rawAdminCollections);
         DefaultAnimationLocalCache.cacheAnimations(allDefaultAnimations);
       }
-
-      zlog(
-          data:
-              "[getAllCollections] Loaded: ${userCollections.length} user, ${rawAdminCollections.length} admin, ${allDefaultAnimations.length} default animations");
 
       // Step 2: Build the Admin Template Map
       final Map<String, AnimationCollectionModel> adminTemplateMap = {};
@@ -673,8 +660,6 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void selectAnimation(AnimationModel? s) {
-    zlog(data: "Animation model came ${s}");
-
     // If no collection is explicitly selected, re-associate by looking up
     // which collection owns this animation. Covers both animations with
     // a collectionId field AND admin-synced/user-created animations where
@@ -695,8 +680,6 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
 
       if (col != null) {
-        zlog(data: "SessionState: Re-associating collection ${col.name} "
-            "for animation ${s.name}");
         state = state.copyWith(
           selectedAnimationCollectionModel: col,
           selectedAnimationModel: s,
@@ -1834,67 +1817,32 @@ class AnimationController extends StateNotifier<AnimationState> {
         savedAt: DateTime.now(),
       );
 
-      zlog(data: "SessionState: SAVING — "
-          "type=${sessionState.navigationType}, "
-          "colId=$collectionId, "
-          "animId=${state.selectedAnimationModel?.id}, "
-          "sceneId=${state.selectedScene?.id}, "
-          "defaultIdx=${state.defaultAnimationItemIndex}");
-
       SessionStateService.save(sessionState);
-    } catch (e) {
-      zlog(data: "SessionState: Error in _saveSessionState: $e");
-    }
+    } catch (_) {}
   }
 
   /// Restores navigation to a previously saved session state.
   /// Returns true if restoration was successful.
   bool restoreFromSessionState(SessionStateModel sessionState) {
     try {
-      zlog(data: "SessionState: Restoring — "
-          "type=${sessionState.navigationType}, "
-          "collectionId=${sessionState.selectedCollectionId}, "
-          "animationId=${sessionState.selectedAnimationId}, "
-          "sceneId=${sessionState.selectedSceneId}, "
-          "defaultIdx=${sessionState.defaultAnimationItemIndex}, "
-          "available defaults=${state.defaultAnimationItems.length}");
-
-      // Switch on the explicit navigation type — never fall through from
-      // one type to another. This prevents a stale default index from
-      // overriding a collection/animation/scene restore.
       switch (sessionState.navigationType) {
         case SessionNavigationType.collection:
           return _restoreCollectionView(sessionState);
         case SessionNavigationType.defaultScreen:
           return _restoreDefaultScreen(sessionState);
       }
-    } catch (e) {
-      zlog(data: "SessionState: Error restoring session: $e");
-      BotToast.showText(
-        text: "[Resume Error] $e",
-        duration: const Duration(seconds: 5),
-      );
+    } catch (_) {
       return false;
     }
   }
 
   bool _restoreCollectionView(SessionStateModel sessionState) {
-    if (sessionState.selectedCollectionId == null) {
-      BotToast.showText(text: "[Resume] No collectionId in session");
-      return false;
-    }
+    if (sessionState.selectedCollectionId == null) return false;
 
     final collection = state.animationCollections.firstWhereOrNull(
       (c) => c.id == sessionState.selectedCollectionId,
     );
-    if (collection == null) {
-      BotToast.showText(
-        text: "[Resume] Collection ${sessionState.selectedCollectionId} not found "
-            "in ${state.animationCollections.length} collections",
-        duration: const Duration(seconds: 4),
-      );
-      return false;
-    }
+    if (collection == null) return false;
 
     AnimationModel? animation;
     if (sessionState.selectedAnimationId != null) {
@@ -1904,11 +1852,6 @@ class AnimationController extends StateNotifier<AnimationState> {
     }
 
     if (animation == null) {
-      BotToast.showText(
-        text: "[Resume] Animation ${sessionState.selectedAnimationId} not found "
-            "in collection '${collection.name}' (${collection.animations.length} animations)",
-        duration: const Duration(seconds: 4),
-      );
       // Still select the collection even without animation
       selectAnimationCollection(collection, skipSessionSave: true);
       _saveSessionState();
@@ -1944,25 +1887,15 @@ class AnimationController extends StateNotifier<AnimationState> {
 
     // Save the final restored state
     _saveSessionState();
-
-    final sceneIdShort = state.selectedScene?.id ?? 'none';
-    BotToast.showText(
-      text: "[Resume OK] ${collection.name} → ${animation.name} "
-          "(scene: $sceneIdShort)",
-      duration: const Duration(seconds: 3),
-    );
     return true;
   }
 
   bool _restoreDefaultScreen(SessionStateModel sessionState) {
     final idx = sessionState.defaultAnimationItemIndex;
     if (idx > 0 && idx < state.defaultAnimationItems.length) {
-      zlog(data: "SessionState: Restoring default screen index $idx");
       changeDefaultAnimationIndex(idx);
       return true;
     }
-    zlog(data: "SessionState: Default index $idx out of range "
-        "(0..${state.defaultAnimationItems.length - 1}) — skip");
     return false;
   }
 

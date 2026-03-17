@@ -216,42 +216,28 @@ class _TacticboardScreenTabletState
     } catch (_) {}
 
     try {
-      print(
-          "[_initialLoadAndSelect] Starting initialization - userId: ${widget.userId}");
-
       // Mark as not initialized during load
       setState(() {
         _isInitialized = false;
       });
 
       // 1. Fetch all collections and animations for the user first.
-      print("[_initialLoadAndSelect] Calling getAllCollections...");
       await ref
           .read(animationProvider.notifier)
           .getAllCollections()
-          .timeout(const Duration(seconds: 10), onTimeout: () {
-        print("[_initialLoadAndSelect] getAllCollections timed out after 10s — continuing with available data");
-      });
-
-      print("[_initialLoadAndSelect] Collections loaded successfully");
+          .timeout(const Duration(seconds: 10), onTimeout: () {});
 
       // After fetching, the state is now populated. Get the list of collections.
       final collections = ref.read(animationProvider).animationCollections;
 
-      print("[_initialLoadAndSelect] Found ${collections.length} collections");
-
       // EXERCISE NAME HANDLING: If exerciseName is provided, find or create "Exercises" collection
       if (widget.exerciseName != null && widget.exerciseName!.isNotEmpty) {
-        print(
-            "[_initialLoadAndSelect] Exercise name provided: ${widget.exerciseName}");
         await _handleExerciseNameFlow(collections);
         return;
       }
 
       // 2. Check if a specific collectionId was passed from the URL.
       if (widget.collectionId != null && collections.isNotEmpty) {
-        print(
-            "[_initialLoadAndSelect] Looking for collection: ${widget.collectionId}");
 
         // Find the collection that matches the provided ID.
         final targetCollection = collections.firstWhere(
@@ -274,27 +260,16 @@ class _TacticboardScreenTabletState
               animationSelect: targetAnimation,
             );
 
-        print("[_initialLoadAndSelect] Collection selected successfully");
-
         return; // Exit after successful selection.
       }
 
       // 5. If no specific IDs were passed or found, run the default startup.
-      print("[_initialLoadAndSelect] Loading default animations");
       await ref.read(animationProvider.notifier).configureDefaultAnimations();
-      print("[_initialLoadAndSelect] Default animations loaded");
     } catch (e, s) {
-      print("[_initialLoadAndSelect] ERROR: $e");
-      print("[_initialLoadAndSelect] STACK: $s");
-
       // Fallback to default animations in case of any error.
       try {
         await ref.read(animationProvider.notifier).configureDefaultAnimations();
-        print("[_initialLoadAndSelect] Recovered with default animations");
-      } catch (fallbackError) {
-        print(
-            "[_initialLoadAndSelect] CRITICAL: Failed to load defaults: $fallbackError");
-      }
+      } catch (_) {}
     } finally {
       // Mark as initialized after everything is done
       if (mounted) {
@@ -304,8 +279,6 @@ class _TacticboardScreenTabletState
         setState(() {
           _isInitialized = true;
         });
-        print(
-            "[_initialLoadAndSelect] Initialization complete - marked as ready");
 
         // Show resume toast AFTER the board is fully visible
         _showResumeToastIfNeeded(savedSessionState);
@@ -330,20 +303,8 @@ class _TacticboardScreenTabletState
       if (sessionState == null ||
           !sessionState.hasMeaningfulContext ||
           !sessionState.isRecent) {
-        print("[Resume] No meaningful/recent session to resume: "
-            "state=${sessionState != null}, "
-            "meaningful=${sessionState?.hasMeaningfulContext}, "
-            "recent=${sessionState?.isRecent}");
         return;
       }
-
-      print("[Resume] Showing toast — "
-          "type=${sessionState.navigationType}, "
-          "colId=${sessionState.selectedCollectionId}, "
-          "animId=${sessionState.selectedAnimationId}, "
-          "sceneId=${sessionState.selectedSceneId}, "
-          "defaultIdx=${sessionState.defaultAnimationItemIndex}, "
-          "summary=${sessionState.displaySummary}");
 
       if (!mounted) return;
 
@@ -634,9 +595,6 @@ class _TacticboardScreenTabletState
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
 
-    print(
-        "Build called - initialized: $_isInitialized, loading: ${ap.isLoadingAnimationCollections}, scene: ${selectedScene?.id}");
-
     _leftPanelWidth = context.widthPercent(25);
     _rightPanelWidth = context.widthPercent(25);
 
@@ -644,7 +602,6 @@ class _TacticboardScreenTabletState
     if (!_isInitialized ||
         ap.isLoadingAnimationCollections ||
         selectedScene == null) {
-      print("Showing loading screen - waiting for initialization");
       return const Scaffold(
         backgroundColor: ColorManager.black,
         body: Center(
@@ -652,8 +609,6 @@ class _TacticboardScreenTabletState
         ),
       );
     }
-
-    print("Rendering tactical board UI - initialization complete");
 
     // PLAYER MODE: Show only the game screen with animation controls
     if (widget.isPlayerMode) {
