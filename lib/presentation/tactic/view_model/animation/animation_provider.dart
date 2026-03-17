@@ -675,14 +675,25 @@ class AnimationController extends StateNotifier<AnimationState> {
   void selectAnimation(AnimationModel? s) {
     zlog(data: "Animation model came ${s}");
 
-    // If no collection is explicitly selected but the animation has a
-    // collectionId, re-associate so _saveSessionState picks it up.
-    if (s != null &&
-        state.selectedAnimationCollectionModel == null &&
-        s.collectionId != null) {
-      final col = state.animationCollections.firstWhereOrNull(
-        (c) => c.id == s.collectionId,
+    // If no collection is explicitly selected, re-associate by looking up
+    // which collection owns this animation. Covers both animations with
+    // a collectionId field AND admin-synced/user-created animations where
+    // collectionId was never set.
+    if (s != null && state.selectedAnimationCollectionModel == null) {
+      AnimationCollectionModel? col;
+
+      // Try 1: use animation's own collectionId
+      if (s.collectionId != null) {
+        col = state.animationCollections.firstWhereOrNull(
+          (c) => c.id == s.collectionId,
+        );
+      }
+
+      // Try 2: search all collections for this animation by id
+      col ??= state.animationCollections.firstWhereOrNull(
+        (c) => c.animations.any((a) => a.id == s.id),
       );
+
       if (col != null) {
         zlog(data: "SessionState: Re-associating collection ${col.name} "
             "for animation ${s.name}");
@@ -1780,6 +1791,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       String? collectionName = state.selectedAnimationCollectionModel?.name;
 
       if (collectionId == null && state.selectedAnimationModel != null) {
+        // Fallback 1: use animation's own collectionId field
         final animColId = state.selectedAnimationModel!.collectionId;
         if (animColId != null) {
           collectionId = animColId;
@@ -1787,6 +1799,20 @@ class AnimationController extends StateNotifier<AnimationState> {
             (c) => c.id == animColId,
           );
           collectionName = col?.name;
+        }
+
+        // Fallback 2: search all collections to find which one owns this
+        // animation (covers admin-synced & user-created animations whose
+        // collectionId field was never set or was lost during clone).
+        if (collectionId == null) {
+          final animId = state.selectedAnimationModel!.id;
+          for (final col in state.animationCollections) {
+            if (col.animations.any((a) => a.id == animId)) {
+              collectionId = col.id;
+              collectionName = col.name;
+              break;
+            }
+          }
         }
       }
 

@@ -143,14 +143,16 @@ class AnimationModel {
 
   AnimationModel clone() {
     return AnimationModel(
-      id: id, // ObjectId is immutable
+      id: id,
       name: name,
       fieldColor: fieldColor,
       userId: userId,
+      collectionId: collectionId,
       boardBackground: boardBackground,
       animationScenes: animationScenes.map((e) => e.clone()).toList(),
-      createdAt: createdAt, // DateTime is immutable
-      updatedAt: updatedAt, // DateTime is immutable
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      orderIndex: orderIndex,
     );
   }
 }
