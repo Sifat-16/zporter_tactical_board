@@ -1844,13 +1844,17 @@ class AnimationController extends StateNotifier<AnimationState> {
       }
     } catch (e) {
       zlog(data: "SessionState: Error restoring session: $e");
+      BotToast.showText(
+        text: "[Resume Error] $e",
+        duration: const Duration(seconds: 5),
+      );
       return false;
     }
   }
 
   bool _restoreCollectionView(SessionStateModel sessionState) {
     if (sessionState.selectedCollectionId == null) {
-      zlog(data: "SessionState: collection type but no collectionId — skip");
+      BotToast.showText(text: "[Resume] No collectionId in session");
       return false;
     }
 
@@ -1858,8 +1862,11 @@ class AnimationController extends StateNotifier<AnimationState> {
       (c) => c.id == sessionState.selectedCollectionId,
     );
     if (collection == null) {
-      zlog(data: "SessionState: Collection "
-          "${sessionState.selectedCollectionId} not found — skip");
+      BotToast.showText(
+        text: "[Resume] Collection ${sessionState.selectedCollectionId} not found "
+            "in ${state.animationCollections.length} collections",
+        duration: const Duration(seconds: 4),
+      );
       return false;
     }
 
@@ -1868,40 +1875,56 @@ class AnimationController extends StateNotifier<AnimationState> {
       animation = collection.animations.firstWhereOrNull(
         (a) => a.id == sessionState.selectedAnimationId,
       );
-      zlog(data: "SessionState: Found animation? ${animation != null}, "
-          "scenes count: ${animation?.animationScenes.length ?? 0}");
     }
 
-    // Select collection+animation but skip saving — we'll save the final
-    // state after scene restoration below.
+    if (animation == null) {
+      BotToast.showText(
+        text: "[Resume] Animation ${sessionState.selectedAnimationId} not found "
+            "in collection '${collection.name}' (${collection.animations.length} animations)",
+        duration: const Duration(seconds: 4),
+      );
+      // Still select the collection even without animation
+      selectAnimationCollection(collection, skipSessionSave: true);
+      _saveSessionState();
+      return true;
+    }
+
+    // Restore step 1: Select collection + animation
     selectAnimationCollection(
       collection,
       animationSelect: animation,
-      changeSelectedScene: animation?.animationScenes.isNotEmpty == true,
+      changeSelectedScene: animation.animationScenes.isNotEmpty,
       skipSessionSave: true,
     );
 
-    // Navigate to the specific scene if saved
-    if (animation != null && sessionState.selectedSceneId != null) {
-      zlog(data: "SessionState: Looking for scene ${sessionState.selectedSceneId} "
-          "in ${animation.animationScenes.length} scenes: "
-          "${animation.animationScenes.map((s) => s.id).toList()}");
+    // Restore step 2: Navigate to the specific scene if saved
+    if (sessionState.selectedSceneId != null &&
+        animation.animationScenes.isNotEmpty) {
       final scene = animation.animationScenes.firstWhereOrNull(
         (s) => s.id == sessionState.selectedSceneId,
       );
       if (scene != null) {
-        zlog(data: "SessionState: Setting selectedScene to ${scene.id}");
         state = state.copyWith(selectedScene: scene);
-      } else {
-        zlog(data: "SessionState: Scene ${sessionState.selectedSceneId} NOT found in animation scenes");
       }
     }
 
-    // Now save the final restored state (with the correct scene).
+    // Update board background to match the restored scene
+    final restoredScene = state.selectedScene;
+    if (restoredScene != null) {
+      ref.read(boardProvider.notifier).updateBoardBackground(
+        restoredScene.boardBackground,
+      );
+    }
+
+    // Save the final restored state
     _saveSessionState();
 
-    zlog(data: "SessionState: Restored collection/animation, "
-        "final selectedScene=${state.selectedScene?.id}");
+    final sceneIdShort = state.selectedScene?.id ?? 'none';
+    BotToast.showText(
+      text: "[Resume OK] ${collection.name} → ${animation.name} "
+          "(scene: $sceneIdShort)",
+      duration: const Duration(seconds: 3),
+    );
     return true;
   }
 
