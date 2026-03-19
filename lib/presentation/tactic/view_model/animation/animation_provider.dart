@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:async' as async_lib;
 import 'dart:ui';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -56,7 +56,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   bool _isSaveInProgress = false;
   // FIX 5A: Debounce timer for session state saves — prevents rapid-fire
   // Sembast writes when multiple state changes happen in quick succession.
-  Timer? _sessionSaveDebounce;
+  async_lib.Timer? _sessionSaveDebounce;
   // History size limit to prevent memory issues on older devices
   static const int _maxHistorySize = 30;
 
@@ -1772,7 +1772,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   /// animation select + collection select all firing within one frame).
   void _saveSessionState() {
     _sessionSaveDebounce?.cancel();
-    _sessionSaveDebounce = Timer(const Duration(milliseconds: 300), () {
+    _sessionSaveDebounce = async_lib.Timer(const Duration(milliseconds: 300), () {
       try {
         // Determine collection info — prefer the explicitly selected collection
         // model, but fall back to the animation's collectionId when the model

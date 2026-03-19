@@ -91,7 +91,7 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
       // FIX 1B: Reset comparator so auto-save doesn't compare new animation
       // against the old animation's serialized state. Without this, the first
       // auto-save after switching always detects a false "change" and writes.
-      _boardComparator = null;
+      resetBoardComparator();
       _renderStateForTime(Duration.zero);
       if (isForExportMode || ap) {
         performStartAnimationFromBeginning();
