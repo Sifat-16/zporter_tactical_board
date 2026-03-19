@@ -54,6 +54,8 @@ enum PlaybackState {
 
 mixin AnimationPlaybackMixin on TacticBoardGame {
   bool _isRendering = false;
+  /// Public getter so auto-save timer can check if a render is in flight
+  bool get isRendering => _isRendering;
   late TacticBoard _tacticBoard;
   AnimationModel? animationModel;
   late bool isForExportMode;
@@ -86,6 +88,10 @@ mixin AnimationPlaybackMixin on TacticBoardGame {
       _tacticBoard = (this as TacticBoard);
       _playbackState = PlaybackState.stopped;
       _currentTotalElapsedTime = Duration.zero;
+      // FIX 1B: Reset comparator so auto-save doesn't compare new animation
+      // against the old animation's serialized state. Without this, the first
+      // auto-save after switching always detects a false "change" and writes.
+      _boardComparator = null;
       _renderStateForTime(Duration.zero);
       if (isForExportMode || ap) {
         performStartAnimationFromBeginning();

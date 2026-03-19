@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:bot_toast/bot_toast.dart';
@@ -53,6 +54,9 @@ class AnimationController extends StateNotifier<AnimationState> {
   bool _isUndoInProgress = false;
   // Lock to prevent undo during save operations
   bool _isSaveInProgress = false;
+  // FIX 5A: Debounce timer for session state saves — prevents rapid-fire
+  // Sembast writes when multiple state changes happen in quick succession.
+  Timer? _sessionSaveDebounce;
   // History size limit to prevent memory issues on older devices
   static const int _maxHistorySize = 30;
 
@@ -1764,61 +1768,66 @@ class AnimationController extends StateNotifier<AnimationState> {
   /// Persists the current navigation context to Sembast so the app can
   /// offer "resume where you left off" on the next launch.
   /// Fire-and-forget — never blocks, never throws.
+  /// FIX 5A: Debounced to coalesce rapid-fire calls (e.g. scene switch +
+  /// animation select + collection select all firing within one frame).
   void _saveSessionState() {
-    try {
-      // Determine collection info — prefer the explicitly selected collection
-      // model, but fall back to the animation's collectionId when the model
-      // is null (e.g. after configureDefaultAnimations cleared it but the
-      // user then selected an animation via the sidebar).
-      String? collectionId = state.selectedAnimationCollectionModel?.id;
-      String? collectionName = state.selectedAnimationCollectionModel?.name;
+    _sessionSaveDebounce?.cancel();
+    _sessionSaveDebounce = Timer(const Duration(milliseconds: 300), () {
+      try {
+        // Determine collection info — prefer the explicitly selected collection
+        // model, but fall back to the animation's collectionId when the model
+        // is null (e.g. after configureDefaultAnimations cleared it but the
+        // user then selected an animation via the sidebar).
+        String? collectionId = state.selectedAnimationCollectionModel?.id;
+        String? collectionName = state.selectedAnimationCollectionModel?.name;
 
-      if (collectionId == null && state.selectedAnimationModel != null) {
-        // Fallback 1: use animation's own collectionId field
-        final animColId = state.selectedAnimationModel!.collectionId;
-        if (animColId != null) {
-          collectionId = animColId;
-          final col = state.animationCollections.firstWhereOrNull(
-            (c) => c.id == animColId,
-          );
-          collectionName = col?.name;
-        }
+        if (collectionId == null && state.selectedAnimationModel != null) {
+          // Fallback 1: use animation's own collectionId field
+          final animColId = state.selectedAnimationModel!.collectionId;
+          if (animColId != null) {
+            collectionId = animColId;
+            final col = state.animationCollections.firstWhereOrNull(
+              (c) => c.id == animColId,
+            );
+            collectionName = col?.name;
+          }
 
-        // Fallback 2: search all collections to find which one owns this
-        // animation (covers admin-synced & user-created animations whose
-        // collectionId field was never set or was lost during clone).
-        if (collectionId == null) {
-          final animId = state.selectedAnimationModel!.id;
-          for (final col in state.animationCollections) {
-            if (col.animations.any((a) => a.id == animId)) {
-              collectionId = col.id;
-              collectionName = col.name;
-              break;
+          // Fallback 2: search all collections to find which one owns this
+          // animation (covers admin-synced & user-created animations whose
+          // collectionId field was never set or was lost during clone).
+          if (collectionId == null) {
+            final animId = state.selectedAnimationModel!.id;
+            for (final col in state.animationCollections) {
+              if (col.animations.any((a) => a.id == animId)) {
+                collectionId = col.id;
+                collectionName = col.name;
+                break;
+              }
             }
           }
         }
-      }
 
-      // If we resolved a collection OR have an animation selected, it's
-      // a collection view. Otherwise it's a default-screen view.
-      final isCollectionView =
-          collectionId != null || state.selectedAnimationModel != null;
+        // If we resolved a collection OR have an animation selected, it's
+        // a collection view. Otherwise it's a default-screen view.
+        final isCollectionView =
+            collectionId != null || state.selectedAnimationModel != null;
 
-      final sessionState = SessionStateModel(
-        navigationType: isCollectionView
-            ? SessionNavigationType.collection
-            : SessionNavigationType.defaultScreen,
-        defaultAnimationItemIndex: state.defaultAnimationItemIndex,
-        selectedCollectionId: collectionId,
-        selectedCollectionName: collectionName,
-        selectedAnimationId: state.selectedAnimationModel?.id,
-        selectedAnimationName: state.selectedAnimationModel?.name,
-        selectedSceneId: state.selectedScene?.id,
-        savedAt: DateTime.now(),
-      );
+        final sessionState = SessionStateModel(
+          navigationType: isCollectionView
+              ? SessionNavigationType.collection
+              : SessionNavigationType.defaultScreen,
+          defaultAnimationItemIndex: state.defaultAnimationItemIndex,
+          selectedCollectionId: collectionId,
+          selectedCollectionName: collectionName,
+          selectedAnimationId: state.selectedAnimationModel?.id,
+          selectedAnimationName: state.selectedAnimationModel?.name,
+          selectedSceneId: state.selectedScene?.id,
+          savedAt: DateTime.now(),
+        );
 
-      SessionStateService.save(sessionState);
-    } catch (_) {}
+        SessionStateService.save(sessionState);
+      } catch (_) {}
+    });
   }
 
   /// Restores navigation to a previously saved session state.

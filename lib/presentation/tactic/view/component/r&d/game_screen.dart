@@ -123,19 +123,24 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (oldWidget.scene?.id != widget.scene?.id) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          // FIX 1D: Lock auto-save during the scene-switch window.
+          tacticBoardGame?.isLoadingScene = true;
+          resetBoardComparator();
           ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
           updateTacticBoardIfNecessary(widget.scene);
+          tacticBoardGame?.isLoadingScene = false;
         }
       });
     } else {
-      // Your existing logic for undo/redo
       WidgetsBinding.instance.addPostFrameCallback((t) {
         if (!mounted) return;
         if (ref.read(animationProvider).isPerformingUndo == true) {
-          // For undo, you may also need to re-seed from the new scene
+          tacticBoardGame?.isLoadingScene = true;
+          resetBoardComparator();
           ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
           updateTacticBoardIfNecessary(widget.scene);
           ref.read(animationProvider.notifier).toggleUndo(undo: false);
+          tacticBoardGame?.isLoadingScene = false;
         }
       });
     }
@@ -284,12 +289,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           .setRecordingAnimation(isRecording: false);
       BotToast.showText(
           text: "Failed to start video recording. Please try again.");
-      // Ensure state is reset if recording fails to start.
-      // The caller (onShare) will handle resetting boardProvider state.
       return null;
     }
 
-    RecordingOutput? dialogResult = await showDialog<RecordingOutput?>(
+    // FIX 6B: Outer try/finally guarantees recording flag is ALWAYS reset,
+    // even if showDialog itself throws an unexpected error.
+    RecordingOutput? dialogResult;
+    try {
+      dialogResult = await showDialog<RecordingOutput?>(
       context: context,
       barrierColor: ColorManager.black,
       barrierDismissible: false,
@@ -439,10 +446,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     // Cleanup _currentExportDialogContext after showDialog completes (either by pop or future completion)
     _currentExportDialogContext = null;
-    _isFinalizingVideoNotifier.value = false; // Ensure this is reset
+    _isFinalizingVideoNotifier.value = false;
+    } finally {
+      // FIX 6B: Safety net — if showDialog threw or the dialog's internal
+      // finally blocks were somehow bypassed, ensure recording flag is off.
+      // This is idempotent (calling setRecordingAnimation(false) when already
+      // false is a no-op via state comparison).
+      ref
+          .read(animationProvider.notifier)
+          .setRecordingAnimation(isRecording: false);
+    }
 
-    // If dialogResult is null here, it means it was popped with null (cancel/error) or an issue occurred.
-    // If export was still marked active in provider, onShare will clean it up.
     zlog(data: "showDialog completed. Returning: ${dialogResult?.filePath}");
     return dialogResult;
   }

@@ -1,4 +1,5 @@
 import 'package:flame/components.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:zporter_tactical_board/app/core/constants/board_constant.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -199,20 +200,56 @@ class BoardState {
             : animatingObj as AnimatingObj?);
   }
 
-  // --- CORRECTED Equality and HashCode ---
+  // FIX 1A: Fixed equality to check ALL data fields that affect rendering.
+  // Previously only checked tacticBoardGame, causing Riverpod to miss updates
+  // when players/lines/shapes changed — UI appeared stale.
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
+    if (other is! BoardState) return false;
 
-    // Use listEquals for comparing lists
-    return other is BoardState &&
-        runtimeType == other.runtimeType &&
+    return listEquals(players, other.players) &&
+        listEquals(equipments, other.equipments) &&
+        listEquals(lines, other.lines) &&
+        listEquals(shapes, other.shapes) &&
+        listEquals(texts, other.texts) &&
+        listEquals(freeDraw, other.freeDraw) &&
+        boardBackground == other.boardBackground &&
+        boardColor == other.boardColor &&
+        boardAngle == other.boardAngle &&
+        showAnimation == other.showAnimation &&
+        selectedItemOnTheBoard == other.selectedItemOnTheBoard &&
+        itemToDelete == other.itemToDelete &&
+        isDraggingItem == other.isDraggingItem &&
+        showFullScreen == other.showFullScreen &&
+        isTogglingFullscreen == other.isTogglingFullscreen &&
+        refreshBoard == other.refreshBoard &&
+        moveDown == other.moveDown &&
+        moveUp == other.moveUp &&
+        moveToFront == other.moveToFront &&
+        moveToBack == other.moveToBack &&
+        applyDesignToAll == other.applyDesignToAll &&
+        trajectoryEditingEnabled == other.trajectoryEditingEnabled &&
+        isDraggingElementToBoard == other.isDraggingElementToBoard &&
+        gridSize == other.gridSize &&
+        homeTeamBorderColor == other.homeTeamBorderColor &&
+        awayTeamBorderColor == other.awayTeamBorderColor &&
         tacticBoardGame == other.tacticBoardGame;
   }
 
   @override
   int get hashCode {
-    // Use Object.hash to combine hash codes of all fields checked in ==
-    return Object.hash(tacticBoardGame, itemToDelete);
+    return Object.hash(
+      Object.hashAll(players),
+      Object.hashAll(equipments),
+      Object.hashAll(lines),
+      boardBackground,
+      boardColor,
+      boardAngle,
+      selectedItemOnTheBoard,
+      tacticBoardGame,
+      showAnimation,
+      isDraggingItem,
+    );
   }
 }

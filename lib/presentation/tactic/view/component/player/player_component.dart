@@ -85,12 +85,10 @@ class PlayerComponent extends FieldComponent<PlayerModel>
       final imagePath = object.imagePath;
       final isNetworkUrl = imagePath != null && (imagePath.startsWith('http'));
 
-      if (imageBase64 != null && imageBase64.isNotEmpty) {
-        // Trigger lazy migration in background (non-blocking)
-        ImageMigrationService().queueForMigration(object);
-
-        imageBytes = base64Decode(imageBase64);
-      } else if (isNetworkUrl) {
+      // FIX 3A: Prefer Firebase URL (canonical source after migration)
+      // over base64 (legacy/pre-migration). Without this, migrated players
+      // keep loading stale base64 data, causing wrong-image bugs (ZPAD-581).
+      if (isNetworkUrl) {
         // Use CachedNetworkImageProvider for disk caching
         final imageProvider = CachedNetworkImageProvider(imagePath!);
         final imageStream = imageProvider.resolve(const ImageConfiguration());
@@ -110,6 +108,11 @@ class PlayerComponent extends FieldComponent<PlayerModel>
         _playerImageSprite = Sprite(cachedImage);
         _isLoadingImage = false;
         return; // Early return for network images
+      } else if (imageBase64 != null && imageBase64.isNotEmpty) {
+        // Fallback: use base64 only when network URL doesn't exist
+        // Also queue for migration so next time the URL will be available
+        ImageMigrationService().queueForMigration(object);
+        imageBytes = base64Decode(imageBase64);
       } else if (imagePath != null && imagePath.isNotEmpty) {
         final file = File(imagePath);
         if (await file.exists()) {
@@ -710,12 +713,14 @@ class PlayerComponent extends FieldComponent<PlayerModel>
     final imageBase64 = object.imageBase64;
     final imagePath = object.imagePath;
 
+    // FIX 3A: Prefer network/file path as cache key (canonical source).
+    // Using base64 as key caused cache misses after migration since the
+    // base64 string changes but the URL stays stable.
+    if (imagePath != null && imagePath.isNotEmpty) {
+      return imagePath;
+    }
     if (imageBase64 != null && imageBase64.isNotEmpty) {
       return imageBase64;
-    }
-    if (imagePath != null && imagePath.isNotEmpty) {
-      // This key works whether it's a local path OR a network URL
-      return imagePath;
     }
     return null;
   }

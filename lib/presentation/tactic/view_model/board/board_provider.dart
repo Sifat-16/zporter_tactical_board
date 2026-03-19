@@ -607,6 +607,10 @@ class BoardController extends StateNotifier<BoardState> {
       shapes: shapes,
       texts: texts,
       boardColor: scene.fieldColor,
+      // FIX 1C: Preserve boardBackground from the scene. Previously this field
+      // was not copied, causing penalty box / half-pitch backgrounds to silently
+      // reset to BoardBackground.full (the default) on animation load.
+      boardBackground: scene.boardBackground,
       forceItemModelNull: true,
     );
     zlog(data: "BoardProvider state has been seeded from scene: ${scene.id}");
