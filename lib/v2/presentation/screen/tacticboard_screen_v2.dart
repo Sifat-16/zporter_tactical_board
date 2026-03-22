@@ -100,6 +100,8 @@ class _TacticboardScreenV2State extends ConsumerState<TacticboardScreenV2> {
   Widget build(BuildContext context) {
     // Watch fullscreen state and notify parent
     ref.watch(boardProviderV2);
+    // Keep collectionProviderV2 alive during _initialize()'s async gap
+    ref.watch(collectionProviderV2);
     ref.listen(
       boardProviderV2.select((s) => s.showFullScreen),
       (previous, next) {
