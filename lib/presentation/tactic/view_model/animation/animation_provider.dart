@@ -191,6 +191,16 @@ class AnimationController extends StateNotifier<AnimationState> {
   //   }
   // }
 
+  /// Force-clear the loading flag. Called when the outer timeout fires
+  /// and getAllCollections() is still running in the background.
+  /// Prevents the infinite loader bug where the UI stays stuck because
+  /// isLoadingAnimationCollections is never set to false.
+  void forceStopLoading() {
+    if (state.isLoadingAnimationCollections) {
+      state = state.copyWith(isLoadingAnimationCollections: false);
+    }
+  }
+
   Future<void> getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
 

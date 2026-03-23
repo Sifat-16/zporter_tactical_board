@@ -222,10 +222,19 @@ class _TacticboardScreenTabletState
       });
 
       // 1. Fetch all collections and animations for the user first.
+      // If this takes longer than 10 seconds (Firebase down, Sembast lock, etc.),
+      // the timeout fires and we continue with whatever state we have.
+      // CRITICAL: After timeout, force the loading flag off — getAllCollections()
+      // may still be running in the background but the UI must not stay stuck.
       await ref
           .read(animationProvider.notifier)
           .getAllCollections()
-          .timeout(const Duration(seconds: 10), onTimeout: () {});
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        zlog(data: "getAllCollections() timed out after 10s — forcing loading flag off");
+        ref
+            .read(animationProvider.notifier)
+            .forceStopLoading();
+      });
 
       // After fetching, the state is now populated. Get the list of collections.
       final collections = ref.read(animationProvider).animationCollections;
@@ -273,6 +282,11 @@ class _TacticboardScreenTabletState
     } finally {
       // Mark as initialized after everything is done
       if (mounted) {
+        // Safety net: ensure loading flag is off no matter what happened above.
+        // Without this, a failed/timed-out getAllCollections() leaves
+        // isLoadingAnimationCollections=true and the loader spins forever.
+        ref.read(animationProvider.notifier).forceStopLoading();
+
         // Wait for next frame to ensure provider state has fully propagated
         await Future.delayed(Duration.zero);
 
