@@ -187,9 +187,28 @@ class PlayerUtilsV2 {
     } else {
       zlog(data: 'Found $recordCount away players in DB. Loading...');
       final records = await _awayPlayersStore.find(db);
-      return records
+      final players = records
           .map((snapshot) => PlayerModel.fromJson(snapshot.value))
           .toList();
+
+      // Migrate old red away players to purple.
+      // Before this change, away players defaulted to ColorManager.red (0xFFFF1D00).
+      // Now the default is purple (0xFF974AC8) to match the away team border color.
+      const oldRed = Color(0xFFFF1D00);
+      const newPurple = Color(0xFF974AC8);
+      bool migrated = false;
+      for (int i = 0; i < players.length; i++) {
+        if (players[i].color == oldRed) {
+          players[i] = players[i].copyWith(color: newPurple);
+          migrated = true;
+        }
+      }
+      if (migrated) {
+        await _savePlayersToDb(db, players, _awayPlayersStore);
+        zlog(data: 'Migrated away player colors from red to purple');
+      }
+
+      return players;
     }
   }
 
