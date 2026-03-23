@@ -297,9 +297,14 @@ class _AnimationToolbarComponentState
           key: ValueKey(animation.id),
           animation: animation,
           onDelete: () {
+            BotToast.showLoading();
             ref
                 .read(animationProvider.notifier)
                 .deleteAnimation(animation: animation);
+            // Close loading after a brief delay (delete is async internally)
+            Future.delayed(const Duration(milliseconds: 500), () {
+              BotToast.closeAllLoading();
+            });
           },
           fieldColor: colorForThisField,
           onCopy: () async {
@@ -393,9 +398,13 @@ class _AnimationToolbarComponentState
             },
             onDelete: () {
               if (widget.config.onSceneDelete == null) {
+                BotToast.showLoading();
                 ref
                     .read(animationProvider.notifier)
                     .deleteScene(scene: animationItemModel);
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  BotToast.closeAllLoading();
+                });
               } else {
                 widget.config.onSceneDelete?.call(animationItemModel);
               }

@@ -71,10 +71,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   // bool _showTrajectoryToolbar = false;
   // String? _selectedComponentId;
 
+  // On iOS, use lower resolution and skip frames to reduce memory pressure
+  // and prevent crashes at ~20% progress (ZPAD-513).
+  // iOS has stricter per-app memory limits than Android.
   final WidgetCaptureXPlusController _widgetCaptureXPlusController =
       WidgetCaptureXPlusController(
-          outputBaseFileName:
-              FileNameGenerator.generateZporterCaptureFilename());
+    outputBaseFileName: FileNameGenerator.generateZporterCaptureFilename(),
+    pixelRatio: Platform.isIOS ? 0.75 : 1.0,
+    skipFramesBetweenCaptures: Platform.isIOS ? 1 : 0,
+    targetOutputFps: Platform.isIOS ? 12.0 : 15.0,
+  );
 
   final closeButtonColor = Colors.grey[300];
   final closeButtonBackgroundColor = Colors.black;
@@ -123,12 +129,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (oldWidget.scene?.id != widget.scene?.id) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          // FIX 1D: Lock auto-save during the scene-switch window.
+          // Lock auto-save during the entire scene-switch window.
+          // The unlock happens inside createTacticBoardIfNecessary AFTER
+          // the new TacticBoard is fully created (next frame), not here.
           tacticBoardGame?.isLoadingScene = true;
           resetBoardComparator();
           ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
           updateTacticBoardIfNecessary(widget.scene);
-          tacticBoardGame?.isLoadingScene = false;
+          // NOTE: isLoadingScene is unlocked in createTacticBoardIfNecessary
         }
       });
     } else {
@@ -140,7 +148,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
           updateTacticBoardIfNecessary(widget.scene);
           ref.read(animationProvider.notifier).toggleUndo(undo: false);
-          tacticBoardGame?.isLoadingScene = false;
+          // NOTE: isLoadingScene is unlocked in createTacticBoardIfNecessary
         }
       });
     }
@@ -253,6 +261,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               );
           gameInitialized = true;
         }
+
+        // Unlock auto-save now that the new board is fully created.
+        // This was previously in didUpdateWidget BEFORE this callback ran,
+        // leaving a timing gap where the old TacticBoard's auto-save could fire.
+        tacticBoardGame?.isLoadingScene = false;
       });
     });
   }

@@ -598,7 +598,7 @@ class PlayerComponent extends FieldComponent<PlayerModel>
           case PlayerType.HOME:
             fillColor = Colors.blue;
           case PlayerType.AWAY:
-            fillColor = Colors.red;
+            fillColor = const Color(0xFF974AC8); // Purple
           case PlayerType.OTHER:
           case PlayerType.UNKNOWN:
             fillColor = ColorManager.grey;

@@ -239,17 +239,20 @@ class BoardState {
 
   @override
   int get hashCode {
+    // Only hash stable data fields — exclude transient UI flags
+    // (isDraggingItem, showAnimation, etc.) which change rapidly
+    // during interaction and would cause excessive rebuild checks.
     return Object.hash(
       Object.hashAll(players),
       Object.hashAll(equipments),
       Object.hashAll(lines),
+      Object.hashAll(shapes),
+      Object.hashAll(texts),
+      Object.hashAll(freeDraw),
       boardBackground,
       boardColor,
       boardAngle,
       selectedItemOnTheBoard,
-      tacticBoardGame,
-      showAnimation,
-      isDraggingItem,
     );
   }
 }

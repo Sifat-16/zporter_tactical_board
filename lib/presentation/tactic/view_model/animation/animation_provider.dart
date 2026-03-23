@@ -909,44 +909,72 @@ class AnimationController extends StateNotifier<AnimationState> {
     required AnimationItemModel
         selectedScene, // This is the CURRENT scene (Scene A)
   }) async {
-    // 1. Get the LIVE components from the board. This is the "dirty" data you just added.
+    // 1. Get the LIVE components from the board.
     final List<FieldItemModel> currentComponents =
         ref.read(boardProvider.notifier).onAnimationSave();
 
-    // 2. Find the *current* scene (Scene A) in the animation list AND UPDATE IT with this live data.
-    // This is the "Force Save" step that was missing.
-    final int currentSceneIndex = selectedAnimation.animationScenes.indexWhere(
+    // 2. Work on a CLONED scene list to avoid mutating shared state.
+    // The original selectedAnimation.animationScenes is the same object
+    // reference held by Riverpod state — mutating it directly causes
+    // contamination if any listener reads state before copyWith is called.
+    final scenes =
+        List<AnimationItemModel>.from(selectedAnimation.animationScenes);
+
+    // 3. Find Scene A in the cloned list and update it with live data.
+    final int currentSceneIndex = scenes.indexWhere(
       (s) => s.id == selectedScene.id,
     );
 
     if (currentSceneIndex != -1) {
-      // Create an updated copy of Scene A
       selectedScene = selectedScene.copyWith(
         components: currentComponents,
         updatedAt: DateTime.now(),
       );
-      // Replace the old stale scene in the list with the updated one
-      selectedAnimation.animationScenes[currentSceneIndex] = selectedScene;
+      scenes[currentSceneIndex] = selectedScene;
     } else {
-      // This shouldn't happen, but as a fallback, just update the local copy
-      selectedScene.components = currentComponents;
+      selectedScene = selectedScene.copyWith(
+        components: currentComponents,
+      );
     }
 
-    // 3. NOW that Scene A is fully updated, clone IT to create Scene B.
+    // 4. Clone Scene A to create Scene B.
     AnimationItemModel newAnimationItemModel = selectedScene.clone(
       addHistory: false,
     );
     newAnimationItemModel.id = RandomGenerator.generateId();
-    newAnimationItemModel.index = selectedAnimation.animationScenes.length;
+    newAnimationItemModel.index = scenes.length;
     newAnimationItemModel.createdAt = DateTime.now();
     newAnimationItemModel.updatedAt = DateTime.now();
 
-    // 4. Add the new clone (Scene B) to the animation list
-    selectedAnimation.animationScenes.add(newAnimationItemModel);
+    // 5. Add Scene B to the cloned list.
+    scenes.add(newAnimationItemModel);
 
-    // 5. Save the ENTIRE collection (which now has the updated Scene A AND the new Scene B)
-    // Note: With local-first architecture, this save is instant (~30-50ms to local storage)
-    // Firebase sync happens in background, no need for loading spinner
+    // 6. Create a new AnimationModel with the updated scene list.
+    // This ensures the original state object is never mutated.
+    final updatedAnimation = selectedAnimation.clone();
+    updatedAnimation.animationScenes = scenes;
+
+    // 7. Update the collection with the new animation.
+    final animIndex = selectedCollection.animations.indexWhere(
+      (a) => a.id == selectedAnimation.id,
+    );
+    if (animIndex != -1) {
+      // Clone the collection's animation list too
+      final updatedAnimations =
+          List<AnimationModel>.from(selectedCollection.animations);
+      updatedAnimations[animIndex] = updatedAnimation;
+      selectedCollection = AnimationCollectionModel(
+        id: selectedCollection.id,
+        name: selectedCollection.name,
+        userId: selectedCollection.userId,
+        animations: updatedAnimations,
+        createdAt: selectedCollection.createdAt,
+        updatedAt: DateTime.now(),
+        orderIndex: selectedCollection.orderIndex,
+      );
+    }
+
+    // 8. Save to database.
     try {
       selectedCollection =
           await _saveAnimationCollectionUseCase.call(selectedCollection);
@@ -955,13 +983,11 @@ class AnimationController extends StateNotifier<AnimationState> {
       BotToast.showText(text: "Error saving new scene.");
     }
 
-    // 6. FINALLY, update the state ONCE to select the new, correct scene.
-    // This happens after the save is complete.
+    // 9. Update state ONCE with all new references.
     state = state.copyWith(
       selectedAnimationCollectionModel: selectedCollection,
-      selectedAnimationModel: selectedAnimation
-          .clone(), // Use a clone to force the UI to refresh the list
-      selectedScene: newAnimationItemModel, // Select Scene B
+      selectedAnimationModel: updatedAnimation.clone(),
+      selectedScene: newAnimationItemModel,
     );
     _saveSessionState();
   }
@@ -1039,18 +1065,19 @@ class AnimationController extends StateNotifier<AnimationState> {
         state.selectedAnimationCollectionModel;
     AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
     if (selectedCollectionModel != null && selectedAnimationModel != null) {
-      selectedAnimationModel.animationScenes.removeWhere(
-        (t) => t.id == scene.id,
+      // Work on CLONED lists to avoid mutating shared Riverpod state.
+      var scenes = List<AnimationItemModel>.from(
+        selectedAnimationModel.animationScenes,
       );
+      scenes.removeWhere((t) => t.id == scene.id);
 
-      // Re-index the list
-      for (var i = 0; i < selectedAnimationModel.animationScenes.length; i++) {
-        selectedAnimationModel.animationScenes[i] =
-            selectedAnimationModel.animationScenes[i].copyWith(index: i);
+      // Re-index the cloned list
+      for (var i = 0; i < scenes.length; i++) {
+        scenes[i] = scenes[i].copyWith(index: i);
       }
 
-      if (selectedAnimationModel.animationScenes.isEmpty) {
-        selectedAnimationModel.animationScenes.add(
+      if (scenes.isEmpty) {
+        scenes.add(
           AnimationItemModel(
             index: 0,
             fieldColor: BoardConstant.field_color,
@@ -1064,19 +1091,37 @@ class AnimationController extends StateNotifier<AnimationState> {
           ),
         );
       }
-      int index = selectedCollectionModel.animations.indexWhere(
+
+      // Create updated animation with the new scene list
+      final updatedAnimation = selectedAnimationModel.clone();
+      updatedAnimation.animationScenes = scenes;
+
+      // Clone the collection's animation list before mutating
+      final updatedAnimations =
+          List<AnimationModel>.from(selectedCollectionModel.animations);
+      int index = updatedAnimations.indexWhere(
         (t) => t.id == selectedAnimationModel.id,
       );
       if (index != -1) {
-        selectedCollectionModel.animations[index] = selectedAnimationModel;
+        updatedAnimations[index] = updatedAnimation;
       }
+      selectedCollectionModel = AnimationCollectionModel(
+        id: selectedCollectionModel.id,
+        name: selectedCollectionModel.name,
+        userId: selectedCollectionModel.userId,
+        animations: updatedAnimations,
+        createdAt: selectedCollectionModel.createdAt,
+        updatedAt: DateTime.now(),
+        orderIndex: selectedCollectionModel.orderIndex,
+      );
+
       selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
         selectedCollectionModel,
       );
       state = state.copyWith(
         selectedAnimationCollectionModel: selectedCollectionModel,
-        selectedAnimationModel: selectedAnimationModel,
-        selectedScene: selectedAnimationModel.animationScenes.lastOrNull,
+        selectedAnimationModel: updatedAnimation,
+        selectedScene: scenes.lastOrNull,
       );
     } else {
       BotToast.showText(text: "No animation found");
@@ -1117,8 +1162,11 @@ class AnimationController extends StateNotifier<AnimationState> {
       updatedAt: DateTime.now(),
     );
 
-    // 3. Find and update the scene in the animation
-    final currentSceneIndex = selectedAnimationModel.animationScenes.indexWhere(
+    // 3. Work on CLONED scene list to avoid mutating shared Riverpod state.
+    var scenes = List<AnimationItemModel>.from(
+      selectedAnimationModel.animationScenes,
+    );
+    final currentSceneIndex = scenes.indexWhere(
       (s) => s.id == currentScene.id,
     );
 
@@ -1127,50 +1175,57 @@ class AnimationController extends StateNotifier<AnimationState> {
       return;
     }
 
-    // Update the scene in place
-    selectedAnimationModel.animationScenes[currentSceneIndex] = updatedScene;
+    // Update the scene in the cloned list
+    scenes[currentSceneIndex] = updatedScene;
 
     // 4. Optionally delete following scenes
     if (clearFollowingScenes &&
-        currentSceneIndex < selectedAnimationModel.animationScenes.length - 1) {
-      // Remove all scenes after current
-      selectedAnimationModel.animationScenes.removeRange(
-        currentSceneIndex + 1,
-        selectedAnimationModel.animationScenes.length,
-      );
+        currentSceneIndex < scenes.length - 1) {
+      scenes.removeRange(currentSceneIndex + 1, scenes.length);
 
       // Re-index remaining scenes
-      for (var i = 0; i < selectedAnimationModel.animationScenes.length; i++) {
-        selectedAnimationModel.animationScenes[i] =
-            selectedAnimationModel.animationScenes[i].copyWith(index: i);
+      for (var i = 0; i < scenes.length; i++) {
+        scenes[i] = scenes[i].copyWith(index: i);
       }
     }
 
-    // 5. Update the collection with modified animation
-    final animationIndex = selectedCollectionModel.animations.indexWhere(
+    // 5. Create updated animation with new scene list (no mutation)
+    final updatedAnimation = selectedAnimationModel.clone();
+    updatedAnimation.animationScenes = scenes;
+
+    // 6. Clone collection's animation list before updating
+    final updatedAnimations =
+        List<AnimationModel>.from(selectedCollectionModel.animations);
+    final animationIndex = updatedAnimations.indexWhere(
       (a) => a.id == selectedAnimationModel.id,
     );
     if (animationIndex != -1) {
-      selectedCollectionModel.animations[animationIndex] =
-          selectedAnimationModel;
+      updatedAnimations[animationIndex] = updatedAnimation;
     }
+    selectedCollectionModel = AnimationCollectionModel(
+      id: selectedCollectionModel.id,
+      name: selectedCollectionModel.name,
+      userId: selectedCollectionModel.userId,
+      animations: updatedAnimations,
+      createdAt: selectedCollectionModel.createdAt,
+      updatedAt: DateTime.now(),
+      orderIndex: selectedCollectionModel.orderIndex,
+    );
 
-    // 6. Save to database (single atomic save)
+    // 7. Save to database (single atomic save)
     selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
       selectedCollectionModel,
     );
 
-    // 7. Update state with the saved data
+    // 8. Update state with the saved data
     state = state.copyWith(
       selectedAnimationCollectionModel: selectedCollectionModel,
-      selectedAnimationModel: selectedAnimationModel,
+      selectedAnimationModel: updatedAnimation,
       selectedScene: updatedScene,
     );
 
     final deletedCount = clearFollowingScenes
-        ? (selectedAnimationModel.animationScenes.length -
-            currentSceneIndex -
-            1)
+        ? (scenes.length - currentSceneIndex - 1)
         : 0;
 
     if (clearFollowingScenes && deletedCount > 0) {

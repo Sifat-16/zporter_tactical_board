@@ -239,7 +239,7 @@ class PlayerUtilsV2 {
           }
           break;
         case PlayerType.AWAY:
-          color = ColorManager.red;
+          color = const Color(0xFF974AC8); // Purple — matches away team border
           break;
         case PlayerType.UNKNOWN:
           color = ColorManager.black;
