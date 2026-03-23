@@ -34,6 +34,7 @@ class DraggableBoardTileV2 extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Draggable<BoardElement>(
       data: element,
+      rootOverlay: true,
       onDragStarted: () {
         ref.read(boardProviderV2.notifier).setDraggingToBoard(true);
       },

@@ -30,6 +30,12 @@ class BoardNotifier extends StateNotifier<BoardStateV2> {
   /// on drag end (start → end position delta).
   Offset? _dragStartOffset;
 
+  /// Captured when resize starts; used to create a single undoable command.
+  Size? _resizeStartSize;
+
+  /// Captured when rotation starts; used to create a single undoable command.
+  double? _rotationStartAngle;
+
   BoardNotifier({
     required BoardStateV2 initialState,
     CommandHistory? history,
@@ -277,6 +283,103 @@ class BoardNotifier extends StateNotifier<BoardStateV2> {
     _dragStartOffset = null;
     state = state.copyWith(isDraggingItem: false);
     clearGuides();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Resize handling (non-undoable during resize, undoable on end)
+  // ---------------------------------------------------------------------------
+
+  /// Start resizing an element. Records start size for undo.
+  void startResize(String elementId) {
+    final element = _findElement(elementId);
+    _resizeStartSize = element?.size;
+  }
+
+  /// Update element size live during resize (no undo entry).
+  void updateElementSizeLive(String elementId, Size newSize) {
+    final components = state.components;
+    final index = components.indexWhere((c) => c.id == elementId);
+    if (index == -1) return;
+
+    final updated = List<BoardElement>.of(components);
+    updated[index] = updated[index].copyWithBase(size: newSize);
+    state = state.copyWith(
+      currentScene: state.currentScene.copyWith(components: updated),
+    );
+  }
+
+  /// End resize. Creates a single undoable UpdateElementCommand.
+  void endResize(String elementId) {
+    final element = _findElement(elementId);
+    if (element != null && _resizeStartSize != null) {
+      final finalSize = element.size;
+      if (finalSize != null && finalSize != _resizeStartSize) {
+        // Restore start size, then execute undoable update
+        final components = state.components;
+        final index = components.indexWhere((c) => c.id == elementId);
+        if (index != -1) {
+          final restored = List<BoardElement>.of(components);
+          restored[index] =
+              restored[index].copyWithBase(size: _resizeStartSize);
+          state = state.copyWith(
+            currentScene:
+                state.currentScene.copyWith(components: restored),
+          );
+          _executeCommand(UpdateElementCommand(
+            element.copyWithBase(size: finalSize),
+          ));
+        }
+      }
+    }
+    _resizeStartSize = null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rotation handling (non-undoable during rotation, undoable on end)
+  // ---------------------------------------------------------------------------
+
+  /// Start rotating an element. Records start angle for undo.
+  void startRotation(String elementId) {
+    final element = _findElement(elementId);
+    _rotationStartAngle = element?.angle ?? 0.0;
+  }
+
+  /// Update element angle live during rotation (no undo entry).
+  void updateElementAngleLive(String elementId, double newAngle) {
+    final components = state.components;
+    final index = components.indexWhere((c) => c.id == elementId);
+    if (index == -1) return;
+
+    final updated = List<BoardElement>.of(components);
+    updated[index] = updated[index].copyWithBase(angle: newAngle);
+    state = state.copyWith(
+      currentScene: state.currentScene.copyWith(components: updated),
+    );
+  }
+
+  /// End rotation. Creates a single undoable UpdateElementCommand.
+  void endRotation(String elementId) {
+    final element = _findElement(elementId);
+    if (element != null && _rotationStartAngle != null) {
+      final finalAngle = element.angle ?? 0.0;
+      if (finalAngle != _rotationStartAngle) {
+        final components = state.components;
+        final index = components.indexWhere((c) => c.id == elementId);
+        if (index != -1) {
+          final restored = List<BoardElement>.of(components);
+          restored[index] =
+              restored[index].copyWithBase(angle: _rotationStartAngle);
+          state = state.copyWith(
+            currentScene:
+                state.currentScene.copyWith(components: restored),
+          );
+          _executeCommand(UpdateElementCommand(
+            element.copyWithBase(angle: finalAngle),
+          ));
+        }
+      }
+    }
+    _rotationStartAngle = null;
   }
 
   // ---------------------------------------------------------------------------

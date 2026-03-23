@@ -1,15 +1,15 @@
-import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart' show Colors, CustomPainter;
 import 'package:zporter_tactical_board/v2/models/enums.dart';
 
-/// Paints the soccer pitch markings (lines, arcs, boxes) onto the canvas.
+/// Paints the soccer pitch markings onto the canvas.
 ///
-/// Replaces V1's [GameField] Flame component. Renders using proportional
-/// measurements so the pitch looks correct at any size.
-///
-/// Drawn entirely with Canvas calls — no image assets required.
+/// Matches V1's [GameField] visual output:
+/// - Black lines (stroke width 1.25)
+/// - Full pitch is landscape (goals left/right, vertical halfway line)
+/// - Half pitch views have goals top/bottom
+/// - No penalty arcs, no corner arcs (matching V1)
 class FieldPainter extends CustomPainter {
   final Color fieldColor;
   final BoardBackground boardBackground;
@@ -27,23 +27,27 @@ class FieldPainter extends CustomPainter {
       Paint()..color = fieldColor,
     );
 
+    // V1 uses black lines with strokeWidth 1.25
     final linePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.5)
-      ..strokeWidth = 1.5
+      ..color = const Color(0xFF030405) // ColorManager.black
+      ..strokeWidth = 1.25
       ..style = PaintingStyle.stroke;
+
+    final fillPaint = Paint()
+      ..color = const Color(0xFF030405)
+      ..style = PaintingStyle.fill;
 
     switch (boardBackground) {
       case BoardBackground.full:
-        _drawFullPitch(canvas, size, linePaint);
+        _drawFullPitch(canvas, size, linePaint, fillPaint);
       case BoardBackground.halfUp:
         _drawHalfPitchUp(canvas, size, linePaint);
       case BoardBackground.halfDown:
         _drawHalfPitchDown(canvas, size, linePaint);
       case BoardBackground.verticalCorridors:
-        _drawFullPitch(canvas, size, linePaint);
+        _drawFullPitch(canvas, size, linePaint, fillPaint);
         _drawVerticalCorridors(canvas, size, linePaint);
       case BoardBackground.clean:
-        // Just the colored background, no markings
         break;
     }
 
@@ -53,112 +57,73 @@ class FieldPainter extends CustomPainter {
     }
   }
 
-  void _drawFullPitch(Canvas canvas, Size size, Paint paint) {
+  /// Full pitch: LANDSCAPE orientation (goals left/right, vertical halfway line)
+  /// Matches V1's _drawFullPitchView exactly.
+  void _drawFullPitch(
+      Canvas canvas, Size size, Paint paint, Paint fillPaint) {
     final w = size.width;
     final h = size.height;
 
-    // Center line (horizontal)
-    canvas.drawLine(Offset(0, h / 2), Offset(w, h / 2), paint);
+    // Proportions matching V1's landscape full-pitch view
+    final centerCircleRadius = h * 0.14;
+    final penaltyBoxW = w * 0.14;
+    final penaltyBoxH = h * 0.6;
+    final goalBoxW = w * 0.07;
+    final goalBoxH = h * 0.3;
+    const penaltySpotRadius = 4.0;
+
+    // Vertical halfway line
+    canvas.drawLine(Offset(w / 2, 0), Offset(w / 2, h), paint);
 
     // Center circle
-    final centerCircleRadius = h * 0.14;
     canvas.drawCircle(Offset(w / 2, h / 2), centerCircleRadius, paint);
 
-    // Center dot
+    // Center dot (filled)
+    canvas.drawCircle(Offset(w / 2, h / 2), penaltySpotRadius, fillPaint);
+
+    // Left penalty area
+    canvas.drawRect(
+      Rect.fromLTWH(0, (h - penaltyBoxH) / 2, penaltyBoxW, penaltyBoxH),
+      paint,
+    );
+
+    // Left goal box
+    canvas.drawRect(
+      Rect.fromLTWH(0, (h - goalBoxH) / 2, goalBoxW, goalBoxH),
+      paint,
+    );
+
+    // Left penalty spot
     canvas.drawCircle(
-      Offset(w / 2, h / 2),
-      3,
-      Paint()
-        ..color = paint.color
-        ..style = PaintingStyle.fill,
+      Offset(penaltyBoxW * 0.75, h / 2),
+      penaltySpotRadius,
+      paint,
     );
 
-    // Top penalty area
-    final penaltyW = w * 0.6;
-    final penaltyH = h * 0.14;
+    // Right penalty area
     canvas.drawRect(
-      Rect.fromLTWH((w - penaltyW) / 2, 0, penaltyW, penaltyH),
+      Rect.fromLTWH(
+          w - penaltyBoxW, (h - penaltyBoxH) / 2, penaltyBoxW, penaltyBoxH),
       paint,
     );
 
-    // Top goal box
-    final goalBoxW = w * 0.3;
-    final goalBoxH = h * 0.07;
+    // Right goal box
     canvas.drawRect(
-      Rect.fromLTWH((w - goalBoxW) / 2, 0, goalBoxW, goalBoxH),
+      Rect.fromLTWH(
+          w - goalBoxW, (h - goalBoxH) / 2, goalBoxW, goalBoxH),
       paint,
     );
 
-    // Top penalty arc
-    final penaltySpotY = penaltyH * 0.85;
-    canvas.drawArc(
-      Rect.fromCircle(
-        center: Offset(w / 2, penaltySpotY),
-        radius: centerCircleRadius * 0.7,
-      ),
-      0.3,
-      math.pi - 0.6,
-      false,
-      paint,
-    );
-
-    // Bottom penalty area
-    canvas.drawRect(
-      Rect.fromLTWH((w - penaltyW) / 2, h - penaltyH, penaltyW, penaltyH),
-      paint,
-    );
-
-    // Bottom goal box
-    canvas.drawRect(
-      Rect.fromLTWH((w - goalBoxW) / 2, h - goalBoxH, goalBoxW, goalBoxH),
-      paint,
-    );
-
-    // Bottom penalty arc
-    final bottomPenaltySpotY = h - penaltySpotY;
-    canvas.drawArc(
-      Rect.fromCircle(
-        center: Offset(w / 2, bottomPenaltySpotY),
-        radius: centerCircleRadius * 0.7,
-      ),
-      math.pi + 0.3,
-      math.pi - 0.6,
-      false,
-      paint,
-    );
-
-    // Corner arcs
-    const cornerRadius = 8.0;
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset.zero, radius: cornerRadius),
-      0,
-      math.pi / 2,
-      false,
-      paint,
-    );
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(w, 0), radius: cornerRadius),
-      math.pi / 2,
-      math.pi / 2,
-      false,
-      paint,
-    );
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(0, h), radius: cornerRadius),
-      -math.pi / 2,
-      math.pi / 2,
-      false,
-      paint,
-    );
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(w, h), radius: cornerRadius),
-      math.pi,
-      math.pi / 2,
-      false,
+    // Right penalty spot
+    canvas.drawCircle(
+      Offset(w - penaltyBoxW * 0.75, h / 2),
+      penaltySpotRadius,
       paint,
     );
   }
 
+  /// Half pitch UP: goal at top, halfway line at bottom.
+  /// Matches V1's _drawTopHalfMarkings.
   void _drawHalfPitchUp(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
@@ -166,17 +131,7 @@ class FieldPainter extends CustomPainter {
     // Halfway line at bottom
     canvas.drawLine(Offset(0, h), Offset(w, h), paint);
 
-    // Half center circle at bottom
-    final centerCircleRadius = w * 0.14;
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(w / 2, h), radius: centerCircleRadius),
-      math.pi,
-      math.pi,
-      false,
-      paint,
-    );
-
-    // Penalty area at top
+    // Penalty area at top (V1 proportions)
     final penaltyW = w * 0.5;
     final penaltyH = h * 0.35;
     canvas.drawRect(
@@ -191,37 +146,16 @@ class FieldPainter extends CustomPainter {
       Rect.fromLTWH((w - goalBoxW) / 2, 0, goalBoxW, goalBoxH),
       paint,
     );
-
-    // Penalty arc
-    final penaltySpotY = penaltyH * 0.85;
-    canvas.drawArc(
-      Rect.fromCircle(
-        center: Offset(w / 2, penaltySpotY),
-        radius: centerCircleRadius * 0.7,
-      ),
-      0.3,
-      math.pi - 0.6,
-      false,
-      paint,
-    );
   }
 
+  /// Half pitch DOWN: goal at bottom, halfway line at top.
+  /// Matches V1's _drawBottomHalfMarkings.
   void _drawHalfPitchDown(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
 
     // Halfway line at top
     canvas.drawLine(Offset(0, 0), Offset(w, 0), paint);
-
-    // Half center circle at top
-    final centerCircleRadius = w * 0.14;
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(w / 2, 0), radius: centerCircleRadius),
-      0,
-      math.pi,
-      false,
-      paint,
-    );
 
     // Penalty area at bottom
     final penaltyW = w * 0.5;
@@ -238,33 +172,16 @@ class FieldPainter extends CustomPainter {
       Rect.fromLTWH((w - goalBoxW) / 2, h - goalBoxH, goalBoxW, goalBoxH),
       paint,
     );
-
-    // Penalty arc
-    final penaltySpotY = h - penaltyH * 0.85;
-    canvas.drawArc(
-      Rect.fromCircle(
-        center: Offset(w / 2, penaltySpotY),
-        radius: centerCircleRadius * 0.7,
-      ),
-      math.pi + 0.3,
-      math.pi - 0.6,
-      false,
-      paint,
-    );
   }
 
+  /// Vertical corridor lines for the corridors background.
+  /// Matches V1's _drawCenterVerticalLines.
   void _drawVerticalCorridors(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
 
-    final corridorPaint = Paint()
-      ..color = paint.color.withValues(alpha: 0.25)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
-    // Vertical thirds lines
-    canvas.drawLine(Offset(w * 0.3, 0), Offset(w * 0.3, h), corridorPaint);
-    canvas.drawLine(Offset(w * 0.7, 0), Offset(w * 0.7, h), corridorPaint);
+    canvas.drawLine(Offset(w * 0.3, 0), Offset(w * 0.3, h), paint);
+    canvas.drawLine(Offset(w * 0.7, 0), Offset(w * 0.7, h), paint);
   }
 
   @override

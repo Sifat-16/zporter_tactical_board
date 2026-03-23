@@ -41,6 +41,9 @@ export 'presentation/screen/board_shell_v2.dart';
 export 'presentation/widgets/board_drop_zone_v2.dart';
 export 'presentation/widgets/draggable_board_tile_v2.dart';
 export 'presentation/widgets/panel_toggle_button.dart';
+export 'presentation/widgets/selection_handles_overlay.dart';
+export 'presentation/widgets/delete_drop_zone_v2.dart';
+export 'presentation/widgets/bottom_toolbar_v2.dart';
 
 // Core
 export 'core/coordinate_system.dart';

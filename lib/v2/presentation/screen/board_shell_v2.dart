@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/v2/presentation/panels/left/left_toolbar_v2.dart';
 import 'package:zporter_tactical_board/v2/presentation/panels/right/right_toolbar_v2.dart';
 import 'package:zporter_tactical_board/v2/presentation/widgets/board_drop_zone_v2.dart';
+import 'package:zporter_tactical_board/v2/presentation/widgets/bottom_toolbar_v2.dart';
 import 'package:zporter_tactical_board/v2/presentation/widgets/panel_toggle_button.dart';
 import 'package:zporter_tactical_board/v2/state/animation_provider.dart';
+import 'package:zporter_tactical_board/v2/state/board_provider.dart';
 
 /// Stack layout composing the board with sliding left/right panels.
 ///
@@ -38,6 +40,7 @@ class _BoardShellV2State extends ConsumerState<BoardShellV2> {
   @override
   Widget build(BuildContext context) {
     final animState = ref.watch(animationProviderV2);
+    final boardState = ref.watch(boardProviderV2);
     final isPlaybackActive = animState.isActive;
 
     // Auto-hide panels during playback
@@ -50,10 +53,35 @@ class _BoardShellV2State extends ConsumerState<BoardShellV2> {
 
         return Stack(
           children: [
-            // Board (always fills the entire area)
+            // Board + bottom toolbar in a Column
             Positioned.fill(
-              child: BoardDropZoneV2(
-                repaintBoundaryKey: widget.repaintBoundaryKey,
+              child: Column(
+                children: [
+                  // Board area
+                  Expanded(
+                    child: BoardDropZoneV2(
+                      repaintBoundaryKey: widget.repaintBoundaryKey,
+                    ),
+                  ),
+
+                  // Bottom toolbar (hidden during playback)
+                  if (!isPlaybackActive)
+                    BottomToolbarV2(
+                      isFullscreen: boardState.showFullScreen,
+                      onToggleFullscreen: () {
+                        ref.read(boardProviderV2.notifier).toggleFullScreen();
+                      },
+                      onAddScene: null, // TODO: wire to collection notifier
+                      onClearAll: () {
+                        // Remove all elements from the board
+                        final components = boardState.components;
+                        final notifier = ref.read(boardProviderV2.notifier);
+                        for (final c in components) {
+                          notifier.removeElement(c.id);
+                        }
+                      },
+                    ),
+                ],
               ),
             ),
 

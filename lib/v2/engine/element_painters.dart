@@ -989,33 +989,47 @@ void _paintCenteredText(
 }
 
 void _paintSelectionBorder(Canvas canvas, Rect rect) {
+  final inflated = rect.inflate(6);
+
+  // Selection border — green, matching V1
   final selPaint = Paint()
-    ..color = Colors.blue
+    ..color = const Color(0xFF00FF00)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.5;
-  canvas.drawRect(rect.inflate(4), selPaint);
+  canvas.drawRect(inflated, selPaint);
 
-  // Corner handles
-  const handleSize = 6.0;
-  final handlePaint = Paint()
-    ..color = Colors.blue
+  // Corner handles — white fill with green border for contrast
+  const handleSize = 10.0;
+  final handleFill = Paint()
+    ..color = Colors.white
     ..style = PaintingStyle.fill;
-  final inflated = rect.inflate(4);
+  final handleBorder = Paint()
+    ..color = const Color(0xFF00FF00)
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5;
   for (final corner in [
     inflated.topLeft,
     inflated.topRight,
     inflated.bottomLeft,
     inflated.bottomRight,
   ]) {
-    canvas.drawRect(
-      Rect.fromCenter(
-        center: corner,
-        width: handleSize,
-        height: handleSize,
-      ),
-      handlePaint,
+    final handleRect = Rect.fromCenter(
+      center: corner,
+      width: handleSize,
+      height: handleSize,
     );
+    canvas.drawRect(handleRect, handleFill);
+    canvas.drawRect(handleRect, handleBorder);
   }
+
+  // Rotation handle — line extending up from top-center with circle
+  const rotLineLen = 20.0;
+  const rotDotRadius = 5.0;
+  final topCenter = inflated.topCenter;
+  final rotEnd = Offset(topCenter.dx, topCenter.dy - rotLineLen);
+  canvas.drawLine(topCenter, rotEnd, selPaint);
+  canvas.drawCircle(rotEnd, rotDotRadius, handleFill);
+  canvas.drawCircle(rotEnd, rotDotRadius, handleBorder);
 }
 
 // =============================================================================
