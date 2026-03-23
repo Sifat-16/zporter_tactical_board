@@ -242,21 +242,16 @@ class TacticBoard extends TacticBoardGame
   void update(double dt) {
     _timerAccumulator += dt;
 
-    // Performance: when nothing is actively happening on the board,
-    // skip all processing until the auto-save timer fires.
-    // This lets the CPU idle between checks, reducing battery drain
-    // on iOS (ZPAD-630). Flame's render loop still paints, but
-    // update() becomes a no-op for the idle case.
-    final bp = ref.read(boardProvider);
-    if (!isAnimating &&
-        !bp.isDraggingItem &&
-        !isRendering &&
-        !isLoadingScene &&
-        _timerAccumulator < _checkInterval) {
-      return; // Nothing to do — just accumulate time
-    }
+    // Performance: skip the AUTO-SAVE CHECK when the board is idle and
+    // the timer hasn't reached its interval. This avoids serializing
+    // the board state every frame, reducing CPU usage (ZPAD-630).
+    //
+    // IMPORTANT: super.update(dt) MUST always be called — Flame needs it
+    // to mount new components, process lifecycle callbacks (onLoad/onMount),
+    // and update children. Skipping it breaks component rendering.
+    final bool shouldCheckAutoSave = _timerAccumulator >= _checkInterval;
 
-    if (_timerAccumulator >= _checkInterval) {
+    if (shouldCheckAutoSave) {
       WidgetsBinding.instance.addPostFrameCallback((t) {
         // CRITICAL FIX: Skip auto-save during undo/redo operations OR video recording
         if (ref.read(animationProvider).isPerformingUndo ||
