@@ -324,7 +324,7 @@ class _TacticboardScreenTabletState
       if (!mounted) return;
 
       BotToast.showCustomNotification(
-        duration: const Duration(seconds: 6),
+        duration: const Duration(seconds: 12),
         align: const Alignment(1.0, -1.0),
         toastBuilder: (cancelFunc) {
           return _ResumeToast(
