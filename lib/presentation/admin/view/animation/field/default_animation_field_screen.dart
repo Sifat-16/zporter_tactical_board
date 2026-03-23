@@ -235,6 +235,7 @@ class _DefaultAnimationFieldScreenState
         // which now detects admin mode automatically
         onSceneSave: (a) {
           BotToast.showText(
+              align: Alignment.topCenter,
               text: '🔔 onSceneSave CALLBACK FIRED!',
               duration: Duration(seconds: 5));
           ref.read(animationProvider.notifier).triggerAutoSaveForAdmin();

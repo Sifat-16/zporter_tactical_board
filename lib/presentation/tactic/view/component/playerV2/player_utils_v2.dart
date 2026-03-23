@@ -445,7 +445,7 @@ class PlayerUtilsV2 {
       } catch (e) {
         zlog(data: 'Failed to save new player: $e');
         if (context.mounted) {
-          BotToast.showText(text: "Error: Could not save new player.");
+          BotToast.showText(align: Alignment.topCenter, text: "Error: Could not save new player.");
         }
         return null;
       }
@@ -763,6 +763,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
           errorMessage = "Please grant photo library permission in Settings.";
         }
         BotToast.showText(
+          align: Alignment.topCenter,
           text: errorMessage,
           duration: Duration(seconds: 3),
         );
@@ -771,6 +772,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       zlog(data: 'Error during image pick/crop process: $e\n$stackTrace');
       if (mounted) {
         BotToast.showText(
+          align: Alignment.topCenter,
           text:
               "Error processing image. Please try again or choose a smaller image.",
           duration: Duration(seconds: 3),
@@ -905,14 +907,14 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       if (mounted) {
         Navigator.of(context).pop(PlayerUpdateResult(resetPlayerModel));
       }
-      BotToast.showText(text: "Player has been reset to default.");
+      BotToast.showText(align: Alignment.topCenter, text: "Player has been reset to default.");
     } else {
       // --- Deleting a user-created player ---
       widget.onDelete.call(playerToEdit);
       if (mounted) {
         Navigator.of(context).pop(null);
       }
-      BotToast.showText(text: "Player deleted permanently.");
+      BotToast.showText(align: Alignment.topCenter, text: "Player deleted permanently.");
     }
   }
 
@@ -930,7 +932,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
     // Allow "-" as a valid role (neutral/no role)
     if (_selectedRole == null || _selectedRole!.isEmpty) {
-      BotToast.showText(text: "Please select a role.");
+      BotToast.showText(align: Alignment.topCenter, text: "Please select a role.");
       return;
     }
 
@@ -949,6 +951,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       jerseyNumberInt = int.tryParse(jerseyNumberText);
       if (jerseyNumberInt == null) {
         BotToast.showText(
+            align: Alignment.topCenter,
             text: "Jersey number must be a valid number or '-' for no number.");
         return;
       }
@@ -963,6 +966,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
       if (isTaken) {
         BotToast.showText(
+            align: Alignment.topCenter,
             text: 'Jersey number $jerseyNumberInt is already taken!');
         return;
       }
@@ -982,7 +986,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         imageBytes = await _pendingImageFile!.readAsBytes();
       } catch (e) {
         zlog(data: "Failed to read image file: $e");
-        BotToast.showText(text: "Error processing image. Please try again.");
+        BotToast.showText(align: Alignment.topCenter, text: "Error processing image. Please try again.");
         return; // Stop the save - can't even read the file
       }
 
@@ -1035,6 +1039,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
           needsBackgroundMigration = true; // Queue for background upload
 
           BotToast.showText(
+            align: Alignment.topCenter,
             text: "Image saved. Will upload in background.",
             duration: const Duration(seconds: 2),
           );
@@ -1050,6 +1055,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         needsBackgroundMigration = true;
 
         BotToast.showText(
+          align: Alignment.topCenter,
           text: "Saved offline. Will sync when online.",
           duration: const Duration(seconds: 2),
         );
@@ -1109,7 +1115,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       zlog(data: "Failed to save player to database: $e");
       BotToast.cleanAll();
       if (mounted) {
-        BotToast.showText(text: "Error saving player. Please try again.");
+        BotToast.showText(align: Alignment.topCenter, text: "Error saving player. Please try again.");
       }
       return; // Don't close dialog if save failed
     } finally {

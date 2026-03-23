@@ -700,11 +700,12 @@ class _FormSpeedDialComponentState
               //     duration: Duration(seconds: 5));
             } else {
               BotToast.showText(
+                align: Alignment.topCenter,
                 text: "Cannot add new scene: No current scene selected.",
               );
             }
           } catch (e) {
-            BotToast.showText(text: "Error adding new scene: $e");
+            BotToast.showText(align: Alignment.topCenter, text: "Error adding new scene: $e");
           }
         }
       },
@@ -867,7 +868,7 @@ class _FormSpeedDialComponentState
         boardState.texts.isNotEmpty;
 
     if (!hasItems) {
-      BotToast.showText(text: 'Board is already empty');
+      BotToast.showText(align: Alignment.topCenter, text: 'Board is already empty');
       return;
     }
 
@@ -902,7 +903,7 @@ class _FormSpeedDialComponentState
           if (tacticBoard != null && tacticBoard is TacticBoard) {
             tacticBoard.triggerImmediateSave(reason: 'Clear all items');
           }
-          BotToast.showText(text: 'Board cleared');
+          BotToast.showText(align: Alignment.topCenter, text: 'Board cleared');
         }
       }
     } else {

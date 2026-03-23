@@ -181,7 +181,7 @@ class _AnimationToolbarComponentState
             CustomButton(
               fillColor: ColorManager.blue,
               onTap: () {
-                BotToast.showText(text: "Animation saved");
+                BotToast.showText(align: Alignment.topCenter, text: "Animation saved");
                 ref.read(animationProvider.notifier).clearAnimation();
               },
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -523,6 +523,7 @@ class _AnimationToolbarComponentState
             if (collection.id ==
                 DefaultAnimationConstants.default_animation_collection_id) {
               BotToast.showText(
+                  align: Alignment.topCenter,
                   text: "The default collection cannot be modified.");
               return;
             }
@@ -540,6 +541,7 @@ class _AnimationToolbarComponentState
             if (collection.id ==
                 DefaultAnimationConstants.default_animation_collection_id) {
               BotToast.showText(
+                  align: Alignment.topCenter,
                   text: "The default collection cannot be modified.");
               return;
             }

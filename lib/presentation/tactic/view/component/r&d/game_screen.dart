@@ -301,6 +301,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           .read(animationProvider.notifier)
           .setRecordingAnimation(isRecording: false);
       BotToast.showText(
+          align: Alignment.topCenter,
           text: "Failed to start video recording. Please try again.");
       return null;
     }
@@ -446,7 +447,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     }
                     _exportProgressNotifier.value = 0.0; // Reset notifiers
                     _isFinalizingVideoNotifier.value = false;
-                    BotToast.showText(text: "Video export cancelled by user.");
+                    BotToast.showText(align: Alignment.topCenter, text: "Video export cancelled by user.");
                     // The boardProvider state will be reset by the caller (onShare)
                   },
                 );
@@ -846,6 +847,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           .selectedAnimationModel;
                                       if (isBoardBusy(bp)) {
                                         BotToast.showText(
+                                            align: Alignment.topCenter,
                                             text:
                                                 "Please wait for the current operation to complete.");
                                         return;
@@ -942,11 +944,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           } else if (finalOutput != null &&
                                               !finalOutput.success) {
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export failed: ${finalOutput.errorMessage ?? 'Unknown error.'}");
                                           } else {
                                             // finalOutput is null
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export was cancelled or did not complete.");
                                           }
@@ -959,6 +963,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           .selectedAnimationModel;
                                       if (isBoardBusy(bp)) {
                                         BotToast.showText(
+                                            align: Alignment.topCenter,
                                             text:
                                                 "Please wait for the current operation to complete.");
                                         return;
@@ -1037,11 +1042,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           } else if (finalOutput != null &&
                                               !finalOutput.success) {
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export failed: ${finalOutput.errorMessage ?? 'Unknown error.'}");
                                           } else {
                                             // finalOutput is null
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export was cancelled or did not complete.");
                                           }
@@ -1263,6 +1270,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Show result
     if (mounted) {
       BotToast.showText(
+        align: Alignment.topCenter,
         text: shouldProceed
             ? '✅ User chose to proceed anyway'
             : '❌ User cancelled',

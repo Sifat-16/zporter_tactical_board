@@ -214,7 +214,7 @@ class _PlayersToolbarAwayState extends ConsumerState<PlayersToolbarAway> {
             final AnimationItemModel? scene = selectedLineUp?.scene;
 
             if (scene == null || tacticBoard == null) {
-              BotToast.showText(text: "Please select a lineup first.");
+              BotToast.showText(align: Alignment.topCenter, text: "Please select a lineup first.");
               return;
             }
 

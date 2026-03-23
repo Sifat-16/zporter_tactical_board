@@ -108,6 +108,7 @@ class _TacticboardScreenTabletState
           zlog(data: "Tutorial: New scene added successfully.");
         } else {
           BotToast.showText(
+            align: Alignment.topCenter,
             text: "Cannot add new scene: No current scene selected.",
           );
           zlog(
@@ -115,7 +116,7 @@ class _TacticboardScreenTabletState
           );
         }
       } catch (e) {
-        BotToast.showText(text: "Error adding new scene: $e");
+        BotToast.showText(align: Alignment.topCenter, text: "Error adding new scene: $e");
         zlog(data: "Tutorial: Error adding new scene - $e");
       }
     }
@@ -482,7 +483,7 @@ class _TacticboardScreenTabletState
       if (selectedCollection == null ||
           selectedAnimation == null ||
           selectedScene == null) {
-        BotToast.showText(text: "No animation data to save");
+        BotToast.showText(align: Alignment.topCenter, text: "No animation data to save");
         return;
       }
 
@@ -516,6 +517,7 @@ class _TacticboardScreenTabletState
             data:
                 "❌ ERROR: Firestore sync failed after ${syncDuration.inSeconds} seconds: $syncError");
         BotToast.showText(
+            align: Alignment.topCenter,
             text:
                 "Saved locally - cloud sync failed. Will retry automatically.");
         // Don't throw - data is safe in local storage and will retry
@@ -568,10 +570,10 @@ class _TacticboardScreenTabletState
           data:
               "Save completed - collectionId: ${selectedCollection.id}, animationId: ${selectedAnimation.id}, thumbnailUrl: $thumbnailUrl");
 
-      BotToast.showText(text: "Tactical board saved successfully");
+      BotToast.showText(align: Alignment.topCenter, text: "Tactical board saved successfully");
     } catch (e, s) {
       zlog(data: "Error saving tactical board: $e\n$s");
-      BotToast.showText(text: "Failed to save tactical board");
+      BotToast.showText(align: Alignment.topCenter, text: "Failed to save tactical board");
 
       // Even on error, try to set a result so React doesn't timeout
       final ap = ref.read(animationProvider);
@@ -1038,7 +1040,7 @@ class _TacticboardScreenTabletState
                                 ref
                                     .read(animationProvider.notifier)
                                     .copyCurrentDefaultScene();
-                                BotToast.showText(text: "Scene Copied");
+                                BotToast.showText(align: Alignment.topCenter, text: "Scene Copied");
                               },
                               child: Icon(
                                 Icons.copy,

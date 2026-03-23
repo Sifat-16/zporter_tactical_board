@@ -39,6 +39,7 @@ class _ConnectivityListenerState extends State<ConnectivityListener> {
           contentColor: Colors.green.shade700,
           textStyle: const TextStyle(color: Colors.white),
           duration: const Duration(seconds: 3),
+          align: Alignment.topCenter,
         );
       } else {
         BotToast.showText(
@@ -46,6 +47,7 @@ class _ConnectivityListenerState extends State<ConnectivityListener> {
           contentColor: Colors.red.shade700,
           textStyle: const TextStyle(color: Colors.white),
           duration: const Duration(seconds: 3),
+          align: Alignment.topCenter,
         );
       }
     }

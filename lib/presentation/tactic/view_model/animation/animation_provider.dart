@@ -2,6 +2,7 @@ import 'dart:async' as async_lib;
 import 'dart:ui';
 
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flutter/painting.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
@@ -401,6 +402,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         animationCollectionModel,
       )) {
         BotToast.showText(
+          align: Alignment.topCenter,
           text: "Duplicate collection name. Collection name must be unique.",
         );
         return;
@@ -634,6 +636,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         animationModel,
       )) {
         BotToast.showText(
+          align: Alignment.topCenter,
           text: "Duplicate animation name. Animation name must be unique.",
         );
         return;
@@ -734,7 +737,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     AnimationCollectionModel? animationCollectionModel =
         animationCopyItem.animationCollectionModel;
     if (animationCollectionModel == null) {
-      BotToast.showText(text: "Please select a collection");
+      BotToast.showText(align: Alignment.topCenter, text: "Please select a collection");
       return;
     }
     AnimationModel newAnimationModel = animationCopyItem.animationModel.clone();
@@ -748,6 +751,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       newAnimationModel,
     )) {
       BotToast.showText(
+        align: Alignment.topCenter,
         text: "Duplicate animation name. Animation name must be unique.",
       );
       return;
@@ -867,17 +871,17 @@ class AnimationController extends StateNotifier<AnimationState> {
           _saveSessionState();
           return selectedScene;
         } catch (e) {
-          BotToast.showText(text: "Unexpected server error ${e}");
+          BotToast.showText(align: Alignment.topCenter, text: "Unexpected server error ${e}");
         } finally {
           if (showLoading) {
             BotToast.cleanAll();
           }
         }
       } else {
-        BotToast.showText(text: "No Animation found!!");
+        BotToast.showText(align: Alignment.topCenter, text: "No Animation found!!");
       }
     } else {
-      BotToast.showText(text: "No scene found!!");
+      BotToast.showText(align: Alignment.topCenter, text: "No scene found!!");
     }
     return null;
   }
@@ -990,7 +994,7 @@ class AnimationController extends StateNotifier<AnimationState> {
           await _saveAnimationCollectionUseCase.call(selectedCollection);
     } catch (e) {
       zlog(data: "Error saving new scene: $e");
-      BotToast.showText(text: "Error saving new scene.");
+      BotToast.showText(align: Alignment.topCenter, text: "Error saving new scene.");
     }
 
     // 9. Update state ONCE with all new references.
@@ -1134,7 +1138,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         selectedScene: scenes.lastOrNull,
       );
     } else {
-      BotToast.showText(text: "No animation found");
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
     }
   }
 
@@ -1158,7 +1162,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     if (selectedCollectionModel == null ||
         selectedAnimationModel == null ||
         currentScene == null) {
-      BotToast.showText(text: "No animation found");
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
       return;
     }
 
@@ -1181,7 +1185,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     );
 
     if (currentSceneIndex == -1) {
-      BotToast.showText(text: "Scene not found in animation");
+      BotToast.showText(align: Alignment.topCenter, text: "Scene not found in animation");
       return;
     }
 
@@ -1240,9 +1244,10 @@ class AnimationController extends StateNotifier<AnimationState> {
 
     if (clearFollowingScenes && deletedCount > 0) {
       BotToast.showText(
+          align: Alignment.topCenter,
           text: 'Scene cleared and $deletedCount following scenes deleted');
     } else {
-      BotToast.showText(text: 'Scene cleared');
+      BotToast.showText(align: Alignment.topCenter, text: 'Scene cleared');
     }
   }
 
@@ -1254,7 +1259,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
 
     if (selectedCollectionModel == null || selectedAnimationModel == null) {
-      BotToast.showText(text: "No animation found");
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
       return;
     }
 
@@ -1316,7 +1321,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         state.selectedAnimationCollectionModel;
 
     if (selectedCollectionModel == null) {
-      BotToast.showText(text: "No Collection is selected");
+      BotToast.showText(align: Alignment.topCenter, text: "No Collection is selected");
       return;
     }
 
@@ -1599,9 +1604,33 @@ class AnimationController extends StateNotifier<AnimationState> {
             );
           }
 
-          // Regular user animation - use normal save
+          // If this is an admin template collection, convert it to a user
+          // copy before saving. Without this, _onAnimationSave() can't find
+          // the animation by ID in the template's list.
+          AnimationCollectionModel collectionToSave =
+              state.selectedAnimationCollectionModel!;
+          if (collectionToSave.isTemplate == true) {
+            collectionToSave = collectionToSave.copyWith(
+              animations:
+                  List<AnimationModel>.from(collectionToSave.animations),
+              userId: _getUserId(),
+            );
+            collectionToSave.isTemplate = false;
+            state = state.copyWith(
+              selectedAnimationCollectionModel: collectionToSave,
+            );
+            final collections =
+                List<AnimationCollectionModel>.from(state.animationCollections);
+            final idx =
+                collections.indexWhere((c) => c.id == collectionToSave.id);
+            if (idx != -1) {
+              collections[idx] = collectionToSave;
+              state = state.copyWith(animationCollections: collections);
+            }
+          }
+
           return await _onAnimationSave(
-            selectedCollection: state.selectedAnimationCollectionModel!,
+            selectedCollection: collectionToSave,
             selectedAnimation: state.selectedAnimationModel!,
             selectedScene: state.selectedScene!,
             showLoading: false,
@@ -1913,10 +1942,27 @@ class AnimationController extends StateNotifier<AnimationState> {
   bool _restoreCollectionView(SessionStateModel sessionState) {
     if (sessionState.selectedCollectionId == null) return false;
 
-    final collection = state.animationCollections.firstWhereOrNull(
+    var collection = state.animationCollections.firstWhereOrNull(
       (c) => c.id == sessionState.selectedCollectionId,
     );
     if (collection == null) return false;
+
+    // If restoring an admin template, apply copy-on-write so the user
+    // can edit without hitting "No animation found" errors on save.
+    if (collection.isTemplate == true) {
+      collection = collection.copyWith(
+        animations: List<AnimationModel>.from(collection.animations),
+        userId: _getUserId(),
+      );
+      collection.isTemplate = false;
+      final collections =
+          List<AnimationCollectionModel>.from(state.animationCollections);
+      final idx = collections.indexWhere((c) => c.id == collection!.id);
+      if (idx != -1) {
+        collections[idx] = collection;
+        state = state.copyWith(animationCollections: collections);
+      }
+    }
 
     AnimationModel? animation;
     if (sessionState.selectedAnimationId != null) {
@@ -1924,9 +1970,10 @@ class AnimationController extends StateNotifier<AnimationState> {
         (a) => a.id == sessionState.selectedAnimationId,
       );
     }
+    // If no specific animation found, fall back to the first one
+    animation ??= collection.animations.firstOrNull;
 
     if (animation == null) {
-      // Still select the collection even without animation
       selectAnimationCollection(collection, skipSessionSave: true);
       _saveSessionState();
       return true;
@@ -2111,7 +2158,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         selectedScene: selectedScene,
       );
     } else {
-      BotToast.showText(text: "No scene found!!");
+      BotToast.showText(align: Alignment.topCenter, text: "No scene found!!");
     }
     return null;
   }
@@ -2155,7 +2202,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
     } else {
       zlog(data: "Coming here for no animation found");
-      BotToast.showText(text: "No animation found");
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
     }
   }
 
@@ -2411,7 +2458,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     // Prevent editing the name of the default "Other" collection
     if (collection.id ==
         DefaultAnimationConstants.default_animation_collection_id) {
-      BotToast.showText(text: "The default collection cannot be renamed.");
+      BotToast.showText(align: Alignment.topCenter, text: "The default collection cannot be renamed.");
       return;
     }
 
@@ -2420,7 +2467,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         state.animationCollections.where((c) => c.id != collection.id);
     if (otherCollections
         .any((c) => c.name.toLowerCase() == newName.toLowerCase())) {
-      BotToast.showText(text: "A collection with this name already exists.");
+      BotToast.showText(align: Alignment.topCenter, text: "A collection with this name already exists.");
       return;
     }
 
@@ -2459,7 +2506,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
     } catch (e) {
       zlog(data: "Failed to edit collection name: $e");
-      BotToast.showText(text: "Error updating collection.");
+      BotToast.showText(align: Alignment.topCenter, text: "Error updating collection.");
     } finally {
       BotToast.cleanAll();
     }
@@ -2470,7 +2517,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   //   // Prevent deleting the default "Other" collection
   //   if (collectionToDelete.id ==
   //       DefaultAnimationConstants.default_animation_collection_id) {
-  //     BotToast.showText(text: "The default collection cannot be deleted.");
+  //     BotToast.showText(align: Alignment.topCenter, text: "The default collection cannot be deleted.");
   //     return;
   //   }
   //
@@ -2491,7 +2538,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   //     }
   //   } catch (e) {
   //     zlog(data: "Failed to delete collection: $e");
-  //     BotToast.showText(text: "Error deleting collection.");
+  //     BotToast.showText(align: Alignment.topCenter, text: "Error deleting collection.");
   //   } finally {
   //     BotToast.cleanAll();
   //   }
@@ -2504,7 +2551,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     // Prevent deleting the default "Other" collection
     if (collectionToDelete.id ==
         DefaultAnimationConstants.default_animation_collection_id) {
-      BotToast.showText(text: "The default collection cannot be deleted.");
+      BotToast.showText(align: Alignment.topCenter, text: "The default collection cannot be deleted.");
       return;
     }
 
@@ -2537,7 +2584,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       state = state.copyWith(animationCollections: updatedCollections);
     } catch (e) {
       zlog(data: "Failed to delete collection: $e");
-      BotToast.showText(text: "Error deleting collection.");
+      BotToast.showText(align: Alignment.topCenter, text: "Error deleting collection.");
     } finally {
       BotToast.cleanAll();
     }

@@ -172,7 +172,7 @@ Future<AnimationCopyItem?> showAnimationCopyDialog(
                             context,
                           ).pop(animationCopyItem); // Return true
                         } else {
-                          BotToast.showText(text: "Invalid Collection");
+                          BotToast.showText(align: Alignment.topCenter, text: "Invalid Collection");
                           Navigator.of(context).pop(null); // Return true
                         }
                       },
