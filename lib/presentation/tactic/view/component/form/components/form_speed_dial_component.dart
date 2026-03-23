@@ -818,17 +818,17 @@ class _FormSpeedDialComponentState
     //   toastDuration: Duration(seconds: 2),
     // );
 
-    // Custom Toast Position
+    // Position at the top to match the verification message layer
     fToast.showToast(
       child: toast,
-      toastDuration: Duration(seconds: 3),
+      toastDuration: const Duration(seconds: 3),
       positionedToastBuilder: (context, child, gravity) {
         return Positioned(
-          bottom: context.screenHeight * .1,
+          top: MediaQuery.of(context).padding.top + 8,
           left: 0.0,
           right: 0.0,
           child: Align(
-            alignment: Alignment.center,
+            alignment: Alignment.topCenter,
             child: child,
           ),
         );
