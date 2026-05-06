@@ -39,6 +39,7 @@ class PlayerModel extends FieldItemModel {
     super.size,
     super.color,
     super.opacity,
+    super.zIndex,
     required this.role,
     required this.jerseyNumber,
     // --- CHANGE 2: Add to constructor ---
@@ -76,6 +77,28 @@ class PlayerModel extends FieldItemModel {
     };
   }
 
+  /// Serialize for Firestore - EXCLUDES imageBase64 to prevent large payloads
+  /// Use this method when saving to remote Firestore database
+  Map<String, dynamic> toJsonForFirestore() {
+    return {
+      ...super.toJson(),
+      'role': role,
+      'jerseyNumber': jerseyNumber,
+      'displayNumber': displayNumber,
+      'playerType': playerType.name,
+      'name': name,
+      'showName': showName,
+      'showNr': showNr,
+      'showRole': showRole,
+      'showImage': showImage,
+      'imagePath': imagePath,
+      // CRITICAL: Never include imageBase64 in Firestore to prevent large documents
+      // 'imageBase64': imageBase64, // EXCLUDED
+      'imageUrl': imageUrl,
+      'borderColor': borderColor?.value,
+    };
+  }
+
   static PlayerModel fromJson(Map<String, dynamic> json) {
     final id = json['_id'];
     final offset =
@@ -108,6 +131,7 @@ class PlayerModel extends FieldItemModel {
     final imageUrl = json['imageUrl'] as String?;
     final borderColor =
         json['borderColor'] != null ? Color(json['borderColor'] as int) : null;
+    final zIndex = json['zIndex'] as int?;
 
     // --- CHANGE 4: Update fromJson for new field and data migration ---
     final jerseyNum = json['jerseyNumber'] as int? ?? -1;
@@ -124,6 +148,7 @@ class PlayerModel extends FieldItemModel {
       size: size,
       color: color,
       opacity: opacity,
+      zIndex: zIndex,
       name: name,
       showImage: showImage,
       showName: showName,
@@ -154,6 +179,7 @@ class PlayerModel extends FieldItemModel {
     Vector2? size,
     Color? color,
     double? opacity,
+    int? zIndex,
     String? role,
     int? jerseyNumber,
     // --- CHANGE 5: Add to copyWith ---
@@ -181,6 +207,7 @@ class PlayerModel extends FieldItemModel {
       size: size ?? this.size,
       color: color ?? this.color,
       opacity: opacity ?? this.opacity,
+      zIndex: zIndex ?? this.zIndex,
       role: role ?? this.role,
       jerseyNumber: jerseyNumber ?? this.jerseyNumber,
       // --- CHANGE 6: Update copyWith logic ---

@@ -43,6 +43,12 @@ import 'mixin/layering_management.dart'; // Make sure this import points to the 
 
 String? _boardComparator;
 
+/// FIX 1D: Public helper so game_screen.dart can reset the comparator
+/// when loading a new scene, preventing stale cross-scene comparisons.
+void resetBoardComparator() {
+  _boardComparator = null;
+}
+
 // --- Base Abstract Class (Unchanged) ---
 abstract class TacticBoardGame extends FlameGame
     with
@@ -52,6 +58,9 @@ abstract class TacticBoardGame extends FlameGame
         AnimationPlaybackControls {
   late GameField gameField;
   bool isAnimating = false;
+  /// FIX 1D: True while game_screen is switching scenes.
+  /// Auto-save skips when this is set.
+  bool isLoadingScene = false;
   late DrawingBoardComponent drawingBoard;
   addItem(FieldItemModel item, {bool save = true});
   late BuildContext context;
@@ -233,7 +242,16 @@ class TacticBoard extends TacticBoardGame
   void update(double dt) {
     _timerAccumulator += dt;
 
-    if (_timerAccumulator >= _checkInterval) {
+    // Performance: skip the AUTO-SAVE CHECK when the board is idle and
+    // the timer hasn't reached its interval. This avoids serializing
+    // the board state every frame, reducing CPU usage (ZPAD-630).
+    //
+    // IMPORTANT: super.update(dt) MUST always be called — Flame needs it
+    // to mount new components, process lifecycle callbacks (onLoad/onMount),
+    // and update children. Skipping it breaks component rendering.
+    final bool shouldCheckAutoSave = _timerAccumulator >= _checkInterval;
+
+    if (shouldCheckAutoSave) {
       WidgetsBinding.instance.addPostFrameCallback((t) {
         // CRITICAL FIX: Skip auto-save during undo/redo operations OR video recording
         if (ref.read(animationProvider).isPerformingUndo ||
@@ -257,7 +275,32 @@ class TacticBoard extends TacticBoardGame
           return;
         }
 
+        // FIX 0A: Skip auto-save during animation rendering or playback.
+        // removeAll() in _renderStateForTime() temporarily empties the board;
+        // saving during that window would persist an empty/corrupted state.
+        if (isRendering || isAnimationCurrentlyPlaying || isLoadingScene) {
+          if (FeatureFlags.enableSaveDebugLogs) {
+            zlog(data: "Skipping auto-save during animation rendering/playback/scene-load");
+          }
+          _timerAccumulator -= _checkInterval;
+          return;
+        }
+
         String current = _getCurrentBoardStateString();
+
+        // FIX 0B: Validate state isn't suspiciously empty before saving.
+        // If the previous snapshot had content but current is empty, the board
+        // is likely mid-render (removeAll gap). Block this save to prevent
+        // persisting corrupted/empty state.
+        if (_boardComparator != null && _isStateLikelyCorrupted(current)) {
+          if (FeatureFlags.enableSaveDebugLogs) {
+            zlog(
+                data:
+                    "AUTO-SAVE BLOCKED: State appears empty while previous had content");
+          }
+          _timerAccumulator -= _checkInterval;
+          return;
+        }
 
         if (_boardComparator == null) {
           _boardComparator = current;
@@ -320,9 +363,6 @@ class TacticBoard extends TacticBoardGame
   updateDatabase({bool isAutoSave = true}) {
     if (!isAnimating) {
       WidgetsBinding.instance.addPostFrameCallback((t) async {
-        ref
-            .read(animationProvider.notifier)
-            .toggleLoadingSave(showLoading: true);
         try {
           // Phase 1: Pass isAutoSave flag to skip history on auto-saves
           await ref
@@ -344,15 +384,8 @@ class TacticBoard extends TacticBoardGame
         } catch (e) {
           zlog(data: "Error updating database: $e");
         }
-
-        ref
-            .read(animationProvider.notifier)
-            .toggleLoadingSave(showLoading: false);
       });
     } else {
-      ref
-          .read(animationProvider.notifier)
-          .toggleLoadingSave(showLoading: false);
       if (FeatureFlags.enableSaveDebugLogs) {
         zlog(data: "Save skipped: Animation playing");
       }
@@ -413,6 +446,25 @@ class TacticBoard extends TacticBoardGame
     }
     // Compare the last saved state to the current state.
     return _boardComparator != _getCurrentBoardStateString();
+  }
+
+  /// FIX 0B: Detect if the current state is suspiciously empty when the
+  /// previous snapshot had content. This catches the removeAll() gap where
+  /// _renderStateForTime clears all components for one event-loop tick.
+  bool _isStateLikelyCorrupted(String currentState) {
+    if (_boardComparator == null) return false;
+    try {
+      // Count the items in current state — if the serialized string is
+      // essentially empty (just a color hash) but the previous one was not,
+      // something removed all items. This is the removeAll() gap.
+      final currentItems =
+          ref.read(boardProvider.notifier).onAnimationSave();
+      final previousHadContent = _boardComparator!.length > 50;
+      if (currentItems.isEmpty && previousHadContent) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   // ========== Trajectory Editor Management ==========

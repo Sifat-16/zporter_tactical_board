@@ -30,19 +30,35 @@ mixin BoardRiverpodIntegration on TacticBoardGame {
         }
 
         if (current.moveDown == true) {
-          // Cast 'this' to LayeringManagement to call its method
+          // Reset flag first to prevent re-triggering
+          ref.read(boardProvider.notifier).moveDownComplete();
           (this as LayeringManagement).moveDownElement(
             current.selectedItemOnTheBoard,
           );
-          ref.read(boardProvider.notifier).moveDownComplete();
         }
 
         if (current.moveUp == true) {
-          // Cast 'this' to LayeringManagement to call its method
+          // Reset flag first to prevent re-triggering
+          ref.read(boardProvider.notifier).moveUpComplete();
           (this as LayeringManagement).moveUpElement(
             current.selectedItemOnTheBoard,
           );
-          ref.read(boardProvider.notifier).moveUpComplete();
+        }
+
+        if (current.moveToFront == true) {
+          // Reset flag first to prevent re-triggering when _updateModelInProvider updates state
+          ref.read(boardProvider.notifier).moveToFrontComplete();
+          (this as LayeringManagement).moveElementToFront(
+            current.selectedItemOnTheBoard,
+          );
+        }
+
+        if (current.moveToBack == true) {
+          // Reset flag first to prevent re-triggering when _updateModelInProvider updates state
+          ref.read(boardProvider.notifier).moveToBackComplete();
+          (this as LayeringManagement).moveElementToBack(
+            current.selectedItemOnTheBoard,
+          );
         }
 
         // NEW: Update PlayerComponent objects when players list changes (for bulk updates)
@@ -80,7 +96,10 @@ mixin BoardRiverpodIntegration on TacticBoardGame {
     for (var component in playerComponents) {
       final updatedPlayer = playerMap[component.object.id];
       if (updatedPlayer != null && updatedPlayer != component.object) {
+        final oldModel = component.object;
         component.object = updatedPlayer;
+        // Reload image if image fields changed
+        component.reloadImageIfNeeded(oldModel);
       }
     }
   }

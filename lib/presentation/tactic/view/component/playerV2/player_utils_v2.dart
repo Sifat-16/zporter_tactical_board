@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:bot_toast/bot_toast.dart';
 import 'package:flame/components.dart';
@@ -13,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sembast/sembast.dart';
 import 'package:zporter_tactical_board/app/config/database/local/semDB.dart';
 import 'package:zporter_tactical_board/app/core/component/custom_button.dart';
+import 'package:zporter_tactical_board/app/core/component/custom_cropper_page.dart';
 import 'package:zporter_tactical_board/app/core/component/dropdown_selector.dart';
 import 'package:zporter_tactical_board/app/datastructures/tuple.dart';
 import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.dart';
@@ -23,6 +26,7 @@ import 'package:zporter_tactical_board/app/helper/size_helper.dart';
 import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/services/connectivity_service.dart';
 import 'package:zporter_tactical_board/app/services/firebase_storage_service.dart';
+import 'package:zporter_tactical_board/app/services/image_migration/image_migration_service.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/tactic/model/player_model.dart';
@@ -183,9 +187,28 @@ class PlayerUtilsV2 {
     } else {
       zlog(data: 'Found $recordCount away players in DB. Loading...');
       final records = await _awayPlayersStore.find(db);
-      return records
+      final players = records
           .map((snapshot) => PlayerModel.fromJson(snapshot.value))
           .toList();
+
+      // Migrate old red away players to purple.
+      // Before this change, away players defaulted to ColorManager.red (0xFFFF1D00).
+      // Now the default is purple (0xFF974AC8) to match the away team border color.
+      const oldRed = Color(0xFFFF1D00);
+      const newPurple = Color(0xFF974AC8);
+      bool migrated = false;
+      for (int i = 0; i < players.length; i++) {
+        if (players[i].color == oldRed) {
+          players[i] = players[i].copyWith(color: newPurple);
+          migrated = true;
+        }
+      }
+      if (migrated) {
+        await _savePlayersToDb(db, players, _awayPlayersStore);
+        zlog(data: 'Migrated away player colors from red to purple');
+      }
+
+      return players;
     }
   }
 
@@ -235,7 +258,7 @@ class PlayerUtilsV2 {
           }
           break;
         case PlayerType.AWAY:
-          color = ColorManager.red;
+          color = const Color(0xFF974AC8); // Purple — matches away team border
           break;
         case PlayerType.UNKNOWN:
           color = ColorManager.black;
@@ -441,7 +464,7 @@ class PlayerUtilsV2 {
       } catch (e) {
         zlog(data: 'Failed to save new player: $e');
         if (context.mounted) {
-          BotToast.showText(text: "Error: Could not save new player.");
+          BotToast.showText(align: Alignment.topCenter, text: "Error: Could not save new player.");
         }
         return null;
       }
@@ -720,11 +743,17 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
           ),
           WebUiSettings(
             context: context,
-            presentStyle: WebPresentStyle.dialog,
-            size: const CropperSize(
-              width: 520,
-              height: 520,
-            ),
+            presentStyle: WebPresentStyle.page,
+            customRouteBuilder: (cropper, initCropper, crop, rotate, scale) {
+              return MaterialPageRoute(
+                builder: (context) => CustomCropperPage(
+                  cropper: cropper,
+                  initCropper: initCropper,
+                  crop: crop,
+                  rotate: rotate,
+                ),
+              );
+            },
           ),
         ],
       );
@@ -753,6 +782,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
           errorMessage = "Please grant photo library permission in Settings.";
         }
         BotToast.showText(
+          align: Alignment.topCenter,
           text: errorMessage,
           duration: Duration(seconds: 3),
         );
@@ -761,6 +791,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       zlog(data: 'Error during image pick/crop process: $e\n$stackTrace');
       if (mounted) {
         BotToast.showText(
+          align: Alignment.topCenter,
           text:
               "Error processing image. Please try again or choose a smaller image.",
           duration: Duration(seconds: 3),
@@ -895,14 +926,14 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       if (mounted) {
         Navigator.of(context).pop(PlayerUpdateResult(resetPlayerModel));
       }
-      BotToast.showText(text: "Player has been reset to default.");
+      BotToast.showText(align: Alignment.topCenter, text: "Player has been reset to default.");
     } else {
       // --- Deleting a user-created player ---
       widget.onDelete.call(playerToEdit);
       if (mounted) {
         Navigator.of(context).pop(null);
       }
-      BotToast.showText(text: "Player deleted permanently.");
+      BotToast.showText(align: Alignment.topCenter, text: "Player deleted permanently.");
     }
   }
 
@@ -920,7 +951,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
     // Allow "-" as a valid role (neutral/no role)
     if (_selectedRole == null || _selectedRole!.isEmpty) {
-      BotToast.showText(text: "Please select a role.");
+      BotToast.showText(align: Alignment.topCenter, text: "Please select a role.");
       return;
     }
 
@@ -939,6 +970,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
       jerseyNumberInt = int.tryParse(jerseyNumberText);
       if (jerseyNumberInt == null) {
         BotToast.showText(
+            align: Alignment.topCenter,
             text: "Jersey number must be a valid number or '-' for no number.");
         return;
       }
@@ -953,6 +985,7 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
 
       if (isTaken) {
         BotToast.showText(
+            align: Alignment.topCenter,
             text: 'Jersey number $jerseyNumberInt is already taken!');
         return;
       }
@@ -962,74 +995,89 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         _existingImagePath; // Start with the existing image path/URL
     String? finalBase64 =
         _existingImageBase64; // Start with existing Base64 (for backwards compatibility)
+    bool needsBackgroundMigration = false; // Flag to queue for migration
 
     // A new file was picked by the user, we MUST handle it.
     if (_pendingImageFile != null) {
-      // OFFLINE-FIRST: Check connectivity before attempting upload
+      // Read image bytes once - we'll need them for either upload or base64
+      Uint8List? imageBytes;
+      try {
+        imageBytes = await _pendingImageFile!.readAsBytes();
+      } catch (e) {
+        zlog(data: "Failed to read image file: $e");
+        BotToast.showText(align: Alignment.topCenter, text: "Error processing image. Please try again.");
+        return; // Stop the save - can't even read the file
+      }
+
+      // Check connectivity
       final isOnline = ConnectivityService.statusNotifier.value.isOnline;
 
-      if (!isOnline) {
-        // OFFLINE: Convert to base64 and save locally
-        zlog(data: "Device offline: Saving player image as base64 for now");
+      if (isOnline) {
+        // ONLINE: Try to upload to Firebase Storage with timeout
         try {
-          final bytes = await _pendingImageFile!.readAsBytes();
-          finalBase64 = base64Encode(bytes);
-          finalImagePath = null; // Clear URL, will upload when online
+          BotToast.showLoading();
 
-          BotToast.showText(
-            text: "Saved offline. Image will sync when online.",
-            duration: Duration(seconds: 2),
-          );
-        } catch (e) {
-          zlog(data: "Failed to convert image to base64: $e");
-          BotToast.showText(text: "Error processing image. Please try again.");
-          return; // Stop the save
-        }
-      } else {
-        // ONLINE: Upload to Firebase Storage
-        try {
-          BotToast.showLoading(); // Show a global loader for the upload
-
-          // Use a unique ID for the file. If creating a new player, generate one.
           final String playerIdForUpload =
               widget.player?.id ?? RandomGenerator.generateId();
 
-          // 1. CALL OUR NEW UPLOAD SERVICE
-          // On web, we need to use uploadPlayerImageFromBytes since File class doesn't exist
-          final String downloadURL;
-          if (kIsWeb) {
-            final bytes = await _pendingImageFile!.readAsBytes();
-            downloadURL = await _storageService.uploadPlayerImageFromBytes(
-              imageBytes: bytes,
-              playerId: playerIdForUpload,
-            );
-          } else {
-            downloadURL = await _storageService.uploadPlayerImage(
-              imageFile: File(_pendingImageFile!.path),
-              playerId: playerIdForUpload,
-            );
-          }
+          // Upload with a reasonable timeout (10 seconds)
+          final String downloadURL = await Future.any([
+            kIsWeb
+                ? _storageService.uploadPlayerImageFromBytes(
+                    imageBytes: imageBytes,
+                    playerId: playerIdForUpload,
+                  )
+                : _storageService.uploadPlayerImage(
+                    imageFile: File(_pendingImageFile!.path),
+                    playerId: playerIdForUpload,
+                  ),
+            Future.delayed(const Duration(seconds: 10), () {
+              throw TimeoutException('Upload timed out after 10 seconds');
+            }),
+          ]);
 
-          // 2. This network URL is the new path we will save
+          // SUCCESS: Use the URL
           finalImagePath = downloadURL;
-          finalBase64 =
-              null; // Clear any old base64 data, the URL is the new truth
+          finalBase64 = null; // Clear base64, URL is the truth
 
-          // 3. Update the UI state to show the uploaded image immediately
           setState(() {
             _existingImagePath = downloadURL;
             _existingImageBase64 = null;
-            _pendingImageFile =
-                null; // Clear pending file since it's now uploaded
+            _pendingImageFile = null;
           });
+
+          zlog(data: "Image uploaded successfully: $downloadURL");
         } catch (e) {
-          zlog(data: "Failed to upload image to Firebase Storage: $e");
-          BotToast.showText(text: "Error uploading image. Please try again.");
-          BotToast.cleanAll(); // Make sure to clean the loader on failure
-          return; // Stop the save
+          // UPLOAD FAILED: Fall back to base64 for local storage
+          zlog(
+              data:
+                  "Upload failed ($e), saving base64 locally for later migration");
+
+          finalBase64 = base64Encode(imageBytes);
+          finalImagePath = null;
+          needsBackgroundMigration = true; // Queue for background upload
+
+          BotToast.showText(
+            align: Alignment.topCenter,
+            text: "Image saved. Will upload in background.",
+            duration: const Duration(seconds: 2),
+          );
         } finally {
-          BotToast.cleanAll(); // Clean loader on success
+          BotToast.cleanAll();
         }
+      } else {
+        // OFFLINE: Save as base64, queue for migration when online
+        zlog(data: "Device offline: Saving as base64 for later migration");
+
+        finalBase64 = base64Encode(imageBytes);
+        finalImagePath = null;
+        needsBackgroundMigration = true;
+
+        BotToast.showText(
+          align: Alignment.topCenter,
+          text: "Saved offline. Will sync when online.",
+          duration: const Duration(seconds: 2),
+        );
       }
     }
 
@@ -1067,6 +1115,42 @@ class _PlayerEditorDialogState extends State<PlayerEditorDialog> {
         updatedAt: now,
       );
     }
+
+    // CRITICAL: Save to database BEFORE closing dialog
+    // This ensures the player is persisted even if user refreshes immediately
+    // Show loading indicator during DB save
+    BotToast.showLoading();
+    try {
+      await PlayerUtilsV2.updatePlayerInDb(resultPlayer);
+      zlog(data: "Player ${resultPlayer.id} saved to database successfully");
+
+      // On web, add a small delay to ensure IndexedDB transaction commits
+      // IndexedDB writes are async and may not be fully committed when Sembast returns
+      if (kIsWeb) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        zlog(data: "IndexedDB flush delay completed");
+      }
+    } catch (e) {
+      zlog(data: "Failed to save player to database: $e");
+      BotToast.cleanAll();
+      if (mounted) {
+        BotToast.showText(align: Alignment.topCenter, text: "Error saving player. Please try again.");
+      }
+      return; // Don't close dialog if save failed
+    } finally {
+      BotToast.cleanAll(); // Always clean loading indicator
+    }
+
+    // Queue for background migration if needed (upload failed or was offline)
+    // This will upload the base64 to Firebase Storage in background and update the player
+    if (needsBackgroundMigration && resultPlayer.imageBase64 != null) {
+      // Queue immediately since DB save is already complete
+      ImageMigrationService().queueForMigration(resultPlayer);
+      zlog(
+          data:
+              "Queued player ${resultPlayer.id} for background image migration");
+    }
+
     if (mounted) {
       if (isEditMode) {
         Navigator.of(context).pop(PlayerUpdateResult(resultPlayer));

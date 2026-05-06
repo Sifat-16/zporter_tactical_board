@@ -150,6 +150,11 @@ class PolygonShapeDrawerComponent extends PositionComponent
     _internalModel =
         polygonModel.clone(); // Clone the potentially pre-populated model
 
+    // Set priority from model's zIndex for persistence across reloads
+    if (polygonModel.zIndex != null) {
+      priority = polygonModel.zIndex!;
+    }
+
     zlog(
       data:
           "Polygon ${polygonModel.id}: onLoad. Initial state: ${_isActive ? 'active (creating)' : 'inactive'}. Vertices in model: ${polygonModel.relativeVertices.length}",

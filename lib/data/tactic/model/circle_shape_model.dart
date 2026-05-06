@@ -19,6 +19,7 @@ class CircleShapeModel extends ShapeModel {
     required super.canBeCopied,
     super.createdAt,
     super.updatedAt,
+    super.zIndex,
     required super.name,
     required super.imagePath,
 
@@ -28,14 +29,14 @@ class CircleShapeModel extends ShapeModel {
     // Circle specific properties
     required this.radius,
   }) : super(
-         offset: center, // Map center to the base 'offset' property
-         color: strokeColor, // Map strokeColor to the base 'color' property
-         fieldItemType:
-             FieldItemType.CIRCLE, // Set the specific type for this model
-         // Circles scale symmetrically, size is related to radius
-         scaleSymmetrically: true,
-         size: Vector2(radius * 2, radius * 2), // Set size based on radius
-       );
+          offset: center, // Map center to the base 'offset' property
+          color: strokeColor, // Map strokeColor to the base 'color' property
+          fieldItemType:
+              FieldItemType.CIRCLE, // Set the specific type for this model
+          // Circles scale symmetrically, size is related to radius
+          scaleSymmetrically: true,
+          size: Vector2(radius * 2, radius * 2), // Set size based on radius
+        );
 
   /// Gets the center position (same as offset).
   Vector2 get center => offset ?? Vector2.zero();
@@ -59,20 +60,19 @@ class CircleShapeModel extends ShapeModel {
   static CircleShapeModel fromJson(Map<String, dynamic> json) {
     // Parse base FieldItemModel properties first
     final id = json['_id'] as String? ?? '';
-    final offset =
-        FieldItemModel.offsetFromJson(json['offset']) ??
+    final offset = FieldItemModel.offsetFromJson(json['offset']) ??
         Vector2.zero(); // Center
     final angle = (json['angle'] as num?)?.toDouble();
-    final strokeColor =
-        json['color'] != null
-            ? Color(json['color'])
-            : null; // Stroke from base color
+    final strokeColor = json['color'] != null
+        ? Color(json['color'])
+        : null; // Stroke from base color
     final opacity = (json['opacity'] as num?)?.toDouble() ?? 1.0;
     final canBeCopied = json['canBeCopied'] as bool? ?? true;
     final createdAt =
         json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
     final updatedAt =
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
+    final zIndex = json['zIndex'] as int?;
 
     // Parse Shape specific properties
     final fillColor =
@@ -80,8 +80,7 @@ class CircleShapeModel extends ShapeModel {
     final strokeWidth = (json['strokeWidth'] as num?)?.toDouble() ?? 2.0;
 
     // Parse Circle specific properties
-    final radius =
-        (json['radius'] as num?)?.toDouble() ??
+    final radius = (json['radius'] as num?)?.toDouble() ??
         10.0; // Default radius if missing
 
     final name = json['name'] as String? ?? '';
@@ -96,6 +95,7 @@ class CircleShapeModel extends ShapeModel {
       canBeCopied: canBeCopied,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      zIndex: zIndex,
       fillColor: fillColor,
       strokeWidth: strokeWidth,
       radius: radius,
@@ -107,12 +107,12 @@ class CircleShapeModel extends ShapeModel {
   /// Converts this CircleShapeModel instance to a JSON map.
   @override
   Map<String, dynamic> toJson() => {
-    ...super.toJson(), // Include base Shape and FieldItemModel fields
-    'radius': radius,
-    // 'center' is saved as 'offset' in super.toJson()
-    // 'strokeColor' is saved as 'color' in super.toJson()
-    // 'fillColor' and 'strokeWidth' are saved in super.toJson() from Shape
-  };
+        ...super.toJson(), // Include base Shape and FieldItemModel fields
+        'radius': radius,
+        // 'center' is saved as 'offset' in super.toJson()
+        // 'strokeColor' is saved as 'color' in super.toJson()
+        // 'fillColor' and 'strokeWidth' are saved in super.toJson() from Shape
+      };
 
   // --- CopyWith, Clone, Equality ---
 
@@ -131,6 +131,7 @@ class CircleShapeModel extends ShapeModel {
     Vector2? size, // Ignored, calculated from radius
     Color? color, // Represents strokeColor
     double? opacity,
+    int? zIndex,
     // Shape fields
     Color? fillColor,
     double? strokeWidth,
@@ -147,6 +148,7 @@ class CircleShapeModel extends ShapeModel {
       canBeCopied: canBeCopied ?? this.canBeCopied,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      zIndex: zIndex ?? this.zIndex,
       // Pass shape fields to super
       fillColor: clearFillColor ? null : (fillColor ?? this.fillColor),
       strokeWidth: strokeWidth ?? this.strokeWidth,

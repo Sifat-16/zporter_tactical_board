@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
@@ -71,8 +72,12 @@ class _PlayerComponentV2State extends ConsumerState<PlayerComponentV2> {
 
   @override
   Widget build(BuildContext context) {
+    // Force default size on drag — prevents ZPAD-632 where players
+    // restored from DB carry a previously-scaled size (e.g., 60px).
+    final clonedPlayer = widget.playerModel.clone();
+    clonedPlayer.size = Vector2(32, 32);
     return Draggable<PlayerModel>(
-      data: widget.playerModel.clone(),
+      data: clonedPlayer,
       rootOverlay: true,
       onDragStarted: () {
         ref

@@ -39,10 +39,34 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
   Future<List<AnimationCollectionModel>> getAllAnimationCollection({
     required String userId,
   }) async {
+    // OFFLINE-FIRST: Read from local Sembast cache first for instant startup.
+    // If local data exists, return it immediately and refresh from remote in background.
+    try {
+      final localCollections = await _localDs.getAllAnimationCollection(
+        userId: userId,
+      );
+      if (localCollections.isNotEmpty) {
+        zlog(
+          level: Level.info,
+          data:
+              "[Repo] LOCAL-FIRST: Returning ${localCollections.length} collections from Sembast (instant).",
+        );
+        // Background refresh: fetch from remote and update local cache silently
+        _backgroundRefreshCollections(userId: userId);
+        return localCollections;
+      }
+    } catch (e) {
+      zlog(
+        level: Level.debug,
+        data: "[Repo] Local read failed ($e), falling through to remote.",
+      );
+    }
+
+    // No local data (first-time user) — fetch from remote
     zlog(
       level: Level.debug,
       data:
-          "[Repo] GET All Collections: Attempting REMOTE first (Firestore may use cache)...",
+          "[Repo] GET All Collections: No local data, fetching from REMOTE...",
     );
     try {
       final remoteCollections = await _remoteDs.getAllAnimationCollection(
@@ -51,22 +75,9 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
       zlog(
         level: Level.info,
         data:
-            "[Repo] Fetched ${remoteCollections.length} collections from REMOTE (or Firestore cache).",
-      );
-      zlog(
-        level: Level.debug,
-        data: "[Repo] Updating LOCAL Sembast cache (All Collections)...",
+            "[Repo] Fetched ${remoteCollections.length} collections from REMOTE.",
       );
       await _updateLocalCollections(remoteCollections);
-      zlog(
-        level: Level.debug,
-        data: "[Repo] LOCAL Sembast cache (All Collections) updated.",
-      );
-      zlog(
-        level: Level.debug,
-        data:
-            "[Repo] Reading updated collections from LOCAL Sembast to return.",
-      );
       final localCollections = await _localDs.getAllAnimationCollection(
         userId: userId,
       );
@@ -80,29 +91,37 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
       zlog(
         level: Level.warning,
         data:
-            "[Repo] Remote fetch/sync failed for All Collections: $e. FALLING BACK TO LOCAL Sembast cache.",
+            "[Repo] Remote fetch failed: $e. Returning empty list for first-time user.",
       );
+      return [];
+    }
+  }
+
+  /// Background refresh: fetches from remote and updates local Sembast cache.
+  /// Fire-and-forget — does NOT block the UI.
+  void _backgroundRefreshCollections({required String userId}) {
+    Future(() async {
       try {
-        final localCollections = await _localDs.getAllAnimationCollection(
+        final remoteCollections = await _remoteDs.getAllAnimationCollection(
           userId: userId,
         );
         zlog(
-          level: Level.info,
+          level: Level.debug,
           data:
-              "[Repo] Fallback: Returning ${localCollections.length} collections from LOCAL Sembast (potentially stale).",
+              "[Repo] Background refresh: fetched ${remoteCollections.length} collections from remote.",
         );
-        return localCollections;
-      } catch (localError, localStackTrace) {
+        await _updateLocalCollections(remoteCollections);
         zlog(
-          level: Level.error,
-          data:
-              "[Repo] Fallback FAILED: Error reading from LOCAL Sembast storage: $localError\n$localStackTrace",
+          level: Level.debug,
+          data: "[Repo] Background refresh: local cache updated.",
         );
-        throw Exception(
-          "Failed to get animation collections from both remote and local storage: $localError",
+      } catch (e) {
+        zlog(
+          level: Level.warning,
+          data: "[Repo] Background refresh failed (non-blocking): $e",
         );
       }
-    }
+    });
   }
 
   Future<void> _updateLocalCollections(
@@ -198,67 +217,84 @@ class AnimationCacheRepositoryImpl implements AnimationRepository {
       }
     }
 
+    // OFFLINE-FIRST: Read from local Sembast cache first for instant startup.
+    try {
+      final localItems = await _localDs.getDefaultAnimations(userId: userId);
+      if (localItems.isNotEmpty) {
+        zlog(
+          level: Level.info,
+          data:
+              "[Repo] LOCAL-FIRST: Returning ${localItems.length} default animations from Sembast (instant).",
+        );
+        // Background refresh
+        _backgroundRefreshDefaultAnimations(userId: userId);
+        return localItems;
+      }
+    } catch (e) {
+      zlog(
+        level: Level.debug,
+        data:
+            "[Repo] Local default animations read failed ($e), falling through to remote.",
+      );
+    }
+
+    // No local data — fetch from remote
     zlog(
       level: Level.debug,
       data:
-          "[Repo] GET Default Animations: Attempting REMOTE first (Firestore may use cache)...",
+          "[Repo] GET Default Animations: No local data, fetching from REMOTE...",
     );
     try {
       final remoteItems = await _remoteDs.getDefaultAnimations(userId: userId);
       zlog(
         level: Level.info,
         data:
-            "[Repo] Fetched ${remoteItems.length} default animations from REMOTE (or Firestore cache).",
-      );
-      zlog(
-        level: Level.debug,
-        data: "[Repo] Updating LOCAL Sembast cache (Default Animations)...",
+            "[Repo] Fetched ${remoteItems.length} default animations from REMOTE.",
       );
       await _localDs.saveDefaultAnimations(
         animationItems: remoteItems,
         userId: userId,
       );
-      zlog(
-        level: Level.debug,
-        data: "[Repo] LOCAL Sembast cache (Default Animations) updated.",
-      );
-      zlog(
-        level: Level.debug,
-        data:
-            "[Repo] Reading updated default animations from LOCAL Sembast to return.",
-      );
       final localItems = await _localDs.getDefaultAnimations(userId: userId);
-      zlog(
-        level: Level.info,
-        data:
-            "[Repo] Returning ${localItems.length} default animations from LOCAL Sembast after sync.",
-      );
       return localItems;
     } catch (e) {
       zlog(
         level: Level.warning,
         data:
-            "[Repo] Remote fetch/sync failed for Default Animations: $e. FALLING BACK TO LOCAL Sembast cache.",
+            "[Repo] Remote fetch failed for Default Animations: $e. Returning empty list.",
       );
+      return [];
+    }
+  }
+
+  /// Background refresh for default animations: fire-and-forget.
+  void _backgroundRefreshDefaultAnimations({required String userId}) {
+    Future(() async {
       try {
-        final localItems = await _localDs.getDefaultAnimations(userId: userId);
+        final remoteItems =
+            await _remoteDs.getDefaultAnimations(userId: userId);
         zlog(
-          level: Level.info,
+          level: Level.debug,
           data:
-              "[Repo] Fallback: Returning ${localItems.length} default animations from LOCAL Sembast (potentially stale).",
+              "[Repo] Background refresh: fetched ${remoteItems.length} default animations from remote.",
         );
-        return localItems;
-      } catch (localError, localStackTrace) {
+        await _localDs.saveDefaultAnimations(
+          animationItems: remoteItems,
+          userId: userId,
+        );
         zlog(
-          level: Level.error,
+          level: Level.debug,
           data:
-              "[Repo] Fallback FAILED: Error reading defaults from LOCAL Sembast storage: $localError\n$localStackTrace",
+              "[Repo] Background refresh: default animations local cache updated.",
         );
-        throw Exception(
-          "Failed to get default animations from both remote and local storage: $localError",
+      } catch (e) {
+        zlog(
+          level: Level.warning,
+          data:
+              "[Repo] Background refresh default animations failed (non-blocking): $e",
         );
       }
-    }
+    });
   }
 
   /// Phase 2 Week 2: Migrate images from base64 to Firebase Storage URLs

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:bot_toast/bot_toast.dart';
 import 'package:zporter_tactical_board/app/config/feature_flags.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
@@ -35,9 +36,11 @@ class DefaultAnimationRepositoryImpl implements DefaultAnimationRepository {
   Future<AnimationModel> saveDefaultAnimation(
       AnimationModel animationModel) async {
     BotToast.showText(
+        align: Alignment.topCenter,
         text: '🏪 REPO: saveDefaultAnimation called',
         duration: Duration(seconds: 3));
     BotToast.showText(
+        align: Alignment.topCenter,
         text:
             '🏪 OfflineFirst=${FeatureFlags.useOfflineFirstArchitecture}, Queue=${_syncQueueManager != null}',
         duration: Duration(seconds: 3));
@@ -45,12 +48,14 @@ class DefaultAnimationRepositoryImpl implements DefaultAnimationRepository {
     // Check if offline-first is enabled
     if (FeatureFlags.useOfflineFirstArchitecture) {
       BotToast.showText(
+          align: Alignment.topCenter,
           text: '🏪 Using offline-first path', duration: Duration(seconds: 3));
       // ALWAYS use local-first path (even when online)
       // 1. Save to Sembast (local) first (~30-50ms) - ONLY await this
       final savedLocalModel =
           await _localDataSource.saveDefaultAnimationModel(animationModel);
       BotToast.showText(
+          align: Alignment.topCenter,
           text: '🏪 Saved to local Sembast!', duration: Duration(seconds: 3));
 
       // 2. Return IMMEDIATELY (UI gets unblocked here - user sees instant save)
@@ -71,12 +76,14 @@ class DefaultAnimationRepositoryImpl implements DefaultAnimationRepository {
           ),
         );
         BotToast.showText(
+            align: Alignment.topCenter,
             text: '🏪 Queued for sync!', duration: Duration(seconds: 3));
       }
 
       return savedLocalModel;
     } else {
       BotToast.showText(
+          align: Alignment.topCenter,
           text: '🏪 Using LEGACY Firebase path',
           duration: Duration(seconds: 3));
       // LEGACY: Direct Firebase save (blocks UI for ~470ms)

@@ -187,26 +187,36 @@ class _DesignToolbarComponentState
                 ),
               ),
             ),
+          // Move to Back (was Move Down)
           Expanded(
             child: FittedBox(
-              child: GestureDetector(
-                onTap: () {
-                  ref.read(boardProvider.notifier).moveDown();
-                },
-                child: Icon(Icons.move_down_outlined, color: ColorManager.grey),
+              child: Tooltip(
+                message: 'Move to Back',
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(boardProvider.notifier).moveToBack();
+                  },
+                  child:
+                      Icon(Icons.move_down_outlined, color: ColorManager.grey),
+                ),
               ),
             ),
           ),
+          // Move to Front (was Move Up)
           Expanded(
             child: FittedBox(
-              child: GestureDetector(
-                onTap: () {
-                  ref.read(boardProvider.notifier).moveUp();
-                },
-                child: Icon(Icons.move_up_outlined, color: ColorManager.grey),
+              child: Tooltip(
+                message: 'Move to Front',
+                child: GestureDetector(
+                  onTap: () {
+                    ref.read(boardProvider.notifier).moveToFront();
+                  },
+                  child: Icon(Icons.move_up_outlined, color: ColorManager.grey),
+                ),
               ),
             ),
           ),
+          // Delete
           Expanded(
             child: FittedBox(
               child: GestureDetector(

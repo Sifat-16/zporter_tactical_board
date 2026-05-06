@@ -48,7 +48,7 @@ class AnimationModel {
       name: name ?? this.name,
       collectionId: collectionId ?? this.collectionId,
       fieldColor: fieldColor ?? this.fieldColor,
-      animationScenes: animationScenes ?? this.animationScenes,
+      animationScenes: animationScenes ?? this.animationScenes.map((e) => e.clone()).toList(),
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       boardBackground: boardBackground ?? this.boardBackground,
@@ -143,14 +143,16 @@ class AnimationModel {
 
   AnimationModel clone() {
     return AnimationModel(
-      id: id, // ObjectId is immutable
+      id: id,
       name: name,
       fieldColor: fieldColor,
       userId: userId,
+      collectionId: collectionId,
       boardBackground: boardBackground,
       animationScenes: animationScenes.map((e) => e.clone()).toList(),
-      createdAt: createdAt, // DateTime is immutable
-      updatedAt: updatedAt, // DateTime is immutable
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      orderIndex: orderIndex,
     );
   }
 }

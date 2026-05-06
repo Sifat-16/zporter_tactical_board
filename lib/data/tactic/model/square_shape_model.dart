@@ -24,16 +24,16 @@ class SquareShapeModel extends ShapeModel {
     // Shape properties
     super.fillColor,
     super.strokeWidth,
+    super.zIndex,
     required super.name,
     required super.imagePath,
-
     required this.side, // Store the relative side length
   }) : super(
-         offset: center, // Map center to the base 'offset' property
-         color: strokeColor, // Map strokeColor to the base 'color' property
-         fieldItemType: FieldItemType.SQUARE, // Set the specific type
-         scaleSymmetrically: true, // Squares scale symmetrically
-       );
+          offset: center, // Map center to the base 'offset' property
+          color: strokeColor, // Map strokeColor to the base 'color' property
+          fieldItemType: FieldItemType.SQUARE, // Set the specific type
+          scaleSymmetrically: true, // Squares scale symmetrically
+        );
 
   /// Gets the center position (same as offset).
   Vector2 get center => offset ?? Vector2.zero();
@@ -57,8 +57,7 @@ class SquareShapeModel extends ShapeModel {
   static SquareShapeModel fromJson(Map<String, dynamic> json) {
     // Parse base FieldItemModel & Shape properties
     final id = json['_id'] as String? ?? '';
-    final offset =
-        FieldItemModel.offsetFromJson(json['offset']) ??
+    final offset = FieldItemModel.offsetFromJson(json['offset']) ??
         Vector2.zero(); // Center
     final angle = (json['angle'] as num?)?.toDouble() ?? 0.0;
     final strokeColor = json['color'] != null ? Color(json['color']) : null;
@@ -68,14 +67,14 @@ class SquareShapeModel extends ShapeModel {
         json['createdAt'] != null ? DateTime.tryParse(json['createdAt']) : null;
     final updatedAt =
         json['updatedAt'] != null ? DateTime.tryParse(json['updatedAt']) : null;
+    final zIndex = json['zIndex'] as int?;
     final fillColor =
         json['fillColor'] != null ? Color(json['fillColor']) : null;
     final strokeWidth = (json['strokeWidth'] as num?)?.toDouble() ?? 2.0;
 
     // Parse Square specific properties
     // Assume 'side' is stored as a relative value (double)
-    final side =
-        (json['side'] as num?)?.toDouble() ??
+    final side = (json['side'] as num?)?.toDouble() ??
         0.1; // Default relative side length
     final name = json['name'] as String? ?? '';
     final imagePath = json['imagePath'] as String? ?? '';
@@ -89,6 +88,7 @@ class SquareShapeModel extends ShapeModel {
       canBeCopied: canBeCopied,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      zIndex: zIndex,
       fillColor: fillColor,
       strokeWidth: strokeWidth,
       side: side,
@@ -100,12 +100,12 @@ class SquareShapeModel extends ShapeModel {
   /// Converts this SquareShapeModel instance to a JSON map.
   @override
   Map<String, dynamic> toJson() => {
-    ...super.toJson(), // Include base Shape and FieldItemModel fields
-    'side': side, // Save the relative side length
-    // 'center' is saved as 'offset' in super.toJson()
-    // 'strokeColor' is saved as 'color' in super.toJson()
-    // 'fillColor', 'strokeWidth', 'angle' are saved in super.toJson()
-  };
+        ...super.toJson(), // Include base Shape and FieldItemModel fields
+        'side': side, // Save the relative side length
+        // 'center' is saved as 'offset' in super.toJson()
+        // 'strokeColor' is saved as 'color' in super.toJson()
+        // 'fillColor', 'strokeWidth', 'angle' are saved in super.toJson()
+      };
 
   // --- CopyWith, Clone, Equality ---
 
@@ -124,6 +124,7 @@ class SquareShapeModel extends ShapeModel {
     Vector2? size, // Ignored
     Color? color, // Represents strokeColor
     double? opacity,
+    int? zIndex,
     // Shape fields
     Color? fillColor,
     double? strokeWidth,
@@ -140,6 +141,7 @@ class SquareShapeModel extends ShapeModel {
       canBeCopied: canBeCopied ?? this.canBeCopied,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      zIndex: zIndex ?? this.zIndex,
       fillColor: clearFillColor ? null : (fillColor ?? this.fillColor),
       strokeWidth: strokeWidth ?? this.strokeWidth,
       side: side ?? this.side, // Copy the relative side length

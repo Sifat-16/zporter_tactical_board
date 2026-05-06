@@ -101,7 +101,31 @@ mixin ItemManagement on TacticBoardGame {
 
   resetItems(List<FieldItemModel> items) {
     zlog(data: "Resetting now children is ${children}");
+
     removeAll(children);
+
+    items = items.where((t) => t is! FreeDrawModelV2).toList();
+    for (FieldItemModel i in items) {
+      addItem(i, save: false);
+    }
+  }
+
+  clearItems(List<FieldItemModel> items) {
+    zlog(data: "Resetting now children is ${children}");
+
+    // Only remove item components, keep GameField, DrawingBoard, Grid, etc.
+    final componentsToRemove = children.where((component) {
+      return component is PlayerComponent ||
+          component is EquipmentComponent ||
+          component is LineDrawerComponentV2 ||
+          component is SquareShapeDrawerComponent ||
+          component is CircleShapeDrawerComponent ||
+          component is PolygonShapeDrawerComponent ||
+          component is TextFieldComponent;
+    }).toList();
+
+    removeAll(componentsToRemove);
+
     items = items.where((t) => t is! FreeDrawModelV2).toList();
     for (FieldItemModel i in items) {
       addItem(i, save: false);

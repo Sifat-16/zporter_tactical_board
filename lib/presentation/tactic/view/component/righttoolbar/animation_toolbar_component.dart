@@ -17,6 +17,7 @@ import 'package:zporter_tactical_board/presentation/tactic/view/component/board/
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_provider.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/animation/animation_state.dart';
 import 'package:zporter_tactical_board/presentation/tactic/view_model/board/board_provider.dart';
+import 'package:zporter_tactical_board/presentation/tactic/view/component/sync/sync_status_indicator.dart';
 
 import 'animation_data_input_component.dart';
 
@@ -93,6 +94,10 @@ class _AnimationToolbarComponentState
     return Container(
       child: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: SyncStatusIndicator(),
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -176,7 +181,7 @@ class _AnimationToolbarComponentState
             CustomButton(
               fillColor: ColorManager.blue,
               onTap: () {
-                BotToast.showText(text: "Animation saved");
+                BotToast.showText(align: Alignment.topCenter, text: "Animation saved");
                 ref.read(animationProvider.notifier).clearAnimation();
               },
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -292,9 +297,14 @@ class _AnimationToolbarComponentState
           key: ValueKey(animation.id),
           animation: animation,
           onDelete: () {
+            BotToast.showLoading();
             ref
                 .read(animationProvider.notifier)
                 .deleteAnimation(animation: animation);
+            // Close loading after a brief delay (delete is async internally)
+            Future.delayed(const Duration(milliseconds: 500), () {
+              BotToast.closeAllLoading();
+            });
           },
           fieldColor: colorForThisField,
           onCopy: () async {
@@ -388,9 +398,13 @@ class _AnimationToolbarComponentState
             },
             onDelete: () {
               if (widget.config.onSceneDelete == null) {
+                BotToast.showLoading();
                 ref
                     .read(animationProvider.notifier)
                     .deleteScene(scene: animationItemModel);
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  BotToast.closeAllLoading();
+                });
               } else {
                 widget.config.onSceneDelete?.call(animationItemModel);
               }
@@ -509,6 +523,7 @@ class _AnimationToolbarComponentState
             if (collection.id ==
                 DefaultAnimationConstants.default_animation_collection_id) {
               BotToast.showText(
+                  align: Alignment.topCenter,
                   text: "The default collection cannot be modified.");
               return;
             }
@@ -526,6 +541,7 @@ class _AnimationToolbarComponentState
             if (collection.id ==
                 DefaultAnimationConstants.default_animation_collection_id) {
               BotToast.showText(
+                  align: Alignment.topCenter,
                   text: "The default collection cannot be modified.");
               return;
             }

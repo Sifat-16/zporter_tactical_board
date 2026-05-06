@@ -607,6 +607,10 @@ class BoardController extends StateNotifier<BoardState> {
       shapes: shapes,
       texts: texts,
       boardColor: scene.fieldColor,
+      // FIX 1C: Preserve boardBackground from the scene. Previously this field
+      // was not copied, causing penalty box / half-pitch backgrounds to silently
+      // reset to BoardBackground.full (the default) on animation load.
+      boardBackground: scene.boardBackground,
       forceItemModelNull: true,
     );
     zlog(data: "BoardProvider state has been seeded from scene: ${scene.id}");
@@ -698,6 +702,22 @@ class BoardController extends StateNotifier<BoardState> {
 
   void moveUpComplete() {
     state = state.copyWith(moveUp: false);
+  }
+
+  void moveToFront() {
+    state = state.copyWith(moveToFront: true);
+  }
+
+  void moveToFrontComplete() {
+    state = state.copyWith(moveToFront: false);
+  }
+
+  void moveToBack() {
+    state = state.copyWith(moveToBack: true);
+  }
+
+  void moveToBackComplete() {
+    state = state.copyWith(moveToBack: false);
   }
 
   void updateBoardColor(Color color) {
@@ -832,16 +852,14 @@ class BoardController extends StateNotifier<BoardState> {
     return [];
   }
 
-  // NEW: Update multiple players at once (bulk update)
+  // Update multiple players at once (bulk update for "Apply to All")
   void updateMultiplePlayers({required List<PlayerModel> updatedPlayers}) {
     if (updatedPlayers.isEmpty) return;
 
-    // Create a map of updated players by ID for efficient lookup
     final Map<String, PlayerModel> updatedMap = {
       for (var player in updatedPlayers) player.id: player
     };
 
-    // Update the players list - create a completely new list to ensure state change detection
     List<PlayerModel> players = [
       ...state.players.map((p) {
         return updatedMap.containsKey(p.id) ? updatedMap[p.id]! : p;
@@ -850,25 +868,29 @@ class BoardController extends StateNotifier<BoardState> {
 
     state = state.copyWith(players: players);
 
-    // Also update in animation provider for each player
+    // Propagate each player change to the animation provider's scene model
     for (var player in updatedPlayers) {
       ref.read(animationProvider.notifier).updatePlayerModel(newModel: player);
     }
 
+    // Trigger immediate save so bulk design changes persist to database.
+    // Without this, changes rely on the 30s auto-save timer and can be
+    // lost if the user closes the app before it fires.
+    (state.tacticBoardGame as TacticBoard?)?.triggerImmediateSave(
+        reason: 'Bulk player design update (Apply to All)');
+
     zlog(data: "Updated ${updatedPlayers.length} players in bulk");
   }
 
-  // NEW: Update multiple equipments at once (bulk update)
+  // Update multiple equipments at once (bulk update for "Apply to All")
   void updateMultipleEquipments(
       {required List<EquipmentModel> updatedEquipments}) {
     if (updatedEquipments.isEmpty) return;
 
-    // Create a map of updated equipment by ID for efficient lookup
     final Map<String, EquipmentModel> updatedMap = {
       for (var equipment in updatedEquipments) equipment.id: equipment
     };
 
-    // Update the equipments list - create a completely new list to ensure state change detection
     List<EquipmentModel> equipments = [
       ...state.equipments.map((e) {
         return updatedMap.containsKey(e.id) ? updatedMap[e.id]! : e;
@@ -876,6 +898,15 @@ class BoardController extends StateNotifier<BoardState> {
     ];
 
     state = state.copyWith(equipments: equipments);
+
+    // Trigger immediate save — equipment bulk updates were previously lost
+    // because they were never propagated to the animation scene model.
+    // The auto-save's _getCurrentBoardStateString() reads from BoardState
+    // which IS updated above, but triggerImmediateSave ensures it happens
+    // now instead of waiting up to 30 seconds.
+    (state.tacticBoardGame as TacticBoard?)?.triggerImmediateSave(
+        reason: 'Bulk equipment design update (Apply to All)');
+
     zlog(data: "Updated ${updatedEquipments.length} equipments in bulk");
   }
 
@@ -998,14 +1029,12 @@ class BoardController extends StateNotifier<BoardState> {
   // Update global home team border color
   void updateHomeTeamBorderColor(Color color) {
     state = state.copyWith(homeTeamBorderColor: color);
-    // Save to user preferences
     sl.get<UserPreferencesService>().setHomeTeamBorderColor(color);
   }
 
   // Update global away team border color
   void updateAwayTeamBorderColor(Color color) {
     state = state.copyWith(awayTeamBorderColor: color);
-    // Save to user preferences
     sl.get<UserPreferencesService>().setAwayTeamBorderColor(color);
   }
 

@@ -1,6 +1,8 @@
+import 'dart:async' as async_lib;
 import 'dart:ui';
 
 import 'package:bot_toast/bot_toast.dart';
+import 'package:flutter/painting.dart';
 import 'package:flame/components.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
@@ -12,6 +14,9 @@ import 'package:zporter_tactical_board/app/extensions/data_structure_extensions.
 import 'package:zporter_tactical_board/app/generator/random_generator.dart';
 import 'package:zporter_tactical_board/app/helper/logger.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_model.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_service.dart';
+import 'package:zporter_tactical_board/data/admin/datasource/local/default_animation_local_cache.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_model.dart';
@@ -50,6 +55,9 @@ class AnimationController extends StateNotifier<AnimationState> {
   bool _isUndoInProgress = false;
   // Lock to prevent undo during save operations
   bool _isSaveInProgress = false;
+  // FIX 5A: Debounce timer for session state saves — prevents rapid-fire
+  // Sembast writes when multiple state changes happen in quick succession.
+  async_lib.Timer? _sessionSaveDebounce;
   // History size limit to prevent memory issues on older devices
   static const int _maxHistorySize = 30;
 
@@ -100,6 +108,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     AnimationCollectionModel? animationCollectionModel, {
     AnimationModel? animationSelect,
     bool changeSelectedScene = true,
+    bool skipSessionSave = false,
   }) {
     AnimationModel? selectedAnimation = animationSelect;
 
@@ -120,6 +129,9 @@ class AnimationController extends StateNotifier<AnimationState> {
       showNewAnimationInput: false,
       showQuickSave: false,
     );
+    if (!skipSessionSave) {
+      _saveSessionState();
+    }
   }
 
   // Future<void> getAllCollections() async {
@@ -180,47 +192,77 @@ class AnimationController extends StateNotifier<AnimationState> {
   //   }
   // }
 
+  /// Force-clear the loading flag. Called when the outer timeout fires
+  /// and getAllCollections() is still running in the background.
+  /// Prevents the infinite loader bug where the UI stays stuck because
+  /// isLoadingAnimationCollections is never set to false.
+  void forceStopLoading() {
+    if (state.isLoadingAnimationCollections) {
+      state = state.copyWith(isLoadingAnimationCollections: false);
+    }
+  }
+
   Future<void> getAllCollections() async {
     state = state.copyWith(isLoadingAnimationCollections: true);
 
     final List<Future<void>> backgroundSaveTasks = [];
 
     try {
-      zlog(data: "[getAllCollections] Fetching data from Firebase");
-
-      // Step 1: Fetch all data sources with individual error handling
+      // Step 1: Fetch all data sources IN PARALLEL for fast startup
       List<AnimationCollectionModel> userCollections = [];
       List<AnimationCollectionModel> rawAdminCollections = [];
       List<AnimationModel> allDefaultAnimations = [];
 
-      try {
-        userCollections =
-            await _getAllAnimationCollectionUseCase.call(_getUserId());
-        zlog(
-            data:
-                "[getAllCollections] User collections loaded: ${userCollections.length}");
-      } catch (e) {
-        zlog(data: "[getAllCollections] ERROR loading user collections: $e");
+      // User collections are already local-first (Sembast), always safe to call.
+      final userCollectionsFuture =
+          _getAllAnimationCollectionUseCase.call(_getUserId()).catchError((e) {
+        return <AnimationCollectionModel>[];
+      });
+
+      // Admin data goes directly to Firebase — needs Firebase to be ready.
+      // Wait up to 3 seconds for Firebase, then fall back to local cache.
+      final bool isFirebaseAvailable = await firebaseReady
+          .timeout(const Duration(seconds: 3), onTimeout: () => false);
+
+      Future<List<AnimationCollectionModel>> adminCollectionsFuture;
+      Future<List<AnimationModel>> defaultAnimationsFuture;
+
+      if (isFirebaseAvailable) {
+        adminCollectionsFuture = _defaultAnimationRepository
+            .getAllDefaultAnimationCollections()
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          return DefaultAnimationLocalCache.getCachedCollections();
+        }).catchError((e) {
+          return DefaultAnimationLocalCache.getCachedCollections();
+        });
+
+        defaultAnimationsFuture = _defaultAnimationRepository
+            .getAllDefaultAnimations()
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          return DefaultAnimationLocalCache.getCachedAnimations();
+        }).catchError((e) {
+          return DefaultAnimationLocalCache.getCachedAnimations();
+        });
+      } else {
+        adminCollectionsFuture = DefaultAnimationLocalCache.getCachedCollections();
+        defaultAnimationsFuture = DefaultAnimationLocalCache.getCachedAnimations();
       }
 
-      try {
-        rawAdminCollections = await _defaultAnimationRepository
-            .getAllDefaultAnimationCollections();
-        zlog(
-            data:
-                "[getAllCollections] Admin collections loaded: ${rawAdminCollections.length}");
-      } catch (e) {
-        zlog(data: "[getAllCollections] ERROR loading admin collections: $e");
-      }
+      final results = await Future.wait([
+        userCollectionsFuture,
+        adminCollectionsFuture,
+        defaultAnimationsFuture,
+      ]);
 
-      try {
-        allDefaultAnimations =
-            await _defaultAnimationRepository.getAllDefaultAnimations();
-        zlog(
-            data:
-                "[getAllCollections] Default animations loaded: ${allDefaultAnimations.length}");
-      } catch (e) {
-        zlog(data: "[getAllCollections] ERROR loading default animations: $e");
+      userCollections = results[0] as List<AnimationCollectionModel>;
+      rawAdminCollections = results[1] as List<AnimationCollectionModel>;
+      allDefaultAnimations = results[2] as List<AnimationModel>;
+
+      // Cache admin data for next offline startup (fire-and-forget)
+      if (isFirebaseAvailable &&
+          (rawAdminCollections.isNotEmpty || allDefaultAnimations.isNotEmpty)) {
+        DefaultAnimationLocalCache.cacheCollections(rawAdminCollections);
+        DefaultAnimationLocalCache.cacheAnimations(allDefaultAnimations);
       }
 
       // Step 2: Build the Admin Template Map
@@ -320,7 +362,10 @@ class AnimationController extends StateNotifier<AnimationState> {
         isLoadingAnimationCollections: false,
       );
 
-      selectAnimationCollection(selectedCollection);
+      // During init, skip session save — the pre-read session state for
+      // the resume toast was already captured, and writing here would race
+      // with user-triggered saves that happen right after.
+      selectAnimationCollection(selectedCollection, skipSessionSave: true);
     } catch (e) {
       zlog(data: "Animation collection fetching/syncing issue: $e");
       state = state.copyWith(isLoadingAnimationCollections: false);
@@ -357,6 +402,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         animationCollectionModel,
       )) {
         BotToast.showText(
+          align: Alignment.topCenter,
           text: "Duplicate collection name. Collection name must be unique.",
         );
         return;
@@ -590,6 +636,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         animationModel,
       )) {
         BotToast.showText(
+          align: Alignment.topCenter,
           text: "Duplicate animation name. Animation name must be unique.",
         );
         return;
@@ -630,7 +677,40 @@ class AnimationController extends StateNotifier<AnimationState> {
   }
 
   void selectAnimation(AnimationModel? s) {
-    zlog(data: "Animation model came ${s}");
+    // If no collection is explicitly selected, re-associate by looking up
+    // which collection owns this animation. Covers both animations with
+    // a collectionId field AND admin-synced/user-created animations where
+    // collectionId was never set.
+    if (s != null && state.selectedAnimationCollectionModel == null) {
+      AnimationCollectionModel? col;
+
+      // Try 1: use animation's own collectionId
+      if (s.collectionId != null) {
+        col = state.animationCollections.firstWhereOrNull(
+          (c) => c.id == s.collectionId,
+        );
+      }
+
+      // Try 2: search all collections for this animation by id
+      col ??= state.animationCollections.firstWhereOrNull(
+        (c) => c.animations.any((a) => a.id == s.id),
+      );
+
+      if (col != null) {
+        state = state.copyWith(
+          selectedAnimationCollectionModel: col,
+          selectedAnimationModel: s,
+          selectedScene: s.animationScenes.firstOrNull,
+        );
+        ref
+            .read(boardProvider.notifier)
+            .updateBoardBackground(
+                s.boardBackground ?? BoardBackground.full);
+        _saveSessionState();
+        return;
+      }
+    }
+
     state = state.copyWith(
       selectedAnimationModel: s,
       selectedScene: s?.animationScenes.firstOrNull,
@@ -638,21 +718,26 @@ class AnimationController extends StateNotifier<AnimationState> {
     ref
         .read(boardProvider.notifier)
         .updateBoardBackground(s?.boardBackground ?? BoardBackground.full);
+    _saveSessionState();
   }
 
   void clearAnimation() {
+    final items = state.defaultAnimationItems;
+    final lastIndex = state.defaultAnimationItemIndex.clamp(0, items.length - 1);
     state = state.copyWith(
+      selectedAnimationCollectionModel: null,
       selectedAnimationModel: null,
-      selectedScene: state.defaultAnimationItems[0],
-      defaultAnimationItemIndex: 0,
+      selectedScene: items[lastIndex],
+      defaultAnimationItemIndex: lastIndex,
     );
+    _saveSessionState();
   }
 
   void copyAnimation(AnimationCopyItem animationCopyItem) async {
     AnimationCollectionModel? animationCollectionModel =
         animationCopyItem.animationCollectionModel;
     if (animationCollectionModel == null) {
-      BotToast.showText(text: "Please select a collection");
+      BotToast.showText(align: Alignment.topCenter, text: "Please select a collection");
       return;
     }
     AnimationModel newAnimationModel = animationCopyItem.animationModel.clone();
@@ -666,6 +751,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       newAnimationModel,
     )) {
       BotToast.showText(
+        align: Alignment.topCenter,
         text: "Duplicate animation name. Animation name must be unique.",
       );
       return;
@@ -776,23 +862,26 @@ class AnimationController extends StateNotifier<AnimationState> {
             );
           }
 
-          // state = state.copyWith(
-          //   selectedAnimationCollectionModel: selectedCollection,
-          //   selectedAnimationModel: selectedAnimation,
-          //   selectedScene: selectedScene,
-          // );
-          BotToast.showText(text: "Scene Saved Successfully ${selectedScene}");
+          // Update state with the saved data to ensure consistency
+          state = state.copyWith(
+            selectedAnimationCollectionModel: selectedCollection,
+            selectedAnimationModel: selectedAnimation,
+            selectedScene: selectedScene,
+          );
+          _saveSessionState();
           return selectedScene;
         } catch (e) {
-          BotToast.showText(text: "Unexpected server error ${e}");
+          BotToast.showText(align: Alignment.topCenter, text: "Unexpected server error ${e}");
         } finally {
-          BotToast.cleanAll();
+          if (showLoading) {
+            BotToast.cleanAll();
+          }
         }
       } else {
-        BotToast.showText(text: "No Animation found!!");
+        BotToast.showText(align: Alignment.topCenter, text: "No Animation found!!");
       }
     } else {
-      BotToast.showText(text: "No scene found!!");
+      BotToast.showText(align: Alignment.topCenter, text: "No scene found!!");
     }
     return null;
   }
@@ -834,60 +923,87 @@ class AnimationController extends StateNotifier<AnimationState> {
     required AnimationItemModel
         selectedScene, // This is the CURRENT scene (Scene A)
   }) async {
-    // 1. Get the LIVE components from the board. This is the "dirty" data you just added.
+    // 1. Get the LIVE components from the board.
     final List<FieldItemModel> currentComponents =
         ref.read(boardProvider.notifier).onAnimationSave();
 
-    // 2. Find the *current* scene (Scene A) in the animation list AND UPDATE IT with this live data.
-    // This is the "Force Save" step that was missing.
-    final int currentSceneIndex = selectedAnimation.animationScenes.indexWhere(
+    // 2. Work on a CLONED scene list to avoid mutating shared state.
+    // The original selectedAnimation.animationScenes is the same object
+    // reference held by Riverpod state — mutating it directly causes
+    // contamination if any listener reads state before copyWith is called.
+    final scenes =
+        List<AnimationItemModel>.from(selectedAnimation.animationScenes);
+
+    // 3. Find Scene A in the cloned list and update it with live data.
+    final int currentSceneIndex = scenes.indexWhere(
       (s) => s.id == selectedScene.id,
     );
 
     if (currentSceneIndex != -1) {
-      // Create an updated copy of Scene A
       selectedScene = selectedScene.copyWith(
         components: currentComponents,
         updatedAt: DateTime.now(),
       );
-      // Replace the old stale scene in the list with the updated one
-      selectedAnimation.animationScenes[currentSceneIndex] = selectedScene;
+      scenes[currentSceneIndex] = selectedScene;
     } else {
-      // This shouldn't happen, but as a fallback, just update the local copy
-      selectedScene.components = currentComponents;
+      selectedScene = selectedScene.copyWith(
+        components: currentComponents,
+      );
     }
 
-    // 3. NOW that Scene A is fully updated, clone IT to create Scene B.
+    // 4. Clone Scene A to create Scene B.
     AnimationItemModel newAnimationItemModel = selectedScene.clone(
       addHistory: false,
     );
     newAnimationItemModel.id = RandomGenerator.generateId();
-    newAnimationItemModel.index = selectedAnimation.animationScenes.length;
+    newAnimationItemModel.index = scenes.length;
     newAnimationItemModel.createdAt = DateTime.now();
     newAnimationItemModel.updatedAt = DateTime.now();
 
-    // 4. Add the new clone (Scene B) to the animation list
-    selectedAnimation.animationScenes.add(newAnimationItemModel);
+    // 5. Add Scene B to the cloned list.
+    scenes.add(newAnimationItemModel);
 
-    // 5. Save the ENTIRE collection (which now has the updated Scene A AND the new Scene B)
-    // Note: With local-first architecture, this save is instant (~30-50ms to local storage)
-    // Firebase sync happens in background, no need for loading spinner
+    // 6. Create a new AnimationModel with the updated scene list.
+    // This ensures the original state object is never mutated.
+    final updatedAnimation = selectedAnimation.clone();
+    updatedAnimation.animationScenes = scenes;
+
+    // 7. Update the collection with the new animation.
+    final animIndex = selectedCollection.animations.indexWhere(
+      (a) => a.id == selectedAnimation.id,
+    );
+    if (animIndex != -1) {
+      // Clone the collection's animation list too
+      final updatedAnimations =
+          List<AnimationModel>.from(selectedCollection.animations);
+      updatedAnimations[animIndex] = updatedAnimation;
+      selectedCollection = AnimationCollectionModel(
+        id: selectedCollection.id,
+        name: selectedCollection.name,
+        userId: selectedCollection.userId,
+        animations: updatedAnimations,
+        createdAt: selectedCollection.createdAt,
+        updatedAt: DateTime.now(),
+        orderIndex: selectedCollection.orderIndex,
+      );
+    }
+
+    // 8. Save to database.
     try {
       selectedCollection =
           await _saveAnimationCollectionUseCase.call(selectedCollection);
     } catch (e) {
       zlog(data: "Error saving new scene: $e");
-      BotToast.showText(text: "Error saving new scene.");
+      BotToast.showText(align: Alignment.topCenter, text: "Error saving new scene.");
     }
 
-    // 6. FINALLY, update the state ONCE to select the new, correct scene.
-    // This happens after the save is complete.
+    // 9. Update state ONCE with all new references.
     state = state.copyWith(
       selectedAnimationCollectionModel: selectedCollection,
-      selectedAnimationModel: selectedAnimation
-          .clone(), // Use a clone to force the UI to refresh the list
-      selectedScene: newAnimationItemModel, // Select Scene B
+      selectedAnimationModel: updatedAnimation.clone(),
+      selectedScene: newAnimationItemModel,
     );
+    _saveSessionState();
   }
 
   void selectScene({required AnimationItemModel scene}) {
@@ -896,6 +1012,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     ref
         .read(boardProvider.notifier)
         .updateBoardBackground(scene.boardBackground);
+    _saveSessionState();
   }
 
   /// Load external scene data directly from JSON (e.g., from parent web app)
@@ -962,18 +1079,19 @@ class AnimationController extends StateNotifier<AnimationState> {
         state.selectedAnimationCollectionModel;
     AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
     if (selectedCollectionModel != null && selectedAnimationModel != null) {
-      selectedAnimationModel.animationScenes.removeWhere(
-        (t) => t.id == scene.id,
+      // Work on CLONED lists to avoid mutating shared Riverpod state.
+      var scenes = List<AnimationItemModel>.from(
+        selectedAnimationModel.animationScenes,
       );
+      scenes.removeWhere((t) => t.id == scene.id);
 
-      // Re-index the list
-      for (var i = 0; i < selectedAnimationModel.animationScenes.length; i++) {
-        selectedAnimationModel.animationScenes[i] =
-            selectedAnimationModel.animationScenes[i].copyWith(index: i);
+      // Re-index the cloned list
+      for (var i = 0; i < scenes.length; i++) {
+        scenes[i] = scenes[i].copyWith(index: i);
       }
 
-      if (selectedAnimationModel.animationScenes.isEmpty) {
-        selectedAnimationModel.animationScenes.add(
+      if (scenes.isEmpty) {
+        scenes.add(
           AnimationItemModel(
             index: 0,
             fieldColor: BoardConstant.field_color,
@@ -987,23 +1105,215 @@ class AnimationController extends StateNotifier<AnimationState> {
           ),
         );
       }
-      int index = selectedCollectionModel.animations.indexWhere(
+
+      // Create updated animation with the new scene list
+      final updatedAnimation = selectedAnimationModel.clone();
+      updatedAnimation.animationScenes = scenes;
+
+      // Clone the collection's animation list before mutating
+      final updatedAnimations =
+          List<AnimationModel>.from(selectedCollectionModel.animations);
+      int index = updatedAnimations.indexWhere(
         (t) => t.id == selectedAnimationModel.id,
       );
       if (index != -1) {
-        selectedCollectionModel.animations[index] = selectedAnimationModel;
+        updatedAnimations[index] = updatedAnimation;
       }
+      selectedCollectionModel = AnimationCollectionModel(
+        id: selectedCollectionModel.id,
+        name: selectedCollectionModel.name,
+        userId: selectedCollectionModel.userId,
+        animations: updatedAnimations,
+        createdAt: selectedCollectionModel.createdAt,
+        updatedAt: DateTime.now(),
+        orderIndex: selectedCollectionModel.orderIndex,
+      );
+
       selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
         selectedCollectionModel,
       );
       state = state.copyWith(
         selectedAnimationCollectionModel: selectedCollectionModel,
-        selectedAnimationModel: selectedAnimationModel,
-        selectedScene: selectedAnimationModel.animationScenes.lastOrNull,
+        selectedAnimationModel: updatedAnimation,
+        selectedScene: scenes.lastOrNull,
       );
     } else {
-      BotToast.showText(text: "No animation found");
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
     }
+  }
+
+  /// Clears the current scene's components and optionally deletes all following scenes.
+  /// This is an ATOMIC operation that ensures data consistency.
+  ///
+  /// [clearFollowingScenes] - if true, also deletes all scenes after the current one
+  ///
+  /// This method:
+  /// 1. Gets the cleared components from boardProvider (already cleared by caller)
+  /// 2. Updates the current scene with empty components
+  /// 3. Optionally removes following scenes
+  /// 4. Saves everything in a single database operation
+  Future<void> clearCurrentSceneAtomic(
+      {bool clearFollowingScenes = false}) async {
+    AnimationCollectionModel? selectedCollectionModel =
+        state.selectedAnimationCollectionModel;
+    AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+    AnimationItemModel? currentScene = state.selectedScene;
+
+    if (selectedCollectionModel == null ||
+        selectedAnimationModel == null ||
+        currentScene == null) {
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
+      return;
+    }
+
+    // 1. Get the current (cleared) components from boardProvider
+    final clearedComponents =
+        ref.read(boardProvider.notifier).onAnimationSave();
+
+    // 2. Update the current scene with cleared components
+    final updatedScene = currentScene.copyWith(
+      components: clearedComponents,
+      updatedAt: DateTime.now(),
+    );
+
+    // 3. Work on CLONED scene list to avoid mutating shared Riverpod state.
+    var scenes = List<AnimationItemModel>.from(
+      selectedAnimationModel.animationScenes,
+    );
+    final currentSceneIndex = scenes.indexWhere(
+      (s) => s.id == currentScene.id,
+    );
+
+    if (currentSceneIndex == -1) {
+      BotToast.showText(align: Alignment.topCenter, text: "Scene not found in animation");
+      return;
+    }
+
+    // Update the scene in the cloned list
+    scenes[currentSceneIndex] = updatedScene;
+
+    // 4. Optionally delete following scenes
+    if (clearFollowingScenes &&
+        currentSceneIndex < scenes.length - 1) {
+      scenes.removeRange(currentSceneIndex + 1, scenes.length);
+
+      // Re-index remaining scenes
+      for (var i = 0; i < scenes.length; i++) {
+        scenes[i] = scenes[i].copyWith(index: i);
+      }
+    }
+
+    // 5. Create updated animation with new scene list (no mutation)
+    final updatedAnimation = selectedAnimationModel.clone();
+    updatedAnimation.animationScenes = scenes;
+
+    // 6. Clone collection's animation list before updating
+    final updatedAnimations =
+        List<AnimationModel>.from(selectedCollectionModel.animations);
+    final animationIndex = updatedAnimations.indexWhere(
+      (a) => a.id == selectedAnimationModel.id,
+    );
+    if (animationIndex != -1) {
+      updatedAnimations[animationIndex] = updatedAnimation;
+    }
+    selectedCollectionModel = AnimationCollectionModel(
+      id: selectedCollectionModel.id,
+      name: selectedCollectionModel.name,
+      userId: selectedCollectionModel.userId,
+      animations: updatedAnimations,
+      createdAt: selectedCollectionModel.createdAt,
+      updatedAt: DateTime.now(),
+      orderIndex: selectedCollectionModel.orderIndex,
+    );
+
+    // 7. Save to database (single atomic save)
+    selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
+      selectedCollectionModel,
+    );
+
+    // 8. Update state with the saved data
+    state = state.copyWith(
+      selectedAnimationCollectionModel: selectedCollectionModel,
+      selectedAnimationModel: updatedAnimation,
+      selectedScene: updatedScene,
+    );
+
+    final deletedCount = clearFollowingScenes
+        ? (scenes.length - currentSceneIndex - 1)
+        : 0;
+
+    if (clearFollowingScenes && deletedCount > 0) {
+      BotToast.showText(
+          align: Alignment.topCenter,
+          text: 'Scene cleared and $deletedCount following scenes deleted');
+    } else {
+      BotToast.showText(align: Alignment.topCenter, text: 'Scene cleared');
+    }
+  }
+
+  /// Deletes all scenes from the given index onwards (for clearing a scene and removing following ones)
+  /// This is used when clearing a middle scene to maintain animation continuity
+  void deleteFollowingScenes({required int fromIndex}) async {
+    AnimationCollectionModel? selectedCollectionModel =
+        state.selectedAnimationCollectionModel;
+    AnimationModel? selectedAnimationModel = state.selectedAnimationModel;
+
+    if (selectedCollectionModel == null || selectedAnimationModel == null) {
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
+      return;
+    }
+
+    // Remove all scenes from fromIndex onwards
+    final scenesToRemove = selectedAnimationModel.animationScenes
+        .where((scene) => scene.index >= fromIndex)
+        .toList();
+
+    for (final scene in scenesToRemove) {
+      selectedAnimationModel.animationScenes.removeWhere(
+        (t) => t.id == scene.id,
+      );
+    }
+
+    // Re-index the remaining scenes (should still be correct, but ensure consistency)
+    for (var i = 0; i < selectedAnimationModel.animationScenes.length; i++) {
+      selectedAnimationModel.animationScenes[i] =
+          selectedAnimationModel.animationScenes[i].copyWith(index: i);
+    }
+
+    // Ensure at least one scene exists
+    if (selectedAnimationModel.animationScenes.isEmpty) {
+      selectedAnimationModel.animationScenes.add(
+        AnimationItemModel(
+          index: 0,
+          fieldColor: BoardConstant.field_color,
+          id: RandomGenerator.generateId(),
+          components: [],
+          userId: _getUserId(),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          fieldSize: ref.read(boardProvider.notifier).fetchFieldSize() ??
+              Vector2(0, 0),
+        ),
+      );
+    }
+
+    // Update the collection with the modified animation
+    int index = selectedCollectionModel.animations.indexWhere(
+      (t) => t.id == selectedAnimationModel.id,
+    );
+    if (index != -1) {
+      selectedCollectionModel.animations[index] = selectedAnimationModel;
+    }
+
+    // Save and update state
+    selectedCollectionModel = await _saveAnimationCollectionUseCase.call(
+      selectedCollectionModel,
+    );
+    state = state.copyWith(
+      selectedAnimationCollectionModel: selectedCollectionModel,
+      selectedAnimationModel: selectedAnimationModel,
+      selectedScene: selectedAnimationModel.animationScenes.lastOrNull,
+    );
   }
 
   void deleteAnimation({required AnimationModel animation}) async {
@@ -1011,7 +1321,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         state.selectedAnimationCollectionModel;
 
     if (selectedCollectionModel == null) {
-      BotToast.showText(text: "No Collection is selected");
+      BotToast.showText(align: Alignment.topCenter, text: "No Collection is selected");
       return;
     }
 
@@ -1143,7 +1453,13 @@ class AnimationController extends StateNotifier<AnimationState> {
       defaultAnimationItems: animationItems,
       selectedScene: animationItems.first,
       defaultAnimationItemIndex: 0,
+      selectedAnimationCollectionModel: null,
+      selectedAnimationModel: null,
     );
+    // NOTE: No _saveSessionState() here — this is an initialization step,
+    // not a user navigation action. The pre-read session (for the resume
+    // toast) was already captured before this runs, so writing here would
+    // only create race conditions with user-triggered saves.
   }
 
   void changeDefaultAnimationIndex(int index) {
@@ -1153,6 +1469,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       defaultAnimationItemIndex: index,
       selectedScene: selectedScene,
     );
+    _saveSessionState();
   }
 
   Future<AnimationItemModel?> _onSaveDefault() async {
@@ -1287,9 +1604,33 @@ class AnimationController extends StateNotifier<AnimationState> {
             );
           }
 
-          // Regular user animation - use normal save
+          // If this is an admin template collection, convert it to a user
+          // copy before saving. Without this, _onAnimationSave() can't find
+          // the animation by ID in the template's list.
+          AnimationCollectionModel collectionToSave =
+              state.selectedAnimationCollectionModel!;
+          if (collectionToSave.isTemplate == true) {
+            collectionToSave = collectionToSave.copyWith(
+              animations:
+                  List<AnimationModel>.from(collectionToSave.animations),
+              userId: _getUserId(),
+            );
+            collectionToSave.isTemplate = false;
+            state = state.copyWith(
+              selectedAnimationCollectionModel: collectionToSave,
+            );
+            final collections =
+                List<AnimationCollectionModel>.from(state.animationCollections);
+            final idx =
+                collections.indexWhere((c) => c.id == collectionToSave.id);
+            if (idx != -1) {
+              collections[idx] = collectionToSave;
+              state = state.copyWith(animationCollections: collections);
+            }
+          }
+
           return await _onAnimationSave(
-            selectedCollection: state.selectedAnimationCollectionModel!,
+            selectedCollection: collectionToSave,
             selectedAnimation: state.selectedAnimationModel!,
             selectedScene: state.selectedScene!,
             showLoading: false,
@@ -1317,6 +1658,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       defaultAnimationItemIndex: defaultItems.length - 1,
       selectedScene: defaultItems.last,
     );
+    _saveSessionState();
   }
 
   void copyCurrentDefaultScene() {
@@ -1341,6 +1683,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         defaultAnimationItemIndex: index,
         selectedScene: defaultItems[index],
       );
+      _saveSessionState();
     }
   }
 
@@ -1383,6 +1726,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         defaultAnimationItemIndex: index,
         selectedScene: defaultItems[index],
       );
+      _saveSessionState();
       ref.read(boardProvider.notifier).clearItems();
     } catch (e) {}
     BotToast.cleanAll();
@@ -1515,6 +1859,167 @@ class AnimationController extends StateNotifier<AnimationState> {
     return userId;
   }
 
+  /// Persists the current navigation context to Sembast so the app can
+  /// offer "resume where you left off" on the next launch.
+  /// Fire-and-forget — never blocks, never throws.
+  /// FIX 5A: Debounced to coalesce rapid-fire calls (e.g. scene switch +
+  /// animation select + collection select all firing within one frame).
+  void _saveSessionState() {
+    _sessionSaveDebounce?.cancel();
+    _sessionSaveDebounce = async_lib.Timer(const Duration(milliseconds: 300), () {
+      try {
+        // Determine collection info — prefer the explicitly selected collection
+        // model, but fall back to the animation's collectionId when the model
+        // is null (e.g. after configureDefaultAnimations cleared it but the
+        // user then selected an animation via the sidebar).
+        String? collectionId = state.selectedAnimationCollectionModel?.id;
+        String? collectionName = state.selectedAnimationCollectionModel?.name;
+
+        if (collectionId == null && state.selectedAnimationModel != null) {
+          // Fallback 1: use animation's own collectionId field
+          final animColId = state.selectedAnimationModel!.collectionId;
+          if (animColId != null) {
+            collectionId = animColId;
+            final col = state.animationCollections.firstWhereOrNull(
+              (c) => c.id == animColId,
+            );
+            collectionName = col?.name;
+          }
+
+          // Fallback 2: search all collections to find which one owns this
+          // animation (covers admin-synced & user-created animations whose
+          // collectionId field was never set or was lost during clone).
+          if (collectionId == null) {
+            final animId = state.selectedAnimationModel!.id;
+            for (final col in state.animationCollections) {
+              if (col.animations.any((a) => a.id == animId)) {
+                collectionId = col.id;
+                collectionName = col.name;
+                break;
+              }
+            }
+          }
+        }
+
+        // If we resolved a collection OR have an animation selected, it's
+        // a collection view. Otherwise it's a default-screen view.
+        final isCollectionView =
+            collectionId != null || state.selectedAnimationModel != null;
+
+        final sessionState = SessionStateModel(
+          navigationType: isCollectionView
+              ? SessionNavigationType.collection
+              : SessionNavigationType.defaultScreen,
+          defaultAnimationItemIndex: state.defaultAnimationItemIndex,
+          selectedCollectionId: collectionId,
+          selectedCollectionName: collectionName,
+          selectedAnimationId: state.selectedAnimationModel?.id,
+          selectedAnimationName: state.selectedAnimationModel?.name,
+          selectedSceneId: state.selectedScene?.id,
+          savedAt: DateTime.now(),
+        );
+
+        SessionStateService.save(sessionState);
+      } catch (_) {}
+    });
+  }
+
+  /// Restores navigation to a previously saved session state.
+  /// Returns true if restoration was successful.
+  bool restoreFromSessionState(SessionStateModel sessionState) {
+    try {
+      switch (sessionState.navigationType) {
+        case SessionNavigationType.collection:
+          return _restoreCollectionView(sessionState);
+        case SessionNavigationType.defaultScreen:
+          return _restoreDefaultScreen(sessionState);
+      }
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _restoreCollectionView(SessionStateModel sessionState) {
+    if (sessionState.selectedCollectionId == null) return false;
+
+    var collection = state.animationCollections.firstWhereOrNull(
+      (c) => c.id == sessionState.selectedCollectionId,
+    );
+    if (collection == null) return false;
+
+    // If restoring an admin template, apply copy-on-write so the user
+    // can edit without hitting "No animation found" errors on save.
+    if (collection.isTemplate == true) {
+      collection = collection.copyWith(
+        animations: List<AnimationModel>.from(collection.animations),
+        userId: _getUserId(),
+      );
+      collection.isTemplate = false;
+      final collections =
+          List<AnimationCollectionModel>.from(state.animationCollections);
+      final idx = collections.indexWhere((c) => c.id == collection!.id);
+      if (idx != -1) {
+        collections[idx] = collection;
+        state = state.copyWith(animationCollections: collections);
+      }
+    }
+
+    AnimationModel? animation;
+    if (sessionState.selectedAnimationId != null) {
+      animation = collection.animations.firstWhereOrNull(
+        (a) => a.id == sessionState.selectedAnimationId,
+      );
+    }
+    // If no specific animation found, fall back to the first one
+    animation ??= collection.animations.firstOrNull;
+
+    if (animation == null) {
+      selectAnimationCollection(collection, skipSessionSave: true);
+      _saveSessionState();
+      return true;
+    }
+
+    // Restore step 1: Select collection + animation
+    selectAnimationCollection(
+      collection,
+      animationSelect: animation,
+      changeSelectedScene: animation.animationScenes.isNotEmpty,
+      skipSessionSave: true,
+    );
+
+    // Restore step 2: Navigate to the specific scene if saved
+    if (sessionState.selectedSceneId != null &&
+        animation.animationScenes.isNotEmpty) {
+      final scene = animation.animationScenes.firstWhereOrNull(
+        (s) => s.id == sessionState.selectedSceneId,
+      );
+      if (scene != null) {
+        state = state.copyWith(selectedScene: scene);
+      }
+    }
+
+    // Update board background to match the restored scene
+    final restoredScene = state.selectedScene;
+    if (restoredScene != null) {
+      ref.read(boardProvider.notifier).updateBoardBackground(
+        restoredScene.boardBackground,
+      );
+    }
+
+    // Save the final restored state
+    _saveSessionState();
+    return true;
+  }
+
+  bool _restoreDefaultScreen(SessionStateModel sessionState) {
+    final idx = sessionState.defaultAnimationItemIndex;
+    if (idx > 0 && idx < state.defaultAnimationItems.length) {
+      changeDefaultAnimationIndex(idx);
+      return true;
+    }
+    return false;
+  }
+
   Future<void> _saveToHistory({required AnimationItemModel scene}) async {
     try {
       HistoryModel? historyModel = await _getHistoryUseCase.call(scene.id);
@@ -1633,10 +2138,6 @@ class AnimationController extends StateNotifier<AnimationState> {
     bool showLoading = true,
     bool saveToDb = true,
   }) async {
-    print('📝 _onAnimationSaveAdmin START');
-    BotToast.showText(
-        text: '📝 _onAnimationSaveAdmin START', duration: Duration(seconds: 3));
-
     List<FieldItemModel> components =
         ref.read(boardProvider.notifier).onAnimationSave();
 
@@ -1649,39 +2150,27 @@ class AnimationController extends StateNotifier<AnimationState> {
     if (sceneIndex != -1) {
       selectedAnimation.animationScenes[sceneIndex] = selectedScene;
 
-      BotToast.showText(
-          text: '💾 Calling repository.saveDefaultAnimation...',
-          duration: Duration(seconds: 3));
-
       selectedAnimation = await _defaultAnimationRepository
           .saveDefaultAnimation(selectedAnimation);
-
-      BotToast.showText(
-          text: '✅ Repository save returned!', duration: Duration(seconds: 3));
 
       state = state.copyWith(
         selectedAnimationModel: selectedAnimation,
         selectedScene: selectedScene,
       );
     } else {
-      BotToast.showText(text: "No scene found!!");
+      BotToast.showText(align: Alignment.topCenter, text: "No scene found!!");
     }
     return null;
   }
 
   triggerAutoSaveForAdmin() {
-    BotToast.showText(
-        text: '🎯 triggerAutoSaveForAdmin CALLED',
-        duration: Duration(seconds: 3));
     try {
       _onAnimationSaveAdmin(
         selectedAnimation: state.selectedAnimationModel!,
         selectedScene: state.selectedScene!,
       );
     } catch (e) {
-      BotToast.showText(
-          text: '❌ Error in triggerAutoSaveForAdmin: $e',
-          duration: Duration(seconds: 5));
+      zlog(data: "Error in triggerAutoSaveForAdmin: $e", level: Level.error);
     }
   }
 
@@ -1713,7 +2202,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
     } else {
       zlog(data: "Coming here for no animation found");
-      BotToast.showText(text: "No animation found");
+      BotToast.showText(align: Alignment.topCenter, text: "No animation found");
     }
   }
 
@@ -1969,7 +2458,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     // Prevent editing the name of the default "Other" collection
     if (collection.id ==
         DefaultAnimationConstants.default_animation_collection_id) {
-      BotToast.showText(text: "The default collection cannot be renamed.");
+      BotToast.showText(align: Alignment.topCenter, text: "The default collection cannot be renamed.");
       return;
     }
 
@@ -1978,7 +2467,7 @@ class AnimationController extends StateNotifier<AnimationState> {
         state.animationCollections.where((c) => c.id != collection.id);
     if (otherCollections
         .any((c) => c.name.toLowerCase() == newName.toLowerCase())) {
-      BotToast.showText(text: "A collection with this name already exists.");
+      BotToast.showText(align: Alignment.topCenter, text: "A collection with this name already exists.");
       return;
     }
 
@@ -2017,7 +2506,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       );
     } catch (e) {
       zlog(data: "Failed to edit collection name: $e");
-      BotToast.showText(text: "Error updating collection.");
+      BotToast.showText(align: Alignment.topCenter, text: "Error updating collection.");
     } finally {
       BotToast.cleanAll();
     }
@@ -2028,7 +2517,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   //   // Prevent deleting the default "Other" collection
   //   if (collectionToDelete.id ==
   //       DefaultAnimationConstants.default_animation_collection_id) {
-  //     BotToast.showText(text: "The default collection cannot be deleted.");
+  //     BotToast.showText(align: Alignment.topCenter, text: "The default collection cannot be deleted.");
   //     return;
   //   }
   //
@@ -2049,7 +2538,7 @@ class AnimationController extends StateNotifier<AnimationState> {
   //     }
   //   } catch (e) {
   //     zlog(data: "Failed to delete collection: $e");
-  //     BotToast.showText(text: "Error deleting collection.");
+  //     BotToast.showText(align: Alignment.topCenter, text: "Error deleting collection.");
   //   } finally {
   //     BotToast.cleanAll();
   //   }
@@ -2062,7 +2551,7 @@ class AnimationController extends StateNotifier<AnimationState> {
     // Prevent deleting the default "Other" collection
     if (collectionToDelete.id ==
         DefaultAnimationConstants.default_animation_collection_id) {
-      BotToast.showText(text: "The default collection cannot be deleted.");
+      BotToast.showText(align: Alignment.topCenter, text: "The default collection cannot be deleted.");
       return;
     }
 
@@ -2095,7 +2584,7 @@ class AnimationController extends StateNotifier<AnimationState> {
       state = state.copyWith(animationCollections: updatedCollections);
     } catch (e) {
       zlog(data: "Failed to delete collection: $e");
-      BotToast.showText(text: "Error deleting collection.");
+      BotToast.showText(align: Alignment.topCenter, text: "Error deleting collection.");
     } finally {
       BotToast.cleanAll();
     }

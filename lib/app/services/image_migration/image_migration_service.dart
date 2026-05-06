@@ -171,17 +171,22 @@ class ImageMigrationService {
         playerId: playerId,
       );
 
-      // Update player model with new imagePath
+      // Update player model with new imagePath and CLEAR base64
+      // Base64 is cleared because:
+      // 1. URL is now the source of truth
+      // 2. Prevents large payloads if this player syncs to Firestore
+      // 3. Saves local storage space
       final updatedPlayer = player.copyWith(
         imagePath: downloadUrl,
-        // Keep base64 for now as fallback (will clean up in Phase 3)
-        // imageBase64: '', // Commented out for safety
+        imageBase64: null, // Clear base64 after successful upload
       );
 
       // Save updated player to database
       await PlayerUtilsV2.updatePlayerInDb(updatedPlayer);
 
-      zlog(data: '[ImageMigration] Migrated $playerId to $downloadUrl');
+      zlog(
+          data:
+              '[ImageMigration] Migrated $playerId to $downloadUrl (base64 cleared)');
     } catch (e, stack) {
       zlog(data: '[ImageMigration] Upload failed for $playerId: $e\n$stack');
       rethrow;

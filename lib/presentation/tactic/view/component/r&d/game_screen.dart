@@ -71,10 +71,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   // bool _showTrajectoryToolbar = false;
   // String? _selectedComponentId;
 
+  // On iOS, use lower resolution and skip frames to reduce memory pressure
+  // and prevent crashes at ~20% progress (ZPAD-513).
+  // iOS has stricter per-app memory limits than Android.
   final WidgetCaptureXPlusController _widgetCaptureXPlusController =
       WidgetCaptureXPlusController(
-          outputBaseFileName:
-              FileNameGenerator.generateZporterCaptureFilename());
+    outputBaseFileName: FileNameGenerator.generateZporterCaptureFilename(),
+    pixelRatio: Platform.isIOS ? 0.75 : 1.0,
+    skipFramesBetweenCaptures: Platform.isIOS ? 1 : 0,
+    targetOutputFps: Platform.isIOS ? 12.0 : 15.0,
+  );
 
   final closeButtonColor = Colors.grey[300];
   final closeButtonBackgroundColor = Colors.black;
@@ -123,19 +129,26 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (oldWidget.scene?.id != widget.scene?.id) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          // Lock auto-save during the entire scene-switch window.
+          // The unlock happens inside createTacticBoardIfNecessary AFTER
+          // the new TacticBoard is fully created (next frame), not here.
+          tacticBoardGame?.isLoadingScene = true;
+          resetBoardComparator();
           ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
           updateTacticBoardIfNecessary(widget.scene);
+          // NOTE: isLoadingScene is unlocked in createTacticBoardIfNecessary
         }
       });
     } else {
-      // Your existing logic for undo/redo
       WidgetsBinding.instance.addPostFrameCallback((t) {
         if (!mounted) return;
         if (ref.read(animationProvider).isPerformingUndo == true) {
-          // For undo, you may also need to re-seed from the new scene
+          tacticBoardGame?.isLoadingScene = true;
+          resetBoardComparator();
           ref.read(boardProvider.notifier).initializeFromScene(widget.scene);
           updateTacticBoardIfNecessary(widget.scene);
           ref.read(animationProvider.notifier).toggleUndo(undo: false);
+          // NOTE: isLoadingScene is unlocked in createTacticBoardIfNecessary
         }
       });
     }
@@ -248,6 +261,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               );
           gameInitialized = true;
         }
+
+        // Unlock auto-save now that the new board is fully created.
+        // This was previously in didUpdateWidget BEFORE this callback ran,
+        // leaving a timing gap where the old TacticBoard's auto-save could fire.
+        tacticBoardGame?.isLoadingScene = false;
       });
     });
   }
@@ -283,13 +301,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           .read(animationProvider.notifier)
           .setRecordingAnimation(isRecording: false);
       BotToast.showText(
+          align: Alignment.topCenter,
           text: "Failed to start video recording. Please try again.");
-      // Ensure state is reset if recording fails to start.
-      // The caller (onShare) will handle resetting boardProvider state.
       return null;
     }
 
-    RecordingOutput? dialogResult = await showDialog<RecordingOutput?>(
+    // FIX 6B: Outer try/finally guarantees recording flag is ALWAYS reset,
+    // even if showDialog itself throws an unexpected error.
+    RecordingOutput? dialogResult;
+    try {
+      dialogResult = await showDialog<RecordingOutput?>(
       context: context,
       barrierColor: ColorManager.black,
       barrierDismissible: false,
@@ -426,7 +447,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     }
                     _exportProgressNotifier.value = 0.0; // Reset notifiers
                     _isFinalizingVideoNotifier.value = false;
-                    BotToast.showText(text: "Video export cancelled by user.");
+                    BotToast.showText(align: Alignment.topCenter, text: "Video export cancelled by user.");
                     // The boardProvider state will be reset by the caller (onShare)
                   },
                 );
@@ -439,10 +460,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     // Cleanup _currentExportDialogContext after showDialog completes (either by pop or future completion)
     _currentExportDialogContext = null;
-    _isFinalizingVideoNotifier.value = false; // Ensure this is reset
+    _isFinalizingVideoNotifier.value = false;
+    } finally {
+      // FIX 6B: Safety net — if showDialog threw or the dialog's internal
+      // finally blocks were somehow bypassed, ensure recording flag is off.
+      // This is idempotent (calling setRecordingAnimation(false) when already
+      // false is a no-op via state comparison).
+      ref
+          .read(animationProvider.notifier)
+          .setRecordingAnimation(isRecording: false);
+    }
 
-    // If dialogResult is null here, it means it was popped with null (cancel/error) or an issue occurred.
-    // If export was still marked active in provider, onShare will clean it up.
     zlog(data: "showDialog completed. Returning: ${dialogResult?.filePath}");
     return dialogResult;
   }
@@ -819,6 +847,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           .selectedAnimationModel;
                                       if (isBoardBusy(bp)) {
                                         BotToast.showText(
+                                            align: Alignment.topCenter,
                                             text:
                                                 "Please wait for the current operation to complete.");
                                         return;
@@ -915,11 +944,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           } else if (finalOutput != null &&
                                               !finalOutput.success) {
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export failed: ${finalOutput.errorMessage ?? 'Unknown error.'}");
                                           } else {
                                             // finalOutput is null
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export was cancelled or did not complete.");
                                           }
@@ -932,6 +963,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           .selectedAnimationModel;
                                       if (isBoardBusy(bp)) {
                                         BotToast.showText(
+                                            align: Alignment.topCenter,
                                             text:
                                                 "Please wait for the current operation to complete.");
                                         return;
@@ -1010,11 +1042,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           } else if (finalOutput != null &&
                                               !finalOutput.success) {
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export failed: ${finalOutput.errorMessage ?? 'Unknown error.'}");
                                           } else {
                                             // finalOutput is null
                                             BotToast.showText(
+                                                align: Alignment.topCenter,
                                                 text:
                                                     "Video export was cancelled or did not complete.");
                                           }
@@ -1236,6 +1270,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     // Show result
     if (mounted) {
       BotToast.showText(
+        align: Alignment.topCenter,
         text: shouldProceed
             ? '✅ User chose to proceed anyway'
             : '❌ User cancelled',

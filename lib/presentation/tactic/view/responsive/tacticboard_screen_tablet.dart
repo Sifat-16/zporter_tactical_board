@@ -17,6 +17,8 @@ import 'package:zporter_tactical_board/app/manager/color_manager.dart';
 import 'package:zporter_tactical_board/app/services/injection_container.dart';
 import 'package:zporter_tactical_board/app/services/js_interop/js_interop.dart';
 import 'package:zporter_tactical_board/app/services/storage/image_storage_service.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_model.dart';
+import 'package:zporter_tactical_board/app/services/session/session_state_service.dart';
 import 'package:zporter_tactical_board/app/services/sync/sync_queue_manager.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_collection_model.dart';
 import 'package:zporter_tactical_board/data/animation/model/animation_item_model.dart';
@@ -106,6 +108,7 @@ class _TacticboardScreenTabletState
           zlog(data: "Tutorial: New scene added successfully.");
         } else {
           BotToast.showText(
+            align: Alignment.topCenter,
             text: "Cannot add new scene: No current scene selected.",
           );
           zlog(
@@ -113,7 +116,7 @@ class _TacticboardScreenTabletState
           );
         }
       } catch (e) {
-        BotToast.showText(text: "Error adding new scene: $e");
+        BotToast.showText(align: Alignment.topCenter, text: "Error adding new scene: $e");
         zlog(data: "Tutorial: Error adding new scene - $e");
       }
     }
@@ -205,38 +208,46 @@ class _TacticboardScreenTabletState
   }
 
   Future<void> _initialLoadAndSelect() async {
+    // Read the saved session state BEFORE getAllCollections() runs,
+    // because getAllCollections → selectAnimationCollection → _saveSessionState()
+    // will overwrite the persisted session before the toast can read it.
+    SessionStateModel? savedSessionState;
     try {
-      print(
-          "[_initialLoadAndSelect] Starting initialization - userId: ${widget.userId}");
+      savedSessionState = await SessionStateService.get();
+    } catch (_) {}
 
+    try {
       // Mark as not initialized during load
       setState(() {
         _isInitialized = false;
       });
 
       // 1. Fetch all collections and animations for the user first.
-      print("[_initialLoadAndSelect] Calling getAllCollections...");
-      await ref.read(animationProvider.notifier).getAllCollections();
-
-      print("[_initialLoadAndSelect] Collections loaded successfully");
+      // If this takes longer than 10 seconds (Firebase down, Sembast lock, etc.),
+      // the timeout fires and we continue with whatever state we have.
+      // CRITICAL: After timeout, force the loading flag off — getAllCollections()
+      // may still be running in the background but the UI must not stay stuck.
+      await ref
+          .read(animationProvider.notifier)
+          .getAllCollections()
+          .timeout(const Duration(seconds: 10), onTimeout: () {
+        zlog(data: "getAllCollections() timed out after 10s — forcing loading flag off");
+        ref
+            .read(animationProvider.notifier)
+            .forceStopLoading();
+      });
 
       // After fetching, the state is now populated. Get the list of collections.
       final collections = ref.read(animationProvider).animationCollections;
 
-      print("[_initialLoadAndSelect] Found ${collections.length} collections");
-
       // EXERCISE NAME HANDLING: If exerciseName is provided, find or create "Exercises" collection
       if (widget.exerciseName != null && widget.exerciseName!.isNotEmpty) {
-        print(
-            "[_initialLoadAndSelect] Exercise name provided: ${widget.exerciseName}");
         await _handleExerciseNameFlow(collections);
         return;
       }
 
       // 2. Check if a specific collectionId was passed from the URL.
       if (widget.collectionId != null && collections.isNotEmpty) {
-        print(
-            "[_initialLoadAndSelect] Looking for collection: ${widget.collectionId}");
 
         // Find the collection that matches the provided ID.
         final targetCollection = collections.firstWhere(
@@ -259,39 +270,77 @@ class _TacticboardScreenTabletState
               animationSelect: targetAnimation,
             );
 
-        print("[_initialLoadAndSelect] Collection selected successfully");
-
         return; // Exit after successful selection.
       }
 
       // 5. If no specific IDs were passed or found, run the default startup.
-      print("[_initialLoadAndSelect] Loading default animations");
       await ref.read(animationProvider.notifier).configureDefaultAnimations();
-      print("[_initialLoadAndSelect] Default animations loaded");
     } catch (e, s) {
-      print("[_initialLoadAndSelect] ERROR: $e");
-      print("[_initialLoadAndSelect] STACK: $s");
-
       // Fallback to default animations in case of any error.
       try {
         await ref.read(animationProvider.notifier).configureDefaultAnimations();
-        print("[_initialLoadAndSelect] Recovered with default animations");
-      } catch (fallbackError) {
-        print(
-            "[_initialLoadAndSelect] CRITICAL: Failed to load defaults: $fallbackError");
-      }
+      } catch (_) {}
     } finally {
       // Mark as initialized after everything is done
       if (mounted) {
+        // Safety net: ensure loading flag is off no matter what happened above.
+        // Without this, a failed/timed-out getAllCollections() leaves
+        // isLoadingAnimationCollections=true and the loader spins forever.
+        ref.read(animationProvider.notifier).forceStopLoading();
+
         // Wait for next frame to ensure provider state has fully propagated
         await Future.delayed(Duration.zero);
 
         setState(() {
           _isInitialized = true;
         });
-        print(
-            "[_initialLoadAndSelect] Initialization complete - marked as ready");
+
+        // Show resume toast AFTER the board is fully visible
+        _showResumeToastIfNeeded(savedSessionState);
       }
+    }
+  }
+
+  /// Shows a non-blocking toast at the top-right if there is a saved session.
+  /// The board is already loaded and visible — this is purely optional.
+  /// [preReadState] is the session state read BEFORE getAllCollections() ran,
+  /// because getAllCollections overwrites the persisted session during startup.
+  void _showResumeToastIfNeeded(SessionStateModel? preReadState) {
+    try {
+      // Only offer resume on the default startup path (no deep-link IDs)
+      if (widget.collectionId != null ||
+          widget.animationId != null ||
+          (widget.exerciseName != null && widget.exerciseName!.isNotEmpty)) {
+        return;
+      }
+
+      final sessionState = preReadState;
+      if (sessionState == null ||
+          !sessionState.hasMeaningfulContext ||
+          !sessionState.isRecent) {
+        return;
+      }
+
+      if (!mounted) return;
+
+      BotToast.showCustomNotification(
+        duration: const Duration(seconds: 12),
+        align: const Alignment(1.0, -1.0),
+        toastBuilder: (cancelFunc) {
+          return _ResumeToast(
+            sessionState: sessionState,
+            onResume: () {
+              cancelFunc();
+              ref
+                  .read(animationProvider.notifier)
+                  .restoreFromSessionState(sessionState);
+            },
+            onDismiss: cancelFunc,
+          );
+        },
+      );
+    } catch (e) {
+      // Never block the board for a resume toast failure
     }
   }
 
@@ -434,7 +483,7 @@ class _TacticboardScreenTabletState
       if (selectedCollection == null ||
           selectedAnimation == null ||
           selectedScene == null) {
-        BotToast.showText(text: "No animation data to save");
+        BotToast.showText(align: Alignment.topCenter, text: "No animation data to save");
         return;
       }
 
@@ -468,6 +517,7 @@ class _TacticboardScreenTabletState
             data:
                 "❌ ERROR: Firestore sync failed after ${syncDuration.inSeconds} seconds: $syncError");
         BotToast.showText(
+            align: Alignment.topCenter,
             text:
                 "Saved locally - cloud sync failed. Will retry automatically.");
         // Don't throw - data is safe in local storage and will retry
@@ -520,10 +570,10 @@ class _TacticboardScreenTabletState
           data:
               "Save completed - collectionId: ${selectedCollection.id}, animationId: ${selectedAnimation.id}, thumbnailUrl: $thumbnailUrl");
 
-      BotToast.showText(text: "Tactical board saved successfully");
+      BotToast.showText(align: Alignment.topCenter, text: "Tactical board saved successfully");
     } catch (e, s) {
       zlog(data: "Error saving tactical board: $e\n$s");
-      BotToast.showText(text: "Failed to save tactical board");
+      BotToast.showText(align: Alignment.topCenter, text: "Failed to save tactical board");
 
       // Even on error, try to set a result so React doesn't timeout
       final ap = ref.read(animationProvider);
@@ -561,9 +611,6 @@ class _TacticboardScreenTabletState
     final ap = ref.watch(animationProvider);
     final AnimationItemModel? selectedScene = ap.selectedScene;
 
-    print(
-        "Build called - initialized: $_isInitialized, loading: ${ap.isLoadingAnimationCollections}, scene: ${selectedScene?.id}");
-
     _leftPanelWidth = context.widthPercent(25);
     _rightPanelWidth = context.widthPercent(25);
 
@@ -571,7 +618,6 @@ class _TacticboardScreenTabletState
     if (!_isInitialized ||
         ap.isLoadingAnimationCollections ||
         selectedScene == null) {
-      print("Showing loading screen - waiting for initialization");
       return const Scaffold(
         backgroundColor: ColorManager.black,
         body: Center(
@@ -579,8 +625,6 @@ class _TacticboardScreenTabletState
         ),
       );
     }
-
-    print("Rendering tactical board UI - initialization complete");
 
     // PLAYER MODE: Show only the game screen with animation controls
     if (widget.isPlayerMode) {
@@ -996,7 +1040,7 @@ class _TacticboardScreenTabletState
                                 ref
                                     .read(animationProvider.notifier)
                                     .copyCurrentDefaultScene();
-                                BotToast.showText(text: "Scene Copied");
+                                BotToast.showText(align: Alignment.topCenter, text: "Scene Copied");
                               },
                               child: Icon(
                                 Icons.copy,
@@ -1074,6 +1118,95 @@ class _TacticboardScreenTabletState
         child: GameScreen(
           key: ValueKey('game_screen_$_resizeCounter'),
           scene: selectedScene,
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact, non-blocking toast widget shown at the top-right of the field.
+/// Auto-dismisses after a few seconds. Tapping "Resume" restores the session.
+class _ResumeToast extends StatelessWidget {
+  final SessionStateModel sessionState;
+  final VoidCallback onResume;
+  final VoidCallback onDismiss;
+
+  const _ResumeToast({
+    required this.sessionState,
+    required this.onResume,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, right: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 300),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: ColorManager.dark1,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: ColorManager.grey.withValues(alpha: 0.3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.history, color: ColorManager.blue, size: 18),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  sessionState.displaySummary,
+                  style: const TextStyle(
+                    color: ColorManager.white,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: onResume,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: ColorManager.blue,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Resume',
+                    style: TextStyle(
+                      color: ColorManager.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: onDismiss,
+                child: const Icon(
+                  Icons.close,
+                  color: ColorManager.grey,
+                  size: 16,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

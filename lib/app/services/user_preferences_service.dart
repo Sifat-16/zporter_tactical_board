@@ -19,7 +19,7 @@ class UserPreferencesService {
 
   // Default colors
   static const Color _defaultHomeColor = Color(0xFF2196F3); // Blue
-  static const Color _defaultAwayColor = Color(0xFFF44336); // Red
+  static const Color _defaultAwayColor = Color(0xFF974AC8); // Purple/Pink (Away Team)
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 

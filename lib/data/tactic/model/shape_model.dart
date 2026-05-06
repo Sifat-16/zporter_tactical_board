@@ -31,7 +31,7 @@ abstract class ShapeModel extends FieldItemModel {
     required super.scaleSymmetrically,
     super.createdAt,
     super.updatedAt,
-
+    super.zIndex,
     required this.name,
     required this.imagePath,
 
@@ -44,13 +44,13 @@ abstract class ShapeModel extends FieldItemModel {
   // We can add common serialization logic here if desired.
   @override
   Map<String, dynamic> toJson() => {
-    ...super.toJson(), // Include base fields
-    'fillColor': fillColor?.toARGB32(),
-    'strokeWidth': strokeWidth,
-    'name': name,
-    'imagePath': imagePath,
-    // 'strokeColor' is saved as 'color' in super.toJson()
-  };
+        ...super.toJson(), // Include base fields
+        'fillColor': fillColor?.toARGB32(),
+        'strokeWidth': strokeWidth,
+        'name': name,
+        'imagePath': imagePath,
+        // 'strokeColor' is saved as 'color' in super.toJson()
+      };
 
   // copyWith needs to be implemented by subclasses to return the correct type
   @override
@@ -67,6 +67,7 @@ abstract class ShapeModel extends FieldItemModel {
     Vector2? size,
     Color? color, // Represents strokeColor
     double? opacity,
+    int? zIndex,
     // Shape fields
     Color? fillColor,
     double? strokeWidth,

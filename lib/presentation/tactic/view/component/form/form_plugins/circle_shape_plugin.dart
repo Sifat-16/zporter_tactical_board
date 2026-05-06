@@ -135,6 +135,11 @@ class CircleShapeDrawerComponent extends PositionComponent
           "Circle ${circleModel.id}: Cloned internal model: ${_internalCircle.toJson()}",
     );
 
+    // Set priority from model's zIndex for persistence across reloads
+    if (circleModel.zIndex != null) {
+      priority = circleModel.zIndex!;
+    }
+
     position = SizeHelper.getBoardActualVector(
       gameScreenSize: game.gameField.size,
       actualPosition: _internalCircle.center,

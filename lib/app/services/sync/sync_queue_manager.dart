@@ -223,11 +223,14 @@ class SyncQueueManager {
       zlog(
         level: Level.info,
         data:
-            '🚀 Processing sync queue: ${snapshots.length} operations in parallel',
+            '🔄 Processing sync queue: ${snapshots.length} operations',
       );
 
-      // Process all operations in parallel using Future.wait()
-      final futures = snapshots.map((snapshot) async {
+      // Group operations by collectionId. Within the same collection,
+      // operations must run sequentially to prevent race conditions
+      // (ZPAD-634). Different collections can sync in parallel.
+      final groupedByCollection = <String, List<(int, SyncOperation)>>{};
+      for (final snapshot in snapshots) {
         try {
           final operation = SyncOperation.fromJson(snapshot.value);
 
@@ -235,21 +238,38 @@ class SyncQueueManager {
           if (operation.status == SyncOperationStatus.processing ||
               operation.status == SyncOperationStatus.completed ||
               !operation.isReadyToRetry) {
-            return;
+            continue;
           }
 
-          // Process the operation
-          await _processOperation(db, snapshot.key, operation);
+          groupedByCollection
+              .putIfAbsent(operation.collectionId, () => [])
+              .add((snapshot.key, operation));
         } catch (e, stackTrace) {
           zlog(
             level: Level.error,
             data:
-                'Error processing sync operation ${snapshot.key}: $e\n$stackTrace',
+                'Error parsing sync operation ${snapshot.key}: $e\n$stackTrace',
           );
+        }
+      }
+
+      // Process each collection's operations: sequential within a
+      // collection, parallel across different collections.
+      final futures = groupedByCollection.entries.map((entry) async {
+        for (final (key, operation) in entry.value) {
+          try {
+            await _processOperation(db, key, operation);
+          } catch (e, stackTrace) {
+            zlog(
+              level: Level.error,
+              data:
+                  'Error processing sync operation $key: $e\n$stackTrace',
+            );
+            // Continue with next operation in this collection
+          }
         }
       }).toList();
 
-      // Wait for all operations to complete
       await Future.wait(futures);
 
       // Update status after processing
@@ -390,16 +410,20 @@ class SyncQueueManager {
             throw Exception('Collection not found: ${operation.collectionId}'),
       );
 
-      // CRITICAL FIX: Migrate images before uploading to Firestore
-      // This ensures base64 images convert to Firebase Storage URLs during sync
+      // Migrate images: convert base64 to Firebase Storage URLs where possible.
+      // Returns a copy with successful migrations applied. Failed migrations
+      // keep their base64 intact (so local data is never lost).
       final migratedCollection = await _migrateCollectionImages(collection);
 
-      // Save to remote (Firestore) with URLs instead of base64
+      // Save to remote (Firestore) — strip any remaining base64 to avoid
+      // large documents. Only URLs survive in Firestore.
+      final firestoreCopy = _stripBase64ForFirestore(migratedCollection);
       await _remoteDataSource.saveAnimationCollection(
-        animationCollectionModel: migratedCollection,
+        animationCollectionModel: firestoreCopy,
       );
 
-      // Update local Sembast with migrated URLs to stay in sync
+      // Save to local Sembast WITH base64 intact for players whose upload
+      // failed. This ensures images aren't permanently lost.
       await _localDataSource.saveAnimationCollection(
         animationCollectionModel: migratedCollection,
       );
@@ -515,6 +539,39 @@ class SyncQueueManager {
     return migratedAnimations;
   }
 
+  /// Creates a Firestore-safe copy by stripping base64 from all player
+  /// components. This ensures Firestore documents stay small. The caller
+  /// must save the ORIGINAL (non-stripped) copy to local Sembast so
+  /// images aren't permanently lost when uploads fail.
+  AnimationCollectionModel _stripBase64ForFirestore(
+    AnimationCollectionModel collection,
+  ) {
+    final strippedAnimations = collection.animations.map((animation) {
+      final strippedScenes = animation.animationScenes.map((scene) {
+        final strippedComponents = scene.components.map((component) {
+          if (component is PlayerModel && component.hasBase64Image) {
+            return component.copyWith(imageBase64: null);
+          }
+          return component;
+        }).toList();
+        return scene.copyWith(components: strippedComponents);
+      }).toList();
+      final cloned = animation.clone();
+      cloned.animationScenes = strippedScenes;
+      return cloned;
+    }).toList();
+
+    return AnimationCollectionModel(
+      id: collection.id,
+      name: collection.name,
+      userId: collection.userId,
+      animations: strippedAnimations,
+      createdAt: collection.createdAt,
+      updatedAt: collection.updatedAt,
+      orderIndex: collection.orderIndex,
+    );
+  }
+
   /// Migrate collection images from base64 to Firebase Storage URLs
   /// This is the CRITICAL FIX that ensures images upload during sync
   Future<AnimationCollectionModel> _migrateCollectionImages(
@@ -599,12 +656,16 @@ class SyncQueueManager {
                 } else {
                   print(
                       '[SyncQueue] Failed to convert base64 to bytes for player ${component.id}');
+                  // Conversion failed — keep base64 intact so the image isn't
+                  // permanently lost. ImageMigrationService will retry later.
+                  // The Firestore-specific stripping happens below in the save step.
                 }
               } catch (e, stackTrace) {
                 print(
-                    '[SyncQueue] ❌ Failed to migrate player image ${component.id}: $e\n$stackTrace. Keeping base64 as fallback.');
-                // Keep original component with base64 - don't fail entire sync
-                // This handles cases where upload fails due to network issues
+                    '[SyncQueue] ❌ Failed to migrate player image ${component.id}: $e\n$stackTrace');
+                // Upload failed — keep base64 intact in the model.
+                // The local Sembast copy preserves the image data.
+                // ImageMigrationService will retry the upload in background.
               }
             }
           }
